@@ -36,41 +36,41 @@ jobs:
 
       # Paso 5: Instalar dependencias PHP (opcional)
       - name: 📦 Instalar dependencias
-        #run: composer install --optimize-autoloader --no-dev
         run: composer install --optimize-autoloader
 
-      - name: 📂 Deploy all files
-          uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-          with:
-            server: ${{ secrets.FTP_SERVER }}
-            username: ${{ secrets.FTP_USERNAME }}
-            password: ${{ secrets.FTP_PASSWORD }}
-            server-dir: /
-            local-dir: ./
-            protocol: ftps
-            port: 21
-            security: strict
-            timeout: 300000
-            dangerous-clean-slate: true  # Reduces parallel uploads
+      # Paso 6: Desplegar archivos via FTP
+      - name: 📂 Desplegar todos los archivos
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: /
+          local-dir: ./
+          protocol: ftps
+          port: 21
+          security: strict
+          timeout: 300000
+
 
       # Paso 7: Configurar el archivo .env desde los secretos
       - name: Setup environment file
         run: |
           echo "Setting up .env from secrets..."
           echo "${{ secrets.ENV_CONTENT }}" > .env
-          cat .env # Para depurar y verificar el contenido del .env
+          cat .env
 
-       # Paso 8: Habilitar depuración de Laravel
+      # Paso 8: Habilitar depuración de Laravel
       - name: Enable Laravel debug
         run: |
           echo "APP_DEBUG=true" >> .env
-          sed -i 's/APP_DEBUG=.*/APP_DEBUG=true/' .env # Asegúrate de que APP_DEBUG sea true para ver los errores en el entorno de producción
+          sed -i 's/APP_DEBUG=.*/APP_DEBUG=true/' .env
 
       # Paso 9: Configurar permisos de directorios
       - name: Set directory permissions
         run: chmod -R 775 storage bootstrap/cache
 
-      # Paso 10: Verificar si el archivo .env está cargado correctamente
+      # Paso 10: Verificar .env
       - name: Check .env setup
         run: |
           echo "Verifying .env configuration..."
@@ -80,12 +80,10 @@ jobs:
           php artisan config:cache
           php artisan storage:link
 
-      # Paso 11: Verificar las variables de entorno en Laravel (opcional)
+      # Paso 11: Verificar variables de entorno (opcional)
       - name: Test .env variables
         run: |
           curl https://zonix-eat.uniblockweb.com/api/env-test
-
-
 
 # name: Publish Website to CPanel
 # on:
