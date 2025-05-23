@@ -44,7 +44,11 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          target: "./"
+          server-dir: /
+          local-dir: ./public/  # Or your build directory
+          protocol: ftps
+          port: 21
+          security: implicit
 
       # Paso 7: Configurar el archivo .env desde los secretos
       - name: Setup environment file
