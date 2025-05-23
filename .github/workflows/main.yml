@@ -1,4 +1,4 @@
-name: 🚀 Despliegue Automático FTP
+name: 🚀 Despliegue Automático Completox
 
 on:
   push:
@@ -7,11 +7,11 @@ on:
 
 jobs:
   deploy:
-    name: 🎉 Desplegar Proyecto
+    name: 🎉 Desplegar Todo el Proyecto
     runs-on: ubuntu-latest
 
     steps:
-      # Paso 1: Configurar Node.js
+      # Paso 1: Configurar Node.js (si es necesario)
       - name: ⚙️ Configurar Node.js 20
         uses: actions/setup-node@v3
         with:
@@ -21,175 +21,119 @@ jobs:
       - name: 🚚 Clonar repositorio
         uses: actions/checkout@v3
 
-      # Paso 3: Construir assets
+      # Paso 3: Construir assets (si es necesario)
       - name: 🔨 Construir proyecto
         run: |
           npm install
           npm run build
 
-      # Paso 4: Configurar PHP
+      # Paso 4: Configurar PHP (opcional, solo para proyectos PHP)
       - name: 🐘 Configurar PHP 8.2
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
           tools: composer
 
-      # Paso 5: Instalar dependencias PHP
+      # Paso 5: Instalar dependencias PHP (opcional)
       - name: 📦 Instalar dependencias
         run: composer install --optimize-autoloader --no-dev
 
-      # Paso 6: Desplegar archivos con configuración mejorada
-      - name: 📂 Desplegar proyecto
+      # Paso 6: Desplegar TODO el proyecto en la raíz
+      - name: 📂 Desplegar todos los archivos
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: /public_html/
-          local-dir: ./
-          protocol: ftp  # Cambiado a FTP normal primero para pruebas
+          server-dir: /               # Raíz del servidor
+          local-dir: ./               # Todo el proyecto local
+          protocol: ftps
           port: 21
           security: loose
-          timeout: 180000  # Aumentado a 3 minutos
-          dangerous-clean-slate: false  # Desactivado por seguridad
+          timeout: 120000
 
 
-# name: 🚀 Despliegue Automático Completox
-
+# name: Publish Website to CPanel
 # on:
 #   push:
-#     branches: [ main ]
-#   workflow_dispatch:
+#     branches:
+#       - main
 
 # jobs:
-#   deploy:
-#     name: 🎉 Desplegar Todo el Proyecto
+#   FTP-Deploy-Action:
+#     name: FTP-Deploy-Action x
 #     runs-on: ubuntu-latest
 
 #     steps:
-#       # Paso 1: Configurar Node.js (si es necesario)
-#       - name: ⚙️ Configurar Node.js 20
+#       # Paso 1: Instalar Node.js 20
+#       - name: Set up Node.js 20
 #         uses: actions/setup-node@v3
 #         with:
 #           node-version: '20'
 
-#       # Paso 2: Obtener código fuente
-#       - name: 🚚 Clonar repositorio
+#       # Paso 2: Clonar el repositorio
+#       - name: Checkout repository
 #         uses: actions/checkout@v3
+#         with:
+#           fetch-depth: 2
 
-#       # Paso 3: Construir assets (si es necesario)
-#       - name: 🔨 Construir proyecto
-#         run: |
-#           npm install
-#           npm run build
+#       # Paso 3: Instalar dependencias de Node.js y compilar activos
+#       - name: Build assets
+#         run: npm install && npm run build
 
-#       # Paso 4: Configurar PHP (opcional, solo para proyectos PHP)
-#       - name: 🐘 Configurar PHP 8.2
+#       # Paso 4: Instalar PHP y Composer
+#       - name: Install PHP and Composer
 #         uses: shivammathur/setup-php@v2
 #         with:
-#           php-version: '8.2'
-#           tools: composer
+#           php-version: '8.2' # Ajusta a la versión de PHP usada en tu proyecto Laravel
+#           tools: 'composer'
 
-#       # Paso 5: Instalar dependencias PHP (opcional)
-#       - name: 📦 Instalar dependencias
-#         run: composer install --optimize-autoloader --no-dev
+#       # Paso 5: Instalar dependencias PHP
+#       - name: Install PHP dependencies
+#         run: composer install --optimize-autoloader
 
-#       # Paso 6: Desplegar TODO el proyecto en la raíz
-#       - name: 📂 Desplegar todos los archivos
-#         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+#       # Paso 6: Desplegar archivos por FTP
+#       - name: FTP-Deploy-Action
+#         uses: SamKirkland/FTP-Deploy-Action@4.3.3
 #         with:
 #           server: ${{ secrets.FTP_SERVER }}
 #           username: ${{ secrets.FTP_USERNAME }}
 #           password: ${{ secrets.FTP_PASSWORD }}
-#           server-dir: /               # Raíz del servidor
-#           local-dir: ./               # Todo el proyecto local
+#           server-dir: /
+#           local-dir: ./public/  # Or your build directory
 #           protocol: ftps
 #           port: 21
-#           security: loose
-#           timeout: 120000
+#           security: strict
+#           timeout: 30s
 
+#       # Paso 7: Configurar el archivo .env desde los secretos
+#       - name: Setup environment file
+#         run: |
+#           echo "Setting up .env from secrets..."
+#           echo "${{ secrets.ENV_CONTENT }}" > .env
+#           cat .env # Para depurar y verificar el contenido del .env
 
-# # name: Publish Website to CPanel
-# # on:
-# #   push:
-# #     branches:
-# #       - main
+#       # Paso 8: Habilitar depuración de Laravel
+#       - name: Enable Laravel debug
+#         run: |
+#           echo "APP_DEBUG=true" >> .env
+#           sed -i 's/APP_DEBUG=.*/APP_DEBUG=true/' .env # Asegúrate de que APP_DEBUG sea true para ver los errores en el entorno de producción
 
-# # jobs:
-# #   FTP-Deploy-Action:
-# #     name: FTP-Deploy-Action x
-# #     runs-on: ubuntu-latest
+#       # Paso 9: Configurar permisos de directorios
+#       - name: Set directory permissions
+#         run: chmod -R 775 storage bootstrap/cache
 
-# #     steps:
-# #       # Paso 1: Instalar Node.js 20
-# #       - name: Set up Node.js 20
-# #         uses: actions/setup-node@v3
-# #         with:
-# #           node-version: '20'
+#       # Paso 10: Verificar si el archivo .env está cargado correctamente
+#       - name: Check .env setup
+#         run: |
+#           echo "Verifying .env configuration..."
+#           cat .env
+#           php artisan config:clear
+#           php artisan cache:clear
+#           php artisan config:cache
+#           php artisan storage:link
 
-# #       # Paso 2: Clonar el repositorio
-# #       - name: Checkout repository
-# #         uses: actions/checkout@v3
-# #         with:
-# #           fetch-depth: 2
-
-# #       # Paso 3: Instalar dependencias de Node.js y compilar activos
-# #       - name: Build assets
-# #         run: npm install && npm run build
-
-# #       # Paso 4: Instalar PHP y Composer
-# #       - name: Install PHP and Composer
-# #         uses: shivammathur/setup-php@v2
-# #         with:
-# #           php-version: '8.2' # Ajusta a la versión de PHP usada en tu proyecto Laravel
-# #           tools: 'composer'
-
-# #       # Paso 5: Instalar dependencias PHP
-# #       - name: Install PHP dependencies
-# #         run: composer install --optimize-autoloader
-
-# #       # Paso 6: Desplegar archivos por FTP
-# #       - name: FTP-Deploy-Action
-# #         uses: SamKirkland/FTP-Deploy-Action@4.3.3
-# #         with:
-# #           server: ${{ secrets.FTP_SERVER }}
-# #           username: ${{ secrets.FTP_USERNAME }}
-# #           password: ${{ secrets.FTP_PASSWORD }}
-# #           server-dir: /
-# #           local-dir: ./public/  # Or your build directory
-# #           protocol: ftps
-# #           port: 21
-# #           security: strict
-# #           timeout: 30s
-
-# #       # Paso 7: Configurar el archivo .env desde los secretos
-# #       - name: Setup environment file
-# #         run: |
-# #           echo "Setting up .env from secrets..."
-# #           echo "${{ secrets.ENV_CONTENT }}" > .env
-# #           cat .env # Para depurar y verificar el contenido del .env
-
-# #       # Paso 8: Habilitar depuración de Laravel
-# #       - name: Enable Laravel debug
-# #         run: |
-# #           echo "APP_DEBUG=true" >> .env
-# #           sed -i 's/APP_DEBUG=.*/APP_DEBUG=true/' .env # Asegúrate de que APP_DEBUG sea true para ver los errores en el entorno de producción
-
-# #       # Paso 9: Configurar permisos de directorios
-# #       - name: Set directory permissions
-# #         run: chmod -R 775 storage bootstrap/cache
-
-# #       # Paso 10: Verificar si el archivo .env está cargado correctamente
-# #       - name: Check .env setup
-# #         run: |
-# #           echo "Verifying .env configuration..."
-# #           cat .env
-# #           php artisan config:clear
-# #           php artisan cache:clear
-# #           php artisan config:cache
-# #           php artisan storage:link
-
-# #       # Paso 11: Verificar las variables de entorno en Laravel (opcional)
-# #       - name: Test .env variables
-# #         run: |
-# #           curl https://zonix.uniblockweb.com/api/env-test
+#       # Paso 11: Verificar las variables de entorno en Laravel (opcional)
+#       - name: Test .env variables
+#         run: |
+#           curl https://zonix.uniblockweb.com/api/env-test
