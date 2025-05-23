@@ -39,19 +39,19 @@ jobs:
         #run: composer install --optimize-autoloader --no-dev
         run: composer install --optimize-autoloader
 
-      # Paso 6: Desplegar TODO el proyecto en la raíz
-      - name: 📂 Desplegar todos los archivos
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: /               # Raíz del servidor
-          local-dir: ./               # Todo el proyecto local
-          protocol: ftps
-          port: 21
-          security: loose
-          timeout: 120000
+      - name: 📂 Deploy all files
+          uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+          with:
+            server: ${{ secrets.FTP_SERVER }}
+            username: ${{ secrets.FTP_USERNAME }}
+            password: ${{ secrets.FTP_PASSWORD }}
+            server-dir: /
+            local-dir: ./
+            protocol: ftps
+            port: 21
+            security: strict
+            timeout: 300000
+            dangerous-clean-slate: true  # Reduces parallel uploads
 
       # Paso 7: Configurar el archivo .env desde los secretos
       - name: Setup environment file
