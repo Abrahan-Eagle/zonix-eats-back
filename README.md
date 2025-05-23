@@ -1,2 +1,2 @@
-# eats-zonix
-eats-zonix
+# zonix-eats
+zonix-eats
