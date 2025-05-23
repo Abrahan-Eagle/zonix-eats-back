@@ -34,7 +34,7 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: /public_html/  # Directorio en el servidor
+          server-dir: /  # Directorio en el servidor
           local-dir: ./dist/         # Directorio local a desplegar
           protocol: ftps             # Opciones: ftp, ftps
           port: 21                   # Usualmente 21 para FTP/FTPS, 22 para SFTP
