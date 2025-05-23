@@ -20,12 +20,12 @@ jobs:
       # Paso 2: Obtener código fuente
       - name: 🚚 Clonar repositorio
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
 
       # Paso 3: Construir assets (si es necesario)
       - name: 🔨 Construir proyecto
-        run: |
-          npm install
-          npm run build
+        run: npm install && npm run build
 
       # Paso 4: Configurar PHP (opcional, solo para proyectos PHP)
       - name: 🐘 Configurar PHP 8.2
@@ -36,7 +36,8 @@ jobs:
 
       # Paso 5: Instalar dependencias PHP (opcional)
       - name: 📦 Instalar dependencias
-        run: composer install --optimize-autoloader --no-dev
+        #run: composer install --optimize-autoloader --no-dev
+        run: composer install --optimize-autoloader
 
       # Paso 6: Desplegar TODO el proyecto en la raíz
       - name: 📂 Desplegar todos los archivos
@@ -51,6 +52,39 @@ jobs:
           port: 21
           security: loose
           timeout: 120000
+
+      # Paso 7: Configurar el archivo .env desde los secretos
+      - name: Setup environment file
+        run: |
+          echo "Setting up .env from secrets..."
+          echo "${{ secrets.ENV_CONTENT }}" > .env
+          cat .env # Para depurar y verificar el contenido del .env
+
+       # Paso 8: Habilitar depuración de Laravel
+      - name: Enable Laravel debug
+        run: |
+          echo "APP_DEBUG=true" >> .env
+          sed -i 's/APP_DEBUG=.*/APP_DEBUG=true/' .env # Asegúrate de que APP_DEBUG sea true para ver los errores en el entorno de producción
+
+      # Paso 9: Configurar permisos de directorios
+      - name: Set directory permissions
+        run: chmod -R 775 storage bootstrap/cache
+
+      # Paso 10: Verificar si el archivo .env está cargado correctamente
+      - name: Check .env setup
+        run: |
+          echo "Verifying .env configuration..."
+          cat .env
+          php artisan config:clear
+          php artisan cache:clear
+          php artisan config:cache
+          php artisan storage:link
+
+      # Paso 11: Verificar las variables de entorno en Laravel (opcional)
+      - name: Test .env variables
+        run: |
+          curl https://zonix-eat.uniblockweb.com/api/env-test
+
 
 
 # name: Publish Website to CPanel
