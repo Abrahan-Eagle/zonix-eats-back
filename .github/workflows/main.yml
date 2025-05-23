@@ -1,4 +1,4 @@
-name: 🚀 Despliegue Automático
+name: 🚀 Despliegue Automático Completo
 
 on:
   push:
@@ -7,40 +7,50 @@ on:
 
 jobs:
   deploy:
-    name: 🎉 Desplegar Sitio Web
+    name: 🎉 Desplegar Todo el Proyecto
     runs-on: ubuntu-latest
 
     steps:
-      # Paso 1: Obtener el código fuente
-      - name: 🚚 Obtener código
-        uses: actions/checkout@v4
-
-      # Paso 2: Configurar Node.js (opcional, solo si necesitas construir assets)
-      - name: ⚙️ Configurar Node.js
+      # Paso 1: Configurar Node.js (si es necesario)
+      - name: ⚙️ Configurar Node.js 20
         uses: actions/setup-node@v3
         with:
           node-version: '20'
 
-      # Paso 3: Construir proyecto (opcional)
+      # Paso 2: Obtener código fuente
+      - name: 🚚 Clonar repositorio
+        uses: actions/checkout@v3
+
+      # Paso 3: Construir assets (si es necesario)
       - name: 🔨 Construir proyecto
         run: |
           npm install
           npm run build
 
-      # Paso 4: Desplegar archivos vía FTP/FTPS
-      - name: 📂 Sincronizar archivos
+      # Paso 4: Configurar PHP (opcional, solo para proyectos PHP)
+      - name: 🐘 Configurar PHP 8.2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer
+
+      # Paso 5: Instalar dependencias PHP (opcional)
+      - name: 📦 Instalar dependencias
+        run: composer install --optimize-autoloader --no-dev
+
+      # Paso 6: Desplegar TODO el proyecto en la raíz
+      - name: 📂 Desplegar todos los archivos
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: /  # Directorio en el servidor
-          local-dir: ./dist/         # Directorio local a desplegar
-          protocol: ftps             # Opciones: ftp, ftps
-          port: 21                   # Usualmente 21 para FTP/FTPS, 22 para SFTP
-          security: loose            # Para evitar problemas con certificados
-          log-level: verbose         # Para mejor depuración
-          timeout: 120000            # 2 minutos de timeout
+          server-dir: /               # Raíz del servidor
+          local-dir: ./               # Todo el proyecto local
+          protocol: ftps
+          port: 21
+          security: loose
+          timeout: 120000
 
 
 # name: Publish Website to CPanel
