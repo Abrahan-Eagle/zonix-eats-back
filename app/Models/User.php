@@ -2,6 +2,11 @@
 
 namespace App\Models;
 
+use App\Models\Models\Commerce;
+use App\Models\Models\DeliveryAgent;
+use App\Models\Models\DeliveryCompany;
+use App\Models\Models\Order;
+use App\Models\Models\PostLike;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -53,36 +58,33 @@ class User extends Authenticatable
      * Relación para obtener los roles del usuario.
      * Si quieres manejar varios roles por usuario, puedes usar una tabla pivot.
      */
-    public function roles()
+
+
+
+       public function commerce()
     {
-        // Si usas una tabla intermedia para manejar roles (por ejemplo, tabla `role_user`)
-        return $this->belongsToMany(Role::class);
+        return $this->hasOne(Commerce::class);
     }
 
-    /**
-     * Función que determina si el usuario tiene un rol específico.
-     * @param string $role
-     * @return bool
-     */
-    public function hasRole(string $role)
+    public function deliveryCompany()
     {
-        return $this->roles()->where('name', $role)->exists();
+        return $this->hasOne(DeliveryCompany::class);
     }
 
-    public function profile()
+    public function deliveryAgent()
     {
-        return $this->hasOne(Profile::class);
+        return $this->hasOne(DeliveryAgent::class);
     }
 
-
-    protected function casts(): array
+    public function orders()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->hasMany(Order::class);
     }
 
+    public function postLikes()
+    {
+        return $this->hasMany(PostLike::class);
+    }
 
 
 }
