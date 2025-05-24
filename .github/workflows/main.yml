@@ -49,8 +49,7 @@ jobs:
           local-dir: ./
           protocol: ftps
           port: 21
-          security: strict
-          timeout: 300000
+
 
 
       # Paso 7: Configurar el archivo .env desde los secretos
