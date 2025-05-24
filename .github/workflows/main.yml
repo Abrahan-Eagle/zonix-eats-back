@@ -13,13 +13,13 @@ jobs:
     steps:
       # Paso 1: Configurar Node.js (si es necesario)
       - name: ⚙️ Configurar Node.js 20
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v2
         with:
           node-version: '20'
 
       # Paso 2: Obtener código fuente
       - name: 🚚 Clonar repositorio
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
@@ -45,6 +45,13 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: /
+          local-dir: ./
+          protocol: ftps
+          port: 21
+          security: strict
+          timeout: 300000
+
 
       # Paso 7: Configurar el archivo .env desde los secretos
       - name: Setup environment file
