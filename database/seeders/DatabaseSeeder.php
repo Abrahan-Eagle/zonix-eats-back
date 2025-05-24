@@ -16,9 +16,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::factory(3)->create();
+        // User::factory(3)->create();
         // Profile::factory(10)->create();
-        GasCylinder::factory(3)->create();
+        // GasCylinder::factory(3)->create();
         // GasCylinder::factory(10)->create();
 
         // User::factory()->count(10)->create();
@@ -62,40 +62,40 @@ class DatabaseSeeder extends Seeder
         //Blog::factory()->count(10)->create();
 
 
-        $this->call([
+        // $this->call([
 
-            //CONTRIES STATES CITIES
-            // CountryCodeSeeder::class,
-            OperatorCodeSeeder::class,
-            CountriesSeeder::class,
-            StatesSeeder::class,
-            CitiesSeeder::class,
-            GasSuppliersSeeder::class,
-            StationsSeeder::class,
-            //VEHICULE DATA
-            // VehicleTypesSeeder::class,
-            // MarksSeeder::class,
-            // YearsSeeder::class,
-            // CarModelsSeeder::class,
+        //     //CONTRIES STATES CITIES
+        //     // CountryCodeSeeder::class,
+        //     OperatorCodeSeeder::class,
+        //     CountriesSeeder::class,
+        //     StatesSeeder::class,
+        //     CitiesSeeder::class,
+        //     GasSuppliersSeeder::class,
+        //     StationsSeeder::class,
+        //     //VEHICULE DATA
+        //     // VehicleTypesSeeder::class,
+        //     // MarksSeeder::class,
+        //     // YearsSeeder::class,
+        //     // CarModelsSeeder::class,
 
 
 
-            //PermissionSeeder::class,
-            //UserSeeder::class,
-            //FRONT
-            //EventsSeeder::class,
-            //SermonSeeder::class,
-            //TestimonioSeeder::class,
-            //VideoheroSeeder::class,
-            //HistoryaboutSeeder::class,
+        //     //PermissionSeeder::class,
+        //     //UserSeeder::class,
+        //     //FRONT
+        //     //EventsSeeder::class,
+        //     //SermonSeeder::class,
+        //     //TestimonioSeeder::class,
+        //     //VideoheroSeeder::class,
+        //     //HistoryaboutSeeder::class,
 
-            //BLOG
-            //AuthorSeeder::class,
-            //CategorySeeder::class,
-            //TagSeeder::class,
-            // PostsSeeder::class,
+        //     //BLOG
+        //     //AuthorSeeder::class,
+        //     //CategorySeeder::class,
+        //     //TagSeeder::class,
+        //     // PostsSeeder::class,
 
-         ]);
+        //  ]);
 
 
 

@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('profile_pic')->nullable(); // Agregar campo para la foto de perfil
             $table->string('AccessToken')->nullable(); // Campo para guardar el token de acceso
             $table->boolean('completed_onboarding')->default(false);
-            $table->enum('role', ['admin', 'users', 'sales_admin', 'dispatcher', 'operator',  'neighborhood_association', 'gas_supplier', 'guest', 'auditor', 'super_admin', 'inventory_manager', 'support_agent', 'technician', 'regional_manager', 'finance_manager', 'marketing_manager', 'quality_control', 'system_monitor'])->default('users');
+            $table->enum('role', ['admin', 'users', 'comprador', 'comercio', 'delivery_company', 'delivery_agent'])->default('users');
             $table->rememberToken();
             $table->timestamps();
         });
