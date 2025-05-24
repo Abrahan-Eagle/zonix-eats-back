@@ -47,9 +47,6 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: /
           local-dir: ./
-          protocol: ftps
-          port: 21
-
 
       # Paso 7: Configurar el archivo .env desde los secretos
       - name: Setup environment file
