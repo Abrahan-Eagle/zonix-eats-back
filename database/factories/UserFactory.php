@@ -31,12 +31,13 @@ class UserFactory extends Factory
             'email' => $this->faker->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => bcrypt('password'), // Cambia si lo necesitas
-            'google_id' => null, // Si no estás probando Google ID, déjalo en null
+            'google_id' => Str::uuid(), // Si no estás probando Google ID, déjalo en null
             'given_name' => $this->faker->firstName(),
             'family_name' => $this->faker->lastName(),
             'profile_pic' => null, // Puedes cambiarlo si tienes imágenes
             'AccessToken' => null,
-            'role' => 'users', // Cambia esto a 'admin' o 'users'
+            // 'role' => 'users', // Cambia esto a 'admin' o 'users'
+            'role' => $this->faker->randomElement(['admin', 'users', 'comprador', 'comercio', 'delivery_company', 'delivery_agent']),
             'remember_token' => Str::random(10),
         ];
     }
@@ -44,9 +45,9 @@ class UserFactory extends Factory
     /**
      * Indicate that the model's email address should be unverified.
      */
-    public function configure()
-    {
+    // public function configure()
+    // {
 
-    }
+    // }
 }
 

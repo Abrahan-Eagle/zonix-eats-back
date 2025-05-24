@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
-use App\Models\Models\Commerce;
-use App\Models\Models\DeliveryAgent;
-use App\Models\Models\DeliveryCompany;
-use App\Models\Models\Order;
-use App\Models\Models\PostLike;
+use App\Models\Commerce;
+use App\Models\DeliveryAgent;
+use App\Models\DeliveryCompany;
+use App\Models\Order;
+use App\Models\PostLike;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;

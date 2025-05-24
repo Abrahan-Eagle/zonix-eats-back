@@ -3,9 +3,16 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use App\Models\Email;
-use App\Models\GasCylinder;
-use App\Models\Profile;
+use App\Models\Commerce;
+use App\Models\DeliveryAgent;
+use App\Models\DeliveryCompany;
+use App\Models\Order;
+use App\Models\OrderDelivery;
+use App\Models\OrderItem;
+use App\Models\Post;
+use App\Models\PostLike;
+use App\Models\Product;
+
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -16,87 +23,33 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(3)->create();
-        // Profile::factory(10)->create();
-        // GasCylinder::factory(3)->create();
-        // GasCylinder::factory(10)->create();
-
-        // User::factory()->count(10)->create();
 
 
-        // User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
-
-
-
-        // Crear un nuevo correo electrónico
-        // $email = Email::create([
-        //     'profile_id' => 1, // ID del perfil
-        //     'email' => 'example@example.com',
-        //     'is_primary' => true,
-        // ]);
-
-
-          // \App\Models\User::factory(10)->create();
-
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
-
-          // \App\Models\User::factory(10)->create();
-
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
-
-         // \App\Models\User::factory(10)->create();
+        User::factory(10)->create();
+        Commerce::factory(5)->create();
+        Product::factory(20)->create();
+        Post::factory(10)->create();
+        PostLike::factory(30)->create();
+        Order::factory(15)->create();
+        OrderItem::factory(30)->create();
+        DeliveryCompany::factory(2)->create();
+        DeliveryAgent::factory(5)->create();
+        OrderDelivery::factory(5)->create();
 
 
 
-          // \App\Models\User::factory(10)->create();
-        //Blog::factory(10)->create();
-        //Blog::factory()->count(10)->create();
-
-
-        // $this->call([
-
-        //     //CONTRIES STATES CITIES
-        //     // CountryCodeSeeder::class,
-        //     OperatorCodeSeeder::class,
-        //     CountriesSeeder::class,
-        //     StatesSeeder::class,
-        //     CitiesSeeder::class,
-        //     GasSuppliersSeeder::class,
-        //     StationsSeeder::class,
-        //     //VEHICULE DATA
-        //     // VehicleTypesSeeder::class,
-        //     // MarksSeeder::class,
-        //     // YearsSeeder::class,
-        //     // CarModelsSeeder::class,
-
-
-
-        //     //PermissionSeeder::class,
-        //     //UserSeeder::class,
-        //     //FRONT
-        //     //EventsSeeder::class,
-        //     //SermonSeeder::class,
-        //     //TestimonioSeeder::class,
-        //     //VideoheroSeeder::class,
-        //     //HistoryaboutSeeder::class,
-
-        //     //BLOG
-        //     //AuthorSeeder::class,
-        //     //CategorySeeder::class,
-        //     //TagSeeder::class,
-        //     // PostsSeeder::class,
-
-        //  ]);
-
+        $this->call([
+            UserSeeder::class,
+            CommerceSeeder::class,
+            ProductSeeder::class,
+            PostSeeder::class,
+            PostLikeSeeder::class,
+            OrderSeeder::class,
+            OrderItemSeeder::class,
+            DeliveryCompanySeeder::class,
+            DeliveryAgentSeeder::class,
+            OrderDeliverySeeder::class,
+        ]);
 
 
     }
