@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Buyer;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -17,6 +18,17 @@ class OrderController extends Controller
      */
     public function store(Request $request)
     {
+
+        // Validar que todos los productos estén disponibles
+        foreach ($request->items as $item) {
+            $product = Product::find($item['product_id']);
+            if (!$product->disponible) {
+                return response()->json([
+                    'error' => 'El producto '.$product->nombre.' no está disponible'
+                ], 400);
+            }
+        }
+
         $order = Order::create([
             'user_id' => Auth::id(),
             'commerce_id' => $request->commerce_id,

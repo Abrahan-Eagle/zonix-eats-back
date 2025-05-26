@@ -11,15 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('delivery_agents', function (Blueprint $table) {
+        Schema::create('reviews', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('company_id')->constrained('delivery_companies')->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->enum('estado', ['activo', 'inactivo']);
-            $table->boolean('trabajando')->default(false)->after('estado');
+            $table->morphs('reviewable'); // Para comercios o productos
+            $table->tinyInteger('rating')->unsigned(); // 1-5
+            $table->text('comentario')->nullable();
             $table->timestamps();
         });
-
     }
 
     /**
@@ -27,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('delivery_agents');
+        Schema::dropIfExists('reviews');
     }
 };

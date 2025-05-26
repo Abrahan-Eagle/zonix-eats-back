@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Delivery;
 
 use App\Http\Controllers\Controller;
+use App\Models\DeliveryAgent;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -40,4 +41,18 @@ public function index()
 
         return response()->json(['message' => 'Pedido entregado con éxito']);
     }
+
+    public function toggleWorkingStatus(Request $request)
+        {
+            $agent = DeliveryAgent::where('user_id', Auth::id())->firstOrFail();
+
+            $agent->update([
+                'trabajando' => !$agent->trabajando
+            ]);
+
+            return response()->json([
+                'message' => 'Estado actualizado',
+                'trabajando' => $agent->trabajando
+            ]);
+        }
 }

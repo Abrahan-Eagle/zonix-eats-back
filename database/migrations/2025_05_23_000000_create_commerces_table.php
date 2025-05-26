@@ -20,6 +20,8 @@ return new class extends Migration
             $table->string('pago_movil_banco', 50);
             $table->string('pago_movil_cedula', 20);
             $table->string('pago_movil_telefono', 20);
+            $table->boolean('abierto')->default(false)->after('pago_movil_telefono');
+            $table->json('horario')->nullable()->after('abierto');
             $table->timestamps();
         });
     }

@@ -37,6 +37,8 @@ Route::prefix('auth')->group(function () {
     Route::middleware('auth:sanctum')->get('/user', [AuthController::class, 'getUser']);
 });
 
+Route::post('/orders', [OrderController::class, 'store'])->middleware(['auth:sanctum', 'role:comprador', 'commerce.open']);
+
 Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('onboarding')->group(function () {
