@@ -3,48 +3,240 @@
 namespace App\Http\Controllers\Commerce;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreProductRequest;
+use App\Http\Requests\UpdateProductRequest;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Exception;
 
 class ProductController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-   public function index()
+    public function index(Request $request)
     {
-        return Product::where('commerce_id', Auth::id())->get();
+        try {
+            $query = Product::where('commerce_id', Auth::id());
+
+            // Filtros de búsqueda
+            if ($request->has('search')) {
+                $search = $request->get('search');
+                $query->where(function($q) use ($search) {
+                    $q->where('nombre', 'like', "%{$search}%")
+                      ->orWhere('descripcion', 'like', "%{$search}%");
+                });
+            }
+
+            // Filtro por disponibilidad
+            if ($request->has('disponible')) {
+                $query->where('disponible', $request->boolean('disponible'));
+            }
+
+            // Filtro por rango de precio
+            if ($request->has('precio_min')) {
+                $query->where('precio', '>=', $request->get('precio_min'));
+            }
+            if ($request->has('precio_max')) {
+                $query->where('precio', '<=', $request->get('precio_max'));
+            }
+
+            // Ordenamiento
+            $sortBy = $request->get('sort_by', 'created_at');
+            $sortOrder = $request->get('sort_order', 'desc');
+            $query->orderBy($sortBy, $sortOrder);
+
+            // Paginación
+            if ($request->has('per_page')) {
+                $perPage = $request->get('per_page', 15);
+                $products = $query->paginate($perPage);
+            } else {
+                $products = $query->get();
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Productos obtenidos correctamente',
+                'data' => $products
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener productos',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
-    public function store(Request $request)
+    public function store(StoreProductRequest $request)
     {
-        $product = Product::create([
-            'commerce_id' => Auth::id(),
-            'nombre' => $request->nombre,
-            'descripcion' => $request->descripcion,
-            'precio' => $request->precio,
-            'disponible' => $request->disponible ?? true,
-        ]);
+        try {
+            $validatedData = $request->validated();
 
-        return response()->json(['message' => 'Producto creado', 'product' => $product]);
+            // Agregar commerce_id del usuario autenticado
+            $validatedData['commerce_id'] = Auth::id();
+
+            // Manejar imagen si existe
+            if ($request->hasFile('imagen')) {
+                $imagePath = $request->file('imagen')->store('productos', 'public');
+                $validatedData['imagen'] = $imagePath;
+            }
+
+            $product = Product::create($validatedData);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Producto creado correctamente',
+                'data' => $product
+            ], 201);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear producto',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
-    public function update(Request $request, $id)
+    public function show($id)
     {
-        $product = Product::where('commerce_id', Auth::id())->findOrFail($id);
-        $product->update($request->only(['nombre', 'descripcion', 'precio', 'disponible']));
+        try {
+            $product = Product::where('commerce_id', Auth::id())->findOrFail($id);
 
-        return response()->json(['message' => 'Producto actualizado', 'product' => $product]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Producto obtenido correctamente',
+                'data' => $product
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Producto no encontrado',
+                'error' => $e->getMessage()
+            ], 404);
+        }
+    }
+
+    public function update(UpdateProductRequest $request, $id)
+    {
+        try {
+            $product = Product::where('commerce_id', Auth::id())->findOrFail($id);
+            $validatedData = $request->validated();
+
+            // Manejar imagen si existe
+            if ($request->hasFile('imagen')) {
+                // Eliminar imagen anterior
+                if ($product->imagen && Storage::disk('public')->exists($product->imagen)) {
+                    Storage::disk('public')->delete($product->imagen);
+                }
+
+                $imagePath = $request->file('imagen')->store('productos', 'public');
+                $validatedData['imagen'] = $imagePath;
+            }
+
+            $product->update($validatedData);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Producto actualizado correctamente',
+                'data' => $product
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar producto',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function destroy($id)
     {
-        $product = Product::where('commerce_id', Auth::id())->findOrFail($id);
-        $product->delete();
+        try {
+            $product = Product::where('commerce_id', Auth::id())->findOrFail($id);
 
-        return response()->json(['message' => 'Producto eliminado']);
+            // Eliminar imagen si existe
+            if ($product->imagen && Storage::disk('public')->exists($product->imagen)) {
+                Storage::disk('public')->delete($product->imagen);
+            }
+
+            $product->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Producto eliminado correctamente'
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar producto',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
+    /**
+     * Cambiar disponibilidad del producto
+     */
+    public function toggleDisponible($id)
+    {
+        try {
+            $product = Product::where('commerce_id', Auth::id())->findOrFail($id);
+            $product->update(['disponible' => !$product->disponible]);
 
+            $message = $product->disponible ? 'Producto marcado como disponible' : 'Producto marcado como no disponible';
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'data' => $product
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cambiar disponibilidad',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Obtener estadísticas de productos del comercio
+     */
+    public function estadisticas()
+    {
+        try {
+            $commerceId = Auth::id();
+
+            $stats = [
+                'total_productos' => Product::where('commerce_id', $commerceId)->count(),
+                'productos_disponibles' => Product::where('commerce_id', $commerceId)->where('disponible', true)->count(),
+                'productos_no_disponibles' => Product::where('commerce_id', $commerceId)->where('disponible', false)->count(),
+                'precio_promedio' => Product::where('commerce_id', $commerceId)->avg('precio'),
+                'producto_mas_caro' => Product::where('commerce_id', $commerceId)->max('precio'),
+                'producto_mas_barato' => Product::where('commerce_id', $commerceId)->min('precio'),
+            ];
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Estadísticas obtenidas correctamente',
+                'data' => $stats
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener estadísticas',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

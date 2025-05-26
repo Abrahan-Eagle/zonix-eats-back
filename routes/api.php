@@ -54,6 +54,23 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
 
+    // En routes/api.php
+Route::prefix('commerce')->group(function () {
+    
+    // Productos del comercio
+    Route::get('/products', [ProductController::class, 'index']);
+    Route::post('/products', [ProductController::class, 'store']);
+    Route::get('/products/{id}', [ProductController::class, 'show']);
+    Route::put('/products/{id}', [ProductController::class, 'update']);
+    Route::delete('/products/{id}', [ProductController::class, 'destroy']);
+    
+    // Nuevas funcionalidades
+    Route::put('/products/{id}/toggle-disponible', [ProductController::class, 'toggleDisponible']);
+    Route::get('/products-stats', [ProductController::class, 'estadisticas']);
+    
+});
+
+
 
      /**
      * Buyer
