@@ -17,8 +17,12 @@ class DeliveryCompanyFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id' => \App\Models\User::factory(),
+            'profile_id' => \App\Models\Profile::factory()->delivery(),
             'nombre' => $this->faker->company,
+            'ruc' => $this->faker->numerify('J-########-#'),
+            'telefono' => $this->faker->phoneNumber,
+            'direccion' => $this->faker->address,
+            'activo' => $this->faker->boolean(90),
         ];
     }
 }

@@ -13,15 +13,15 @@ return new class extends Migration
     {
         Schema::create('commerces', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('profile_id')->constrained()->onDelete('cascade');
             $table->string('nombre_local');
             $table->text('direccion');
             $table->string('telefono', 20);
             $table->string('pago_movil_banco', 50);
             $table->string('pago_movil_cedula', 20);
             $table->string('pago_movil_telefono', 20);
-            $table->boolean('abierto')->default(false)->after('pago_movil_telefono');
-            $table->json('horario')->nullable()->after('abierto');
+            $table->boolean('abierto')->default(false);
+            $table->json('horario')->nullable();
             $table->timestamps();
         });
     }

@@ -18,12 +18,13 @@ class OrderFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id' => \App\Models\User::factory(),
-            'commerce_id' => Commerce::factory(),
+            'profile_id' => \App\Models\Profile::factory(),
+            'commerce_id' => \App\Models\Commerce::factory(),
             'tipo_entrega' => $this->faker->randomElement(['pickup', 'delivery']),
-            'estado' => 'pendiente_pago',
-            'total' => $this->faker->randomFloat(2, 10, 300),
+            'estado' => $this->faker->randomElement(['pendiente_pago', 'pagado', 'preparando', 'en_camino', 'entregado', 'cancelado']),
+            'total' => $this->faker->randomFloat(2, 10, 500),
             'comprobante_url' => $this->faker->imageUrl(),
+            'notas' => $this->faker->boolean(30) ? $this->faker->sentence : null,
         ];
     }
 }

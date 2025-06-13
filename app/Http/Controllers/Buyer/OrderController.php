@@ -19,41 +19,52 @@ class OrderController extends Controller
     public function store(Request $request)
     {
 
-        // Validar que todos los productos estén disponibles
-        foreach ($request->items as $item) {
-            $product = Product::find($item['product_id']);
-            if (!$product->disponible) {
-                return response()->json([
-                    'error' => 'El producto '.$product->nombre.' no está disponible'
-                ], 400);
-            }
-        }
+public function index()
+    {
+        $orders = Order::where('buyer_id', Auth::id())->latest()->get();
+        return response()->json($orders);
+    }
 
-        $order = Order::create([
-            'user_id' => Auth::id(),
-            'commerce_id' => $request->commerce_id,
-            'tipo_entrega' => $request->tipo_entrega,
-            'estado' => 'pendiente_pago',
-            'total' => $request->total,
-            'comprobante_url' => $request->comprobante_url ?? null,
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'products' => 'required|array',
+            'commerce_id' => 'required|exists:users,id',
+            'delivery_type' => 'required|in:pickup,delivery',
+            'address' => 'nullable|string'
         ]);
 
-        foreach ($request->items as $item) {
-            OrderItem::create([
-                'order_id' => $order->id,
-                'product_id' => $item['product_id'],
-                'cantidad' => $item['cantidad'],
-                'precio_unitario' => $item['precio_unitario'],
-            ]);
+        $order = Order::create([
+            'buyer_id' => Auth::id(),
+            'commerce_id' => $validated['commerce_id'],
+            'delivery_type' => $validated['delivery_type'],
+            'address' => $validated['address'],
+            'status' => 'pending',
+        ]);
+
+        // Save products to pivot table (order_product)
+        foreach ($validated['products'] as $product) {
+            $order->products()->attach($product['id'], ['quantity' => $product['quantity']]);
         }
 
-        return response()->json(['message' => 'Orden creada exitosamente', 'order' => $order], 201);
+        return response()->json(['message' => 'Orden creada con éxito', 'order' => $order], 201);
     }
 
-    public function myOrders()
+    public function show($id)
     {
-        return Order::with('orderItems')->where('user_id', Auth::id())->get();
+        $order = Order::where('buyer_id', Auth::id())->with('products')->findOrFail($id);
+        return response()->json($order);
     }
 
+    public function cancel($id)
+    {
+        $order = Order::where('buyer_id', Auth::id())->findOrFail($id);
+        if ($order->status === 'pending') {
+            $order->update(['status' => 'cancelled']);
+            return response()->json(['message' => 'Orden cancelada']);
+        }
+
+        return response()->json(['error' => 'No se puede cancelar esta orden'], 400);
+    }
 
 }

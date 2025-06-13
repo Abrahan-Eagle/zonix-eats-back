@@ -10,11 +10,19 @@ class PostLike extends Model
 {
     use HasFactory;
 
-       protected $fillable = ['user_id', 'post_id'];
+    protected $fillable = [
+        'profile_id',
+        'post_id'
+    ];
+
+    public function profile()
+    {
+        return $this->belongsTo(Profile::class);
+    }
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->profile->user();
     }
 
     public function post()

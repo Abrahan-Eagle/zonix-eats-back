@@ -9,13 +9,26 @@ class Review extends Model
 {
     use HasFactory;
 
-    public function reviewable()
+    protected $fillable = [
+        'profile_id',
+        'reviewable_id',
+        'reviewable_type',
+        'rating',
+        'comentario'
+    ];
+
+     public function reviewable()
     {
         return $this->morphTo();
     }
 
+    public function profile()
+    {
+        return $this->belongsTo(Profile::class);
+    }
+
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->profile->user();
     }
 }

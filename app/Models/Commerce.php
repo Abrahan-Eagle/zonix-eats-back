@@ -12,14 +12,29 @@ class Commerce extends Model
 
     use HasFactory;
 
-    protected $fillable = [
-        'user_id', 'nombre_local', 'direccion', 'telefono',
-        'pago_movil_banco', 'pago_movil_cedula', 'pago_movil_telefono'
+       protected $fillable = [
+        'profile_id',
+        'nombre_local',
+        'direccion',
+        'telefono',
+        'pago_movil_banco',
+        'pago_movil_cedula',
+        'pago_movil_telefono',
+        'abierto',
+        'horario'
     ];
+
+
+
+
+     public function profile()
+    {
+        return $this->belongsTo(Profile::class);
+    }
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->profile->user();
     }
 
     public function products()

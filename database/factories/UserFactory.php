@@ -30,17 +30,18 @@ class UserFactory extends Factory
             'name' => $this->faker->name(),
             'email' => $this->faker->unique()->safeEmail(),
             'email_verified_at' => now(),
-            'password' => bcrypt('password'), // Cambia si lo necesitas
-            'google_id' => Str::uuid(), // Si no estás probando Google ID, déjalo en null
+            'password' => Hash::make('password'),
+            'google_id' => $this->faker->boolean(70) ? Str::uuid() : null,
             'given_name' => $this->faker->firstName(),
             'family_name' => $this->faker->lastName(),
-            'profile_pic' => null, // Puedes cambiarlo si tienes imágenes
-            'AccessToken' => null,
-            // 'role' => 'users', // Cambia esto a 'admin' o 'users'
-            'role' => $this->faker->randomElement(['admin', 'users', 'comprador', 'comercio', 'delivery_company', 'delivery_agent']),
+            'profile_pic' => $this->faker->imageUrl(),
+            'AccessToken' => $this->faker->boolean(50) ? Str::random(40) : null,
+            'role' => $this->faker->randomElement(['admin', 'users', 'buyer', 'commerce', 'delivery_company', 'delivery_agent']),
+            'completed_onboarding' => $this->faker->boolean(80),
             'remember_token' => Str::random(10),
         ];
     }
+
 
     /**
      * Indicate that the model's email address should be unverified.
@@ -49,5 +50,42 @@ class UserFactory extends Factory
     // {
 
     // }
+
+
+     // Estados para diferentes roles
+    public function admin(): Factory
+    {
+        return $this->state([
+            'role' => 'admin',
+        ]);
+    }
+
+    public function buyer(): Factory
+    {
+        return $this->state([
+            'role' => 'buyer',
+        ]);
+    }
+
+    public function commerce(): Factory
+    {
+        return $this->state([
+            'role' => 'commerce',
+        ]);
+    }
+
+    public function deliveryCompany(): Factory
+    {
+        return $this->state([
+            'role' => 'delivery_company',
+        ]);
+    }
+
+    public function deliveryAgent(): Factory
+    {
+        return $this->state([
+            'role' => 'delivery_agent',
+        ]);
+    }
 }
 

@@ -10,13 +10,24 @@ class Order extends Model
 {
     use HasFactory;
 
-      protected $fillable = [
-        'user_id', 'commerce_id', 'tipo_entrega', 'estado', 'total', 'comprobante_url'
+    protected $fillable = [
+        'profile_id',
+        'commerce_id',
+        'tipo_entrega',
+        'estado',
+        'total',
+        'comprobante_url',
+        'notas'
     ];
+
+    public function profile()
+    {
+        return $this->belongsTo(Profile::class);
+    }
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->profile->user();
     }
 
     public function commerce()

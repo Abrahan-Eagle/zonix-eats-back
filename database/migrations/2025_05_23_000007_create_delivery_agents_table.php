@@ -14,9 +14,10 @@ return new class extends Migration
         Schema::create('delivery_agents', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->constrained('delivery_companies')->onDelete('cascade');
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->enum('estado', ['activo', 'inactivo']);
-            $table->boolean('trabajando')->default(false)->after('estado');
+            $table->foreignId('profile_id')->constrained()->onDelete('cascade');
+            $table->enum('estado', ['activo', 'inactivo', 'suspendido'])->default('activo');
+            $table->boolean('trabajando')->default(false);
+            $table->decimal('rating', 3, 2)->nullable();
             $table->timestamps();
         });
 

@@ -13,12 +13,13 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('profile_id')->constrained()->onDelete('cascade');
             $table->foreignId('commerce_id')->constrained()->onDelete('cascade');
             $table->enum('tipo_entrega', ['pickup', 'delivery']);
-            $table->enum('estado', ['pendiente_pago', 'pagado', 'preparando', 'en_camino', 'entregado']);
+            $table->enum('estado', ['pendiente_pago', 'pagado', 'preparando', 'en_camino', 'entregado', 'cancelado']);
             $table->decimal('total', 10, 2);
             $table->text('comprobante_url')->nullable();
+            $table->text('notas')->nullable();
             $table->timestamps();
         });
 

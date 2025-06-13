@@ -10,16 +10,27 @@ class DeliveryAgent extends Model
 {
     use HasFactory;
 
-      protected $fillable = ['company_id', 'user_id', 'estado'];
+     protected $fillable = [
+        'company_id',
+        'profile_id',
+        'estado',
+        'trabajando',
+        'rating'
+    ];
 
     public function company()
     {
         return $this->belongsTo(DeliveryCompany::class, 'company_id');
     }
 
+    public function profile()
+    {
+        return $this->belongsTo(Profile::class);
+    }
+
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->profile->user();
     }
 
     public function deliveries()

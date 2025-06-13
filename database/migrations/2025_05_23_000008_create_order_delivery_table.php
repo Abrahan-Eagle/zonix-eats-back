@@ -15,7 +15,9 @@ return new class extends Migration
             $table->id();
             $table->foreignId('order_id')->constrained()->onDelete('cascade');
             $table->foreignId('agent_id')->constrained('delivery_agents')->onDelete('cascade');
-            $table->enum('estado_envio', ['asignado', 'en_camino', 'entregado']);
+            $table->enum('estado_envio', ['asignado', 'en_camino', 'entregado', 'fallido']);
+            $table->decimal('costo_envio', 10, 2);
+            $table->text('notas')->nullable();
             $table->timestamps();
         });
 

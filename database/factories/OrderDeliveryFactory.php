@@ -19,9 +19,11 @@ class OrderDeliveryFactory extends Factory
     public function definition(): array
     {
         return [
-            'order_id' => Order::factory(),
-            'agent_id' => DeliveryAgent::factory(),
-            'estado_envio' => 'asignado',
+            'order_id' => \App\Models\Order::factory(),
+            'agent_id' => \App\Models\DeliveryAgent::factory(),
+            'estado_envio' => $this->faker->randomElement(['asignado', 'en_camino', 'entregado', 'fallido']),
+            'costo_envio' => $this->faker->randomFloat(2, 5, 50),
+            'notas' => $this->faker->boolean(30) ? $this->faker->sentence : null,
         ];
     }
 }

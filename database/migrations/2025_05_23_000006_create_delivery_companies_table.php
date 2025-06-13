@@ -13,8 +13,12 @@ return new class extends Migration
     {
         Schema::create('delivery_companies', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('profile_id')->constrained()->onDelete('cascade');
             $table->string('nombre');
+            $table->string('ruc')->unique();
+            $table->string('telefono');
+            $table->text('direccion');
+            $table->boolean('activo')->default(true);
             $table->timestamps();
         });
 

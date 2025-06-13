@@ -9,9 +9,15 @@ class OrderDelivery extends Model
 {
     use HasFactory;
 
-      protected $table = 'order_delivery';
+    protected $table = 'order_delivery'; // Especifica el nombre correcto de la tabla
 
-    protected $fillable = ['order_id', 'agent_id', 'estado_envio'];
+    protected $fillable = [
+        'order_id',
+        'agent_id',
+        'estado_envio',
+        'costo_envio',
+        'notas'
+    ];
 
     public function order()
     {

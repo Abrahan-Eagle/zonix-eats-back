@@ -61,7 +61,13 @@ class User extends Authenticatable
 
 
 
-       public function commerce()
+      // Relación con Profile
+    public function profile()
+    {
+        return $this->hasOne(Profile::class);
+    }
+
+    public function commerce()
     {
         return $this->hasOne(Commerce::class);
     }
@@ -85,6 +91,37 @@ class User extends Authenticatable
     {
         return $this->hasMany(PostLike::class);
     }
+
+
+
+
+
+
+
+
+    // public function deliveryAgent()
+    // {
+    //     return $this->hasOneThrough(
+    //         DeliveryAgent::class,
+    //         Profile::class,
+    //         'user_id', // Foreign key on profiles table
+    //         'profile_id', // Foreign key on delivery_agents table
+    //         'id', // Local key on users table
+    //         'id' // Local key on profiles table
+    //     );
+    // }
+
+    // public function orders()
+    // {
+    //     return $this->hasManyThrough(
+    //         Order::class,
+    //         Profile::class,
+    //         'user_id',
+    //         'profile_id',
+    //         'id',
+    //         'id'
+    //     );
+    // }
 
 
 }

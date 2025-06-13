@@ -18,9 +18,11 @@ class DeliveryAgentFactory extends Factory
     public function definition(): array
     {
         return [
-            'company_id' => DeliveryCompany::factory(),
-            'user_id' => \App\Models\User::factory(),
-            'estado' => 'activo',
+            'company_id' => \App\Models\DeliveryCompany::factory(),
+            'profile_id' => \App\Models\Profile::factory()->delivery(),
+            'estado' => $this->faker->randomElement(['activo', 'inactivo', 'suspendido']),
+            'trabajando' => $this->faker->boolean(60),
+            'rating' => $this->faker->randomFloat(1, 1, 5),
         ];
     }
 }
