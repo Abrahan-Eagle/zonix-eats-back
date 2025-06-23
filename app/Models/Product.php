@@ -18,4 +18,13 @@ class Product extends Model
     {
         return $this->belongsTo(Commerce::class);
     }
+
+    /**
+     * Relación muchos a muchos con órdenes (pivot: quantity).
+     */
+    public function orders()
+    {
+        return $this->belongsToMany(Order::class, 'order_items', 'product_id', 'order_id')
+            ->withPivot('quantity');
+    }
 }

@@ -5,6 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Modelo Review: almacena reseñas y calificaciones para comercios, productos, etc.
+ * Usa morphTo para soportar múltiples entidades calificables.
+ */
 class Review extends Model
 {
     use HasFactory;

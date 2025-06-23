@@ -14,7 +14,7 @@ public function index()
     {
         return Order::where('delivery_id', Auth::id())
             ->orderBy('created_at', 'desc')
-            ->with('orderItems', 'user', 'commerce')
+            ->with('items', 'commerce')
             ->get();
     }
 

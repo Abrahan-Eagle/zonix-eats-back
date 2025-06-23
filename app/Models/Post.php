@@ -5,6 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Modelo Post: publicaciones de comercios (promos, novedades, etc.).
+ * Relacionado con Commerce y PostLike.
+ */
 class Post extends Model
 {
     use HasFactory;

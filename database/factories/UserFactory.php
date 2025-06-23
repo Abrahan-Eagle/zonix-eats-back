@@ -60,7 +60,7 @@ class UserFactory extends Factory
         ]);
     }
 
-    public function buyer(): Factory
+    public function buyer()
     {
         return $this->state([
             'role' => 'buyer',
@@ -84,7 +84,7 @@ class UserFactory extends Factory
     public function deliveryAgent(): Factory
     {
         return $this->state([
-            'role' => 'delivery_agent',
+            'role' => 'delivery',
         ]);
     }
 }

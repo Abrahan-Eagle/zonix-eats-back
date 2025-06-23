@@ -9,6 +9,11 @@ class OrderItem extends Model
 {
     use HasFactory;
 
+    /**
+     * Modelo pivot para la relación muchos a muchos entre órdenes y productos.
+     * Campos: order_id, product_id, cantidad, precio_unitario
+     */
+
      protected $fillable = ['order_id', 'product_id', 'cantidad', 'precio_unitario'];
 
     public function order()

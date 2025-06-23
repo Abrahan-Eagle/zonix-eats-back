@@ -3,27 +3,54 @@
 namespace App\Http\Controllers\Buyer;
 
 use App\Http\Controllers\Controller;
-use App\Models\Post;
+use App\Services\PostService;
 use Illuminate\Http\Request;
 
+/**
+ * Controlador para gestionar posts desde el lado del comprador.
+ *
+ * Métodos principales:
+ * - index(): Listar todos los posts.
+ * - show(): Mostrar detalles de un post específico.
+ */
 class PostController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Servicio de posts.
+     * @var PostService
      */
-    public function index()
+    protected $postService;
+
+    /**
+     * Inyecta el servicio de posts.
+     * @param PostService $postService
+     */
+    public function __construct(PostService $postService)
     {
-        return Post::latest()->get();
+        $this->postService = $postService;
     }
 
     /**
-     * Display the specified resource.
+     * Listar todos los posts.
+     * @return \Illuminate\Http\JsonResponse
      */
-
-    public function show($id)
+    public function index()
     {
-        return Post::findOrFail($id);
+        $posts = $this->postService->getAllPosts();
+        return response()->json($posts);
     }
 
-
- }
+    /**
+     * Mostrar detalles de un post específico.
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function show($id)
+    {
+        $post = $this->postService->getPostById($id);
+        if (!$post) {
+            return response()->json(['message' => 'Post no encontrado'], 404);
+        }
+        return response()->json($post);
+    }
+}

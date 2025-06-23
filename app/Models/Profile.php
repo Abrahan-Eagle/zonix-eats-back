@@ -5,6 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Modelo Profile: almacena información extendida de los usuarios (datos personales, empresa, etc.).
+ * Relacionado con User y otras entidades.
+ */
+
 class Profile extends Model
 {
     use HasFactory;
@@ -31,7 +36,6 @@ class Profile extends Model
         'vehicle_type',
         'license_number'
     ];
-
 
 
  public function user()
@@ -74,7 +78,10 @@ class Profile extends Model
 
 
 
-
+// Relación uno a muchos con el modelo Address
+    public function addresses() {
+        return $this->hasMany(Address::class);
+    }
 
 
 

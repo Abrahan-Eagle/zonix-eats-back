@@ -17,7 +17,8 @@ class Order extends Model
         'estado',
         'total',
         'comprobante_url',
-        'notas'
+        'notas',
+        'delivery_id',
     ];
 
     public function profile()
@@ -27,7 +28,7 @@ class Order extends Model
 
     public function user()
     {
-        return $this->profile->user();
+        return $this->profile ? $this->profile->user() : null;
     }
 
     public function commerce()
@@ -43,5 +44,14 @@ class Order extends Model
     public function delivery()
     {
         return $this->hasOne(OrderDelivery::class);
+    }
+
+    /**
+     * Relación muchos a muchos con productos (pivot: quantity).
+     */
+    public function products()
+    {
+        return $this->belongsToMany(Product::class, 'order_items', 'order_id', 'product_id')
+            ->withPivot('cantidad');
     }
 }

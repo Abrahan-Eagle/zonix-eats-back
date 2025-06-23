@@ -3,68 +3,87 @@
 namespace App\Http\Controllers\Buyer;
 
 use App\Http\Controllers\Controller;
-use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\Product;
+use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * Controlador para gestionar las órdenes del comprador.
+ *
+ * Métodos principales:
+ * - index(): Listar órdenes del comprador autenticado.
+ * - store(): Crear una nueva orden.
+ */
 class OrderController extends Controller
 {
-
+    /**
+     * Servicio de órdenes.
+     * @var OrderService
+     */
+    protected $orderService;
 
     /**
-     * Store a newly created resource in storage.
+     * Inyecta el servicio de órdenes.
+     * @param OrderService $orderService
      */
-    public function store(Request $request)
+    public function __construct(OrderService $orderService)
     {
+        $this->orderService = $orderService;
+    }
 
-public function index()
+    /**
+     * Listar las órdenes del comprador autenticado.
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function index()
     {
-        $orders = Order::where('buyer_id', Auth::id())->latest()->get();
+        $orders = $this->orderService->getBuyerOrders();
         return response()->json($orders);
     }
 
+    /**
+     * Almacena una nueva orden en el sistema.
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
             'products' => 'required|array',
-            'commerce_id' => 'required|exists:users,id',
+            'commerce_id' => 'required|exists:commerces,id',
             'delivery_type' => 'required|in:pickup,delivery',
             'address' => 'nullable|string'
         ]);
 
-        $order = Order::create([
-            'buyer_id' => Auth::id(),
-            'commerce_id' => $validated['commerce_id'],
-            'delivery_type' => $validated['delivery_type'],
-            'address' => $validated['address'],
-            'status' => 'pending',
-        ]);
-
-        // Save products to pivot table (order_product)
-        foreach ($validated['products'] as $product) {
-            $order->products()->attach($product['id'], ['quantity' => $product['quantity']]);
-        }
-
+        $order = $this->orderService->createOrder($validated, Auth::id());
         return response()->json(['message' => 'Orden creada con éxito', 'order' => $order], 201);
     }
 
+    /**
+     * Muestra los detalles de una orden específica.
+     * @param $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function show($id)
     {
-        $order = Order::where('buyer_id', Auth::id())->with('products')->findOrFail($id);
+        $order = $this->orderService->getOrderDetails($id, Auth::id());
+        if (!$order) {
+            return response()->json(['error' => 'Orden no encontrada'], 404);
+        }
         return response()->json($order);
     }
 
+    /**
+     * Cancela una orden pendiente.
+     * @param $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function cancel($id)
     {
-        $order = Order::where('buyer_id', Auth::id())->findOrFail($id);
-        if ($order->status === 'pending') {
-            $order->update(['status' => 'cancelled']);
+        $result = $this->orderService->cancelOrder($id, Auth::id());
+        if ($result === true) {
             return response()->json(['message' => 'Orden cancelada']);
         }
-
-        return response()->json(['error' => 'No se puede cancelar esta orden'], 400);
+        return response()->json(['error' => $result], 400);
     }
-
 }

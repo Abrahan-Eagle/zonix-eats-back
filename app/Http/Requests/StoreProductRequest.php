@@ -11,7 +11,8 @@ class StoreProductRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        // Permitir a cualquier usuario autenticado (rol commerce) crear productos
+        return auth()->check() && auth()->user()->role === 'commerce';
     }
 
     /**

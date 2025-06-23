@@ -6,6 +6,10 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Modelo PostLike: gestiona los likes de los usuarios a los posts.
+ * Relacionado con Profile, User y Post.
+ */
 class PostLike extends Model
 {
     use HasFactory;

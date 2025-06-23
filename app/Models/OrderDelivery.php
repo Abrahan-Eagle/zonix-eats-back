@@ -5,6 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Modelo OrderDelivery: gestiona la relación entre órdenes y agentes de delivery.
+ * Incluye estado y costo del envío.
+ */
 class OrderDelivery extends Model
 {
     use HasFactory;

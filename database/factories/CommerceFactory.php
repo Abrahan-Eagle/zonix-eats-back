@@ -37,4 +37,15 @@ class CommerceFactory extends Factory
         ];
 
     }
+
+    public function withProfile()
+    {
+        return $this->afterCreating(function ($commerce) {
+            if (!$commerce->profile_id) {
+                $profile = \App\Models\Profile::factory()->create();
+                $commerce->profile_id = $profile->id;
+                $commerce->save();
+            }
+        });
+    }
 }

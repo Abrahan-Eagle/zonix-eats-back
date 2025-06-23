@@ -26,4 +26,15 @@ class ProductFactory extends Factory
             'disponible' => true,
         ];
     }
+
+    public function withCommerce()
+    {
+        return $this->afterCreating(function ($product) {
+            if (!$product->commerce_id) {
+                $commerce = \App\Models\Commerce::factory()->create();
+                $product->commerce_id = $commerce->id;
+                $product->save();
+            }
+        });
+    }
 }

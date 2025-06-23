@@ -6,6 +6,10 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Modelo Commerce: representa un restaurante/comercio en la app de comida rápida.
+ * Relacionado con perfil, productos, órdenes y publicaciones.
+ */
 
 class Commerce extends Model
 {

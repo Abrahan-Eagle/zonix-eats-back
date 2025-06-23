@@ -18,6 +18,11 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     /**
+     * Modelo User: representa a los usuarios de la app (clientes, comercios, repartidores, admin).
+     * Incluye relaciones con comercios, órdenes, likes, etc.
+     */
+
+    /**
      * Los atributos que se pueden asignar masivamente.
      *
      * @var array<int, string>
