@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\Commerce;
+use App\Models\Profile;
 
 class CommerceSeeder extends Seeder
 {
@@ -12,6 +14,11 @@ class CommerceSeeder extends Seeder
      */
     public function run(): void
     {
-        //
+        // Crea 3 comercios para los primeros 3 perfiles
+        $profiles = \App\Models\Profile::take(3)->get();
+        foreach ($profiles as $profile) {
+            $profile->user->update(['role' => 'commerce']);
+            Commerce::factory()->create(['profile_id' => $profile->id]);
+        }
     }
 }
