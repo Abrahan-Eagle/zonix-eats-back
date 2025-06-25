@@ -18,7 +18,12 @@ class RoleMiddleware
      */
     public function handle(Request $request, Closure $next, $role)
     {
-        if (!Auth::check() || Auth::user()->role !== $role) {
+        $userRole = Auth::user()->role ?? null;
+        // Permitir 'users' como equivalente a 'buyer'
+        if ($role === 'buyer' && $userRole === 'users') {
+            return $next($request);
+        }
+        if (!Auth::check() || $userRole !== $role) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
         return $next($request);

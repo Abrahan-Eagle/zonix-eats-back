@@ -56,6 +56,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/orders', [BuyerOrderController::class, 'store']);
         Route::get('/orders', [BuyerOrderController::class, 'index']);
         Route::get('/products/{id}', [\App\Http\Controllers\Buyer\ProductController::class, 'show']);
+        Route::get('/products', [\App\Http\Controllers\Buyer\ProductController::class, 'index']);
     });
 
     // Commerce

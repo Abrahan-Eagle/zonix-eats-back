@@ -42,4 +42,14 @@ class ProductController extends Controller
         }
         return response()->json($product);
     }
+
+    /**
+     * Listar productos disponibles para el comprador.
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function index()
+    {
+        $products = $this->productService->searchAvailableProducts();
+        return response()->json($products);
+    }
 }
