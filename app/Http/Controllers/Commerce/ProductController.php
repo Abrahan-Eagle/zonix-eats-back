@@ -19,7 +19,17 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Product::where('commerce_id', Auth::id());
+            $user = Auth::user();
+            $profile = $user->profile;
+            $commerce = $profile ? \App\Models\Commerce::where('profile_id', $profile->id)->first() : null;
+            if (!$commerce) {
+                \Log::error('No se encontró comercio para el usuario', ['user_id' => $user->id]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Comercio no encontrado para el usuario autenticado',
+                ], 404);
+            }
+            $query = Product::where('commerce_id', $commerce->id);
 
             // Filtros de búsqueda
             if ($request->has('search')) {
@@ -74,10 +84,20 @@ class ProductController extends Controller
     public function store(StoreProductRequest $request)
     {
         try {
+            $user = Auth::user();
+            $profile = $user->profile;
+            $commerce = $profile ? \App\Models\Commerce::where('profile_id', $profile->id)->first() : null;
+            if (!$commerce) {
+                \Log::error('No se encontró comercio para el usuario', ['user_id' => $user->id]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Comercio no encontrado para el usuario autenticado',
+                ], 404);
+            }
             $validatedData = $request->validated();
 
             // Agregar commerce_id del usuario autenticado
-            $validatedData['commerce_id'] = Auth::id();
+            $validatedData['commerce_id'] = $commerce->id;
 
             // Manejar imagen si existe
             if ($request->hasFile('imagen')) {
@@ -105,7 +125,17 @@ class ProductController extends Controller
     public function show($id)
     {
         try {
-            $product = Product::where('commerce_id', Auth::id())->findOrFail($id);
+            $user = Auth::user();
+            $profile = $user->profile;
+            $commerce = $profile ? \App\Models\Commerce::where('profile_id', $profile->id)->first() : null;
+            if (!$commerce) {
+                \Log::error('No se encontró comercio para el usuario', ['user_id' => $user->id]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Comercio no encontrado para el usuario autenticado',
+                ], 404);
+            }
+            $product = Product::where('commerce_id', $commerce->id)->findOrFail($id);
 
             return response()->json([
                 'success' => true,
@@ -125,7 +155,17 @@ class ProductController extends Controller
     public function update(UpdateProductRequest $request, $id)
     {
         try {
-            $product = Product::where('commerce_id', Auth::id())->findOrFail($id);
+            $user = Auth::user();
+            $profile = $user->profile;
+            $commerce = $profile ? \App\Models\Commerce::where('profile_id', $profile->id)->first() : null;
+            if (!$commerce) {
+                \Log::error('No se encontró comercio para el usuario', ['user_id' => $user->id]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Comercio no encontrado para el usuario autenticado',
+                ], 404);
+            }
+            $product = Product::where('commerce_id', $commerce->id)->findOrFail($id);
             $validatedData = $request->validated();
 
             // Manejar imagen si existe
@@ -159,7 +199,17 @@ class ProductController extends Controller
     public function destroy($id)
     {
         try {
-            $product = Product::where('commerce_id', Auth::id())->findOrFail($id);
+            $user = Auth::user();
+            $profile = $user->profile;
+            $commerce = $profile ? \App\Models\Commerce::where('profile_id', $profile->id)->first() : null;
+            if (!$commerce) {
+                \Log::error('No se encontró comercio para el usuario', ['user_id' => $user->id]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Comercio no encontrado para el usuario autenticado',
+                ], 404);
+            }
+            $product = Product::where('commerce_id', $commerce->id)->findOrFail($id);
 
             // Eliminar imagen si existe
             if ($product->imagen && Storage::disk('public')->exists($product->imagen)) {
@@ -188,7 +238,17 @@ class ProductController extends Controller
     public function toggleDisponible($id)
     {
         try {
-            $product = Product::where('commerce_id', Auth::id())->findOrFail($id);
+            $user = Auth::user();
+            $profile = $user->profile;
+            $commerce = $profile ? \App\Models\Commerce::where('profile_id', $profile->id)->first() : null;
+            if (!$commerce) {
+                \Log::error('No se encontró comercio para el usuario', ['user_id' => $user->id]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Comercio no encontrado para el usuario autenticado',
+                ], 404);
+            }
+            $product = Product::where('commerce_id', $commerce->id)->findOrFail($id);
             $product->update(['disponible' => !$product->disponible]);
 
             $message = $product->disponible ? 'Producto marcado como disponible' : 'Producto marcado como no disponible';
