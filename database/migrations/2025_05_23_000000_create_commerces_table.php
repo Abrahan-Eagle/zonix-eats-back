@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('profile_id')->constrained()->onDelete('cascade');
             $table->string('nombre_local');
+            $table->text('imagen')->nullable();
             $table->text('direccion');
             $table->string('telefono', 20);
             $table->string('pago_movil_banco', 50);

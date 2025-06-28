@@ -19,6 +19,7 @@ class Commerce extends Model
        protected $fillable = [
         'profile_id',
         'nombre_local',
+        'imagen',
         'direccion',
         'telefono',
         'pago_movil_banco',
