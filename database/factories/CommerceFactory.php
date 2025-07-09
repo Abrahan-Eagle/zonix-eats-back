@@ -21,7 +21,7 @@ class CommerceFactory extends Factory
             'https://www.themealdb.com/images/media/meals/wxywrq1468235067.jpg', // Apple Frangipan Tart
             'https://www.themealdb.com/images/media/meals/xvsurr1511719182.jpg', // Apple & Blackberry Crumble
             'https://www.themealdb.com/images/media/meals/adxcbq1619787919.jpg', // Apam balik
-            'https://www.themealdb.com/images/media/meals/20z181619788503.jpg', // Ayam Percik
+            'https://www.themealdb.com/images/media/meals/xvsurr1511719182.jpg', // Ayam Percik
         ];
         return [
             'profile_id' => \App\Models\Profile::factory()->commerce(),
