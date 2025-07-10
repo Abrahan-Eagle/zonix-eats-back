@@ -12,29 +12,30 @@ class OrderService
      *
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function getBuyerOrders()
+    public function getUserOrders()
     {
-        return Order::where('buyer_id', Auth::id())->latest()->get();
+        return Order::where('user_id', Auth::id())->latest()->get();
     }
 
     /**
      * Crear una nueva orden con productos y datos validados.
      *
      * @param array $validated
-     * @param int $buyerId
+     * @param int $userId
      * @return \App\Models\Order
      */
-    public function createOrder(array $validated, $buyerId)
+    public function createOrder(array $validated, $userId)
     {
         // Obtener el perfil del comprador
-        $buyer = \App\Models\User::find($buyerId);
-        $profile = $buyer ? $buyer->profile : null;
+        $user = \App\Models\User::find($userId);
+        $profile = $user ? $user->profile : null;
         if (!$profile) {
-            throw new \Exception('El usuario comprador no tiene perfil asociado.');
+            throw new \Exception('El usuario no tiene perfil asociado.');
         }
         $order = \App\Models\Order::create([
             'profile_id' => $profile->id,
             'commerce_id' => $validated['commerce_id'],
+            'user_id' => $userId,
             'tipo_entrega' => $validated['tipo_entrega'] ?? $validated['delivery_type'] ?? 'pickup',
             'estado' => 'pendiente_pago',
             'total' => $validated['total'] ?? 0,
@@ -54,24 +55,24 @@ class OrderService
      * Obtener detalles de una orden específica del comprador.
      *
      * @param int $orderId
-     * @param int $buyerId
+     * @param int $userId
      * @return \App\Models\Order|null
      */
-    public function getOrderDetails($orderId, $buyerId)
+    public function getOrderDetails($orderId, $userId)
     {
-        return \App\Models\Order::where('buyer_id', $buyerId)->with('products')->find($orderId);
+        return Order::where('user_id', $userId)->with('products')->find($orderId);
     }
 
     /**
      * Cancelar una orden pendiente del comprador.
      *
      * @param int $orderId
-     * @param int $buyerId
+     * @param int $userId
      * @return true|string  True si se cancela, mensaje de error si no.
      */
-    public function cancelOrder($orderId, $buyerId)
+    public function cancelOrder($orderId, $userId)
     {
-        $order = \App\Models\Order::where('buyer_id', $buyerId)->find($orderId);
+        $order = Order::where('user_id', $userId)->find($orderId);
         if (!$order) {
             return 'Orden no encontrada';
         }

@@ -13,7 +13,7 @@ class CartControllerTest extends TestCase
 
     public function test_add_product_to_cart()
     {
-        $user = User::factory()->create(['role' => 'buyer']);
+        $user = User::factory()->create(['role' => 'users']);
         Sanctum::actingAs($user);
         $data = [
             'product_id' => 1,
@@ -26,7 +26,7 @@ class CartControllerTest extends TestCase
 
     public function test_show_cart_contents()
     {
-        $user = User::factory()->create(['role' => 'buyer']);
+        $user = User::factory()->create(['role' => 'users']);
         Sanctum::actingAs($user);
         $response = $this->getJson('/api/buyer/cart');
         $response->assertStatus(200)

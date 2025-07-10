@@ -21,6 +21,8 @@ class PostFactory extends Factory
             'commerce_id' => Commerce::factory(),
             'tipo' => $this->faker->randomElement(['foto', 'video']),
             'media_url' => $this->faker->imageUrl(),
+            'name' => $this->faker->words(2, true),
+            'price' => $this->faker->randomFloat(2, 5, 50),
             'descripcion' => $this->faker->sentence,
         ];
     }

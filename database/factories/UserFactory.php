@@ -36,7 +36,7 @@ class UserFactory extends Factory
             'family_name' => $this->faker->lastName(),
             'profile_pic' => $this->faker->imageUrl(),
             'AccessToken' => $this->faker->boolean(50) ? Str::random(40) : null,
-            'role' => $this->faker->randomElement(['admin', 'users', 'buyer', 'commerce', 'delivery_company', 'delivery_agent']),
+            'role' => $this->faker->randomElement(['admin', 'users', 'commerce', 'delivery_company', 'delivery_agent', 'delivery']),
             'completed_onboarding' => $this->faker->boolean(80),
             'remember_token' => Str::random(10),
         ];
@@ -63,7 +63,7 @@ class UserFactory extends Factory
     public function buyer()
     {
         return $this->state([
-            'role' => 'buyer',
+            'role' => 'users',
         ]);
     }
 

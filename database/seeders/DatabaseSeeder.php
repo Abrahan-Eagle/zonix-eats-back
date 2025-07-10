@@ -37,7 +37,7 @@ class DatabaseSeeder extends Seeder
         // Marcar algunos perfiles como compradores
         $buyers = $profiles->whereNotIn('id', [1, 2, 3]);
         $buyers->each(function ($profile) {
-            $profile->user->update(['role' => 'buyer']);
+            $profile->user->update(['role' => 'users']);
         });
 
         // Crear publicaciones para likear
@@ -59,6 +59,7 @@ class DatabaseSeeder extends Seeder
             $order = Order::factory()->create([
                 'profile_id' => $profile->id,
                 'commerce_id' => $commerce->id,
+                'user_id' => $profile->user_id,
             ]);
 
             $products = $commerce->products()->inRandomOrder()->take(2)->get();

@@ -13,7 +13,7 @@ class RestaurantControllerTest extends TestCase
 
     public function actingAsBuyer()
     {
-        $user = \App\Models\User::factory()->buyer()->create();
+        $user = \App\Models\User::factory()->create(['role' => 'users']);
         \Laravel\Sanctum\Sanctum::actingAs($user);
         return $user;
     }

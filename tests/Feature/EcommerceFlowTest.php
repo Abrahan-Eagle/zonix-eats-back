@@ -16,9 +16,9 @@ class EcommerceFlowTest extends TestCase
     public function test_buyer_can_complete_purchase_flow()
     {
         // Crear usuario buyer y autenticar
-        $user = User::factory()->buyer()->create();
+        $user = User::factory()->create(['role' => 'users']);
         // Asociar perfil al usuario buyer
-        $user->profile()->create([
+        $profile = $user->profile()->create([
             'firstName' => 'Comprador',
             'lastName' => 'Test',
             'address' => 'Calle Falsa 123',

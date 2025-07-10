@@ -17,7 +17,7 @@ class DeliveryRoleTest extends TestCase
         $delivery = User::factory()->deliveryAgent()->create();
         Sanctum::actingAs($delivery);
         // Crear órdenes asignadas
-        $user = \App\Models\User::factory()->buyer()->create();
+        $user = \App\Models\User::factory()->create(['role' => 'users']);
         $profile = \App\Models\Profile::factory()->create(['user_id' => $user->id]);
         $orders = \App\Models\Order::factory()->count(2)->create([
             'estado' => 'en_camino',
@@ -33,7 +33,7 @@ class DeliveryRoleTest extends TestCase
     {
         $delivery = User::factory()->deliveryAgent()->create();
         Sanctum::actingAs($delivery);
-        $user = \App\Models\User::factory()->buyer()->create();
+        $user = \App\Models\User::factory()->create(['role' => 'users']);
         $profile = \App\Models\Profile::factory()->create(['user_id' => $user->id]);
         $order = \App\Models\Order::factory()->create([
             'estado' => 'en_camino',

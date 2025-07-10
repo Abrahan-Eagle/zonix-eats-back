@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('profile_id')->constrained()->onDelete('cascade');
             $table->foreignId('commerce_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Nueva columna
             $table->enum('tipo_entrega', ['pickup', 'delivery']);
             $table->enum('estado', ['pendiente_pago', 'pagado', 'preparando', 'en_camino', 'entregado', 'cancelado']);
             $table->decimal('total', 10, 2);

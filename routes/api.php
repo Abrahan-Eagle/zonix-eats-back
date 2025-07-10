@@ -47,17 +47,41 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 
-    // Buyer
-    Route::middleware('role:buyer')->prefix('buyer')->group(function () {
+    // Users (antes Buyer)
+    Route::middleware('role:users')->prefix('buyer')->group(function () {
         Route::get('/restaurants', [RestaurantController::class, 'index']);
         Route::get('/restaurants/{id}', [RestaurantController::class, 'show']);
         Route::post('/cart/add', [CartController::class, 'add']);
         Route::get('/cart', [CartController::class, 'show']);
+        Route::put('/cart/update-quantity', [CartController::class, 'updateQuantity']);
+        Route::delete('/cart/{productId}', [CartController::class, 'remove']);
+        Route::post('/cart/notes', [CartController::class, 'addNotes']);
         Route::post('/orders', [BuyerOrderController::class, 'store']);
         Route::get('/orders', [BuyerOrderController::class, 'index']);
         Route::get('/products/{id}', [\App\Http\Controllers\Buyer\ProductController::class, 'show']);
         Route::get('/products', [\App\Http\Controllers\Buyer\ProductController::class, 'index']);
         Route::post('buyer/orders/{id}/comprobante', [\App\Http\Controllers\Buyer\OrderController::class, 'uploadComprobante']);
+        
+        // Nuevas rutas para búsqueda y favoritos
+        Route::get('/posts', [\App\Http\Controllers\Buyer\PostController::class, 'index']);
+        Route::get('/posts/{id}', [\App\Http\Controllers\Buyer\PostController::class, 'show']);
+        Route::post('/posts/{id}/favorite', [\App\Http\Controllers\Buyer\PostController::class, 'toggleFavorite']);
+        Route::get('/favorites', [\App\Http\Controllers\Buyer\PostController::class, 'favorites']);
+        
+        // Rutas de tracking
+        Route::get('/orders/{orderId}/tracking', [\App\Http\Controllers\Buyer\TrackingController::class, 'getOrderTracking']);
+        Route::post('/orders/{orderId}/tracking/location', [\App\Http\Controllers\Buyer\TrackingController::class, 'updateDeliveryLocation']);
+        
+        // Rutas de chat
+        Route::get('/orders/{orderId}/messages', [\App\Http\Controllers\ChatController::class, 'getMessages']);
+        Route::post('/orders/{orderId}/messages', [\App\Http\Controllers\ChatController::class, 'sendMessage']);
+        
+        // Rutas de calificaciones
+        Route::post('/reviews', [\App\Http\Controllers\ReviewController::class, 'store']);
+        Route::get('/reviews/{reviewableId}/{reviewableType}', [\App\Http\Controllers\ReviewController::class, 'index']);
+        Route::put('/reviews/{reviewId}', [\App\Http\Controllers\ReviewController::class, 'update']);
+        Route::delete('/reviews/{reviewId}', [\App\Http\Controllers\ReviewController::class, 'destroy']);
+        Route::get('/reviews/{reviewableId}/{reviewableType}/can-review', [\App\Http\Controllers\ReviewController::class, 'canReview']);
     });
 
     // Commerce
