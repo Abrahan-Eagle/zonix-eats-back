@@ -86,4 +86,28 @@ class OrderController extends Controller
         }
         return response()->json(['error' => $result], 400);
     }
+
+    /**
+     * Subir comprobante de pago para una orden.
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function uploadComprobante(Request $request, $id)
+    {
+        $request->validate([
+            'comprobante' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120', // 5MB máx
+        ]);
+        $order = \App\Models\Order::where('buyer_id', \Auth::id())->findOrFail($id);
+        if ($order->comprobante_url) {
+            // Opcional: eliminar comprobante anterior
+            \Storage::disk('public')->delete($order->comprobante_url);
+        }
+        $file = $request->file('comprobante');
+        $path = $file->store('comprobantes', 'public');
+        $order->comprobante_url = $path;
+        $order->estado = 'comprobante_subido'; // Cambia el estado si aplica
+        $order->save();
+        return response()->json(['message' => 'Comprobante subido', 'comprobante_url' => $path]);
+    }
 }

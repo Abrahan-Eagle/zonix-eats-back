@@ -57,6 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/orders', [BuyerOrderController::class, 'index']);
         Route::get('/products/{id}', [\App\Http\Controllers\Buyer\ProductController::class, 'show']);
         Route::get('/products', [\App\Http\Controllers\Buyer\ProductController::class, 'index']);
+        Route::post('buyer/orders/{id}/comprobante', [\App\Http\Controllers\Buyer\OrderController::class, 'uploadComprobante']);
     });
 
     // Commerce
@@ -66,6 +67,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/orders', [CommerceOrderController::class, 'index']);
         Route::put('/orders/{id}/status', [CommerceOrderController::class, 'updateStatus']);
         Route::post('/delivery/request', [DeliveryRequestController::class, 'store']);
+        Route::post('commerce/orders/{id}/validar-comprobante', [\App\Http\Controllers\Commerce\OrderController::class, 'validarComprobante']);
     });
 
     // Delivery
