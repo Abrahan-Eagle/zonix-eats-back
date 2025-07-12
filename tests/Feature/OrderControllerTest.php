@@ -15,7 +15,8 @@ class OrderControllerTest extends TestCase
     public function test_can_list_orders_for_authenticated_buyer()
     {
         $user = User::factory()->create(['role' => 'users']);
-        Order::factory()->count(2)->create(['user_id' => $user->id]);
+        $profile = \App\Models\Profile::factory()->create(['user_id' => $user->id]);
+        Order::factory()->count(2)->create(['profile_id' => $profile->id]);
         Sanctum::actingAs($user);
         $response = $this->getJson('/api/buyer/orders');
         $response->assertStatus(200)

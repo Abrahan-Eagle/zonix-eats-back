@@ -27,8 +27,8 @@ class EcommerceFlowTest extends TestCase
         Sanctum::actingAs($user);
 
         // Crear restaurante y producto
-        $commerce = Commerce::factory()->withProfile()->create(['abierto' => true]);
-        $product = Product::factory()->withCommerce()->create(['commerce_id' => $commerce->id, 'disponible' => true]);
+        $commerce = Commerce::factory()->withProfile()->create(['open' => true]);
+        $product = Product::factory()->withCommerce()->create(['commerce_id' => $commerce->id, 'available' => true]);
 
         // Listar restaurantes
         $this->getJson('/api/buyer/restaurants')->assertStatus(200);
@@ -55,11 +55,12 @@ class EcommerceFlowTest extends TestCase
             ],
             'commerce_id' => $commerce->id,
             'delivery_type' => 'delivery',
+            'total' => $product->price * 2,
             'address' => 'Calle Falsa 123'
         ];
         $this->postJson('/api/buyer/orders', $orderData)
             ->assertStatus(201)
-            ->assertJsonFragment(['message' => 'Orden creada con éxito']);
+            ->assertJsonFragment(['message' => 'Orden creada exitosamente']);
 
         // Listar órdenes
         $this->getJson('/api/buyer/orders')->assertStatus(200);

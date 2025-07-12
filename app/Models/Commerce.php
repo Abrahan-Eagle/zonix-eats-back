@@ -2,56 +2,58 @@
 
 namespace App\Models;
 
-use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * Modelo Commerce: representa un restaurante/comercio en la app de comida rápida.
- * Relacionado con perfil, productos, órdenes y publicaciones.
- */
-
 class Commerce extends Model
 {
-
     use HasFactory;
 
-       protected $fillable = [
+    protected $fillable = [
         'profile_id',
-        'nombre_local',
-        'imagen',
-        'direccion',
-        'telefono',
-        'pago_movil_banco',
-        'pago_movil_cedula',
-        'pago_movil_telefono',
-        'abierto',
-        'horario'
+        'business_name',
+        'image',
+        'address',
+        'phone',
+        'mobile_payment_bank',
+        'mobile_payment_id',
+        'mobile_payment_phone',
+        'open',
+        'schedule'
     ];
 
+    protected $casts = [
+        'open' => 'boolean',
+        'schedule' => 'array'
+    ];
 
-
-
-     public function profile()
+    /**
+     * Relación con el perfil
+     */
+    public function profile()
     {
         return $this->belongsTo(Profile::class);
     }
 
+    /**
+     * Relación con el usuario a través del perfil
+     */
     public function user()
     {
-        return $this->profile->user();
+        return $this->hasOneThrough(User::class, Profile::class);
     }
 
+    /**
+     * Relación con los productos
+     */
     public function products()
     {
         return $this->hasMany(Product::class);
     }
 
-    public function posts()
-    {
-        return $this->hasMany(Post::class);
-    }
-
+    /**
+     * Relación con las órdenes
+     */
     public function orders()
     {
         return $this->hasMany(Order::class);

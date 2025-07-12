@@ -2,7 +2,9 @@
 
 namespace Database\Factories;
 
+use App\Models\Profile;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use App\Models\Commerce;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Commerce>
@@ -16,44 +18,36 @@ class CommerceFactory extends Factory
      */
     public function definition(): array
     {
-
-        $mealImages = [
-            'https://www.themealdb.com/images/media/meals/wxywrq1468235067.jpg', // Apple Frangipan Tart
-            'https://www.themealdb.com/images/media/meals/xvsurr1511719182.jpg', // Apple & Blackberry Crumble
-            'https://www.themealdb.com/images/media/meals/adxcbq1619787919.jpg', // Apam balik
-            'https://www.themealdb.com/images/media/meals/xvsurr1511719182.jpg', // Ayam Percik
-        ];
         return [
-            'profile_id' => \App\Models\Profile::factory()->commerce(),
-            'nombre_local' => $this->faker->company,
-            'imagen' => $this->faker->randomElement($mealImages),
-            'direccion' => $this->faker->address,
-            'telefono' => $this->faker->phoneNumber,
-            'pago_movil_banco' => $this->faker->randomElement(['Banco de Venezuela', 'Banesco', 'Mercantil', 'Provincial']),
-            'pago_movil_cedula' => $this->faker->numerify('V########'),
-            'pago_movil_telefono' => $this->faker->phoneNumber,
-            'abierto' => $this->faker->boolean(70),
-            'horario' => json_encode([
-                'lunes' => '9:00 AM - 5:00 PM',
-                'martes' => '9:00 AM - 5:00 PM',
-                'miercoles' => '9:00 AM - 5:00 PM',
-                'jueves' => '9:00 AM - 5:00 PM',
-                'viernes' => '9:00 AM - 5:00 PM',
-                'sabado' => '9:00 AM - 2:00 PM',
-                'domingo' => 'Cerrado'
-            ]),
+            'profile_id' => Profile::factory(),
+            'business_name' => $this->faker->company,
+            'image' => $this->faker->imageUrl(),
+            'address' => $this->faker->address,
+            'phone' => $this->faker->phoneNumber,
+            'mobile_payment_bank' => $this->faker->randomElement(['Banesco', 'Mercantil', 'Bancaribe', 'Provincial']),
+            'mobile_payment_id' => $this->faker->numerify('##########'),
+            'mobile_payment_phone' => $this->faker->numerify('##########'),
+            'open' => $this->faker->boolean(70),
+            'schedule' => [
+                'monday' => ['open' => '08:00', 'close' => '18:00'],
+                'tuesday' => ['open' => '08:00', 'close' => '18:00'],
+                'wednesday' => ['open' => '08:00', 'close' => '18:00'],
+                'thursday' => ['open' => '08:00', 'close' => '18:00'],
+                'friday' => ['open' => '08:00', 'close' => '18:00'],
+                'saturday' => ['open' => '09:00', 'close' => '16:00'],
+                'sunday' => ['open' => '10:00', 'close' => '15:00'],
+            ],
         ];
-
     }
 
+    /**
+     * Indicate that the commerce should be created with a profile.
+     */
     public function withProfile()
     {
-        return $this->afterCreating(function ($commerce) {
-            if (!$commerce->profile_id) {
-                $profile = \App\Models\Profile::factory()->create();
-                $commerce->profile_id = $profile->id;
-                $commerce->save();
-            }
+        return $this->afterCreating(function (Commerce $commerce) {
+            $profile = Profile::factory()->create();
+            $commerce->update(['profile_id' => $profile->id]);
         });
     }
 }

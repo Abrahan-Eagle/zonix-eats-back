@@ -85,8 +85,13 @@ class PostService
     public function toggleFavorite($postId, $userId)
     {
         $profile = \App\Models\Profile::where('user_id', $userId)->first();
+        
+        if (!$profile) {
+            return ['message' => 'Perfil no encontrado', 'is_favorite' => false];
+        }
+        
         $existing = PostLike::where('post_id', $postId)
-                           ->where('user_id', $userId)
+                           ->where('profile_id', $profile->id)
                            ->first();
 
         if ($existing) {
@@ -95,8 +100,7 @@ class PostService
         } else {
             PostLike::create([
                 'post_id' => $postId,
-                'user_id' => $userId,
-                'profile_id' => $profile ? $profile->id : null,
+                'profile_id' => $profile->id,
             ]);
             return ['message' => 'Agregado a favoritos', 'is_favorite' => true];
         }
@@ -110,8 +114,14 @@ class PostService
      */
     public function getUserFavorites($userId)
     {
-        return Post::whereHas('likes', function($query) use ($userId) {
-            $query->where('user_id', $userId);
+        $profile = \App\Models\Profile::where('user_id', $userId)->first();
+        
+        if (!$profile) {
+            return collect();
+        }
+        
+        return Post::whereHas('likes', function($query) use ($profile) {
+            $query->where('profile_id', $profile->id);
         })->get();
     }
 }

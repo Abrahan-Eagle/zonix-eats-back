@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Commerce;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use App\Models\Product;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Product>
@@ -17,30 +18,24 @@ class ProductFactory extends Factory
      */
     public function definition(): array
     {
-        $mealImages = [
-            'https://www.themealdb.com/images/media/meals/wxywrq1468235067.jpg', // Apple Frangipan Tart
-            'https://www.themealdb.com/images/media/meals/xvsurr1511719182.jpg', // Apple & Blackberry Crumble
-            'https://www.themealdb.com/images/media/meals/adxcbq1619787919.jpg', // Apam balik
-            'https://www.themealdb.com/images/media/meals/xvsurr1511719182.jpg', // Ayam Percik
-        ];
         return [
             'commerce_id' => Commerce::factory(),
-            'nombre' => $this->faker->word,
-            'descripcion' => $this->faker->sentence,
-            'precio' => $this->faker->randomFloat(2, 1, 100),
-            'imagen' => $this->faker->randomElement($mealImages),
-            'disponible' => true,
+            'name' => $this->faker->words(3, true),
+            'description' => $this->faker->paragraph(),
+            'price' => $this->faker->randomFloat(2, 5, 50),
+            'image' => $this->faker->imageUrl(),
+            'available' => $this->faker->boolean(80),
         ];
     }
 
+    /**
+     * Indicate that the product should be created with a commerce.
+     */
     public function withCommerce()
     {
-        return $this->afterCreating(function ($product) {
-            if (!$product->commerce_id) {
-                $commerce = \App\Models\Commerce::factory()->create();
-                $product->commerce_id = $commerce->id;
-                $product->save();
-            }
+        return $this->afterCreating(function (Product $product) {
+            $commerce = Commerce::factory()->create();
+            $product->update(['commerce_id' => $commerce->id]);
         });
     }
 }

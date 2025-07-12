@@ -9,22 +9,41 @@ class Product extends Model
 {
     use HasFactory;
 
-
     protected $fillable = [
-        'commerce_id', 'nombre', 'descripcion', 'precio', 'imagen', 'disponible'
+        'commerce_id',
+        'name',
+        'description',
+        'price',
+        'image',
+        'available'
     ];
 
+    protected $casts = [
+        'price' => 'decimal:2',
+        'available' => 'boolean'
+    ];
+
+    /**
+     * Relación con el comercio
+     */
     public function commerce()
     {
         return $this->belongsTo(Commerce::class);
     }
 
     /**
-     * Relación muchos a muchos con órdenes (pivot: quantity).
+     * Relación con los items de orden
+     */
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
+    /**
+     * Relación con las órdenes a través de order_items
      */
     public function orders()
     {
-        return $this->belongsToMany(Order::class, 'order_items', 'product_id', 'order_id')
-            ->withPivot('quantity');
+        return $this->belongsToMany(Order::class, 'order_items');
     }
 }

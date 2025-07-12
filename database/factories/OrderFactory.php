@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Commerce;
+use App\Models\Profile;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,16 +19,13 @@ class OrderFactory extends Factory
     public function definition(): array
     {
         return [
-            'profile_id' => \App\Models\Profile::factory(),
-            'commerce_id' => \App\Models\Commerce::factory(),
-            'user_id' => function (array $attributes) {
-                return $attributes['profile_id'] ? \App\Models\Profile::find($attributes['profile_id'])->user_id : \App\Models\User::factory();
-            },
-            'tipo_entrega' => $this->faker->randomElement(['pickup', 'delivery']),
-            'estado' => $this->faker->randomElement(['pendiente_pago', 'pagado', 'preparando', 'en_camino', 'entregado', 'cancelado']),
-            'total' => $this->faker->randomFloat(2, 10, 500),
-            'comprobante_url' => $this->faker->imageUrl(),
-            'notas' => $this->faker->boolean(30) ? $this->faker->sentence : null,
+            'profile_id' => Profile::factory(),
+            'commerce_id' => Commerce::factory(),
+            'delivery_type' => $this->faker->randomElement(['pickup', 'delivery']),
+            'status' => $this->faker->randomElement(['pending_payment', 'paid', 'preparing', 'on_way', 'delivered', 'cancelled']),
+            'total' => $this->faker->randomFloat(2, 10, 100),
+            'receipt_url' => $this->faker->optional()->url(),
+            'notes' => $this->faker->optional()->sentence(),
         ];
     }
 }

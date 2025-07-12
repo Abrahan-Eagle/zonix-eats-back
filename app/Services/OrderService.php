@@ -14,7 +14,17 @@ class OrderService
      */
     public function getUserOrders()
     {
-        return Order::where('user_id', Auth::id())->latest()->get();
+        $user = Auth::user();
+        $profile = $user->profile;
+        
+        if (!$profile) {
+            return collect();
+        }
+        
+        return Order::where('profile_id', $profile->id)
+            ->orderBy('created_at', 'desc')
+            ->with('commerce', 'products')
+            ->get();
     }
 
     /**
@@ -35,17 +45,17 @@ class OrderService
         $order = \App\Models\Order::create([
             'profile_id' => $profile->id,
             'commerce_id' => $validated['commerce_id'],
-            'user_id' => $userId,
-            'tipo_entrega' => $validated['tipo_entrega'] ?? $validated['delivery_type'] ?? 'pickup',
-            'estado' => 'pendiente_pago',
+            'delivery_type' => $validated['delivery_type'] ?? 'pickup',
+            'status' => 'pending_payment',
             'total' => $validated['total'] ?? 0,
-            'notas' => $validated['notas'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+            'delivery_address' => $validated['delivery_address'] ?? null,
         ]);
         foreach ($validated['products'] as $product) {
             $productModel = \App\Models\Product::find($product['id']);
             $order->products()->attach($product['id'], [
-                'cantidad' => $product['quantity'],
-                'precio_unitario' => $productModel ? $productModel->precio : 0
+                'quantity' => $product['quantity'],
+                'unit_price' => $productModel ? $productModel->price : 0
             ]);
         }
         return $order->load('products');
@@ -60,7 +70,17 @@ class OrderService
      */
     public function getOrderDetails($orderId, $userId)
     {
-        return Order::where('user_id', $userId)->with('products')->find($orderId);
+        $user = \App\Models\User::with('profile')->find($userId);
+        $profile = $user ? $user->profile : null;
+        
+        if (!$profile) {
+            return null;
+        }
+        
+        return Order::where('profile_id', $profile->id)
+            ->where('id', $orderId)
+            ->with('products')
+            ->first();
     }
 
     /**
@@ -72,12 +92,22 @@ class OrderService
      */
     public function cancelOrder($orderId, $userId)
     {
-        $order = Order::where('user_id', $userId)->find($orderId);
+        $user = \App\Models\User::find($userId);
+        $profile = $user ? $user->profile : null;
+        
+        if (!$profile) {
+            return 'Usuario sin perfil';
+        }
+        
+        $order = Order::where('profile_id', $profile->id)->find($orderId);
         if (!$order) {
             return 'Orden no encontrada';
         }
-        if ($order->status === 'pending') {
-            $order->update(['status' => 'cancelled']);
+        if ($order->status === 'pending_payment') {
+            $order->update([
+                'status' => 'cancelled',
+                'cancellation_reason' => 'Customer requested cancellation',
+            ]);
             return true;
         }
         return 'No se puede cancelar esta orden';

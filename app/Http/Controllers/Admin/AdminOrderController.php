@@ -16,8 +16,12 @@ class AdminOrderController extends Controller
 
     public function updateStatus($id, Request $request)
     {
+        $request->validate([
+            'status' => 'required|in:pending_payment,paid,preparing,on_way,delivered,cancelled'
+        ]);
+
         $order = Order::findOrFail($id);
-        $order->estado = $request->input('estado');
+        $order->status = $request->input('status');
         $order->save();
         return response()->json(['message' => 'Estado actualizado', 'order' => $order]);
     }

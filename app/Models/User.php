@@ -63,10 +63,52 @@ class User extends Authenticatable
      * Relación para obtener los roles del usuario.
      * Si quieres manejar varios roles por usuario, puedes usar una tabla pivot.
      */
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'user_roles');
+    }
 
+    /**
+     * Verificar si el usuario tiene un rol específico
+     */
+    public function hasRole($role)
+    {
+        if (is_string($role)) {
+            return $this->role === $role || $this->roles->contains('name', $role);
+        }
+        return $this->roles->contains($role);
+    }
 
+    /**
+     * Verificar si el usuario tiene cualquiera de los roles especificados
+     */
+    public function hasAnyRole($roles)
+    {
+        if (is_string($roles)) {
+            return $this->hasRole($roles);
+        }
+        
+        foreach ($roles as $role) {
+            if ($this->hasRole($role)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
-      // Relación con Profile
+    /**
+     * Obtener todos los roles asociados al usuario
+     */
+    public function getAllRoles()
+    {
+        $roles = collect([$this->role]);
+        if ($this->roles->isNotEmpty()) {
+            $roles = $roles->merge($this->roles->pluck('name'));
+        }
+        return $roles->unique()->values();
+    }
+
+    // Relación con Profile
     public function profile()
     {
         return $this->hasOne(Profile::class);
@@ -97,36 +139,28 @@ class User extends Authenticatable
         return $this->hasMany(PostLike::class);
     }
 
+    /**
+     * Relación con órdenes como comprador
+     */
+    public function buyerOrders()
+    {
+        return $this->hasMany(Order::class, 'buyer_id');
+    }
 
-
-
-
-
-
-
-    // public function deliveryAgent()
-    // {
-    //     return $this->hasOneThrough(
-    //         DeliveryAgent::class,
-    //         Profile::class,
-    //         'user_id', // Foreign key on profiles table
-    //         'profile_id', // Foreign key on delivery_agents table
-    //         'id', // Local key on users table
-    //         'id' // Local key on profiles table
-    //     );
-    // }
-
-    // public function orders()
-    // {
-    //     return $this->hasManyThrough(
-    //         Order::class,
-    //         Profile::class,
-    //         'user_id',
-    //         'profile_id',
-    //         'id',
-    //         'id'
-    //     );
-    // }
-
-
+    /**
+     * Relación con órdenes como repartidor
+     */
+    public function deliveryOrders()
+    {
+        return $this->hasManyThrough(
+            Order::class,
+            DeliveryAgent::class,
+            'profile_id', // Clave foránea en delivery_agents
+            'id', // Clave foránea en orders
+            'id', // Clave local en users
+            'id' // Clave local en delivery_agents
+        )->whereHas('orderDelivery', function($query) {
+            $query->where('agent_id', $this->profile->deliveryAgent->id ?? 0);
+        });
+    }
 }

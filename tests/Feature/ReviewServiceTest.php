@@ -27,13 +27,14 @@ class ReviewServiceTest extends TestCase
     public function test_can_user_review_with_delivered_order()
     {
         $user = User::factory()->create();
+        $profile = Profile::factory()->create(['user_id' => $user->id]);
         $commerce = Commerce::factory()->create();
         
         // Crear un pedido entregado
         $order = Order::factory()->create([
-            'user_id' => $user->id,
+            'profile_id' => $profile->id,
             'commerce_id' => $commerce->id,
-            'estado' => 'entregado'
+            'status' => 'delivered'
         ]);
 
         $canReview = $this->reviewService->canUserReview($user->id, $commerce->id, 'App\Models\Commerce');
@@ -49,10 +50,9 @@ class ReviewServiceTest extends TestCase
         
         // Crear un pedido que no está entregado
         $order = Order::factory()->create([
-            'user_id' => $user->id,
             'profile_id' => $profile->id,
             'commerce_id' => $commerce->id,
-            'estado' => 'pendiente_pago'
+            'status' => 'pending_payment'
         ]);
 
         $canReview = $this->reviewService->canUserReview($user->id, $commerce->id, 'App\Models\Commerce');
@@ -68,9 +68,9 @@ class ReviewServiceTest extends TestCase
         
         // Crear un pedido entregado
         Order::factory()->create([
-            'user_id' => $user->id,
+            'profile_id' => $profile->id,
             'commerce_id' => $commerce->id,
-            'estado' => 'entregado'
+            'status' => 'delivered'
         ]);
 
         $this->actingAs($user);
@@ -97,9 +97,9 @@ class ReviewServiceTest extends TestCase
         
         // Crear un pedido entregado
         Order::factory()->create([
-            'user_id' => $user->id,
+            'profile_id' => $profile->id,
             'commerce_id' => $commerce->id,
-            'estado' => 'entregado'
+            'status' => 'delivered'
         ]);
 
         $this->actingAs($user);

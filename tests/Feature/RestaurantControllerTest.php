@@ -25,7 +25,7 @@ class RestaurantControllerTest extends TestCase
         $response = $this->getJson('/api/buyer/restaurants');
         $response->assertStatus(200)
                  ->assertJsonStructure([
-                     '*' => ['id', 'profile_id', 'nombre_local','imagen', 'direccion', 'telefono', 'abierto', 'horario']
+                     '*' => ['id', 'profile_id', 'business_name','image', 'address', 'phone', 'open', 'schedule']
                  ]);
     }
 

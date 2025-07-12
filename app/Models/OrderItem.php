@@ -9,18 +9,28 @@ class OrderItem extends Model
 {
     use HasFactory;
 
+    protected $fillable = [
+        'order_id',
+        'product_id',
+        'quantity',
+        'unit_price'
+    ];
+
+    protected $casts = [
+        'unit_price' => 'decimal:2'
+    ];
+
     /**
-     * Modelo pivot para la relación muchos a muchos entre órdenes y productos.
-     * Campos: order_id, product_id, cantidad, precio_unitario
+     * Relación con la orden
      */
-
-     protected $fillable = ['order_id', 'product_id', 'cantidad', 'precio_unitario'];
-
     public function order()
     {
         return $this->belongsTo(Order::class);
     }
 
+    /**
+     * Relación con el producto
+     */
     public function product()
     {
         return $this->belongsTo(Product::class);

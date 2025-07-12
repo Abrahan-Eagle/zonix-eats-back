@@ -16,8 +16,8 @@ class PostLike extends Model
 
     protected $fillable = [
         'profile_id',
-        'user_id',
-        'post_id'
+        'post_id',
+        // 'user_id',
     ];
 
     public function profile()

@@ -6,6 +6,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Order;
+use App\Models\Profile;
+use App\Models\DeliveryAgent;
+use App\Models\OrderDelivery;
 use Laravel\Sanctum\Sanctum;
 
 class DeliveryRoleTest extends TestCase
@@ -15,16 +18,28 @@ class DeliveryRoleTest extends TestCase
     public function test_delivery_can_list_assigned_orders()
     {
         $delivery = User::factory()->deliveryAgent()->create();
+        $deliveryProfile = Profile::factory()->create(['user_id' => $delivery->id]);
+        $deliveryAgent = DeliveryAgent::factory()->create(['profile_id' => $deliveryProfile->id]);
         Sanctum::actingAs($delivery);
+        
         // Crear órdenes asignadas
-        $user = \App\Models\User::factory()->create(['role' => 'users']);
-        $profile = \App\Models\Profile::factory()->create(['user_id' => $user->id]);
-        $orders = \App\Models\Order::factory()->count(2)->create([
-            'estado' => 'en_camino',
-            'delivery_id' => $delivery->id,
+        $user = User::factory()->create(['role' => 'users']);
+        $profile = Profile::factory()->create(['user_id' => $user->id]);
+        $orders = Order::factory()->count(2)->create([
+            'status' => 'on_way',
             'profile_id' => $profile->id
         ]);
-        // Listar órdenes asignadas (simulación de endpoint delivery)
+        
+        // Asignar órdenes al repartidor
+        foreach ($orders as $order) {
+            OrderDelivery::factory()->create([
+                'order_id' => $order->id,
+                'agent_id' => $deliveryAgent->id,
+                'estado_envio' => 'asignado'
+            ]);
+        }
+        
+        // Listar órdenes asignadas
         $response = $this->getJson('/api/delivery/orders');
         $response->assertStatus(200);
     }
@@ -32,16 +47,27 @@ class DeliveryRoleTest extends TestCase
     public function test_delivery_can_mark_order_as_delivered()
     {
         $delivery = User::factory()->deliveryAgent()->create();
+        $deliveryProfile = Profile::factory()->create(['user_id' => $delivery->id]);
+        $deliveryAgent = DeliveryAgent::factory()->create(['profile_id' => $deliveryProfile->id]);
+        
         Sanctum::actingAs($delivery);
-        $user = \App\Models\User::factory()->create(['role' => 'users']);
-        $profile = \App\Models\Profile::factory()->create(['user_id' => $user->id]);
-        $order = \App\Models\Order::factory()->create([
-            'estado' => 'en_camino',
-            'delivery_id' => $delivery->id,
+        
+        $user = User::factory()->create(['role' => 'users']);
+        $profile = Profile::factory()->create(['user_id' => $user->id]);
+        $order = Order::factory()->create([
+            'status' => 'on_way',
             'profile_id' => $profile->id
         ]);
-        // Marcar orden como entregada (simulación de endpoint delivery)
-        $response = $this->patchJson("/api/delivery/orders/{$order->id}/status", ['estado' => 'entregado']);
+        
+        // Crear la relación de entrega
+        OrderDelivery::factory()->create([
+            'order_id' => $order->id,
+            'agent_id' => $deliveryAgent->id,
+            'estado_envio' => 'asignado'
+        ]);
+        
+        // Marcar orden como entregada
+        $response = $this->patchJson("/api/delivery/orders/{$order->id}/status", ['status' => 'delivered']);
         $response->assertStatus(200);
     }
 }

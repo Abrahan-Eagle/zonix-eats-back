@@ -59,7 +59,6 @@ class DatabaseSeeder extends Seeder
             $order = Order::factory()->create([
                 'profile_id' => $profile->id,
                 'commerce_id' => $commerce->id,
-                'user_id' => $profile->user_id,
             ]);
 
             $products = $commerce->products()->inRandomOrder()->take(2)->get();
@@ -100,6 +99,7 @@ class DatabaseSeeder extends Seeder
         }
 
         $this->call([
+            RoleSeeder::class,
             UserSeeder::class,
             CommerceSeeder::class,
             ProductSeeder::class,

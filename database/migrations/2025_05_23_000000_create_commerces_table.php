@@ -14,15 +14,15 @@ return new class extends Migration
         Schema::create('commerces', function (Blueprint $table) {
             $table->id();
             $table->foreignId('profile_id')->constrained()->onDelete('cascade');
-            $table->string('nombre_local');
-            $table->text('imagen')->nullable();
-            $table->text('direccion');
-            $table->string('telefono', 20);
-            $table->string('pago_movil_banco', 50);
-            $table->string('pago_movil_cedula', 20);
-            $table->string('pago_movil_telefono', 20);
-            $table->boolean('abierto')->default(false);
-            $table->json('horario')->nullable();
+            $table->string('business_name');
+            $table->text('image')->nullable();
+            $table->text('address');
+            $table->string('phone', 20);
+            $table->string('mobile_payment_bank', 50);
+            $table->string('mobile_payment_id', 20);
+            $table->string('mobile_payment_phone', 20);
+            $table->boolean('open')->default(false);
+            $table->json('schedule')->nullable();
             $table->timestamps();
         });
     }

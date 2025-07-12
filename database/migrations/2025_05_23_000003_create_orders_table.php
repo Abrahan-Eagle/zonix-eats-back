@@ -15,12 +15,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('profile_id')->constrained()->onDelete('cascade');
             $table->foreignId('commerce_id')->constrained()->onDelete('cascade');
-            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Nueva columna
-            $table->enum('tipo_entrega', ['pickup', 'delivery']);
-            $table->enum('estado', ['pendiente_pago', 'pagado', 'preparando', 'en_camino', 'entregado', 'cancelado']);
+            $table->enum('delivery_type', ['pickup', 'delivery']);
+            $table->enum('status', ['pending_payment', 'paid', 'preparing', 'on_way', 'delivered', 'cancelled']);
             $table->decimal('total', 10, 2);
-            $table->text('comprobante_url')->nullable();
-            $table->text('notas')->nullable();
+            $table->text('receipt_url')->nullable();
+            $table->text('notes')->nullable();
             $table->timestamps();
         });
 

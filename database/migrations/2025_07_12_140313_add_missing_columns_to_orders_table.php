@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('orders', function (Blueprint $table) {
-            $table->foreignId('buyer_id')->nullable()->after('id')->constrained('users')->onDelete('cascade');
+            $table->string('estado')->default('pendiente')->after('status');
+            $table->string('payment_proof')->nullable()->after('notes');
         });
     }
 
@@ -22,8 +23,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('orders', function (Blueprint $table) {
-            $table->dropForeign(['buyer_id']);
-            $table->dropColumn('buyer_id');
+            $table->dropColumn(['estado', 'payment_proof']);
         });
     }
 };

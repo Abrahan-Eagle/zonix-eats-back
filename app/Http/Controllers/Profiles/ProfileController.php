@@ -90,7 +90,7 @@ class ProfileController extends Controller
      */
     public function show($id)
     {
-        $profile = Profile::with(['user', 'addresses'])->where('user_id', $id)->first();
+        $profile = Profile::with(['user', 'addresses'])->find($id);
 
         if (!$profile) {
             return response()->json(['message' => 'Perfil no encontrado'], 404);
@@ -208,4 +208,185 @@ class ProfileController extends Controller
                 return response()->json(['error' => 'User profile not found'], 404);
             }
         }
+
+    /**
+     * Crear un perfil de delivery agent.
+     */
+    public function createDeliveryAgent(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'required|exists:users,id',
+            'firstName' => 'required|string|max:255',
+            'lastName' => 'required|string|max:255',
+            'date_of_birth' => 'required|date',
+            'maritalStatus' => 'required|in:married,divorced,single',
+            'sex' => 'required|in:F,M',
+            'vehicle_type' => 'required|string|max:100',
+            'phone' => 'required|string|max:20',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 400);
+        }
+
+        // Verificar si ya existe un perfil para el usuario
+        $existingProfile = Profile::where('user_id', $request->user_id)->first();
+
+        if ($existingProfile) {
+            return response()->json([
+                'message' => 'Ya existe un perfil asociado a este usuario.',
+                'profile' => $existingProfile
+            ], 409);
+        }
+
+        $profileData = $request->only([
+            'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex'
+        ]);
+
+        $profileData['middleName'] = $request->middleName ?? '';
+        $profileData['secondLastName'] = $request->secondLastName ?? '';
+        $profileData['status'] = 'notverified';
+
+        // Crear el perfil
+        $profile = Profile::create($profileData);
+
+        // Crear el delivery agent asociado
+        $deliveryAgent = \App\Models\DeliveryAgent::create([
+            'profile_id' => $profile->id,
+            'vehicle_type' => $request->vehicle_type,
+            'phone' => $request->phone,
+            'status' => 'active',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Delivery agent profile created successfully',
+            'data' => [
+                'profile' => $profile,
+                'delivery_agent' => $deliveryAgent
+            ]
+        ], 201);
+    }
+
+    /**
+     * Crear un perfil de commerce.
+     */
+    public function createCommerce(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'required|exists:users,id',
+            'firstName' => 'required|string|max:255',
+            'lastName' => 'required|string|max:255',
+            'date_of_birth' => 'required|date',
+            'maritalStatus' => 'required|in:married,divorced,single',
+            'sex' => 'required|in:F,M',
+            'commerce_name' => 'required|string|max:255',
+            'address' => 'required|string|max:500',
+            'phone' => 'required|string|max:20',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 400);
+        }
+
+        // Verificar si ya existe un perfil para el usuario
+        $existingProfile = Profile::where('user_id', $request->user_id)->first();
+
+        if ($existingProfile) {
+            return response()->json([
+                'message' => 'Ya existe un perfil asociado a este usuario.',
+                'profile' => $existingProfile
+            ], 409);
+        }
+
+        $profileData = $request->only([
+            'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex'
+        ]);
+
+        $profileData['middleName'] = $request->middleName ?? '';
+        $profileData['secondLastName'] = $request->secondLastName ?? '';
+        $profileData['status'] = 'notverified';
+
+        // Crear el perfil
+        $profile = Profile::create($profileData);
+
+        // Crear el commerce asociado
+        $commerce = \App\Models\Commerce::create([
+            'profile_id' => $profile->id,
+            'name' => $request->commerce_name,
+            'address' => $request->address,
+            'phone' => $request->phone,
+            'status' => 'active',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Commerce profile created successfully',
+            'data' => [
+                'profile' => $profile,
+                'commerce' => $commerce
+            ]
+        ], 201);
+    }
+
+    /**
+     * Crear un perfil de delivery company.
+     */
+    public function createDeliveryCompany(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'required|exists:users,id',
+            'firstName' => 'required|string|max:255',
+            'lastName' => 'required|string|max:255',
+            'date_of_birth' => 'required|date',
+            'maritalStatus' => 'required|in:married,divorced,single',
+            'sex' => 'required|in:F,M',
+            'company_name' => 'required|string|max:255',
+            'address' => 'required|string|max:500',
+            'phone' => 'required|string|max:20',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 400);
+        }
+
+        // Verificar si ya existe un perfil para el usuario
+        $existingProfile = Profile::where('user_id', $request->user_id)->first();
+
+        if ($existingProfile) {
+            return response()->json([
+                'message' => 'Ya existe un perfil asociado a este usuario.',
+                'profile' => $existingProfile
+            ], 409);
+        }
+
+        $profileData = $request->only([
+            'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex'
+        ]);
+
+        $profileData['middleName'] = $request->middleName ?? '';
+        $profileData['secondLastName'] = $request->secondLastName ?? '';
+        $profileData['status'] = 'notverified';
+
+        // Crear el perfil
+        $profile = Profile::create($profileData);
+
+        // Crear la delivery company asociada
+        $deliveryCompany = \App\Models\DeliveryCompany::create([
+            'profile_id' => $profile->id,
+            'name' => $request->company_name,
+            'address' => $request->address,
+            'phone' => $request->phone,
+            'status' => 'active',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Delivery company profile created successfully',
+            'data' => [
+                'profile' => $profile,
+                'delivery_company' => $deliveryCompany
+            ]
+        ], 201);
+    }
 }

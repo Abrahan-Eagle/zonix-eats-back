@@ -18,9 +18,10 @@ class PostLikeFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id' => \App\Models\User::factory(),
             'profile_id' => \App\Models\Profile::factory(),
-            'post_id' => Post::factory(),
+            'post_id' => \App\Models\Post::factory(),
+            'created_at' => now(),
+            'updated_at' => now(),
         ];
     }
 }

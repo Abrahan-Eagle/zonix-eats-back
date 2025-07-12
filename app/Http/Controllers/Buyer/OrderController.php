@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Events\OrderCreated;
 
 /**
  * Controlador para gestionar las órdenes del comprador.
@@ -48,15 +49,63 @@ class OrderController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'products' => 'required|array',
-            'commerce_id' => 'required|exists:commerces,id',
-            'delivery_type' => 'required|in:pickup,delivery',
-            'address' => 'nullable|string'
-        ]);
+        try {
+            $validated = $request->validate([
+                'commerce_id' => 'required|exists:commerces,id',
+                'products' => 'required|array|min:1',
+                'products.*.id' => 'required|exists:products,id',
+                'products.*.quantity' => 'required|integer|min:1',
+                'delivery_type' => 'required|in:pickup,delivery',
+                'total' => 'required|numeric|min:0',
+                'notes' => 'nullable|string|max:500',
+                'delivery_address' => 'nullable|string|max:500',
+            ]);
 
-        $order = $this->orderService->createOrder($validated, Auth::id());
-        return response()->json(['message' => 'Orden creada con éxito', 'order' => $order], 201);
+            $user = Auth::user();
+            $profile = $user->profile;
+            
+            if (!$profile) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Usuario sin perfil creado'
+                ], 400);
+            }
+
+            // Crear la orden
+            $order = \App\Models\Order::create([
+                'profile_id' => $profile->id,
+                'commerce_id' => $validated['commerce_id'],
+                'delivery_type' => $validated['delivery_type'],
+                'status' => 'pending_payment',
+                'total' => $validated['total'],
+                'notes' => $validated['notes'] ?? null,
+                'delivery_address' => $validated['delivery_address'] ?? null,
+            ]);
+
+            // Agregar productos a la orden
+            foreach ($validated['products'] as $product) {
+                $productModel = \App\Models\Product::find($product['id']);
+                $order->products()->attach($product['id'], [
+                    'quantity' => $product['quantity'],
+                    'unit_price' => $productModel->price
+                ]);
+            }
+
+            // Emitir evento de nueva orden
+            // event(new OrderCreated($order));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Orden creada exitosamente',
+                'data' => $order->load('products')
+            ], 201);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear la orden: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -93,21 +142,74 @@ class OrderController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
-    public function uploadComprobante(Request $request, $id)
+    public function uploadPaymentProof(Request $request, $id)
     {
         $request->validate([
-            'comprobante' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120', // 5MB máx
+            'payment_proof' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'payment_method' => 'required|string|max:100',
+            'reference_number' => 'required|string|max:100',
         ]);
-        $order = \App\Models\Order::where('buyer_id', \Auth::id())->findOrFail($id);
-        if ($order->comprobante_url) {
-            // Opcional: eliminar comprobante anterior
-            \Storage::disk('public')->delete($order->comprobante_url);
+
+        $user = Auth::user();
+        $profile = $user->profile;
+        
+        $order = \App\Models\Order::where('profile_id', $profile->id)->findOrFail($id);
+        
+        if ($order->status === 'delivered') {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se puede subir comprobante para una orden completada'
+            ], 400);
         }
-        $file = $request->file('comprobante');
-        $path = $file->store('comprobantes', 'public');
-        $order->comprobante_url = $path;
-        $order->estado = 'comprobante_subido'; // Cambia el estado si aplica
-        $order->save();
-        return response()->json(['message' => 'Comprobante subido', 'comprobante_url' => $path]);
+
+        $file = $request->file('payment_proof');
+        $path = $file->store('payment_proofs', 'public');
+        
+        $order->update([
+            'payment_proof' => 'payment_proofs/' . $file->hashName(),
+            'payment_method' => $request->payment_method,
+            'reference_number' => $request->reference_number,
+            'status' => 'pending_payment'
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Comprobante de pago subido exitosamente'
+        ]);
+    }
+
+    /**
+     * Cancelar una orden.
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function cancelOrder(Request $request, $id)
+    {
+        $request->validate([
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $user = Auth::user();
+        $profile = $user->profile;
+        
+        $order = \App\Models\Order::where('profile_id', $profile->id)->findOrFail($id);
+        
+        if ($order->status === 'preparing') {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se puede cancelar una orden en preparación'
+            ], 400);
+        }
+
+        $order->update([
+            'status' => 'cancelled',
+            'cancellation_reason' => $request->reason
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Orden cancelada exitosamente'
+        ]);
     }
 }

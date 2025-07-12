@@ -1,19 +1,32 @@
 {
-	"authHost": "http://localhost",
+	"authHost": "http://localhost:8000",
 	"authEndpoint": "/broadcasting/auth",
-	"clients": [],
+	"clients": [
+		{
+			"appId": "zonix-eats-app",
+			"key": "zonix-eats-key"
+		}
+	],
 	"database": "redis",
 	"databaseConfig": {
-		"redis": {},
+		"redis": {
+			"host": "127.0.0.1",
+			"port": 6379
+		},
 		"sqlite": {
 			"databasePath": "/database/laravel-echo-server.sqlite"
 		}
 	},
 	"devMode": true,
-	"host": null,
+	"host": "0.0.0.0",
 	"port": "6001",
 	"protocol": "http",
-	"socketio": {},
+	"socketio": {
+		"cors": {
+			"origin": "*",
+			"methods": ["GET", "POST"]
+		}
+	},
 	"secureOptions": 67108864,
 	"sslCertPath": "",
 	"sslKeyPath": "",
@@ -24,9 +37,9 @@
 		"redis": true
 	},
 	"apiOriginAllow": {
-		"allowCors": false,
-		"allowOrigin": "",
-		"allowMethods": "",
-		"allowHeaders": ""
+		"allowCors": true,
+		"allowOrigin": "*",
+		"allowMethods": "GET, POST, PUT, DELETE, OPTIONS",
+		"allowHeaders": "Origin, Content-Type, Accept, Authorization, X-Requested-With"
 	}
 }

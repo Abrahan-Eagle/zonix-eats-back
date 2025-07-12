@@ -16,16 +16,16 @@ class OrderBroadcastTest extends TestCase
     {
         Event::fake([OrderStatusChanged::class]);
 
-        $order = Order::factory()->create(['estado' => 'pendiente_pago']);
+        $order = Order::factory()->create(['status' => 'pending_payment']);
 
         // Simula cambio de estado
-        $order->estado = 'entregado';
+        $order->status = 'delivered';
         $order->save();
 
         event(new OrderStatusChanged($order));
 
         Event::assertDispatched(OrderStatusChanged::class, function ($event) use ($order) {
-            return $event->order->id === $order->id && $event->order->estado === 'entregado';
+            return $event->order->id === $order->id && $event->order->status === 'delivered';
         });
     }
 } 

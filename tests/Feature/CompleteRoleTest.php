@@ -84,12 +84,13 @@ class CompleteRoleTest extends TestCase
         $orderData = [
             'products' => [
                 [
-                    'product_id' => $product->id,
+                    'id' => $product->id,
                     'quantity' => 2
                 ]
             ],
             'commerce_id' => $commerce->id,
-            'delivery_type' => 'delivery'
+            'delivery_type' => 'delivery',
+            'total' => 25.99
         ];
 
         $response = $this->postJson('/api/buyer/orders', $orderData);
@@ -109,7 +110,10 @@ class CompleteRoleTest extends TestCase
         // Verificar que puede actualizar perfil
         $response = $this->postJson('/api/profiles/' . $profile->id, [
             'firstName' => 'Nuevo Nombre',
-            'lastName' => 'Nuevo Apellido'
+            'lastName' => 'Nuevo Apellido',
+            'date_of_birth' => '1990-01-01',
+            'maritalStatus' => 'single',
+            'sex' => 'M'
         ]);
         $response->assertStatus(200);
     }
@@ -147,12 +151,12 @@ class CompleteRoleTest extends TestCase
         // Crear orden para este comercio
         $order = Order::factory()->create([
             'commerce_id' => $commerce->id,
-            'estado' => 'pendiente'
+            'status' => 'pending_payment'
         ]);
 
         // Verificar que puede actualizar estado de la orden
         $response = $this->putJson("/api/commerce/orders/{$order->id}/status", [
-            'estado' => 'preparando'
+            'status' => 'preparing'
         ]);
         $response->assertStatus(200);
     }
@@ -201,14 +205,20 @@ class CompleteRoleTest extends TestCase
 
         // Crear orden asignada al repartidor
         $order = Order::factory()->create([
-            'estado' => 'en_camino',
-            'delivery_id' => $deliveryUser->id,
-            'profile_id' => $profile->id
+            'status' => 'on_way'
+        ]);
+
+        // Crear la relación order_delivery
+        \App\Models\OrderDelivery::create([
+            'order_id' => $order->id,
+            'agent_id' => $deliveryAgent->id,
+            'status' => 'assigned',
+            'costo_envio' => 10.0
         ]);
 
         // Verificar que puede marcar orden como entregada
         $response = $this->patchJson("/api/delivery/orders/{$order->id}/status", [
-            'estado' => 'entregado'
+            'status' => 'delivered'
         ]);
         $response->assertStatus(200);
     }
@@ -299,12 +309,12 @@ class CompleteRoleTest extends TestCase
 
         $order = Order::factory()->create([
             'commerce_id' => $commerce->id,
-            'estado' => 'pendiente'
+            'status' => 'pending_payment'
         ]);
 
         // Commerce puede cambiar de pendiente a preparando
         $response = $this->putJson("/api/commerce/orders/{$order->id}/status", [
-            'estado' => 'preparando'
+            'status' => 'preparing'
         ]);
         $response->assertStatus(200);
 
@@ -315,13 +325,20 @@ class CompleteRoleTest extends TestCase
         Sanctum::actingAs($deliveryUser);
 
         $order->update([
-            'estado' => 'en_camino',
-            'delivery_id' => $deliveryUser->id
+            'status' => 'on_way'
+        ]);
+
+        // Crear la relación order_delivery
+        \App\Models\OrderDelivery::create([
+            'order_id' => $order->id,
+            'agent_id' => $deliveryAgent->id,
+            'status' => 'assigned',
+            'costo_envio' => 10.0
         ]);
 
         // Delivery puede cambiar de en_camino a entregado
         $response = $this->patchJson("/api/delivery/orders/{$order->id}/status", [
-            'estado' => 'entregado'
+            'status' => 'delivered'
         ]);
         $response->assertStatus(200);
     }

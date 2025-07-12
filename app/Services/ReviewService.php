@@ -71,17 +71,19 @@ class ReviewService
      */
     public function canUserReview($userId, $reviewableId, $reviewableType)
     {
+        $profile = Profile::where('user_id', $userId)->first();
+        if (!$profile) return false;
         // Buscar pedidos entregados del usuario con este comercio
-        $deliveredOrders = Order::where('user_id', $userId)
-                               ->where('estado', 'entregado')
+        $deliveredOrders = Order::where('profile_id', $profile->id)
+                               ->where('status', 'delivered')
                                ->get();
 
         foreach ($deliveredOrders as $order) {
-            if ($reviewableType === 'App\Models\Commerce') {
+            if ($reviewableType === 'App\\Models\\Commerce') {
                 if ($order->commerce_id == $reviewableId) {
                     return true;
                 }
-            } elseif ($reviewableType === 'App\Models\Product') {
+            } elseif ($reviewableType === 'App\\Models\\Product') {
                 // Verificar si el pedido contiene este producto
                 $hasProduct = $order->items()->where('product_id', $reviewableId)->exists();
                 if ($hasProduct) {

@@ -35,10 +35,10 @@ class AdminRoleTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         Sanctum::actingAs($admin);
-        $order = Order::factory()->create(['estado' => 'pendiente_pago']);
+        $order = Order::factory()->create(['status' => 'pending_payment']);
 
         // Cambiar estado de la orden (simulación de endpoint admin)
-        $response = $this->patchJson("/api/admin/orders/{$order->id}/status", ['estado' => 'preparando']);
+        $response = $this->patchJson("/api/admin/orders/{$order->id}/status", ['status' => 'preparing']);
         $response->assertStatus(200);
     }
 }

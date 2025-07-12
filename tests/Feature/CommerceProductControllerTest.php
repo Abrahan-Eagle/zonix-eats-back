@@ -36,14 +36,14 @@ class CommerceProductControllerTest extends TestCase
     {
         [$user, $commerce] = $this->actingAsCommerce();
         $data = [
-            'nombre' => 'Pizza Test',
-            'descripcion' => 'Pizza grande',
-            'precio' => 10.5,
-            'disponible' => true
+            'name' => 'Pizza Test',
+            'description' => 'Pizza grande',
+            'price' => 10.5,
+            'available' => true
         ];
         $response = $this->postJson('/api/commerce/products', $data);
         $response->assertStatus(201)
-                 ->assertJsonFragment(['nombre' => 'Pizza Test']);
+                 ->assertJsonFragment(['name' => 'Pizza Test']);
     }
 
     public function test_commerce_can_view_own_product()

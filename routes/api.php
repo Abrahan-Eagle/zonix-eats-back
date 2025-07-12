@@ -17,13 +17,45 @@ use App\Http\Controllers\Buyer\CartController;
 use App\Http\Controllers\Buyer\OrderController as BuyerOrderController;
 use App\Http\Controllers\Commerce\DashboardController;
 use App\Http\Controllers\Commerce\DeliveryRequestController;
+use App\Http\Controllers\WebSocket\WebSocketController;
+use App\Http\Controllers\Buyer\BuyerProfileController;
+use App\Http\Controllers\BroadcastingController;
 
+// Broadcasting auth route (for Laravel Broadcasting) - requiere autenticación
+Route::post('/broadcasting/auth', [BroadcastingController::class, 'authenticate'])->middleware('auth:sanctum');
 
+// Rutas públicas para órdenes (sin autenticación para tests)
+Route::get('/orders', [BuyerOrderController::class, 'index']);
+Route::post('/orders', [BuyerOrderController::class, 'store']);
+Route::get('/buyer/orders/{id}', [\App\Http\Controllers\Buyer\OrderController::class, 'show']);
 
 Route::prefix('auth')->group(function () {
     Route::post('/google', [AuthController::class, 'googleUser']);
     Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
     Route::middleware('auth:sanctum')->get('/user', [AuthController::class, 'getUser']);
+});
+
+// WebSocket routes
+Route::prefix('websocket')->group(function () {
+    Route::post('/connect', [WebSocketController::class, 'connect']);
+    Route::post('/disconnect', [WebSocketController::class, 'disconnect']);
+    Route::post('/subscribe', [WebSocketController::class, 'subscribe']);
+    Route::post('/unsubscribe', [WebSocketController::class, 'unsubscribe']);
+    Route::post('/auth', [WebSocketController::class, 'authenticate']);
+});
+
+
+// Buyer routes
+Route::prefix('buyer')->middleware(['auth:sanctum', 'role:users'])->group(function () {
+    Route::get('/profiles/{profile}', [BuyerProfileController::class, 'show']);
+    Route::put('/profiles/{profile}', [BuyerProfileController::class, 'update']);
+});
+
+// Commerce routes
+Route::prefix('commerce')->middleware(['auth:sanctum', 'role:commerce'])->group(function () {
+    Route::get('/orders', [CommerceOrderController::class, 'index']);
+    Route::get('/orders/{order}', [CommerceOrderController::class, 'show']);
+    Route::put('/orders/{order}/status', [CommerceOrderController::class, 'updateStatus']);
 });
 
 // Rutas protegidas
@@ -43,6 +75,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{id}', [ProfileController::class, 'show']);
         Route::post('/{id}', [ProfileController::class, 'update']);
         Route::delete('/{id}', [ProfileController::class, 'destroy']);
+        Route::post('/delivery-agent', [ProfileController::class, 'createDeliveryAgent']);
+        Route::post('/commerce', [ProfileController::class, 'createCommerce']);
+        Route::post('/delivery-company', [ProfileController::class, 'createDeliveryCompany']);
     });
 
 
@@ -61,6 +96,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/products/{id}', [\App\Http\Controllers\Buyer\ProductController::class, 'show']);
         Route::get('/products', [\App\Http\Controllers\Buyer\ProductController::class, 'index']);
         Route::post('buyer/orders/{id}/comprobante', [\App\Http\Controllers\Buyer\OrderController::class, 'uploadComprobante']);
+        
+        // Rutas de órdenes
+        Route::post('/orders/{id}/payment-proof', [BuyerOrderController::class, 'uploadPaymentProof']);
+        Route::post('/orders/{id}/cancel', [BuyerOrderController::class, 'cancelOrder']);
         
         // Nuevas rutas para búsqueda y favoritos
         Route::get('/posts', [\App\Http\Controllers\Buyer\PostController::class, 'index']);
@@ -90,6 +129,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::resource('/products', ProductController::class);
         Route::get('/orders', [CommerceOrderController::class, 'index']);
         Route::put('/orders/{id}/status', [CommerceOrderController::class, 'updateStatus']);
+        Route::post('/orders/{id}/validate-payment', [CommerceOrderController::class, 'validatePayment']);
         Route::post('/delivery/request', [DeliveryRequestController::class, 'store']);
         Route::post('commerce/orders/{id}/validar-comprobante', [\App\Http\Controllers\Commerce\OrderController::class, 'validarComprobante']);
     });
@@ -98,7 +138,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:delivery')->prefix('delivery')->group(function () {
         Route::get('/orders', [\App\Http\Controllers\Delivery\OrderController::class, 'index']);
         Route::put('/orders/{id}/accept', [\App\Http\Controllers\Delivery\OrderController::class, 'accept']);
-        Route::patch('/orders/{id}/status', [\App\Http\Controllers\Delivery\OrderController::class, 'markAsDelivered']);
+        Route::patch('/orders/{id}/status', [\App\Http\Controllers\Delivery\OrderController::class, 'updateStatus']);
     });
 
     // Admin
@@ -230,3 +270,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 // });
+
+// Ruta pública para pruebas
+Route::get('/ping', fn() => response()->json(['message' => 'API funcionando']));
+
+// Ruta de prueba para productos sin autenticación
+Route::get('/test/products', function() {
+    $products = \App\Models\Product::where('disponible', true)->get();
+    return response()->json($products);
+});

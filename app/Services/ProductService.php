@@ -36,15 +36,15 @@ class ProductService
 
     /**
      * Buscar productos disponibles (opcionalmente por nombre).
-     *
-     * @param string|null $nombre
-     * @return Collection<Product>
+     * 
+     * @param string|null $search
+     * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function searchAvailableProducts($nombre = null)
+    public function searchAvailableProducts($search = null)
     {
-        $query = Product::where('disponible', true);
-        if ($nombre) {
-            $query->where('nombre', 'like', "%$nombre%");
+        $query = Product::where('available', true);
+        if ($search) {
+            $query->where('nombre', 'like', "%$search%");
         }
         return $query->get();
     }

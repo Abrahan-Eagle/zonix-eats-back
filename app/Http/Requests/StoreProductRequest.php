@@ -23,34 +23,34 @@ class StoreProductRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nombre' => 'required|string|max:255',
-            'descripcion' => 'required|string|max:1000',
-            'precio' => 'required|numeric|min:0|max:999999.99',
-            'disponible' => 'boolean',
-            'imagen' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'name' => 'required|string|max:255',
+            'description' => 'required|string|max:1000',
+            'price' => 'required|numeric|min:0|max:999999.99',
+            'available' => 'boolean',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             // Campos adicionales si los tienes
             'stock' => 'nullable|integer|min:0',
-            'categoria' => 'nullable|string|max:100',
+            'category' => 'nullable|string|max:100',
         ];
     }
 
     public function messages(): array
     {
         return [
-            'nombre.required' => 'El nombre del producto es obligatorio',
-            'nombre.max' => 'El nombre no puede superar los 255 caracteres',
-            'descripcion.required' => 'La descripción es obligatoria',
-            'descripcion.max' => 'La descripción no puede superar los 1000 caracteres',
-            'precio.required' => 'El precio es obligatorio',
-            'precio.numeric' => 'El precio debe ser un número',
-            'precio.min' => 'El precio no puede ser negativo',
-            'precio.max' => 'El precio no puede superar los 999,999.99',
-            'disponible.boolean' => 'La disponibilidad debe ser verdadero o falso',
-            'imagen.image' => 'El archivo debe ser una imagen',
-            'imagen.mimes' => 'La imagen debe ser jpeg, png, jpg o gif',
-            'imagen.max' => 'La imagen no puede superar los 2MB',
-            'stock.integer' => 'El stock debe ser un número entero',
-            'stock.min' => 'El stock no puede ser negativo'
+            'name.required' => 'The product name is required',
+            'name.max' => 'The name cannot exceed 255 characters',
+            'description.required' => 'The description is required',
+            'description.max' => 'The description cannot exceed 1000 characters',
+            'price.required' => 'The price is required',
+            'price.numeric' => 'The price must be a number',
+            'price.min' => 'The price cannot be negative',
+            'price.max' => 'The price cannot exceed 999,999.99',
+            'available.boolean' => 'The availability must be true or false',
+            'image.image' => 'The file must be an image',
+            'image.mimes' => 'The image must be jpeg, png, jpg or gif',
+            'image.max' => 'The image cannot exceed 2MB',
+            'stock.integer' => 'The stock must be an integer',
+            'stock.min' => 'The stock cannot be negative'
         ];
     }
 }

@@ -242,8 +242,14 @@ class RoleAuthenticationTest extends TestCase
     {
         $commerceUser1 = User::factory()->commerce()->create();
         $commerceUser2 = User::factory()->commerce()->create();
-        $commerce1 = Commerce::factory()->create(['user_id' => $commerceUser1->id]);
-        $commerce2 = Commerce::factory()->create(['user_id' => $commerceUser2->id]);
+        $profile1 = Profile::factory()->create(['user_id' => $commerceUser1->id]);
+        $profile2 = Profile::factory()->create(['user_id' => $commerceUser2->id]);
+        $commerce1 = Commerce::factory()->create(['profile_id' => $profile1->id]);
+        $commerce2 = Commerce::factory()->create(['profile_id' => $profile2->id]);
+
+        // Refrescar las relaciones
+        $commerceUser1->refresh();
+        $commerceUser2->refresh();
 
         Sanctum::actingAs($commerceUser1);
 
@@ -291,7 +297,12 @@ class RoleAuthenticationTest extends TestCase
     public function test_commerce_middleware_allows_only_commerce_users()
     {
         $commerceUser = User::factory()->commerce()->create();
+        $profile = Profile::factory()->create(['user_id' => $commerceUser->id]);
+        $commerce = Commerce::factory()->create(['profile_id' => $profile->id]);
         $user = User::factory()->buyer()->create();
+
+        // Refrescar las relaciones
+        $commerceUser->refresh();
 
         // Commerce puede acceder
         Sanctum::actingAs($commerceUser);
@@ -307,7 +318,12 @@ class RoleAuthenticationTest extends TestCase
     public function test_delivery_middleware_allows_only_delivery_users()
     {
         $deliveryUser = User::factory()->deliveryAgent()->create();
+        $profile = Profile::factory()->create(['user_id' => $deliveryUser->id]);
+        $deliveryAgent = DeliveryAgent::factory()->create(['profile_id' => $profile->id]);
         $user = User::factory()->buyer()->create();
+
+        // Refrescar las relaciones
+        $deliveryUser->refresh();
 
         // Delivery puede acceder
         Sanctum::actingAs($deliveryUser);
