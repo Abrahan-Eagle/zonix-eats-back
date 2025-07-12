@@ -87,5 +87,12 @@ class UserFactory extends Factory
             'role' => 'delivery',
         ]);
     }
+
+    public function delivery(): Factory
+    {
+        return $this->state([
+            'role' => 'delivery',
+        ]);
+    }
 }
 

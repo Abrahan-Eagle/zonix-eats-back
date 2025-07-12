@@ -21,7 +21,7 @@ class OrderDeliveryFactory extends Factory
         return [
             'order_id' => \App\Models\Order::factory(),
             'agent_id' => \App\Models\DeliveryAgent::factory(),
-            'estado_envio' => $this->faker->randomElement(['asignado', 'en_camino', 'entregado', 'fallido']),
+            'status' => $this->faker->randomElement(['assigned', 'in_transit', 'delivered', 'failed']),
             'costo_envio' => $this->faker->randomFloat(2, 5, 50),
             'notas' => $this->faker->boolean(30) ? $this->faker->sentence : null,
         ];

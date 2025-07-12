@@ -18,6 +18,11 @@ class DeliveryAgent extends Model
         'rating'
     ];
 
+    protected $casts = [
+        'trabajando' => 'boolean',
+        'rating' => 'decimal:2',
+    ];
+
     public function company()
     {
         return $this->belongsTo(DeliveryCompany::class, 'company_id');

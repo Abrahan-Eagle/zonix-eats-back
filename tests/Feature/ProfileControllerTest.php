@@ -50,7 +50,7 @@ class ProfileControllerTest extends TestCase
     {
         $profile = Profile::factory()->create(['user_id' => $this->user->id]);
         $response = $this->actingAs($this->user, 'sanctum')
-                        ->get("/api/profiles/{$this->user->id}");
+                        ->get("/api/profiles/{$profile->id}");
         $response->assertStatus(200)
                  ->assertJson(['id' => $profile->id]);
     }

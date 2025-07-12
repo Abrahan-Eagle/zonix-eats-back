@@ -19,6 +19,10 @@ class DeliveryCompany extends Model
         'activo'
     ];
 
+    protected $casts = [
+        'activo' => 'boolean',
+    ];
+
     public function profile()
     {
         return $this->belongsTo(Profile::class);

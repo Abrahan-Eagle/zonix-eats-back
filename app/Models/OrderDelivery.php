@@ -18,9 +18,13 @@ class OrderDelivery extends Model
     protected $fillable = [
         'order_id',
         'agent_id',
-        'estado_envio',
+        'status',
         'costo_envio',
         'notas'
+    ];
+
+    protected $casts = [
+        'costo_envio' => 'decimal:2'
     ];
 
     public function order()

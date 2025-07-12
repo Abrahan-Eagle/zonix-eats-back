@@ -37,6 +37,11 @@ class Profile extends Model
         'license_number'
     ];
 
+    protected $casts = [
+        'date_of_birth' => 'date',
+        'status' => 'string',
+    ];
+
 
  public function user()
     {

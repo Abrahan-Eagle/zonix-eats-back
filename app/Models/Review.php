@@ -21,6 +21,10 @@ class Review extends Model
         'comentario'
     ];
 
+    protected $casts = [
+        'rating' => 'decimal:1',
+    ];
+
      public function reviewable()
     {
         return $this->morphTo();

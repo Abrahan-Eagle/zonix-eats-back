@@ -35,7 +35,7 @@ class DeliveryRoleTest extends TestCase
             OrderDelivery::factory()->create([
                 'order_id' => $order->id,
                 'agent_id' => $deliveryAgent->id,
-                'estado_envio' => 'asignado'
+                'status' => 'assigned'
             ]);
         }
         
@@ -63,7 +63,7 @@ class DeliveryRoleTest extends TestCase
         OrderDelivery::factory()->create([
             'order_id' => $order->id,
             'agent_id' => $deliveryAgent->id,
-            'estado_envio' => 'asignado'
+            'status' => 'assigned'
         ]);
         
         // Marcar orden como entregada
