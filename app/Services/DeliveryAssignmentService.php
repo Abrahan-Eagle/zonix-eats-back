@@ -29,8 +29,8 @@ class DeliveryAssignmentService
         }
 
         // Obtener delivery agents disponibles
-        $availableAgents = DeliveryAgent::where('is_available', true)
-                                       ->where('is_active', true)
+        $availableAgents = DeliveryAgent::where('working', true)
+                                       ->where('status', 'active')
                                        ->get();
 
         if ($availableAgents->isEmpty()) {
@@ -58,11 +58,11 @@ class DeliveryAssignmentService
         if ($bestAgent) {
             // Asignar el delivery
             $order->delivery_agent_id = $bestAgent->id;
-            $order->estado = 'asignado';
+            $order->status = 'assigned';
             $order->save();
 
             // Marcar al agente como ocupado
-            $bestAgent->is_available = false;
+            $bestAgent->working = false;
             $bestAgent->save();
 
             return $bestAgent;
@@ -82,7 +82,7 @@ class DeliveryAssignmentService
         $agent = DeliveryAgent::find($agentId);
         
         if ($agent) {
-            $agent->is_available = true;
+            $agent->working = true;
             $agent->save();
             return true;
         }
@@ -100,8 +100,8 @@ class DeliveryAssignmentService
      */
     public function getNearbyAgents($lat, $lng, $maxDistance = 10)
     {
-        $agents = DeliveryAgent::where('is_available', true)
-                               ->where('is_active', true)
+        $agents = DeliveryAgent::where('working', true)
+                               ->where('status', 'active')
                                ->get();
 
         $nearbyAgents = collect();
@@ -130,7 +130,7 @@ class DeliveryAssignmentService
     public function reassignOrdersFromAgent($agentId)
     {
         $orders = Order::where('delivery_agent_id', $agentId)
-                      ->whereIn('estado', ['asignado', 'en_camino'])
+                      ->whereIn('status', ['assigned', 'in_transit'])
                       ->get();
 
         $reassigned = [];

@@ -19,11 +19,11 @@ class PostFactory extends Factory
     {
         return [
             'commerce_id' => Commerce::factory(),
-            'tipo' => $this->faker->randomElement(['foto', 'video']),
+            'tipo' => $this->faker->randomElement(['promo', 'news', 'product']),
             'media_url' => $this->faker->imageUrl(),
-            'name' => $this->faker->words(2, true),
-            'price' => $this->faker->randomFloat(2, 5, 50),
-            'descripcion' => $this->faker->sentence,
+            'description' => $this->faker->sentence,
+            'name' => $this->faker->words(3, true),
+            'price' => $this->faker->randomFloat(2, 1, 100),
         ];
     }
 }

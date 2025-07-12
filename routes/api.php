@@ -20,6 +20,11 @@ use App\Http\Controllers\Commerce\DeliveryRequestController;
 use App\Http\Controllers\WebSocket\WebSocketController;
 use App\Http\Controllers\Buyer\BuyerProfileController;
 use App\Http\Controllers\BroadcastingController;
+use App\Http\Controllers\Delivery\DeliveryController;
+use App\Http\Controllers\Payment\PaymentController;
+use App\Http\Controllers\Notification\NotificationController;
+use App\Http\Controllers\Location\LocationController;
+use App\Http\Controllers\Chat\ChatController;
 
 // Broadcasting auth route (for Laravel Broadcasting) - requiere autenticación
 Route::post('/broadcasting/auth', [BroadcastingController::class, 'authenticate'])->middleware('auth:sanctum');
@@ -31,8 +36,15 @@ Route::get('/buyer/orders/{id}', [\App\Http\Controllers\Buyer\OrderController::c
 
 Route::prefix('auth')->group(function () {
     Route::post('/google', [AuthController::class, 'googleUser']);
-    Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
-    Route::middleware('auth:sanctum')->get('/user', [AuthController::class, 'getUser']);
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::get('/user', [AuthController::class, 'getUser']);
+        Route::put('/user', [AuthController::class, 'updateProfile']);
+        Route::put('/password', [AuthController::class, 'changePassword']);
+        Route::post('/refresh', [AuthController::class, 'refreshToken']);
+    });
 });
 
 // WebSocket routes
@@ -72,12 +84,12 @@ Route::middleware('auth:sanctum')->group(function () {
      Route::prefix('profiles')->group(function () {
         Route::get('/', [ProfileController::class, 'index']);
         Route::post('/', [ProfileController::class, 'store']);
-        Route::get('/{id}', [ProfileController::class, 'show']);
-        Route::post('/{id}', [ProfileController::class, 'update']);
-        Route::delete('/{id}', [ProfileController::class, 'destroy']);
         Route::post('/delivery-agent', [ProfileController::class, 'createDeliveryAgent']);
         Route::post('/commerce', [ProfileController::class, 'createCommerce']);
         Route::post('/delivery-company', [ProfileController::class, 'createDeliveryCompany']);
+        Route::get('/{id}', [ProfileController::class, 'show']);
+        Route::post('/{id}', [ProfileController::class, 'update']);
+        Route::delete('/{id}', [ProfileController::class, 'destroy']);
     });
 
 
@@ -139,6 +151,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/orders', [\App\Http\Controllers\Delivery\OrderController::class, 'index']);
         Route::put('/orders/{id}/accept', [\App\Http\Controllers\Delivery\OrderController::class, 'accept']);
         Route::patch('/orders/{id}/status', [\App\Http\Controllers\Delivery\OrderController::class, 'updateStatus']);
+        
+        // New delivery endpoints
+        Route::get('/available-orders', [DeliveryController::class, 'getAvailableOrders']);
+        Route::get('/assigned-orders/{deliveryAgentId}', [DeliveryController::class, 'getAssignedOrders']);
+        Route::post('/orders/{orderId}/accept', [DeliveryController::class, 'acceptOrder']);
+        Route::post('/location/update', [DeliveryController::class, 'updateLocation']);
+        Route::get('/statistics/{deliveryAgentId}', [DeliveryController::class, 'getStatistics']);
+        Route::post('/orders/{orderId}/report-issue', [DeliveryController::class, 'reportIssue']);
     });
 
     // Admin
@@ -150,6 +170,52 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/commerces', [\App\Http\Controllers\Admin\AdminOrderController::class, 'commerces']);
         Route::get('/orders', [\App\Http\Controllers\Admin\AdminOrderController::class, 'index']);
         Route::patch('/orders/{id}/status', [\App\Http\Controllers\Admin\AdminOrderController::class, 'updateStatus']);
+    });
+
+    // Payment routes
+    Route::prefix('payments')->group(function () {
+        Route::get('/methods', [PaymentController::class, 'getPaymentMethods']);
+        Route::post('/methods', [PaymentController::class, 'addPaymentMethod']);
+        Route::post('/process', [PaymentController::class, 'processPayment']);
+        Route::get('/history', [PaymentController::class, 'getTransactionHistory']);
+        Route::post('/{transactionId}/refund', [PaymentController::class, 'refundPayment']);
+        Route::get('/statistics', [PaymentController::class, 'getPaymentStatistics']);
+    });
+
+    // Notification routes
+    Route::prefix('notifications')->group(function () {
+        Route::get('/', [NotificationController::class, 'getNotifications']);
+        Route::post('/{notificationId}/read', [NotificationController::class, 'markAsRead']);
+        Route::post('/read-multiple', [NotificationController::class, 'markMultipleAsRead']);
+        Route::delete('/{notificationId}', [NotificationController::class, 'deleteNotification']);
+        Route::get('/statistics', [NotificationController::class, 'getNotificationStatistics']);
+        Route::post('/send', [NotificationController::class, 'sendPushNotification']);
+        Route::get('/settings', [NotificationController::class, 'getNotificationSettings']);
+        Route::put('/settings', [NotificationController::class, 'updateNotificationSettings']);
+    });
+
+    // Location routes
+    Route::prefix('location')->group(function () {
+        Route::post('/update', [LocationController::class, 'updateLocation']);
+        Route::get('/nearby-places', [LocationController::class, 'getNearbyPlaces']);
+        Route::get('/delivery-routes', [LocationController::class, 'getDeliveryRoutes']);
+        Route::post('/calculate-route', [LocationController::class, 'calculateRoute']);
+        Route::post('/geocode', [LocationController::class, 'getCoordinatesFromAddress']);
+        Route::get('/delivery-zones', [LocationController::class, 'getDeliveryZones']);
+    });
+
+    // Chat routes
+    Route::prefix('chat')->group(function () {
+        Route::get('/conversations', [ChatController::class, 'getConversations']);
+        Route::get('/conversations/{conversationId}/messages', [ChatController::class, 'getMessages']);
+        Route::post('/conversations/{conversationId}/messages', [ChatController::class, 'sendMessage']);
+        Route::post('/conversations/{conversationId}/read', [ChatController::class, 'markMessagesAsRead']);
+        Route::post('/conversations', [ChatController::class, 'createConversation']);
+        Route::delete('/conversations/{conversationId}', [ChatController::class, 'deleteConversation']);
+        Route::get('/search', [ChatController::class, 'searchMessages']);
+        Route::post('/block', [ChatController::class, 'blockUser']);
+        Route::delete('/block/{userId}', [ChatController::class, 'unblockUser']);
+        Route::get('/blocked-users', [ChatController::class, 'getBlockedUsers']);
     });
 });
 

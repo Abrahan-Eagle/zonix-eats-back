@@ -223,6 +223,7 @@ class ProfileController extends Controller
             'sex' => 'required|in:F,M',
             'vehicle_type' => 'required|string|max:100',
             'phone' => 'required|string|max:20',
+            'company_id' => 'nullable|exists:delivery_companies,id',
         ]);
 
         if ($validator->fails()) {
@@ -251,12 +252,20 @@ class ProfileController extends Controller
         $profile = Profile::create($profileData);
 
         // Crear el delivery agent asociado
-        $deliveryAgent = \App\Models\DeliveryAgent::create([
+        $deliveryAgentData = [
             'profile_id' => $profile->id,
             'vehicle_type' => $request->vehicle_type,
             'phone' => $request->phone,
-            'status' => 'active',
-        ]);
+            'status' => 'activo',
+            'working' => false,
+        ];
+
+        // Si se proporciona company_id, agregarlo
+        if ($request->has('company_id') && $request->company_id) {
+            $deliveryAgentData['company_id'] = $request->company_id;
+        }
+
+        $deliveryAgent = \App\Models\DeliveryAgent::create($deliveryAgentData);
 
         return response()->json([
             'success' => true,
@@ -280,9 +289,15 @@ class ProfileController extends Controller
             'date_of_birth' => 'required|date',
             'maritalStatus' => 'required|in:married,divorced,single',
             'sex' => 'required|in:F,M',
-            'commerce_name' => 'required|string|max:255',
+            'business_name' => 'required|string|max:255',
+            'description' => 'required|string',
             'address' => 'required|string|max:500',
             'phone' => 'required|string|max:20',
+            'email' => 'required|email',
+            'mobile_payment_bank' => 'required|string|max:50',
+            'mobile_payment_id' => 'required|string|max:20',
+            'mobile_payment_phone' => 'required|string|max:20',
+            'is_open' => 'required|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -291,7 +306,6 @@ class ProfileController extends Controller
 
         // Verificar si ya existe un perfil para el usuario
         $existingProfile = Profile::where('user_id', $request->user_id)->first();
-
         if ($existingProfile) {
             return response()->json([
                 'message' => 'Ya existe un perfil asociado a este usuario.',
@@ -302,7 +316,6 @@ class ProfileController extends Controller
         $profileData = $request->only([
             'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex'
         ]);
-
         $profileData['middleName'] = $request->middleName ?? '';
         $profileData['secondLastName'] = $request->secondLastName ?? '';
         $profileData['status'] = 'notverified';
@@ -313,18 +326,28 @@ class ProfileController extends Controller
         // Crear el commerce asociado
         $commerce = \App\Models\Commerce::create([
             'profile_id' => $profile->id,
-            'name' => $request->commerce_name,
+            'business_name' => $request->business_name,
+            'description' => $request->description,
             'address' => $request->address,
             'phone' => $request->phone,
-            'status' => 'active',
+            'mobile_payment_bank' => $request->mobile_payment_bank,
+            'mobile_payment_id' => $request->mobile_payment_id,
+            'mobile_payment_phone' => $request->mobile_payment_phone,
+            'open' => $request->is_open,
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Commerce profile created successfully',
             'data' => [
-                'profile' => $profile,
-                'commerce' => $commerce
+                'id' => $commerce->id,
+                'business_name' => $commerce->business_name,
+                'description' => $commerce->description,
+                'address' => $commerce->address,
+                'phone' => $commerce->phone,
+                'mobile_payment_bank' => $commerce->mobile_payment_bank,
+                'mobile_payment_id' => $commerce->mobile_payment_id,
+                'mobile_payment_phone' => $commerce->mobile_payment_phone,
+                'open' => $commerce->open,
             ]
         ], 201);
     }
@@ -375,9 +398,10 @@ class ProfileController extends Controller
         $deliveryCompany = \App\Models\DeliveryCompany::create([
             'profile_id' => $profile->id,
             'name' => $request->company_name,
-            'address' => $request->address,
+            'tax_id' => $request->ruc ?? '00000000000',
             'phone' => $request->phone,
-            'status' => 'active',
+            'address' => $request->address,
+            'activo' => true,
         ]);
 
         return response()->json([

@@ -46,8 +46,8 @@ class OrderStatusChanged implements ShouldBroadcast
     {
         return [
             'order_id' => $this->order->id,
-            'status' => $this->order->estado,
-            'message' => "Order {$this->order->id} status changed to {$this->order->estado}"
+            'status' => $this->order->status,
+            'message' => "Order {$this->order->id} status changed to {$this->order->status}"
         ];
     }
 }

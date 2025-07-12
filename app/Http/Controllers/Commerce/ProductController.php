@@ -35,22 +35,22 @@ class ProductController extends Controller
             if ($request->has('search')) {
                 $search = $request->get('search');
                 $query->where(function($q) use ($search) {
-                    $q->where('nombre', 'like', "%{$search}%")
-                      ->orWhere('descripcion', 'like', "%{$search}%");
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
                 });
             }
 
             // Filtro por disponibilidad
-            if ($request->has('disponible')) {
-                $query->where('disponible', $request->boolean('disponible'));
+            if ($request->has('available')) {
+                $query->where('available', $request->boolean('available'));
             }
 
             // Filtro por rango de precio
-            if ($request->has('precio_min')) {
-                $query->where('precio', '>=', $request->get('precio_min'));
+            if ($request->has('min_price')) {
+                $query->where('price', '>=', $request->get('min_price'));
             }
-            if ($request->has('precio_max')) {
-                $query->where('precio', '<=', $request->get('precio_max'));
+            if ($request->has('max_price')) {
+                $query->where('price', '<=', $request->get('max_price'));
             }
 
             // Ordenamiento

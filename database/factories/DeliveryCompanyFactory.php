@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Profile;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -17,12 +18,12 @@ class DeliveryCompanyFactory extends Factory
     public function definition(): array
     {
         return [
-            'profile_id' => \App\Models\Profile::factory()->delivery(),
-            'nombre' => $this->faker->company,
-            'ruc' => $this->faker->numerify('J-########-#'),
-            'telefono' => $this->faker->phoneNumber,
-            'direccion' => $this->faker->address,
-            'activo' => $this->faker->boolean(90),
+            'profile_id' => Profile::factory(),
+            'name' => $this->faker->company,
+            'tax_id' => $this->faker->numerify('J-########-#'),
+            'phone' => $this->faker->phoneNumber,
+            'address' => $this->faker->address,
+            'activo' => $this->faker->boolean(80), // 80% probability of being active
         ];
     }
 }

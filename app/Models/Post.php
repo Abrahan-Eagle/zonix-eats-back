@@ -13,8 +13,8 @@ class Post extends Model
 {
     use HasFactory;
 
-      protected $fillable = [
-        'commerce_id', 'tipo', 'media_url', 'descripcion'
+    protected $fillable = [
+        'commerce_id', 'tipo', 'media_url', 'description', 'name', 'price'
     ];
 
     public function commerce()

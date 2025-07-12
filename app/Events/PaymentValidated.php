@@ -55,7 +55,7 @@ class PaymentValidated implements ShouldBroadcast
             'order_number' => $this->order->orderNumber ?? 'ORD-' . $this->order->id,
             'is_validated' => $this->isValidated,
             'validated_by' => $this->validatedBy,
-            'status' => $this->order->estado,
+            'status' => $this->order->status,
             'message' => $this->isValidated ? 'Pago validado correctamente' : 'Pago rechazado',
             'timestamp' => now()->toISOString(),
         ];

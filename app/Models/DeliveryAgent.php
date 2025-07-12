@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -10,16 +9,18 @@ class DeliveryAgent extends Model
 {
     use HasFactory;
 
-     protected $fillable = [
+    protected $fillable = [
         'company_id',
         'profile_id',
-        'estado',
-        'trabajando',
-        'rating'
+        'status',
+        'working',
+        'rating',
+        'vehicle_type',
+        'phone',
     ];
 
     protected $casts = [
-        'trabajando' => 'boolean',
+        'working' => 'boolean',
         'rating' => 'decimal:2',
     ];
 
@@ -38,8 +39,8 @@ class DeliveryAgent extends Model
         return $this->profile->user();
     }
 
-    public function deliveries()
+    public function orderDeliveries()
     {
-        return $this->hasMany(OrderDelivery::class, 'agent_id');
+        return $this->hasMany(OrderDelivery::class);
     }
 }

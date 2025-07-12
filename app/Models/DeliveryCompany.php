@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -12,15 +11,11 @@ class DeliveryCompany extends Model
 
     protected $fillable = [
         'profile_id',
-        'nombre',
-        'ruc',
-        'telefono',
-        'direccion',
-        'activo'
-    ];
-
-    protected $casts = [
-        'activo' => 'boolean',
+        'name',
+        'tax_id',
+        'phone',
+        'address',
+        'activo',
     ];
 
     public function profile()
@@ -28,12 +23,7 @@ class DeliveryCompany extends Model
         return $this->belongsTo(Profile::class);
     }
 
-    public function user()
-    {
-        return $this->profile->user();
-    }
-
-    public function agents()
+    public function deliveryAgents()
     {
         return $this->hasMany(DeliveryAgent::class, 'company_id');
     }

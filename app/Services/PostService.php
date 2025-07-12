@@ -32,7 +32,7 @@ class PostService
         if (!empty($filters['search'])) {
             $query->where(function($q) use ($filters) {
                 $q->where('name', 'LIKE', '%' . $filters['search'] . '%')
-                  ->orWhere('descripcion', 'LIKE', '%' . $filters['search'] . '%');
+                  ->orWhere('description', 'LIKE', '%' . $filters['search'] . '%');
             });
         }
 

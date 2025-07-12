@@ -44,7 +44,7 @@ class ProductService
     {
         $query = Product::where('available', true);
         if ($search) {
-            $query->where('nombre', 'like', "%$search%");
+            $query->where('name', 'like', "%$search%");
         }
         return $query->get();
     }

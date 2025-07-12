@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\DeliveryCompany;
+use App\Models\Profile;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,11 +19,13 @@ class DeliveryAgentFactory extends Factory
     public function definition(): array
     {
         return [
-            'company_id' => \App\Models\DeliveryCompany::factory(),
-            'profile_id' => \App\Models\Profile::factory()->delivery(),
-            'estado' => $this->faker->randomElement(['activo', 'inactivo', 'suspendido']),
-            'trabajando' => $this->faker->boolean(60),
-            'rating' => $this->faker->randomFloat(1, 1, 5),
+            'company_id' => DeliveryCompany::factory(),
+            'profile_id' => Profile::factory(),
+            'status' => $this->faker->randomElement(['activo', 'inactivo', 'suspendido']),
+            'working' => $this->faker->boolean,
+            'rating' => $this->faker->randomFloat(2, 1, 5),
+            'vehicle_type' => $this->faker->randomElement(['motorcycle', 'car', 'bicycle', 'truck']),
+            'phone' => $this->faker->phoneNumber,
         ];
     }
 }
