@@ -186,12 +186,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('notifications')->group(function () {
         Route::get('/', [NotificationController::class, 'getNotifications']);
         Route::post('/{notificationId}/read', [NotificationController::class, 'markAsRead']);
-        Route::post('/read-multiple', [NotificationController::class, 'markMultipleAsRead']);
-        Route::delete('/{notificationId}', [NotificationController::class, 'deleteNotification']);
-        Route::get('/statistics', [NotificationController::class, 'getNotificationStatistics']);
-        Route::post('/send', [NotificationController::class, 'sendPushNotification']);
-        Route::get('/settings', [NotificationController::class, 'getNotificationSettings']);
-        Route::put('/settings', [NotificationController::class, 'updateNotificationSettings']);
+        Route::post('/', [NotificationController::class, 'store']);
+        Route::delete('/{notificationId}', [NotificationController::class, 'delete']);
     });
 
     // Location routes
