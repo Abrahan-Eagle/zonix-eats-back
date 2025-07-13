@@ -24,18 +24,17 @@ class ReviewService
             return ['success' => false, 'message' => 'Perfil no encontrado'];
         }
 
-        // Validar que el usuario tenga pedidos entregados con este comercio
-        if (!$this->canUserReview($user->id, $data['reviewable_id'], $data['reviewable_type'])) {
+        // Validar que el usuario tenga pedidos entregados
+        if (!$this->canUserReview($user->id, $data['order_id'])) {
             return [
                 'success' => false, 
                 'message' => 'Solo puedes calificar después de recibir tu pedido'
             ];
         }
 
-        // Verificar si ya existe una calificación
-        $existingReview = Review::where('profile_id', $profile->id)
-                               ->where('reviewable_id', $data['reviewable_id'])
-                               ->where('reviewable_type', $data['reviewable_type'])
+        // Verificar si ya existe una calificación para este tipo
+        $existingReview = Review::where('order_id', $data['order_id'])
+                               ->where('type', $data['type'])
                                ->first();
 
         if ($existingReview) {
@@ -45,14 +44,26 @@ class ReviewService
             ];
         }
 
-        // Crear la calificación
-        $review = Review::create([
+        // Preparar datos para la nueva estructura
+        $reviewData = [
+            'order_id' => $data['order_id'],
             'profile_id' => $profile->id,
-            'reviewable_id' => $data['reviewable_id'],
-            'reviewable_type' => $data['reviewable_type'],
+            'type' => $data['type'],
             'rating' => $data['rating'],
-            'comentario' => $data['comentario'] ?? null,
-        ]);
+            'comment' => $data['comment'] ?? null,
+        ];
+
+        // Agregar campos específicos según el tipo
+        if ($data['type'] === 'restaurant') {
+            $order = Order::find($data['order_id']);
+            $reviewData['commerce_id'] = $order->commerce_id;
+        } elseif ($data['type'] === 'delivery_agent') {
+            $order = Order::find($data['order_id']);
+            $reviewData['delivery_agent_id'] = $order->delivery_agent_id;
+        }
+
+        // Crear la calificación
+        $review = Review::create($reviewData);
 
         return [
             'success' => true,
@@ -65,63 +76,82 @@ class ReviewService
      * Verificar si un usuario puede calificar.
      *
      * @param int $userId
-     * @param int $reviewableId
-     * @param string $reviewableType
+     * @param int $orderId
      * @return bool
      */
-    public function canUserReview($userId, $reviewableId, $reviewableType)
+    public function canUserReview($userId, $orderId)
     {
         $profile = Profile::where('user_id', $userId)->first();
         if (!$profile) return false;
-        // Buscar pedidos entregados del usuario con este comercio
-        $deliveredOrders = Order::where('profile_id', $profile->id)
-                               ->where('status', 'delivered')
-                               ->get();
 
-        foreach ($deliveredOrders as $order) {
-            if ($reviewableType === 'App\\Models\\Commerce') {
-                if ($order->commerce_id == $reviewableId) {
-                    return true;
-                }
-            } elseif ($reviewableType === 'App\\Models\\Product') {
-                // Verificar si el pedido contiene este producto
-                $hasProduct = $order->items()->where('product_id', $reviewableId)->exists();
-                if ($hasProduct) {
-                    return true;
-                }
-            }
-        }
+        // Verificar que el pedido existe, pertenece al usuario y está entregado
+        $order = Order::where('id', $orderId)
+                     ->where('profile_id', $profile->id)
+                     ->where('status', 'delivered')
+                     ->first();
 
-        return false;
+        return $order !== null;
     }
 
     /**
-     * Obtener calificaciones de un elemento.
+     * Obtener calificaciones de un restaurante.
      *
-     * @param int $reviewableId
-     * @param string $reviewableType
+     * @param int $commerceId
      * @return \Illuminate\Database\Eloquent\Collection
      */
-    public function getReviews($reviewableId, $reviewableType)
+    public function getRestaurantReviews($commerceId)
     {
-        return Review::where('reviewable_id', $reviewableId)
-                    ->where('reviewable_type', $reviewableType)
+        return Review::where('commerce_id', $commerceId)
+                    ->where('type', 'restaurant')
                     ->with('profile.user')
                     ->orderBy('created_at', 'desc')
                     ->get();
     }
 
     /**
-     * Calcular rating promedio.
+     * Obtener calificaciones de un repartidor.
      *
-     * @param int $reviewableId
-     * @param string $reviewableType
+     * @param int $deliveryAgentId
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getDeliveryAgentReviews($deliveryAgentId)
+    {
+        return Review::where('delivery_agent_id', $deliveryAgentId)
+                    ->where('type', 'delivery_agent')
+                    ->with('profile.user')
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+    }
+
+    /**
+     * Calcular rating promedio de un restaurante.
+     *
+     * @param int $commerceId
      * @return float
      */
-    public function getAverageRating($reviewableId, $reviewableType)
+    public function getRestaurantAverageRating($commerceId)
     {
-        $reviews = Review::where('reviewable_id', $reviewableId)
-                        ->where('reviewable_type', $reviewableType)
+        $reviews = Review::where('commerce_id', $commerceId)
+                        ->where('type', 'restaurant')
+                        ->get();
+
+        if ($reviews->isEmpty()) {
+            return 0;
+        }
+
+        return round($reviews->avg('rating'), 1);
+    }
+
+    /**
+     * Calcular rating promedio de un repartidor.
+     *
+     * @param int $deliveryAgentId
+     * @return float
+     */
+    public function getDeliveryAgentAverageRating($deliveryAgentId)
+    {
+        $reviews = Review::where('delivery_agent_id', $deliveryAgentId)
+                        ->where('type', 'delivery_agent')
                         ->get();
 
         if ($reviews->isEmpty()) {
@@ -153,7 +183,7 @@ class ReviewService
 
         $review->update([
             'rating' => $data['rating'],
-            'comentario' => $data['comentario'] ?? $review->comentario,
+            'comment' => $data['comment'] ?? $review->comment,
         ]);
 
         return [

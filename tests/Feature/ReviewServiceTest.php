@@ -37,7 +37,7 @@ class ReviewServiceTest extends TestCase
             'status' => 'delivered'
         ]);
 
-        $canReview = $this->reviewService->canUserReview($user->id, $commerce->id, 'App\Models\Commerce');
+        $canReview = $this->reviewService->canUserReview($user->id, $order->id);
 
         $this->assertTrue($canReview);
     }
@@ -55,7 +55,7 @@ class ReviewServiceTest extends TestCase
             'status' => 'pending_payment'
         ]);
 
-        $canReview = $this->reviewService->canUserReview($user->id, $commerce->id, 'App\Models\Commerce');
+        $canReview = $this->reviewService->canUserReview($user->id, $order->id);
 
         $this->assertFalse($canReview);
     }
@@ -67,7 +67,7 @@ class ReviewServiceTest extends TestCase
         $commerce = Commerce::factory()->create();
         
         // Crear un pedido entregado
-        Order::factory()->create([
+        $order = Order::factory()->create([
             'profile_id' => $profile->id,
             'commerce_id' => $commerce->id,
             'status' => 'delivered'
@@ -76,10 +76,10 @@ class ReviewServiceTest extends TestCase
         $this->actingAs($user);
 
         $data = [
-            'reviewable_id' => $commerce->id,
-            'reviewable_type' => 'App\Models\Commerce',
+            'order_id' => $order->id,
+            'type' => 'restaurant',
             'rating' => 5,
-            'comentario' => 'Excelente servicio'
+            'comment' => 'Excelente servicio'
         ];
 
         $result = $this->reviewService->createReview($data);
@@ -96,7 +96,7 @@ class ReviewServiceTest extends TestCase
         $commerce = Commerce::factory()->create();
         
         // Crear un pedido entregado
-        Order::factory()->create([
+        $order = Order::factory()->create([
             'profile_id' => $profile->id,
             'commerce_id' => $commerce->id,
             'status' => 'delivered'
@@ -105,10 +105,10 @@ class ReviewServiceTest extends TestCase
         $this->actingAs($user);
 
         $data = [
-            'reviewable_id' => $commerce->id,
-            'reviewable_type' => 'App\Models\Commerce',
+            'order_id' => $order->id,
+            'type' => 'restaurant',
             'rating' => 5,
-            'comentario' => 'Excelente servicio'
+            'comment' => 'Excelente servicio'
         ];
 
         // Crear primera calificación
@@ -125,26 +125,26 @@ class ReviewServiceTest extends TestCase
     {
         $commerce = Commerce::factory()->create();
         
-        // Crear varias calificaciones
+        // Crear varias calificaciones usando la nueva estructura
         Review::factory()->create([
-            'reviewable_id' => $commerce->id,
-            'reviewable_type' => 'App\Models\Commerce',
+            'commerce_id' => $commerce->id,
+            'type' => 'restaurant',
             'rating' => 5
         ]);
         
         Review::factory()->create([
-            'reviewable_id' => $commerce->id,
-            'reviewable_type' => 'App\Models\Commerce',
+            'commerce_id' => $commerce->id,
+            'type' => 'restaurant',
             'rating' => 3
         ]);
         
         Review::factory()->create([
-            'reviewable_id' => $commerce->id,
-            'reviewable_type' => 'App\Models\Commerce',
+            'commerce_id' => $commerce->id,
+            'type' => 'restaurant',
             'rating' => 4
         ]);
 
-        $averageRating = $this->reviewService->getAverageRating($commerce->id, 'App\Models\Commerce');
+        $averageRating = $this->reviewService->getRestaurantAverageRating($commerce->id);
 
         $this->assertEquals(4.0, $averageRating); // (5 + 3 + 4) / 3 = 4
     }
@@ -154,11 +154,11 @@ class ReviewServiceTest extends TestCase
         $commerce = Commerce::factory()->create();
         
         Review::factory()->count(3)->create([
-            'reviewable_id' => $commerce->id,
-            'reviewable_type' => 'App\Models\Commerce'
+            'commerce_id' => $commerce->id,
+            'type' => 'restaurant'
         ]);
 
-        $reviews = $this->reviewService->getReviews($commerce->id, 'App\Models\Commerce');
+        $reviews = $this->reviewService->getRestaurantReviews($commerce->id);
 
         $this->assertCount(3, $reviews);
         $this->assertInstanceOf(\Illuminate\Database\Eloquent\Collection::class, $reviews);

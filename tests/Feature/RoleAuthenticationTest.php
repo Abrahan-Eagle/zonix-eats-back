@@ -32,16 +32,19 @@ class RoleAuthenticationTest extends TestCase
 
         $response->assertStatus(200)
                 ->assertJsonStructure([
-                    'user' => [
-                        'id',
-                        'name',
-                        'email',
-                        'role'
-                    ],
-                    'token'
+                    'success',
+                    'data' => [
+                        'user' => [
+                            'id',
+                            'name',
+                            'email',
+                            'role'
+                        ],
+                        'token'
+                    ]
                 ]);
 
-        $this->assertEquals('users', $response->json('user.role'));
+        $this->assertEquals('users', $response->json('data.user.role'));
     }
 
     public function test_commerce_can_login_with_valid_credentials()
@@ -57,7 +60,7 @@ class RoleAuthenticationTest extends TestCase
         ]);
 
         $response->assertStatus(200);
-        $this->assertEquals('commerce', $response->json('user.role'));
+        $this->assertEquals('commerce', $response->json('data.user.role'));
     }
 
     public function test_delivery_agent_can_login_with_valid_credentials()
@@ -73,7 +76,7 @@ class RoleAuthenticationTest extends TestCase
         ]);
 
         $response->assertStatus(200);
-        $this->assertEquals('delivery', $response->json('user.role'));
+        $this->assertEquals('delivery', $response->json('data.user.role'));
     }
 
     public function test_admin_can_login_with_valid_credentials()
@@ -89,7 +92,7 @@ class RoleAuthenticationTest extends TestCase
         ]);
 
         $response->assertStatus(200);
-        $this->assertEquals('admin', $response->json('user.role'));
+        $this->assertEquals('admin', $response->json('data.user.role'));
     }
 
     public function test_delivery_company_can_login_with_valid_credentials()
@@ -105,7 +108,7 @@ class RoleAuthenticationTest extends TestCase
         ]);
 
         $response->assertStatus(200);
-        $this->assertEquals('delivery_company', $response->json('user.role'));
+        $this->assertEquals('delivery_company', $response->json('data.user.role'));
     }
 
     /**
@@ -181,9 +184,12 @@ class RoleAuthenticationTest extends TestCase
 
         $response->assertStatus(200)
                 ->assertJson([
-                    'id' => $user->id,
-                    'email' => $user->email,
-                    'role' => 'users'
+                    'success' => true,
+                    'data' => [
+                        'id' => $user->id,
+                        'email' => $user->email,
+                        'role' => 'users'
+                    ]
                 ]);
     }
 
@@ -196,9 +202,12 @@ class RoleAuthenticationTest extends TestCase
 
         $response->assertStatus(200)
                 ->assertJson([
-                    'id' => $commerceUser->id,
-                    'email' => $commerceUser->email,
-                    'role' => 'commerce'
+                    'success' => true,
+                    'data' => [
+                        'id' => $commerceUser->id,
+                        'email' => $commerceUser->email,
+                        'role' => 'commerce'
+                    ]
                 ]);
     }
 
@@ -211,9 +220,12 @@ class RoleAuthenticationTest extends TestCase
 
         $response->assertStatus(200)
                 ->assertJson([
-                    'id' => $deliveryUser->id,
-                    'email' => $deliveryUser->email,
-                    'role' => 'delivery'
+                    'success' => true,
+                    'data' => [
+                        'id' => $deliveryUser->id,
+                        'email' => $deliveryUser->email,
+                        'role' => 'delivery'
+                    ]
                 ]);
     }
 
@@ -353,10 +365,13 @@ class RoleAuthenticationTest extends TestCase
 
         $response->assertStatus(201)
                 ->assertJson([
-                    'user' => [
-                        'name' => 'Test User',
-                        'email' => 'test@example.com',
-                        'role' => 'users'
+                    'success' => true,
+                    'data' => [
+                        'user' => [
+                            'name' => 'Test User',
+                            'email' => 'test@example.com',
+                            'role' => 'users'
+                        ]
                     ]
                 ]);
     }
@@ -368,19 +383,20 @@ class RoleAuthenticationTest extends TestCase
             'email' => 'commerce@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            'role' => 'commerce',
-            'commerce_name' => 'Restaurante Test',
-            'commerce_address' => 'Dirección Test'
+            'role' => 'commerce'
         ];
 
         $response = $this->postJson('/api/auth/register', $commerceData);
 
         $response->assertStatus(201)
                 ->assertJson([
-                    'user' => [
-                        'name' => 'Test Commerce',
-                        'email' => 'commerce@example.com',
-                        'role' => 'commerce'
+                    'success' => true,
+                    'data' => [
+                        'user' => [
+                            'name' => 'Test Commerce',
+                            'email' => 'commerce@example.com',
+                            'role' => 'commerce'
+                        ]
                     ]
                 ]);
     }
@@ -392,19 +408,20 @@ class RoleAuthenticationTest extends TestCase
             'email' => 'delivery@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            'role' => 'delivery',
-            'vehicle_type' => 'moto',
-            'phone' => '123456789'
+            'role' => 'delivery'
         ];
 
         $response = $this->postJson('/api/auth/register', $deliveryData);
 
         $response->assertStatus(201)
                 ->assertJson([
-                    'user' => [
-                        'name' => 'Test Delivery',
-                        'email' => 'delivery@example.com',
-                        'role' => 'delivery'
+                    'success' => true,
+                    'data' => [
+                        'user' => [
+                            'name' => 'Test Delivery',
+                            'email' => 'delivery@example.com',
+                            'role' => 'delivery'
+                        ]
                     ]
                 ]);
     }

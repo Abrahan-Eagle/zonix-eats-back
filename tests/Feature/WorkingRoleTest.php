@@ -245,9 +245,12 @@ class WorkingRoleTest extends TestCase
         $response = $this->getJson('/api/auth/user');
         $response->assertStatus(200)
                 ->assertJson([
-                    'id' => $user->id,
-                    'email' => $user->email,
-                    'role' => 'users'
+                    'success' => true,
+                    'data' => [
+                        'id' => $user->id,
+                        'email' => $user->email,
+                        'role' => 'users'
+                    ]
                 ]);
     }
 
@@ -260,9 +263,12 @@ class WorkingRoleTest extends TestCase
         $response = $this->getJson('/api/auth/user');
         $response->assertStatus(200)
                 ->assertJson([
-                    'id' => $commerceUser->id,
-                    'email' => $commerceUser->email,
-                    'role' => 'commerce'
+                    'success' => true,
+                    'data' => [
+                        'id' => $commerceUser->id,
+                        'email' => $commerceUser->email,
+                        'role' => 'commerce'
+                    ]
                 ]);
     }
 
@@ -275,9 +281,12 @@ class WorkingRoleTest extends TestCase
         $response = $this->getJson('/api/auth/user');
         $response->assertStatus(200)
                 ->assertJson([
-                    'id' => $deliveryUser->id,
-                    'email' => $deliveryUser->email,
-                    'role' => 'delivery'
+                    'success' => true,
+                    'data' => [
+                        'id' => $deliveryUser->id,
+                        'email' => $deliveryUser->email,
+                        'role' => 'delivery'
+                    ]
                 ]);
     }
 
