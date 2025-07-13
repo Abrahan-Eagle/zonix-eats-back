@@ -63,6 +63,70 @@ Route::prefix('buyer')->middleware(['auth:sanctum', 'role:users'])->group(functi
     Route::put('/profiles/{profile}', [BuyerProfileController::class, 'update']);
 });
 
+// Rutas para usuarios/buyers
+Route::middleware(['auth:sanctum'])->group(function () {
+    
+    // Rutas existentes...
+    
+    // Sistema de Pagos
+    Route::prefix('buyer/payments')->group(function () {
+        Route::get('/methods', [App\Http\Controllers\Buyer\PaymentController::class, 'getPaymentMethods']);
+        Route::post('/card', [App\Http\Controllers\Buyer\PaymentController::class, 'processCardPayment']);
+        Route::post('/cash', [App\Http\Controllers\Buyer\PaymentController::class, 'confirmCashPayment']);
+        Route::get('/receipt/{orderId}', [App\Http\Controllers\Buyer\PaymentController::class, 'getPaymentReceipt']);
+    });
+
+    // Tracking de Pedidos
+    Route::prefix('buyer/tracking')->group(function () {
+        Route::get('/order/{orderId}', [App\Http\Controllers\Buyer\OrderTrackingController::class, 'getOrderStatus']);
+        Route::get('/delivery-agent/{orderId}', [App\Http\Controllers\Buyer\OrderTrackingController::class, 'getDeliveryAgentLocation']);
+        Route::put('/order/{orderId}/status', [App\Http\Controllers\Buyer\OrderTrackingController::class, 'updateOrderStatus']);
+    });
+
+    // Sistema de Calificaciones
+    Route::prefix('buyer/reviews')->group(function () {
+        Route::post('/restaurant', [App\Http\Controllers\Buyer\ReviewController::class, 'rateRestaurant']);
+        Route::post('/delivery-agent', [App\Http\Controllers\Buyer\ReviewController::class, 'rateDeliveryAgent']);
+        Route::get('/restaurant/{commerceId}', [App\Http\Controllers\Buyer\ReviewController::class, 'getRestaurantReviews']);
+        Route::get('/delivery-agent/{agentId}', [App\Http\Controllers\Buyer\ReviewController::class, 'getDeliveryAgentReviews']);
+    });
+
+    // Sistema de Chat
+    Route::prefix('buyer/chat')->group(function () {
+        Route::get('/messages/{orderId}', [App\Http\Controllers\Buyer\ChatController::class, 'getChatMessages']);
+        Route::post('/send', [App\Http\Controllers\Buyer\ChatController::class, 'sendMessage']);
+        Route::post('/mark-read', [App\Http\Controllers\Buyer\ChatController::class, 'markAsRead']);
+        Route::get('/unread/{orderId}', [App\Http\Controllers\Buyer\ChatController::class, 'getUnreadMessages']);
+    });
+
+    // Búsqueda y Filtros
+    Route::prefix('buyer/search')->group(function () {
+        Route::get('/restaurants', [App\Http\Controllers\Buyer\SearchController::class, 'searchRestaurants']);
+        Route::get('/products', [App\Http\Controllers\Buyer\SearchController::class, 'searchProducts']);
+        Route::get('/categories', [App\Http\Controllers\Buyer\SearchController::class, 'getCategories']);
+        Route::get('/suggestions', [App\Http\Controllers\Buyer\SearchController::class, 'getSearchSuggestions']);
+    });
+
+    // Sistema de Promociones
+    Route::prefix('buyer/promotions')->group(function () {
+        Route::get('/active', [App\Http\Controllers\Buyer\PromotionController::class, 'getActivePromotions']);
+        Route::get('/coupons', [App\Http\Controllers\Buyer\PromotionController::class, 'getAvailableCoupons']);
+        Route::post('/validate-coupon', [App\Http\Controllers\Buyer\PromotionController::class, 'validateCoupon']);
+        Route::post('/apply-coupon', [App\Http\Controllers\Buyer\PromotionController::class, 'applyCouponToOrder']);
+        Route::get('/coupon-history', [App\Http\Controllers\Buyer\PromotionController::class, 'getCouponHistory']);
+    });
+
+    // Gestión de Direcciones
+    Route::prefix('buyer/addresses')->group(function () {
+        Route::get('/', [App\Http\Controllers\Buyer\AddressController::class, 'getUserAddresses']);
+        Route::post('/', [App\Http\Controllers\Buyer\AddressController::class, 'createAddress']);
+        Route::put('/{addressId}', [App\Http\Controllers\Buyer\AddressController::class, 'updateAddress']);
+        Route::delete('/{addressId}', [App\Http\Controllers\Buyer\AddressController::class, 'deleteAddress']);
+        Route::post('/{addressId}/default', [App\Http\Controllers\Buyer\AddressController::class, 'setDefaultAddress']);
+        Route::get('/default', [App\Http\Controllers\Buyer\AddressController::class, 'getDefaultAddress']);
+    });
+});
+
 // Commerce routes
 Route::prefix('commerce')->middleware(['auth:sanctum', 'role:commerce'])->group(function () {
     Route::get('/orders', [CommerceOrderController::class, 'index']);

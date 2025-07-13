@@ -5,38 +5,43 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * Modelo Review: almacena reseñas y calificaciones para comercios, productos, etc.
- * Usa morphTo para soportar múltiples entidades calificables.
- */
 class Review extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'order_id',
+        'commerce_id',
+        'delivery_agent_id',
         'profile_id',
-        'reviewable_id',
-        'reviewable_type',
+        'type',
         'rating',
-        'comentario'
+        'comment',
+        'photos'
     ];
 
     protected $casts = [
-        'rating' => 'decimal:1',
+        'photos' => 'array',
+        'rating' => 'integer'
     ];
 
-     public function reviewable()
+    public function order()
     {
-        return $this->morphTo();
+        return $this->belongsTo(Order::class);
+    }
+
+    public function commerce()
+    {
+        return $this->belongsTo(Commerce::class);
+    }
+
+    public function deliveryAgent()
+    {
+        return $this->belongsTo(DeliveryAgent::class);
     }
 
     public function profile()
     {
         return $this->belongsTo(Profile::class);
-    }
-
-    public function user()
-    {
-        return $this->profile->user();
     }
 }
