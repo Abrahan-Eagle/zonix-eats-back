@@ -36,11 +36,26 @@ class ProductController extends Controller
      */
     public function show($id)
     {
-        $product = $this->productService->getProductById($id);
-        if (!$product) {
-            return response()->json(['message' => 'Producto no encontrado'], 404);
+        try {
+            $product = $this->productService->getProductById($id);
+            if (!$product) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Producto no encontrado'
+                ], 404);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => $product,
+                'message' => 'Producto encontrado exitosamente'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener el producto: ' . $e->getMessage()
+            ], 500);
         }
-        return response()->json($product);
     }
 
     /**
@@ -49,7 +64,18 @@ class ProductController extends Controller
      */
     public function index()
     {
-        $products = $this->productService->searchAvailableProducts();
-        return response()->json($products);
+        try {
+            $products = $this->productService->searchAvailableProducts();
+            return response()->json([
+                'success' => true,
+                'data' => $products,
+                'message' => 'Productos obtenidos exitosamente'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener productos: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
