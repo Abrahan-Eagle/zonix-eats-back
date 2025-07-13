@@ -18,10 +18,23 @@ class CommerceFactory extends Factory
      */
     public function definition(): array
     {
+        $restaurantImages = [
+            'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=500&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=500&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=500&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=500&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=500&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=500&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=500&h=300&fit=crop',
+            'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=500&h=300&fit=crop',
+        ];
+
         return [
             'profile_id' => Profile::factory(),
             'business_name' => $this->faker->company,
-            'image' => $this->faker->imageUrl(),
+            'image' => $this->faker->randomElement($restaurantImages),
             'address' => $this->faker->address,
             'phone' => $this->faker->phoneNumber,
             'mobile_payment_bank' => $this->faker->randomElement(['Banesco', 'Mercantil', 'Bancaribe', 'Provincial']),
