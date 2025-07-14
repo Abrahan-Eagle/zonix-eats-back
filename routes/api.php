@@ -185,6 +185,31 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/format-date', [App\Http\Controllers\LocalizationController::class, 'formatDate']);
         Route::get('/config', [App\Http\Controllers\LocalizationController::class, 'getLocalizationConfig']);
     });
+
+    // Funcionalidades Avanzadas de Usuario
+    Route::prefix('user')->group(function () {
+        // Historial de Actividad
+        Route::get('/activity-history', [App\Http\Controllers\Buyer\ActivityController::class, 'getUserActivityHistory']);
+        Route::get('/activity-stats', [App\Http\Controllers\Buyer\ActivityController::class, 'getActivityStats']);
+        
+        // Exportación de Datos
+        Route::post('/export-data', [App\Http\Controllers\Buyer\ExportController::class, 'requestDataExport']);
+        Route::get('/export-status/{exportId}', [App\Http\Controllers\Buyer\ExportController::class, 'getExportStatus']);
+        Route::get('/download-export/{exportId}', [App\Http\Controllers\Buyer\ExportController::class, 'downloadExport']);
+        Route::get('/export-history', [App\Http\Controllers\Buyer\ExportController::class, 'getExportHistory']);
+        
+        // Configuración de Privacidad
+        Route::get('/privacy-settings', [App\Http\Controllers\Buyer\PrivacyController::class, 'getPrivacySettings']);
+        Route::put('/privacy-settings', [App\Http\Controllers\Buyer\PrivacyController::class, 'updatePrivacySettings']);
+        Route::get('/privacy-policy', [App\Http\Controllers\Buyer\PrivacyController::class, 'getPrivacyPolicy']);
+        Route::get('/terms-of-service', [App\Http\Controllers\Buyer\PrivacyController::class, 'getTermsOfService']);
+        
+        // Eliminación de Cuenta
+        Route::post('/request-deletion', [App\Http\Controllers\Buyer\AccountDeletionController::class, 'requestAccountDeletion']);
+        Route::post('/confirm-deletion', [App\Http\Controllers\Buyer\AccountDeletionController::class, 'confirmAccountDeletion']);
+        Route::delete('/cancel-deletion', [App\Http\Controllers\Buyer\AccountDeletionController::class, 'cancelDeletionRequest']);
+        Route::get('/deletion-status', [App\Http\Controllers\Buyer\AccountDeletionController::class, 'getDeletionStatus']);
+    });
 });
 
 // Commerce routes
