@@ -110,6 +110,8 @@ class DatabaseSeeder extends Seeder
             DeliveryCompanySeeder::class,
             DeliveryAgentSeeder::class,
             OrderDeliverySeeder::class,
+            ReviewSeeder::class,
+            NotificationSeeder::class,
         ]);
     }
 }
