@@ -68,12 +68,18 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
     // Rutas existentes...
     
-    // Sistema de Pagos
+    // Sistema de Pagos Avanzado
     Route::prefix('buyer/payments')->group(function () {
         Route::get('/methods', [App\Http\Controllers\Buyer\PaymentController::class, 'getPaymentMethods']);
         Route::post('/card', [App\Http\Controllers\Buyer\PaymentController::class, 'processCardPayment']);
+        Route::post('/mobile', [App\Http\Controllers\Buyer\PaymentController::class, 'processMobilePayment']);
+        Route::post('/paypal', [App\Http\Controllers\Buyer\PaymentController::class, 'processPayPalPayment']);
+        Route::post('/mercadopago', [App\Http\Controllers\Buyer\PaymentController::class, 'processMercadoPagoPayment']);
         Route::post('/cash', [App\Http\Controllers\Buyer\PaymentController::class, 'confirmCashPayment']);
+        Route::post('/refund', [App\Http\Controllers\Buyer\PaymentController::class, 'requestRefund']);
         Route::get('/receipt/{orderId}', [App\Http\Controllers\Buyer\PaymentController::class, 'getPaymentReceipt']);
+        Route::get('/history', [App\Http\Controllers\Buyer\PaymentController::class, 'getPaymentHistory']);
+        Route::get('/statistics', [App\Http\Controllers\Buyer\PaymentController::class, 'getPaymentStatistics']);
     });
 
     // Tracking de Pedidos
@@ -124,6 +130,60 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/{addressId}', [App\Http\Controllers\Buyer\AddressController::class, 'deleteAddress']);
         Route::post('/{addressId}/default', [App\Http\Controllers\Buyer\AddressController::class, 'setDefaultAddress']);
         Route::get('/default', [App\Http\Controllers\Buyer\AddressController::class, 'getDefaultAddress']);
+    });
+
+    // Sistema de Gamificación
+    Route::prefix('buyer/gamification')->group(function () {
+        Route::get('/points', [App\Http\Controllers\Buyer\GamificationController::class, 'getUserPoints']);
+        Route::get('/rewards', [App\Http\Controllers\Buyer\GamificationController::class, 'getAvailableRewards']);
+        Route::post('/redeem', [App\Http\Controllers\Buyer\GamificationController::class, 'redeemReward']);
+        Route::get('/badges', [App\Http\Controllers\Buyer\GamificationController::class, 'getUserBadges']);
+        Route::get('/leaderboard', [App\Http\Controllers\Buyer\GamificationController::class, 'getLeaderboard']);
+        Route::get('/stats', [App\Http\Controllers\Buyer\GamificationController::class, 'getGamificationStats']);
+    });
+
+    // Sistema de Fidelización
+    Route::prefix('buyer/loyalty')->group(function () {
+        Route::get('/info', [App\Http\Controllers\Buyer\LoyaltyController::class, 'getLoyaltyInfo']);
+        Route::get('/volume-discounts', [App\Http\Controllers\Buyer\LoyaltyController::class, 'getVolumeDiscounts']);
+        Route::get('/referral-code', [App\Http\Controllers\Buyer\LoyaltyController::class, 'generateReferralCode']);
+        Route::post('/apply-referral', [App\Http\Controllers\Buyer\LoyaltyController::class, 'applyReferralCode']);
+        Route::get('/benefits-history', [App\Http\Controllers\Buyer\LoyaltyController::class, 'getBenefitsHistory']);
+        Route::get('/stats', [App\Http\Controllers\Buyer\LoyaltyController::class, 'getLoyaltyStats']);
+        Route::get('/upcoming-benefits', [App\Http\Controllers\Buyer\LoyaltyController::class, 'getUpcomingBenefits']);
+    });
+
+    // Sistema de Entrega Programada
+    Route::prefix('buyer/scheduled-orders')->group(function () {
+        Route::post('/', [App\Http\Controllers\Buyer\ScheduledOrderController::class, 'createScheduledOrder']);
+        Route::get('/', [App\Http\Controllers\Buyer\ScheduledOrderController::class, 'getScheduledOrders']);
+        Route::get('/delivery-windows', [App\Http\Controllers\Buyer\ScheduledOrderController::class, 'getAvailableDeliveryWindows']);
+        Route::delete('/{orderId}', [App\Http\Controllers\Buyer\ScheduledOrderController::class, 'cancelScheduledOrder']);
+        Route::put('/{orderId}', [App\Http\Controllers\Buyer\ScheduledOrderController::class, 'updateScheduledOrder']);
+        Route::get('/stats', [App\Http\Controllers\Buyer\ScheduledOrderController::class, 'getScheduledOrderStats']);
+    });
+
+    // Sistema de Menús Personalizados
+    Route::prefix('buyer/preferences')->group(function () {
+        Route::get('/', [App\Http\Controllers\Buyer\PreferencesController::class, 'getUserPreferences']);
+        Route::put('/', [App\Http\Controllers\Buyer\PreferencesController::class, 'updatePreferences']);
+        Route::get('/filtered-products', [App\Http\Controllers\Buyer\PreferencesController::class, 'getFilteredProducts']);
+        Route::get('/order-history', [App\Http\Controllers\Buyer\PreferencesController::class, 'getOrderHistory']);
+        Route::get('/recommendations', [App\Http\Controllers\Buyer\PreferencesController::class, 'getPersonalizedRecommendations']);
+        Route::get('/personalized-menu', [App\Http\Controllers\Buyer\PreferencesController::class, 'getPersonalizedMenu']);
+        Route::get('/stats', [App\Http\Controllers\Buyer\PreferencesController::class, 'getPreferencesStats']);
+    });
+
+    // Sistema Multi-idioma
+    Route::prefix('localization')->group(function () {
+        Route::get('/languages', [App\Http\Controllers\LocalizationController::class, 'getAvailableLanguages']);
+        Route::get('/translations', [App\Http\Controllers\LocalizationController::class, 'getTranslations']);
+        Route::get('/regional-settings', [App\Http\Controllers\LocalizationController::class, 'getRegionalSettings']);
+        Route::put('/user-language', [App\Http\Controllers\LocalizationController::class, 'updateUserLanguage']);
+        Route::get('/user-language', [App\Http\Controllers\LocalizationController::class, 'getUserLanguage']);
+        Route::post('/format-currency', [App\Http\Controllers\LocalizationController::class, 'formatCurrency']);
+        Route::post('/format-date', [App\Http\Controllers\LocalizationController::class, 'formatDate']);
+        Route::get('/config', [App\Http\Controllers\LocalizationController::class, 'getLocalizationConfig']);
     });
 });
 
@@ -405,3 +465,19 @@ Route::get('/test/products', function() {
     $products = \App\Models\Product::where('disponible', true)->get();
     return response()->json($products);
 });
+
+// Ruta de prueba para verificar autenticación y rol
+Route::get('/test/auth', function() {
+    if (!Auth::check()) {
+        return response()->json(['error' => 'No autenticado'], 401);
+    }
+    
+    $user = Auth::user();
+    return response()->json([
+        'authenticated' => true,
+        'user_id' => $user->id,
+        'user_role' => $user->role,
+        'user_email' => $user->email,
+        'token_valid' => true
+    ]);
+})->middleware('auth:sanctum');
