@@ -272,18 +272,14 @@ class SearchController extends Controller
     public function getCategories(): JsonResponse
     {
         try {
-            $categories = Commerce::where('is_active', true)
-                ->distinct()
-                ->pluck('category')
-                ->filter()
-                ->values();
+            $categories = \App\Models\Category::select('id', 'name', 'description')->get();
 
             return response()->json([
                 'success' => true,
                 'data' => $categories
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting categories: ' . $e->getMessage());
+            \Log::error('Error getting categories: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener las categorías'
