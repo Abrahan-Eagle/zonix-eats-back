@@ -46,6 +46,6 @@ class DeliveryAgent extends Model
 
     public function paymentMethods()
     {
-        return $this->hasMany(DeliveryPaymentMethod::class);
+        return $this->morphMany(PaymentMethod::class, 'payable');
     }
 }

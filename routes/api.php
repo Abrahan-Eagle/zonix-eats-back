@@ -153,38 +153,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/upcoming-benefits', [App\Http\Controllers\Buyer\LoyaltyController::class, 'getUpcomingBenefits']);
     });
 
-    // Sistema de Entrega Programada
-    Route::prefix('buyer/scheduled-orders')->group(function () {
-        Route::post('/', [App\Http\Controllers\Buyer\ScheduledOrderController::class, 'createScheduledOrder']);
-        Route::get('/', [App\Http\Controllers\Buyer\ScheduledOrderController::class, 'getScheduledOrders']);
-        Route::get('/delivery-windows', [App\Http\Controllers\Buyer\ScheduledOrderController::class, 'getAvailableDeliveryWindows']);
-        Route::delete('/{orderId}', [App\Http\Controllers\Buyer\ScheduledOrderController::class, 'cancelScheduledOrder']);
-        Route::put('/{orderId}', [App\Http\Controllers\Buyer\ScheduledOrderController::class, 'updateScheduledOrder']);
-        Route::get('/stats', [App\Http\Controllers\Buyer\ScheduledOrderController::class, 'getScheduledOrderStats']);
-    });
 
-    // Sistema de Menús Personalizados
-    Route::prefix('buyer/preferences')->group(function () {
-        Route::get('/', [App\Http\Controllers\Buyer\PreferencesController::class, 'getUserPreferences']);
-        Route::put('/', [App\Http\Controllers\Buyer\PreferencesController::class, 'updatePreferences']);
-        Route::get('/filtered-products', [App\Http\Controllers\Buyer\PreferencesController::class, 'getFilteredProducts']);
-        Route::get('/order-history', [App\Http\Controllers\Buyer\PreferencesController::class, 'getOrderHistory']);
-        Route::get('/recommendations', [App\Http\Controllers\Buyer\PreferencesController::class, 'getPersonalizedRecommendations']);
-        Route::get('/personalized-menu', [App\Http\Controllers\Buyer\PreferencesController::class, 'getPersonalizedMenu']);
-        Route::get('/stats', [App\Http\Controllers\Buyer\PreferencesController::class, 'getPreferencesStats']);
-    });
 
-    // Sistema Multi-idioma
-    Route::prefix('localization')->group(function () {
-        Route::get('/languages', [App\Http\Controllers\LocalizationController::class, 'getAvailableLanguages']);
-        Route::get('/translations', [App\Http\Controllers\LocalizationController::class, 'getTranslations']);
-        Route::get('/regional-settings', [App\Http\Controllers\LocalizationController::class, 'getRegionalSettings']);
-        Route::put('/user-language', [App\Http\Controllers\LocalizationController::class, 'updateUserLanguage']);
-        Route::get('/user-language', [App\Http\Controllers\LocalizationController::class, 'getUserLanguage']);
-        Route::post('/format-currency', [App\Http\Controllers\LocalizationController::class, 'formatCurrency']);
-        Route::post('/format-date', [App\Http\Controllers\LocalizationController::class, 'formatDate']);
-        Route::get('/config', [App\Http\Controllers\LocalizationController::class, 'getLocalizationConfig']);
-    });
+
+
+
 
     // Funcionalidades Avanzadas de Usuario
     Route::prefix('user')->group(function () {
@@ -212,21 +185,17 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
 });
 
-// Métodos de pago de usuario
-Route::middleware(['auth:sanctum', 'role:users'])->prefix('user')->group(function () {
-    Route::get('/payment-methods', [\App\Http\Controllers\User\UserPaymentMethodController::class, 'index']);
-    Route::post('/payment-methods', [\App\Http\Controllers\User\UserPaymentMethodController::class, 'store']);
-    Route::put('/payment-methods/{id}', [\App\Http\Controllers\User\UserPaymentMethodController::class, 'update']);
-    Route::delete('/payment-methods/{id}', [\App\Http\Controllers\User\UserPaymentMethodController::class, 'destroy']);
+// Métodos de pago unificados
+Route::middleware(['auth:sanctum'])->prefix('payment-methods')->group(function () {
+    Route::get('/', [\App\Http\Controllers\PaymentMethodController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\PaymentMethodController::class, 'store']);
+    Route::put('/{id}', [\App\Http\Controllers\PaymentMethodController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\PaymentMethodController::class, 'destroy']);
+    Route::patch('/{id}/default', [\App\Http\Controllers\PaymentMethodController::class, 'setDefault']);
 });
 
-// Métodos de pago de repartidor
-Route::middleware(['auth:sanctum', 'role:delivery'])->prefix('delivery')->group(function () {
-    Route::get('/payment-methods', [\App\Http\Controllers\Delivery\DeliveryPaymentMethodController::class, 'index']);
-    Route::post('/payment-methods', [\App\Http\Controllers\Delivery\DeliveryPaymentMethodController::class, 'store']);
-    Route::put('/payment-methods/{id}', [\App\Http\Controllers\Delivery\DeliveryPaymentMethodController::class, 'update']);
-    Route::delete('/payment-methods/{id}', [\App\Http\Controllers\Delivery\DeliveryPaymentMethodController::class, 'destroy']);
-});
+// Métodos de pago disponibles
+Route::get('/available-payment-methods', [\App\Http\Controllers\PaymentMethodController::class, 'getAvailableMethods']);
 
 // Commerce routes
 Route::prefix('commerce')->middleware(['auth:sanctum', 'role:commerce'])->group(function () {

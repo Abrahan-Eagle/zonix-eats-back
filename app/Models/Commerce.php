@@ -61,6 +61,6 @@ class Commerce extends Model
      */
     public function paymentMethods()
     {
-        return $this->hasMany(PaymentMethod::class);
+        return $this->morphMany(PaymentMethod::class, 'payable');
     }
 }

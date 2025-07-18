@@ -166,6 +166,6 @@ class User extends Authenticatable
 
     public function paymentMethods()
     {
-        return $this->hasMany(UserPaymentMethod::class);
+        return $this->morphMany(PaymentMethod::class, 'payable');
     }
 }
