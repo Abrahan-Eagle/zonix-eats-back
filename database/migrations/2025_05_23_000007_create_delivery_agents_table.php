@@ -18,6 +18,10 @@ return new class extends Migration
             $table->enum('estado', ['activo', 'inactivo', 'suspendido'])->default('activo');
             $table->boolean('trabajando')->default(false);
             $table->decimal('rating', 3, 2)->nullable();
+                // Campos específicos para delivery
+                $table->string('vehicle_type')->nullable();
+                $table->string('phone', 20)->nullable(); // Agregado para evitar duplicación
+                $table->string('license_number')->nullable();
             $table->timestamps();
         });
 

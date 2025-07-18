@@ -212,6 +212,22 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
 });
 
+// Métodos de pago de usuario
+Route::middleware(['auth:sanctum', 'role:users'])->prefix('user')->group(function () {
+    Route::get('/payment-methods', [\App\Http\Controllers\User\UserPaymentMethodController::class, 'index']);
+    Route::post('/payment-methods', [\App\Http\Controllers\User\UserPaymentMethodController::class, 'store']);
+    Route::put('/payment-methods/{id}', [\App\Http\Controllers\User\UserPaymentMethodController::class, 'update']);
+    Route::delete('/payment-methods/{id}', [\App\Http\Controllers\User\UserPaymentMethodController::class, 'destroy']);
+});
+
+// Métodos de pago de repartidor
+Route::middleware(['auth:sanctum', 'role:delivery'])->prefix('delivery')->group(function () {
+    Route::get('/payment-methods', [\App\Http\Controllers\Delivery\DeliveryPaymentMethodController::class, 'index']);
+    Route::post('/payment-methods', [\App\Http\Controllers\Delivery\DeliveryPaymentMethodController::class, 'store']);
+    Route::put('/payment-methods/{id}', [\App\Http\Controllers\Delivery\DeliveryPaymentMethodController::class, 'update']);
+    Route::delete('/payment-methods/{id}', [\App\Http\Controllers\Delivery\DeliveryPaymentMethodController::class, 'destroy']);
+});
+
 // Commerce routes
 Route::prefix('commerce')->middleware(['auth:sanctum', 'role:commerce'])->group(function () {
     Route::get('/orders', [CommerceOrderController::class, 'index']);
@@ -364,19 +380,8 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+// Endpoint público para listar bancos activos
+Route::get('/banks', [\App\Http\Controllers\BankController::class, 'index']);
 
 
 // // Ruta pública para pruebas

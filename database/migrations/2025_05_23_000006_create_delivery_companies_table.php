@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('profile_id')->constrained()->onDelete('cascade');
             $table->string('nombre');
-            $table->string('ruc')->unique();
+            $table->string('ci')->unique();
             $table->string('telefono');
             $table->text('direccion');
             $table->boolean('activo')->default(true);

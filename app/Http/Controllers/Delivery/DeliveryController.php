@@ -19,7 +19,7 @@ class DeliveryController extends Controller
     {
         try {
             $availableOrders = Order::with(['commerce', 'profile', 'items'])
-                ->whereIn('status', ['ready', 'confirmed'])
+                ->whereIn('status', ['paid', 'preparing'])
                 ->whereDoesntHave('delivery')
                 ->get();
 
@@ -69,7 +69,7 @@ class DeliveryController extends Controller
         try {
             $order = Order::findOrFail($orderId);
             
-            if ($order->status !== 'ready' && $order->status !== 'confirmed') {
+            if ($order->status !== 'paid' && $order->status !== 'preparing') {
                 return response()->json([
                     'success' => false,
                     'message' => 'Order is not available for delivery'
@@ -85,6 +85,14 @@ class DeliveryController extends Controller
                 ], 404);
             }
 
+            // Verificar que la orden no esté ya asignada
+            if ($order->delivery) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order already assigned'
+                ], 400);
+            }
+
             // Create delivery assignment
             OrderDelivery::create([
                 'order_id' => $orderId,
@@ -95,11 +103,11 @@ class DeliveryController extends Controller
             ]);
 
             // Update order status
-            $order->update(['status' => 'out_for_delivery']);
+            $order->update(['status' => 'on_way']);
 
             return response()->json([
+                'message' => 'Orden aceptada',
                 'success' => true,
-                'message' => 'Order accepted for delivery',
                 'data' => $order->load(['commerce', 'profile', 'items', 'delivery'])
             ]);
         } catch (\Exception $e) {
@@ -226,6 +234,35 @@ class DeliveryController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error reporting issue'
+            ], 500);
+        }
+    }
+
+    /**
+     * Update order status for delivery
+     */
+    public function updateOrderStatus($orderId, Request $request)
+    {
+        try {
+            $order = Order::whereHas('delivery', function($query) {
+                $query->where('agent_id', Auth::user()->profile->deliveryAgent->id);
+            })->findOrFail($orderId);
+
+            $request->validate([
+                'status' => 'required|in:on_way,delivered'
+            ]);
+
+            $order->update(['status' => $request->status]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Estado de la orden actualizado'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al actualizar estado de orden de delivery: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error interno al actualizar estado de orden'
             ], 500);
         }
     }

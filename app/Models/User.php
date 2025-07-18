@@ -163,4 +163,9 @@ class User extends Authenticatable
             $query->where('agent_id', $this->profile->deliveryAgent->id ?? 0);
         });
     }
+
+    public function paymentMethods()
+    {
+        return $this->hasMany(UserPaymentMethod::class);
+    }
 }

@@ -17,9 +17,9 @@ return new class extends Migration
                 $table->renameColumn('nombre', 'name');
             });
         }
-        if (Schema::hasColumn('delivery_companies', 'ruc')) {
+        if (Schema::hasColumn('delivery_companies', 'ci')) {
             Schema::table('delivery_companies', function (Blueprint $table) {
-                $table->renameColumn('ruc', 'tax_id');
+                $table->renameColumn('ci', 'tax_id');
             });
         }
         if (Schema::hasColumn('delivery_companies', 'telefono')) {
@@ -75,7 +75,7 @@ return new class extends Migration
         }
         if (Schema::hasColumn('delivery_companies', 'tax_id')) {
             Schema::table('delivery_companies', function (Blueprint $table) {
-                $table->renameColumn('tax_id', 'ruc');
+                $table->renameColumn('tax_id', 'ci');
             });
         }
         if (Schema::hasColumn('delivery_companies', 'phone')) {

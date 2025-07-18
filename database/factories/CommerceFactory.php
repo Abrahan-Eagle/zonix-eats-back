@@ -37,9 +37,6 @@ class CommerceFactory extends Factory
             'image' => $this->faker->randomElement($restaurantImages),
             'address' => $this->faker->address,
             'phone' => $this->faker->phoneNumber,
-            'mobile_payment_bank' => $this->faker->randomElement(['Banesco', 'Mercantil', 'Bancaribe', 'Provincial']),
-            'mobile_payment_id' => $this->faker->numerify('##########'),
-            'mobile_payment_phone' => $this->faker->numerify('##########'),
             'open' => $this->faker->boolean(70),
             'schedule' => [
                 'monday' => ['open' => '08:00', 'close' => '18:00'],

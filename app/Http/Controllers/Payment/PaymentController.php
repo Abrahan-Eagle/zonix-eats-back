@@ -66,36 +66,53 @@ class PaymentController extends Controller
     public function addPaymentMethod(Request $request)
     {
         try {
+            $user = Auth::user();
+            $commerce = $user->profile->commerce ?? null;
+            if (!$commerce) {
+                return response()->json(['success' => false, 'message' => 'No es comercio'], 403);
+            }
             $request->validate([
-                'type' => 'required|string|in:card,digital_wallet,bank_transfer',
-                'brand' => 'required|string|max:50',
-                'is_default' => 'boolean'
+                'type' => 'required|string',
+                'bank_id' => 'nullable|exists:banks,id',
+                'brand' => 'nullable|string',
+                'account_number' => 'nullable|string',
+                'phone' => 'nullable|string',
+                'owner_name' => 'nullable|string',
+                'owner_id' => 'nullable|string',
+                'is_default' => 'boolean',
+                'is_active' => 'boolean',
             ]);
-
-            // TODO: Implement actual payment method storage
-            $paymentMethod = [
-                'id' => rand(1000, 9999),
+            $exists = $commerce->paymentMethods()
+                ->where('type', $request->type)
+                ->where('bank_id', $request->bank_id)
+                ->where('account_number', $request->account_number)
+                ->where('phone', $request->phone)
+                ->where('owner_name', $request->owner_name)
+                ->where('owner_id', $request->owner_id)
+                ->exists();
+            if ($exists) {
+                return response()->json(['success' => false, 'message' => 'Ya existe un método de pago igual registrado.'], 422);
+            }
+            // Guardar realmente el método de pago
+            $paymentMethod = $commerce->paymentMethods()->create([
                 'type' => $request->type,
+                'bank_id' => $request->bank_id,
                 'brand' => $request->brand,
-                'last4' => $request->input('last4', '****'),
-                'exp_month' => $request->input('exp_month'),
-                'exp_year' => $request->input('exp_year'),
+                'account_number' => $request->account_number,
+                'phone' => $request->phone,
+                'owner_name' => $request->owner_name,
+                'owner_id' => $request->owner_id,
                 'is_default' => $request->input('is_default', false),
-                'cardholder_name' => $request->input('cardholder_name'),
-                'email' => $request->input('email'),
-            ];
-
+                'is_active' => $request->input('is_active', true),
+            ]);
             return response()->json([
                 'success' => true,
                 'message' => 'Payment method added successfully',
                 'data' => $paymentMethod
             ], 201);
         } catch (\Exception $e) {
-            Log::error('Error adding payment method: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error adding payment method'
-            ], 500);
+            \Log::error('Error al crear método de pago de comercio: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error interno al crear método de pago'], 500);
         }
     }
 

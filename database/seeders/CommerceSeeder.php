@@ -20,5 +20,6 @@ class CommerceSeeder extends Seeder
             $profile->user->update(['role' => 'commerce']);
             Commerce::factory()->create(['profile_id' => $profile->id]);
         }
+        // No poblar campos de métodos de pago eliminados
     }
 }

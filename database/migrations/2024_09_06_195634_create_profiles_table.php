@@ -27,16 +27,6 @@ return new class extends Migration
             $table->enum('status', ['completeData', 'incompleteData', 'notverified'])->default('notverified');
             $table->string('phone')->nullable();
             $table->text('address')->nullable();
-
-            // Campos específicos para comercios
-            $table->string('business_name')->nullable();
-            $table->string('business_type')->nullable();
-            $table->string('tax_id')->nullable();
-
-            // Campos específicos para delivery
-            $table->string('vehicle_type')->nullable();
-            $table->string('license_number')->nullable();
-
             $table->timestamps();
 
         });

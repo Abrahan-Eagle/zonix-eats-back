@@ -13,69 +13,83 @@ class OrderController extends Controller
 {
   public function index(Request $request)
     {
-        $user = Auth::user();
-        $profile = $user->profile;
-        
-        if (!$profile || !$profile->commerce) {
-            return response()->json(['error' => 'User is not associated with a commerce'], 403);
-        }
+        try {
+            $user = Auth::user();
+            $profile = $user->profile;
+            
+            if (!$profile || !$profile->commerce) {
+                return response()->json(['error' => 'User is not associated with a commerce'], 403);
+            }
 
-        $commerce = $profile->commerce;
-        
-        // Verificar si se solicita un commerce_id específico
-        if ($request->has('commerce_id') && $request->commerce_id != $commerce->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-        
-        $orders = Order::where('commerce_id', $commerce->id)
-            ->with(['profile.user', 'orderItems.product'])
-            ->orderBy('created_at', 'desc')
-            ->get();
+            $commerce = $profile->commerce;
+            
+            // Verificar si se solicita un commerce_id específico
+            if ($request->has('commerce_id') && $request->commerce_id != $commerce->id) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+            
+            $orders = Order::where('commerce_id', $commerce->id)
+                ->with(['profile.user', 'orderItems.product'])
+                ->orderBy('created_at', 'desc')
+                ->get();
 
-        return response()->json($orders);
+            return response()->json($orders);
+        } catch (\Exception $e) {
+            \Log::error('Error al listar órdenes de comercio: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error interno al listar órdenes'], 500);
+        }
     }
 
     public function show(Order $order)
     {
-        $user = Auth::user();
-        $profile = $user->profile;
-        
-        if (!$profile || !$profile->commerce) {
-            return response()->json(['error' => 'User is not associated with a commerce'], 403);
-        }
+        try {
+            $user = Auth::user();
+            $profile = $user->profile;
+            
+            if (!$profile || !$profile->commerce) {
+                return response()->json(['error' => 'User is not associated with a commerce'], 403);
+            }
 
-        // Verificar que la orden pertenece al comercio del usuario
-        if ($order->commerce_id !== $profile->commerce->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
+            // Verificar que la orden pertenece al comercio del usuario
+            if ($order->commerce_id !== $profile->commerce->id) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
 
-        return response()->json($order->load(['profile.user', 'orderItems.product', 'orderDelivery']));
+            return response()->json($order->load(['profile.user', 'orderItems.product', 'orderDelivery']));
+        } catch (\Exception $e) {
+            \Log::error('Error al mostrar orden de comercio: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error interno al mostrar orden'], 500);
+        }
     }
 
     public function updateStatus(Request $request, Order $order)
     {
-        $user = Auth::user();
-        $profile = $user->profile;
-        
-        if (!$profile || !$profile->commerce) {
-            return response()->json(['error' => 'User is not associated with a commerce'], 403);
+        try {
+            $user = Auth::user();
+            $profile = $user->profile;
+            
+            if (!$profile || !$profile->commerce) {
+                return response()->json(['error' => 'User is not associated with a commerce'], 403);
+            }
+
+            // Verificar que la orden pertenece al comercio del usuario
+            if ($order->commerce_id !== $profile->commerce->id) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+
+            $request->validate([
+                'status' => 'required|in:pending_payment,paid,preparing,on_way,delivered,cancelled'
+            ]);
+
+            $order->update(['status' => $request->status]);
+
+            // Notificación: estado de orden actualizado
+            // Notification::send($order->profile->user, new OrderStatusUpdated($order));
+            return response()->json(['success' => true, 'message' => 'Estado de la orden actualizado']);
+        } catch (\Exception $e) {
+            \Log::error('Error al actualizar estado de orden de comercio: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error interno al actualizar estado de orden'], 500);
         }
-
-        // Verificar que la orden pertenece al comercio del usuario
-        if ($order->commerce_id !== $profile->commerce->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-
-        $request->validate([
-            'status' => 'required|in:pending_payment,paid,preparing,on_way,delivered,cancelled'
-        ]);
-
-        $order->update(['status' => $request->status]);
-
-        return response()->json([
-            'message' => 'Order status updated successfully',
-            'order' => $order->fresh()
-        ]);
     }
 
     /**

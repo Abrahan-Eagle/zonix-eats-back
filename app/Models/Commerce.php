@@ -15,9 +15,6 @@ class Commerce extends Model
         'image',
         'address',
         'phone',
-        'mobile_payment_bank',
-        'mobile_payment_id',
-        'mobile_payment_phone',
         'open',
         'schedule'
     ];
@@ -57,5 +54,13 @@ class Commerce extends Model
     public function orders()
     {
         return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Relación con métodos de pago
+     */
+    public function paymentMethods()
+    {
+        return $this->hasMany(PaymentMethod::class);
     }
 }

@@ -113,6 +113,14 @@ class DatabaseSeeder extends Seeder
             OrderDeliverySeeder::class,
             ReviewSeeder::class,
             NotificationSeeder::class,
+            BanksSeeder::class, // Agregado para precargar bancos
+            PaymentMethodSeeder::class, // Agregado para poblar métodos de pago
+
+
+            OperatorCodeSeeder::class,
+            CountriesSeeder::class,
+            StatesSeeder::class,
+            CitiesSeeder::class,
         ]);
     }
 }

@@ -14,13 +14,12 @@ return new class extends Migration
         Schema::create('commerces', function (Blueprint $table) {
             $table->id();
             $table->foreignId('profile_id')->constrained()->onDelete('cascade');
-            $table->string('business_name');
+            $table->string('business_name')->nullable();
+            $table->string('business_type')->nullable();
             $table->text('image')->nullable();
-            $table->text('address');
-            $table->string('phone', 20);
-            $table->string('mobile_payment_bank', 50);
-            $table->string('mobile_payment_id', 20);
-            $table->string('mobile_payment_phone', 20);
+            $table->string('phone')->nullable();
+            $table->text('address')->nullable();
+            
             $table->boolean('open')->default(false);
             $table->json('schedule')->nullable();
             $table->timestamps();

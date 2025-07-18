@@ -24,11 +24,6 @@ class ProfileFactory extends Factory
             'status' => $this->faker->randomElement(['completeData', 'incompleteData', 'notverified']),
             'phone' => $this->faker->phoneNumber,
             'address' => $this->faker->address,
-            'business_name' => $this->faker->company,
-            'business_type' => $this->faker->word,
-            'tax_id' => $this->faker->numerify('##########'),
-            'vehicle_type' => $this->faker->randomElement(['motorcycle', 'car', 'bicycle', 'truck']),
-            'license_number' => $this->faker->bothify('??#######'),
         ];
     }
 
@@ -36,17 +31,12 @@ class ProfileFactory extends Factory
     public function commerce(): Factory
     {
         return $this->state([
-            'business_name' => $this->faker->company,
-            'business_type' => $this->faker->word,
-            'tax_id' => $this->faker->numerify('##########'),
         ]);
     }
 
     public function delivery(): Factory
     {
         return $this->state([
-            'vehicle_type' => $this->faker->randomElement(['motorcycle', 'car', 'bicycle', 'truck']),
-            'license_number' => $this->faker->bothify('??#######'),
         ]);
     }
 }
