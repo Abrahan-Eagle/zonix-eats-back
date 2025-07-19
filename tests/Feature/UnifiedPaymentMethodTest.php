@@ -21,7 +21,7 @@ class UnifiedPaymentMethodTest extends TestCase
         $bank = Bank::factory()->create();
         $this->actingAs($user, 'sanctum');
 
-        // Crear método de pago
+        // Crear primer método de pago
         $response = $this->postJson('/api/payment-methods', [
             'type' => 'mobile_payment',
             'bank_id' => $bank->id,
@@ -51,7 +51,19 @@ class UnifiedPaymentMethodTest extends TestCase
         $response = $this->patchJson("/api/payment-methods/$id/default");
         $response->assertStatus(200)->assertJson(['success' => true]);
 
-        // Eliminar método de pago
+        // Crear segundo método de pago para poder eliminar el primero
+        $response = $this->postJson('/api/payment-methods', [
+            'type' => 'card',
+            'brand' => 'Visa',
+            'last4' => '1234',
+            'exp_month' => 12,
+            'exp_year' => 2025,
+            'cardholder_name' => 'Juan Pérez',
+            'is_default' => false
+        ]);
+        $response->assertStatus(201)->assertJson(['success' => true]);
+
+        // Ahora sí eliminar el primer método de pago
         $response = $this->deleteJson("/api/payment-methods/$id");
         $response->assertStatus(200)->assertJson(['success' => true]);
         $this->assertDatabaseMissing('payment_methods', ['id' => $id]);
