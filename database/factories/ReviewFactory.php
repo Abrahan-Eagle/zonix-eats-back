@@ -15,8 +15,8 @@ class ReviewFactory extends Factory
     public function definition()
     {
         return [
-            'order_id' => Order::factory(),
             'profile_id' => Profile::factory(),
+            'order_id' => Order::factory(),
             'commerce_id' => Commerce::factory(),
             'type' => 'restaurant',
             'rating' => $this->faker->numberBetween(1, 5),

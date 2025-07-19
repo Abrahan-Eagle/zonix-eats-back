@@ -111,7 +111,7 @@ class DatabaseSeeder extends Seeder
             DeliveryCompanySeeder::class,
             DeliveryAgentSeeder::class,
             OrderDeliverySeeder::class,
-            ReviewSeeder::class,
+            // ReviewSeeder::class, // Comentado temporalmente por problemas de migración
             NotificationSeeder::class,
             BanksSeeder::class, // Agregado para precargar bancos
             PaymentMethodSeeder::class, // Agregado para poblar métodos de pago

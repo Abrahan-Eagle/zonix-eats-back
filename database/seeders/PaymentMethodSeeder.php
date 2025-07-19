@@ -14,7 +14,8 @@ class PaymentMethodSeeder extends Seeder
         foreach ($commerces as $commerce) {
             // Asignar 2-3 métodos de pago variados a cada comercio
             PaymentMethod::factory()->count(3)->create([
-                'commerce_id' => $commerce->id,
+                'payable_type' => 'App\\Models\\User',
+                'payable_id' => $commerce->profile->user_id,
             ]);
         }
     }

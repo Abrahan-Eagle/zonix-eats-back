@@ -17,7 +17,8 @@ class PaymentMethodFactory extends Factory
         $type = $this->faker->randomElement($types);
         $bank = Bank::inRandomOrder()->first();
         $data = [
-            'commerce_id' => Commerce::factory(),
+            'payable_type' => 'App\\Models\\User',
+            'payable_id' => \App\Models\User::factory(),
             'type' => $type,
             'is_default' => false,
             'is_active' => true,
