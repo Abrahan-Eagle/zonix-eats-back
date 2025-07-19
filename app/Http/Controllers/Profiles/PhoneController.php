@@ -17,11 +17,35 @@ class PhoneController extends Controller
      */
     public function index()
     {
-    //     $phones = Phone::with(['profile', 'operatorCode'])->get();
-    //     return response()->json($phones);
+        // Obtener el usuario autenticado
+        $user = auth()->user();
+        
+        if (!$user) {
+            return response()->json(['error' => 'Usuario no autenticado'], 401);
+        }
 
-        $operatorCode = OperatorCode::all();
-        return response()->json($operatorCode);
+        // Buscar el perfil del usuario
+        $profile = Profile::where('user_id', $user->id)->first();
+        
+        if (!$profile) {
+            return response()->json(['error' => 'Perfil no encontrado'], 404);
+        }
+
+        // Obtener todos los teléfonos del perfil
+        $phones = Phone::with(['profile', 'operatorCode'])
+            ->where('profile_id', $profile->id)
+            ->get();
+
+        return response()->json($phones);
+    }
+
+    /**
+     * Get operator codes for dropdown
+     */
+    public function getOperatorCodes()
+    {
+        $operatorCodes = OperatorCode::all();
+        return response()->json($operatorCodes);
     }
 
     public function store(Request $request)
@@ -109,7 +133,10 @@ class PhoneController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-           'is_primary' => 'required|boolean',
+            'operator_code_id' => 'sometimes|exists:operator_codes,id',
+            'number' => 'sometimes|string|min:7|max:15|unique:phones,number,' . $id,
+            'is_primary' => 'sometimes|boolean',
+            'status' => 'sometimes|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -117,17 +144,33 @@ class PhoneController extends Controller
         }
 
         // Si se marca como principal, desmarcar otros teléfonos principales del mismo perfil
-
-        if ($request->is_primary) {
+        if ($request->has('is_primary') && $request->is_primary) {
             Phone::where('profile_id', $phone->profile_id)
-                ->where('id', '!=', $phone->id) // Excluir el email actual
+                ->where('id', '!=', $phone->id)
                 ->update(['is_primary' => false]);
         }
 
-        // Actualizar los datos del teléfono
-        // Actualizar el campo 'is_primary'
-        $phone->is_primary = $request->is_primary;
+        // Actualizar los campos permitidos
+        if ($request->has('operator_code_id')) {
+            $phone->operator_code_id = $request->operator_code_id;
+        }
+        
+        if ($request->has('number')) {
+            $phone->number = $request->number;
+        }
+        
+        if ($request->has('is_primary')) {
+            $phone->is_primary = $request->is_primary;
+        }
+        
+        if ($request->has('status')) {
+            $phone->status = $request->status;
+        }
+
         $phone->save();
+
+        // Cargar las relaciones para la respuesta
+        $phone->load(['profile', 'operatorCode']);
 
         return response()->json(['message' => 'Phone updated successfully', 'phone' => $phone]);
     }

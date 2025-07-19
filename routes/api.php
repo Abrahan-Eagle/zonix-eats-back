@@ -9,6 +9,10 @@ use App\Http\Controllers\Authenticator\AuthController;
 use App\Http\Controllers\Commerce\OrderController as CommerceOrderController;
 use App\Http\Controllers\Commerce\ProductController;
 use App\Http\Controllers\Profiles\ProfileController;
+use App\Http\Controllers\Profiles\DocumentController;
+use App\Http\Controllers\Profiles\AddressController;
+use App\Http\Controllers\Profiles\PhoneController;
+use App\Http\Controllers\Profiles\EmailController;
 use App\Models\Order;
 use App\Models\Product;
 use Illuminate\Support\Facades\Artisan;
@@ -132,6 +136,23 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/default', [App\Http\Controllers\Buyer\AddressController::class, 'getDefaultAddress']);
     });
 
+    Route::prefix('phones')->group(function () {
+        Route::get('/', [PhoneController::class, 'index']);
+        Route::get('/operator-codes', [PhoneController::class, 'getOperatorCodes']);
+        Route::post('/', [PhoneController::class, 'store']);
+        Route::get('/{id}', [PhoneController::class, 'show']);
+        Route::put('/{id}', [PhoneController::class, 'update']);
+        Route::delete('/{id}', [PhoneController::class, 'destroy']);
+    });
+
+    Route::prefix('emails')->group(function () {
+        Route::get('/', [EmailController::class, 'index']);
+        Route::post('/', [EmailController::class, 'store']);
+        Route::get('/{id}', [EmailController::class, 'show']);
+        Route::put('/{id}', [EmailController::class, 'update']);
+        Route::delete('/{id}', [EmailController::class, 'destroy']);
+    });
+
     // Sistema de Gamificación
     Route::prefix('buyer/gamification')->group(function () {
         Route::get('/points', [App\Http\Controllers\Buyer\GamificationController::class, 'getUserPoints']);
@@ -226,6 +247,26 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{id}', [ProfileController::class, 'destroy']);
     });
 
+
+    Route::prefix('documents')->group(function () {
+        Route::get('/', [DocumentController::class, 'index']);
+        Route::post('/', [DocumentController::class, 'store']);
+        Route::get('/{id}', [DocumentController::class, 'show']);
+        Route::put('/{id}', [DocumentController::class, 'update']);
+        Route::delete('/{id}', [DocumentController::class, 'destroy']);
+    });
+
+
+    Route::prefix('addresses')->group(function () {
+        Route::get('/', [AddressController::class, 'index']);
+        Route::post('/', [AddressController::class, 'store']);
+        Route::get('/{id}', [AddressController::class, 'show']);
+        Route::put('/{id}', [AddressController::class, 'update']);
+        Route::delete('/{id}', [AddressController::class, 'destroy']);
+        Route::post('/getCountries', [AddressController::class, 'getCountries']);
+        Route::post('/get-states-by-country', [AddressController::class, 'getState']);
+        Route::post('/get-cities-by-state', [AddressController::class, 'getCity']);
+    });
 
 
     // Users (antes Buyer)
