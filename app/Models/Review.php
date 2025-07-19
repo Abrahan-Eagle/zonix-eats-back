@@ -10,34 +10,20 @@ class Review extends Model
     use HasFactory;
 
     protected $fillable = [
-        'order_id',
-        'commerce_id',
-        'delivery_agent_id',
         'profile_id',
-        'type',
+        'reviewable_type',
+        'reviewable_id',
         'rating',
-        'comment',
-        'photos'
+        'comentario'
     ];
 
     protected $casts = [
-        'photos' => 'array',
         'rating' => 'integer'
     ];
 
-    public function order()
+    public function reviewable()
     {
-        return $this->belongsTo(Order::class);
-    }
-
-    public function commerce()
-    {
-        return $this->belongsTo(Commerce::class);
-    }
-
-    public function deliveryAgent()
-    {
-        return $this->belongsTo(DeliveryAgent::class);
+        return $this->morphTo();
     }
 
     public function profile()

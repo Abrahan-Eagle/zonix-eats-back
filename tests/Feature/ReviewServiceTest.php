@@ -31,10 +31,13 @@ class ReviewServiceTest extends TestCase
         $commerce = Commerce::factory()->create();
         
         // Crear un pedido entregado
-        $order = Order::factory()->create([
+        $order = Order::create([
             'profile_id' => $profile->id,
             'commerce_id' => $commerce->id,
-            'status' => 'delivered'
+            'delivery_type' => 'pickup',
+            'status' => 'delivered',
+            'total' => 50.00,
+            'notes' => 'Test order'
         ]);
 
         $canReview = $this->reviewService->canUserReview($user->id, $order->id);
@@ -49,10 +52,13 @@ class ReviewServiceTest extends TestCase
         $commerce = Commerce::factory()->create();
         
         // Crear un pedido que no está entregado
-        $order = Order::factory()->create([
+        $order = Order::create([
             'profile_id' => $profile->id,
             'commerce_id' => $commerce->id,
-            'status' => 'pending_payment'
+            'delivery_type' => 'pickup',
+            'status' => 'pending_payment',
+            'total' => 50.00,
+            'notes' => 'Test order'
         ]);
 
         $canReview = $this->reviewService->canUserReview($user->id, $order->id);
@@ -62,19 +68,18 @@ class ReviewServiceTest extends TestCase
 
     public function test_create_review_successfully()
     {
+        $commerce = Commerce::factory()->create();
         $user = User::factory()->create();
         $profile = Profile::factory()->create(['user_id' => $user->id]);
-        $commerce = Commerce::factory()->create();
-        
-        // Crear un pedido entregado
-        $order = Order::factory()->create([
+        $order = Order::create([
             'profile_id' => $profile->id,
             'commerce_id' => $commerce->id,
-            'status' => 'delivered'
+            'delivery_type' => 'pickup',
+            'status' => 'delivered',
+            'total' => 50.00,
+            'notes' => 'Test order'
         ]);
-
         $this->actingAs($user);
-
         $data = [
             'order_id' => $order->id,
             'type' => 'restaurant',
@@ -82,70 +87,75 @@ class ReviewServiceTest extends TestCase
             'comment' => 'Excelente servicio'
         ];
 
-        $result = $this->reviewService->createReview($data);
+        $result = $this->reviewService->createReview($data + ['user_id' => $user->id]);
 
-        $this->assertTrue($result['success']);
-        $this->assertEquals('Calificación creada exitosamente', $result['message']);
-        $this->assertInstanceOf(Review::class, $result['review']);
+        $this->assertInstanceOf(Review::class, $result);
+        $this->assertEquals(5, $result->rating);
+        $this->assertEquals('Excelente servicio', $result->comentario);
+        $this->assertEquals($profile->id, $result->profile_id);
+        $this->assertEquals('App\\Models\\Commerce', $result->reviewable_type);
+        $this->assertEquals($commerce->id, $result->reviewable_id);
     }
 
     public function test_cannot_create_duplicate_review()
     {
+        $commerce = Commerce::factory()->create();
         $user = User::factory()->create();
         $profile = Profile::factory()->create(['user_id' => $user->id]);
-        $commerce = Commerce::factory()->create();
-        
-        // Crear un pedido entregado
-        $order = Order::factory()->create([
+        $order = Order::create([
             'profile_id' => $profile->id,
             'commerce_id' => $commerce->id,
-            'status' => 'delivered'
+            'delivery_type' => 'pickup',
+            'status' => 'delivered',
+            'total' => 50.00,
+            'notes' => 'Test order'
         ]);
-
         $this->actingAs($user);
-
         $data = [
             'order_id' => $order->id,
             'type' => 'restaurant',
             'rating' => 5,
-            'comment' => 'Excelente servicio'
+            'comment' => 'Excelente'
         ];
 
         // Crear primera calificación
-        $this->reviewService->createReview($data);
+        $this->reviewService->createReview($data + ['user_id' => $user->id]);
 
-        // Intentar crear segunda calificación
-        $result = $this->reviewService->createReview($data);
-
-        $this->assertFalse($result['success']);
-        $this->assertEquals('Ya has calificado este elemento', $result['message']);
+        // Intentar crear segunda calificación - debería fallar
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Ya has calificado este elemento');
+        
+        $this->reviewService->createReview($data + ['user_id' => $user->id]);
     }
 
     public function test_get_average_rating()
     {
         $commerce = Commerce::factory()->create();
         
-        // Crear varias calificaciones usando la nueva estructura
-        Review::factory()->create([
-            'commerce_id' => $commerce->id,
-            'type' => 'restaurant',
-            'rating' => 5
-        ]);
+        // Crear 3 usuarios diferentes para evitar conflictos de reviews duplicados
+        for ($i = 0; $i < 3; $i++) {
+            $user = User::factory()->create();
+            $profile = Profile::factory()->create(['user_id' => $user->id]);
+            $order = Order::create([
+                'profile_id' => $profile->id,
+                'commerce_id' => $commerce->id,
+                'delivery_type' => 'pickup',
+                'status' => 'delivered',
+                'total' => 50.00,
+                'notes' => 'Test order'
+            ]);
+            $this->actingAs($user);
+            $data = [
+                'order_id' => $order->id,
+                'type' => 'restaurant',
+                'rating' => $i === 0 ? 5 : ($i === 1 ? 3 : 4),
+                'comment' => "Review {$i}",
+                'user_id' => $user->id
+            ];
+            $this->reviewService->createReview($data);
+        }
         
-        Review::factory()->create([
-            'commerce_id' => $commerce->id,
-            'type' => 'restaurant',
-            'rating' => 3
-        ]);
-        
-        Review::factory()->create([
-            'commerce_id' => $commerce->id,
-            'type' => 'restaurant',
-            'rating' => 4
-        ]);
-
         $averageRating = $this->reviewService->getRestaurantAverageRating($commerce->id);
-
         $this->assertEquals(4.0, $averageRating); // (5 + 3 + 4) / 3 = 4
     }
 
@@ -153,13 +163,30 @@ class ReviewServiceTest extends TestCase
     {
         $commerce = Commerce::factory()->create();
         
-        Review::factory()->count(3)->create([
-            'commerce_id' => $commerce->id,
-            'type' => 'restaurant'
-        ]);
-
+        // Crear 3 usuarios diferentes para evitar conflictos de reviews duplicados
+        for ($i = 0; $i < 3; $i++) {
+            $user = User::factory()->create();
+            $profile = Profile::factory()->create(['user_id' => $user->id]);
+            $order = Order::create([
+                'profile_id' => $profile->id,
+                'commerce_id' => $commerce->id,
+                'delivery_type' => 'pickup',
+                'status' => 'delivered',
+                'total' => 50.00,
+                'notes' => 'Test order'
+            ]);
+            $this->actingAs($user);
+            $data = [
+                'order_id' => $order->id,
+                'type' => 'restaurant',
+                'rating' => 4,
+                'comment' => "Review {$i}",
+                'user_id' => $user->id
+            ];
+            $this->reviewService->createReview($data);
+        }
+        
         $reviews = $this->reviewService->getRestaurantReviews($commerce->id);
-
         $this->assertCount(3, $reviews);
         $this->assertInstanceOf(\Illuminate\Database\Eloquent\Collection::class, $reviews);
     }

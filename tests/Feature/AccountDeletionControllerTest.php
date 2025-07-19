@@ -21,6 +21,25 @@ class AccountDeletionControllerTest extends TestCase
             'role' => 'users',
             'password' => Hash::make('password123')
         ]);
+        
+        // Limpiar el estado estático del controlador
+        $this->clearMockDeletionRequests();
+    }
+
+    protected function tearDown(): void
+    {
+        // Limpiar el estado estático después de cada test
+        $this->clearMockDeletionRequests();
+        parent::tearDown();
+    }
+
+    private function clearMockDeletionRequests()
+    {
+        // Usar reflection para acceder y limpiar la variable estática privada
+        $reflection = new \ReflectionClass(\App\Http\Controllers\Buyer\AccountDeletionController::class);
+        $property = $reflection->getProperty('mockDeletionRequest');
+        $property->setAccessible(true);
+        $property->setValue(null, []);
     }
 
     /** @test */

@@ -18,7 +18,6 @@ use App\Models\Commerce;
 
 // Canal para usuario específico
 Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
-    \Log::info('Broadcasting user callback', ['user' => $user, 'id' => $id]);
     return (int) $user->id === (int) $id;
 });
 

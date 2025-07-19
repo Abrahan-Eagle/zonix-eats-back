@@ -40,7 +40,7 @@ class OrderTest extends TestCase
 
         // Subir comprobante
         $file = UploadedFile::fake()->image('comprobante.jpg');
-        $response = $this->postJson("/api/buyer/orders/{$orderId}/comprobante", [
+        $response = $this->postJson("/api/buyer/orders/{$orderId}/payment-proof", [
             'payment_proof' => $file,
             'payment_method' => 'mobile_payment',
             'reference_number' => '123456'
@@ -49,7 +49,9 @@ class OrderTest extends TestCase
         Storage::disk('public')->assertExists('payment_proofs/' . $file->hashName());
 
         // Cancelar orden
-        $response = $this->postJson("/api/buyer/orders/{$orderId}/cancel");
+        $response = $this->postJson("/api/buyer/orders/{$orderId}/cancel", [
+            'reason' => 'Cambio de planes'
+        ]);
         $response->assertStatus(200)->assertJson(['success' => true]);
     }
 } 

@@ -150,7 +150,7 @@ class WebSocketTest extends TestCase
         $this->actingAs($this->user);
 
         // Verificar acceso al canal de usuario
-        $response = $this->postJson('/broadcasting/auth', [
+        $response = $this->postJson('/api/broadcasting/auth', [
             'channel_name' => 'App.Models.User.' . $this->user->id,
             'socket_id' => '123.456'
         ]);
@@ -169,7 +169,7 @@ class WebSocketTest extends TestCase
         $this->actingAs($this->user);
 
         // Verificar acceso al canal de orden
-        $response = $this->postJson('/broadcasting/auth', [
+        $response = $this->postJson('/api/broadcasting/auth', [
             'channel_name' => 'orders.' . $order->id,
             'socket_id' => '123.456'
         ]);
@@ -184,7 +184,7 @@ class WebSocketTest extends TestCase
         $this->actingAs($this->user);
 
         // Intentar acceder al canal de otro usuario
-        $response = $this->postJson('/broadcasting/auth', [
+        $response = $this->postJson('/api/broadcasting/auth', [
             'channel_name' => 'App.Models.User.' . $otherUser->id,
             'socket_id' => '123.456'
         ]);

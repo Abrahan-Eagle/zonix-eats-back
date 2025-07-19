@@ -23,7 +23,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->dropForeign(['category_id']);
+            // SQLite no soporta dropForeign, así que solo eliminamos la columna
+            if (config('database.default') !== 'sqlite') {
+                $table->dropForeign(['category_id']);
+            }
             $table->dropColumn('category_id');
         });
     }
