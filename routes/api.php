@@ -12,7 +12,7 @@ use App\Http\Controllers\Profiles\ProfileController;
 use App\Http\Controllers\Profiles\DocumentController;
 use App\Http\Controllers\Profiles\AddressController;
 use App\Http\Controllers\Profiles\PhoneController;
-use App\Http\Controllers\Profiles\EmailController;
+
 use App\Models\Order;
 use App\Models\Product;
 use Illuminate\Support\Facades\Artisan;
@@ -145,13 +145,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/{id}', [PhoneController::class, 'destroy']);
     });
 
-    Route::prefix('emails')->group(function () {
-        Route::get('/', [EmailController::class, 'index']);
-        Route::post('/', [EmailController::class, 'store']);
-        Route::get('/{id}', [EmailController::class, 'show']);
-        Route::put('/{id}', [EmailController::class, 'update']);
-        Route::delete('/{id}', [EmailController::class, 'destroy']);
-    });
+
 
     // Sistema de Gamificación
     Route::prefix('buyer/gamification')->group(function () {
