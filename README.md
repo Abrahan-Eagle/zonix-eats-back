@@ -965,7 +965,8 @@ php artisan log:clear
 
 ### Documento de Análisis Completo
 
-**Ubicación:** `ANALISIS_EXHAUSTIVO.md` (raíz del proyecto WorksPageZonixEats)
+**Ubicación:** `ANALISIS_EXHAUSTIVO.md` (raíz del proyecto WorksPageZonixEats)  
+**Versión de Prompts:** 2.0 - Basada en Experiencia Real
 
 Este documento contiene un análisis exhaustivo completo del proyecto realizado en Diciembre 2024, cubriendo todas las áreas del sistema:
 
@@ -973,27 +974,41 @@ Este documento contiene un análisis exhaustivo completo del proyecto realizado 
 2. **Código y Calidad** - Code smells, patrones, complejidad
 3. **Lógica de Negocio** - Entidades, flujos, servicios
 4. **Base de Datos** - Esquema, performance, integridad
-5. **Seguridad** - Autenticación, vulnerabilidades, OWASP Top 10
-6. **Performance** - Bottlenecks, optimizaciones, escalabilidad
-7. **Testing** - Cobertura, estrategia, calidad
+5. **Seguridad** - Autenticación, vulnerabilidades, OWASP Top 10 completo
+6. **Performance** - Bottlenecks, optimizaciones, escalabilidad, métricas
+7. **Testing** - Cobertura, estrategia, calidad, plan de mejora
 8. **Backend/API** - Endpoints, diseño, documentación
 9. **DevOps e Infraestructura** - CI/CD, deployment, monitoring
 10. **Documentación** - Estado, calidad, mejoras
-11. **Estado y Mantenibilidad** - Deuda técnica, métricas
-12. **Oportunidades y Mejoras** - Roadmap, priorización
+11. **Verificación de Coherencia** ⭐ **NUEVO** - Coherencia entre archivos de documentación
+12. **Estado y Mantenibilidad** - Deuda técnica, métricas, score
+13. **Oportunidades y Mejoras** - Roadmap técnico priorizado, quick wins
 
 ### Realizar Nuevo Análisis Exhaustivo
 
-Cuando se solicite un análisis exhaustivo del proyecto, usar los prompts completos disponibles. El análisis debe:
+Cuando se solicite un análisis exhaustivo del proyecto, usar los **prompts completos v2.0** disponibles. El análisis debe seguir esta metodología:
 
+**FASE 1: EXPLORACIÓN INICIAL**
+- Mapear estructura completa de directorios y archivos
+- Identificar archivos de configuración clave
+- Leer archivos de documentación principales
+- Identificar stack tecnológico completo y versiones
+
+**FASE 2: ANÁLISIS PROFUNDO POR ÁREA**
 - Explorar TODA la estructura del proyecto sin dejar áreas sin revisar
 - Leer y analizar los archivos más importantes de cada módulo
 - Identificar patrones, anti-patrones y code smells
-- Proporcionar ejemplos concretos de código cuando sea relevante
+- Proporcionar ejemplos concretos de código (formato: archivo:línea)
 - Priorizar hallazgos por criticidad (crítico, alto, medio, bajo)
-- Sugerir mejoras específicas y accionables
+- Sugerir mejoras específicas con impacto/esfuerzo/prioridad
 
-**Ver:** `.cursorrules` para el prompt maestro completo de análisis.
+**FASE 3: VERIFICACIÓN DE COHERENCIA** ⭐ **CRÍTICO**
+- Comparar métricas mencionadas en diferentes documentos
+- Verificar que números y estadísticas coincidan entre README y .cursorrules
+- Identificar discrepancias y corregirlas o documentar razones
+- Asegurar que el estado del proyecto sea consistente en toda la documentación
+
+**Ver:** `.cursorrules` para el prompt maestro completo v2.0 con todas las instrucciones detalladas.
 
 ### Actualizar Análisis
 
