@@ -1,0 +1,855 @@
+---
+description: "Guía de desarrollo Backend (Laravel) para Zonix Eats"
+alwaysApply: true
+---
+
+## 🎯 ESTADO ACTUAL DEL PROYECTO
+
+**Versión:** 1.0.0  
+**Laravel:** 10.x  
+**PHP:** 8.1+  
+**Estado:** ✅ MVP Completado - En desarrollo activo  
+**Tests:** 30+ tests de feature implementados  
+**Endpoints:** 150+ endpoints REST  
+**Última actualización:** Diciembre 2024
+
+---
+
+## REGLAS FUNDAMENTALES DE COLABORACIÓN
+
+**IMPORTANTE: El usuario es el líder del proyecto. El asistente debe:**
+
+1. **SIEMPRE PREGUNTAR** antes de realizar cualquier acción
+2. **NUNCA crear archivos nuevos** si es para editar código existente
+3. **SIEMPRE sugerir detalladamente** qué hacer y esperar aprobación
+4. **NUNCA hacer push a git** sin orden explícita del usuario
+5. **NUNCA hacer merge a git** sin orden explícita del usuario
+6. **El usuario tiene el mando** - el asistente sugiere, el usuario decide
+
+**Flujo de trabajo:**
+- Asistente: "Sugiero hacer X, ¿quieres que proceda?"
+- Usuario: "Sí, hazlo" o "No, mejor Y"
+- Asistente: Ejecuta solo lo aprobado
+
+**CRÍTICO - Control de Git:**
+- ❌ **NUNCA hacer push automáticamente** - Solo cuando el usuario lo ordene explícitamente
+- ❌ **NUNCA hacer merge automáticamente** - Solo cuando el usuario lo ordene explícitamente
+- ✅ **Solo hacer commits locales** cuando se realicen cambios
+- ✅ **Esperar aprobación del usuario** antes de cualquier push o merge
+- ✅ **El usuario prueba primero** y da la orden cuando está seguro
+
+---
+
+## ARQUITECTURA Y ESTRUCTURA
+
+### Estructura del Proyecto
+
+```
+zonix-eats-back/
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/     # Controladores organizados por módulos
+│   │   │   ├── Authenticator/  # Autenticación
+│   │   │   ├── Buyer/          # Funcionalidades de comprador
+│   │   │   ├── Commerce/       # Funcionalidades de comercio
+│   │   │   ├── Delivery/       # Funcionalidades de delivery
+│   │   │   ├── Admin/          # Funcionalidades de administrador
+│   │   │   └── ...
+│   │   ├── Middleware/      # Middleware personalizado
+│   │   │   ├── RoleMiddleware.php
+│   │   │   └── ...
+│   │   └── Requests/        # Validación de requests
+│   ├── Models/              # Modelos Eloquent (25+ modelos)
+│   ├── Services/            # Servicios de negocio (9 servicios)
+│   │   ├── OrderService.php
+│   │   ├── CartService.php
+│   │   ├── ProductService.php
+│   │   └── ...
+│   ├── Events/              # Eventos para broadcasting
+│   └── Providers/           # Proveedores de servicios
+├── database/
+│   ├── migrations/          # 40+ migraciones
+│   └── seeders/             # Seeders de datos
+├── routes/
+│   └── api.php              # 150+ endpoints definidos
+└── tests/
+    └── Feature/             # 30+ tests de integración
+```
+
+### Patrón Arquitectónico
+
+**MVC con separación de servicios:**
+- **Controllers:** Manejan requests/responses HTTP
+- **Services:** Contienen lógica de negocio
+- **Models:** Representan entidades de base de datos
+- **Events:** Para broadcasting y notificaciones
+
+**Principios a seguir:**
+- ✅ Single Responsibility Principle (SRP)
+- ✅ Dependency Injection
+- ✅ Separation of Concerns
+- ✅ DRY (Don't Repeat Yourself)
+
+---
+
+## CONVENCIONES DE CÓDIGO
+
+### Nomenclatura
+
+- **Archivos:** snake_case (ej: `order_service.php`)
+- **Clases:** PascalCase (ej: `OrderService`)
+- **Métodos:** camelCase (ej: `getUserOrders()`)
+- **Variables:** camelCase (ej: `$orderId`)
+- **Constantes:** UPPER_SNAKE_CASE (ej: `MAX_RETRY_ATTEMPTS`)
+
+### Estructura de Controladores
+
+```php
+<?php
+
+namespace App\Http\Controllers\Buyer;
+
+use App\Http\Controllers\Controller;
+use App\Services\OrderService;
+use Illuminate\Http\Request;
+
+class OrderController extends Controller
+{
+    protected $orderService;
+
+    public function __construct(OrderService $orderService)
+    {
+        $this->orderService = $orderService;
+    }
+
+    /**
+     * Listar órdenes del comprador
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function index()
+    {
+        $orders = $this->orderService->getUserOrders();
+        return response()->json([
+            'success' => true,
+            'data' => $orders
+        ]);
+    }
+}
+```
+
+### Estructura de Servicios
+
+```php
+<?php
+
+namespace App\Services;
+
+use App\Models\Order;
+use Illuminate\Support\Facades\Auth;
+
+class OrderService
+{
+    /**
+     * Obtener órdenes del usuario autenticado
+     *
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public function getUserOrders()
+    {
+        $user = Auth::user();
+        $profile = $user->profile;
+        
+        if (!$profile) {
+            return collect();
+        }
+        
+        return Order::where('profile_id', $profile->id)
+            ->with(['commerce', 'orderItems.product'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
+}
+```
+
+### Validación de Requests
+
+**SIEMPRE usar Form Requests para validación:**
+
+```php
+// app/Http/Requests/StoreOrderRequest.php
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class StoreOrderRequest extends FormRequest
+{
+    public function rules()
+    {
+        return [
+            'commerce_id' => 'required|exists:commerces,id',
+            'products' => 'required|array|min:1',
+            'products.*.id' => 'required|exists:products,id',
+            'products.*.quantity' => 'required|integer|min:1',
+            'delivery_type' => 'required|in:pickup,delivery',
+            'total' => 'required|numeric|min:0',
+        ];
+    }
+}
+```
+
+---
+
+## ROLES Y PERMISOS
+
+### Roles del Sistema
+
+- **users** (Nivel 0): Cliente/Comprador
+- **commerce** (Nivel 1): Comercio/Restaurante
+- **delivery** (Nivel 2): Repartidor/Delivery
+- **transport** (Nivel 3): Agencia de Transporte
+- **affiliate** (Nivel 4): Afiliado a Delivery
+- **admin** (Nivel 5): Administrador
+
+### Middleware de Roles
+
+```php
+// Usar middleware de roles en rutas
+Route::middleware(['auth:sanctum', 'role:commerce'])->group(function () {
+    Route::get('/commerce/dashboard', [DashboardController::class, 'index']);
+});
+```
+
+**IMPORTANTE:** El middleware `RoleMiddleware` actualmente solo verifica igualdad exacta. Para mejoras futuras, considerar sistema de permisos más granular.
+
+---
+
+## AUTENTICACIÓN Y SEGURIDAD
+
+### Laravel Sanctum
+
+**Configuración:**
+- Tokens almacenados en `personal_access_tokens`
+- Tokens con expiración configurable
+- Revocación de tokens en logout
+
+**Uso:**
+```php
+// Crear token
+$token = $user->createToken('AuthToken')->plainTextToken;
+
+// Revocar tokens
+$request->user()->tokens()->delete();
+```
+
+### Seguridad
+
+**CRÍTICO - CORS:**
+- ⚠️ Actualmente configurado con `allowed_origins: ['*']`
+- **Recomendación:** Restringir a dominios específicos en producción
+
+**Rate Limiting:**
+- ⚠️ No implementado en endpoints críticos
+- **Recomendación:** Agregar rate limiting a endpoints de autenticación y creación
+
+**Validación:**
+- ✅ Siempre validar input del usuario
+- ✅ Usar Form Requests para validación compleja
+- ✅ Sanitizar datos antes de almacenar
+
+---
+
+## BASE DE DATOS
+
+### Modelos Eloquent
+
+**Relaciones:**
+- Usar `with()` para eager loading y evitar N+1 queries
+- Definir relaciones en modelos
+- Usar `belongsTo`, `hasMany`, `hasOne`, `belongsToMany` según corresponda
+
+**Ejemplo:**
+```php
+// Order.php
+public function orderItems()
+{
+    return $this->hasMany(OrderItem::class);
+}
+
+public function commerce()
+{
+    return $this->belongsTo(Commerce::class);
+}
+
+// En controlador, usar eager loading
+Order::with(['orderItems.product', 'commerce'])->get();
+```
+
+### Migraciones
+
+**Convenciones:**
+- Nombre descriptivo: `create_orders_table.php`
+- Usar timestamps: `$table->timestamps()`
+- Foreign keys con `onDelete('cascade')` o `onDelete('set null')` según corresponda
+- Índices en columnas frecuentemente consultadas
+
+**Índices Recomendados:**
+```php
+$table->index('status');
+$table->index('created_at');
+$table->index(['profile_id', 'status']);
+```
+
+### Transacciones
+
+**CRÍTICO:** Usar transacciones para operaciones críticas:
+
+```php
+DB::transaction(function () use ($validated, $userId) {
+    $order = Order::create([...]);
+    foreach ($validated['products'] as $product) {
+        OrderItem::create([...]);
+    }
+});
+```
+
+---
+
+## SERVICIOS Y LÓGICA DE NEGOCIO
+
+### Organización de Servicios
+
+**Servicios existentes:**
+- `OrderService` - Gestión de órdenes
+- `CartService` - Gestión de carrito ⚠️ **PROBLEMA:** Usa Session (no escalable)
+- `ProductService` - Gestión de productos
+- `RestaurantService` - Gestión de restaurantes
+- `ReviewService` - Gestión de reseñas
+- `TrackingService` - Seguimiento de entregas
+- `PostService` - Gestión de posts
+- `PostLikeService` - Gestión de likes
+- `DeliveryAssignmentService` - Asignación de entregas
+
+### Reglas para Servicios
+
+1. **Lógica de negocio en servicios, NO en controladores**
+2. **Un servicio = una responsabilidad principal**
+3. **Reutilizar servicios entre controladores**
+4. **Inyectar dependencias, no crear instancias directamente**
+
+### Problema Crítico: CartService
+
+**PROBLEMA ACTUAL:**
+```php
+// CartService usa Session - NO funciona en API stateless
+$cart = Session::get('cart', []);
+```
+
+**SOLUCIÓN REQUERIDA:**
+- Migrar carrito a base de datos (tabla `carts` y `cart_items`)
+- O usar Redis para carrito de usuario
+- Actualizar `CartService` para usar Eloquent/Redis
+
+---
+
+## API Y ENDPOINTS
+
+### Convenciones REST
+
+**Métodos HTTP:**
+- `GET` - Obtener recursos
+- `POST` - Crear recursos
+- `PUT` - Actualizar recursos completos
+- `PATCH` - Actualizar recursos parciales
+- `DELETE` - Eliminar recursos
+
+**Estructura de Respuestas:**
+```php
+// Éxito
+return response()->json([
+    'success' => true,
+    'data' => $data,
+    'message' => 'Operación exitosa'
+], 200);
+
+// Error
+return response()->json([
+    'success' => false,
+    'message' => 'Mensaje de error',
+    'errors' => $errors
+], 400);
+```
+
+**Status Codes:**
+- `200` - OK
+- `201` - Created
+- `400` - Bad Request
+- `401` - Unauthorized
+- `403` - Forbidden
+- `404` - Not Found
+- `422` - Validation Error
+- `500` - Server Error
+
+### Paginación
+
+**CRÍTICO:** Agregar paginación a endpoints de listado:
+
+```php
+public function index(Request $request)
+{
+    $perPage = $request->get('per_page', 15);
+    $orders = Order::paginate($perPage);
+    
+    return response()->json([
+        'success' => true,
+        'data' => $orders->items(),
+        'pagination' => [
+            'current_page' => $orders->currentPage(),
+            'per_page' => $orders->perPage(),
+            'total' => $orders->total(),
+            'last_page' => $orders->lastPage(),
+        ]
+    ]);
+}
+```
+
+---
+
+## WEBSOCKET Y BROADCASTING
+
+### Eventos
+
+**Eventos existentes:**
+- `OrderCreated` - Nueva orden creada
+- `OrderStatusChanged` - Estado de orden cambiado
+- `PaymentValidated` - Pago validado
+- `NewMessage` - Nuevo mensaje de chat
+- `DeliveryLocationUpdated` - Ubicación de delivery actualizada
+- `NotificationCreated` - Nueva notificación
+
+**Uso:**
+```php
+// Disparar evento
+event(new OrderStatusChanged($order));
+
+// El evento debe implementar ShouldBroadcast
+class OrderStatusChanged implements ShouldBroadcast
+{
+    public function broadcastOn()
+    {
+        return new PrivateChannel('user.' . $this->order->profile->user_id);
+    }
+}
+```
+
+### Configuración
+
+**Laravel Echo Server:**
+- Puerto: 6001
+- Driver: Redis (recomendado) o Pusher
+- Autenticación: Sanctum tokens
+
+---
+
+## TESTING
+
+### Estructura de Tests
+
+**Tests de Feature:**
+- Ubicación: `tests/Feature/`
+- Testear endpoints completos
+- Usar `RefreshDatabase` trait
+- Crear usuarios con factories
+
+**Ejemplo:**
+```php
+<?php
+
+namespace Tests\Feature;
+
+use Tests\TestCase;
+use App\Models\User;
+use Laravel\Sanctum\Sanctum;
+
+class OrderTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_user_can_create_order()
+    {
+        $user = User::factory()->create(['role' => 'users']);
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/buyer/orders', [
+            'commerce_id' => 1,
+            'products' => [...],
+        ]);
+
+        $response->assertStatus(201)
+                 ->assertJson(['success' => true]);
+    }
+}
+```
+
+### Ejecutar Tests
+
+```bash
+# Todos los tests
+php artisan test
+
+# Tests específicos
+php artisan test --filter=OrderTest
+
+# Con coverage
+php artisan test --coverage
+```
+
+---
+
+## MEJORAS CRÍTICAS PENDIENTES
+
+### 🔴 CRÍTICO - Acción Inmediata
+
+1. **Migrar Carrito de Session a Base de Datos**
+   - Crear tabla `carts` y `cart_items`
+   - Actualizar `CartService`
+   - Afecta escalabilidad
+
+2. **Restringir CORS**
+   - Cambiar `allowed_origins: ['*']` a dominios específicos
+   - Afecta seguridad
+
+3. **Agregar Rate Limiting**
+   - Implementar en endpoints críticos (auth, creación)
+   - Afecta seguridad
+
+### 🟡 ALTO - Próximas Semanas
+
+4. **Agregar Paginación**
+   - Implementar en todos los endpoints de listado
+   - Afecta performance
+
+5. **Agregar Índices a BD**
+   - `orders.status`, `orders.created_at`
+   - `products.commerce_id`, `products.is_available`
+   - Afecta performance
+
+6. **Implementar Caching**
+   - Redis para queries frecuentes
+   - Cachear respuestas de API
+   - Afecta performance
+
+### 🟢 MEDIO - Mejoras Futuras
+
+7. **Mejorar Sistema de Roles**
+   - Permisos granulares
+   - Múltiples roles por usuario
+   - Afecta seguridad/flexibilidad
+
+8. **Implementar Swagger/OpenAPI**
+   - Documentación de API
+   - Afecta desarrollo/documentación
+
+9. **Eliminar Archivos Duplicados**
+   - `City copy.php`, `State copy.php`
+   - Afecta mantenibilidad
+
+---
+
+## LOGGING Y MONITOREO
+
+### Logging
+
+**Usar Logger de Laravel:**
+```php
+use Illuminate\Support\Facades\Log;
+
+Log::info('Order created', ['order_id' => $order->id]);
+Log::error('Payment failed', ['error' => $e->getMessage()]);
+```
+
+**Recomendación:** Implementar logging estructurado para eventos críticos.
+
+### Monitoreo
+
+**Recomendaciones:**
+- Implementar APM (Sentry, New Relic)
+- Monitorear queries lentas
+- Alertas para errores críticos
+
+---
+
+## DEPLOYMENT Y CONFIGURACIÓN
+
+### Variables de Entorno
+
+**Críticas:**
+- `APP_URL` - URL base de la aplicación
+- `DB_*` - Configuración de base de datos
+- `BROADCAST_DRIVER` - Driver de broadcasting
+- `REDIS_*` - Configuración de Redis (si se usa)
+
+### Comandos Útiles
+
+```bash
+# Limpiar cache
+php artisan config:clear
+php artisan cache:clear
+php artisan route:clear
+
+# Optimizar
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+# Migraciones
+php artisan migrate
+php artisan migrate:rollback
+php artisan migrate:fresh --seed
+```
+
+---
+
+## REGLAS ESPECÍFICAS DEL PROYECTO
+
+### Carrito de Compras
+
+**PROBLEMA ACTUAL:**
+- `CartService` usa Session de PHP
+- No funciona en arquitectura stateless (API REST)
+- No escalable horizontalmente
+
+**SOLUCIÓN REQUERIDA:**
+1. Crear migración para tablas `carts` y `cart_items`
+2. Actualizar `CartService` para usar Eloquent
+3. Asociar carrito a `profile_id` del usuario
+4. Actualizar endpoints de carrito
+
+### Órdenes
+
+**Flujo de Estados:**
+- `pending_payment` → `confirmed` → `preparing` → `ready` → `delivered`
+- `pending_payment` → `cancelled` (solo si no pagado)
+
+**Validaciones:**
+- Verificar productos disponibles antes de crear orden
+- Verificar stock suficiente
+- Validar método de pago
+- Validar dirección de entrega (si aplica)
+
+### WebSocket
+
+**Canales:**
+- `private-user.{userId}` - Notificaciones de usuario
+- `private-order.{orderId}` - Actualizaciones de orden
+- `private-chat.{orderId}` - Chat de orden
+- `private-commerce.{commerceId}` - Notificaciones de comercio
+
+**Autenticación:**
+- Usar Sanctum tokens
+- Endpoint: `/api/broadcasting/auth`
+
+---
+
+## MEJORES PRÁCTICAS
+
+### Código
+
+1. ✅ **Siempre usar Form Requests para validación**
+2. ✅ **Lógica de negocio en Services, NO en Controllers**
+3. ✅ **Usar Eager Loading para evitar N+1 queries**
+4. ✅ **Usar Transacciones para operaciones críticas**
+5. ✅ **Manejar errores apropiadamente**
+6. ✅ **Documentar métodos complejos**
+
+### Seguridad
+
+1. ✅ **Validar TODO el input del usuario**
+2. ✅ **Usar prepared statements (Eloquent lo hace automáticamente)**
+3. ✅ **Proteger endpoints con middleware de autenticación**
+4. ✅ **Usar rate limiting en endpoints críticos**
+5. ✅ **Restringir CORS a dominios específicos**
+6. ✅ **No exponer información sensible en errores**
+
+### Performance
+
+1. ✅ **Usar Eager Loading**
+2. ✅ **Agregar índices a columnas consultadas frecuentemente**
+3. ✅ **Implementar paginación**
+4. ✅ **Cachear queries frecuentes**
+5. ✅ **Optimizar queries complejas**
+
+---
+
+## REFERENCIAS
+
+- **Laravel Docs:** https://laravel.com/docs/10.x
+- **Sanctum Docs:** https://laravel.com/docs/10.x/sanctum
+- **Eloquent Docs:** https://laravel.com/docs/10.x/eloquent
+- **Testing Docs:** https://laravel.com/docs/10.x/testing
+
+---
+
+## ANÁLISIS EXHAUSTIVO DEL PROYECTO
+
+### Documento de Análisis
+
+**Ubicación:** `ANALISIS_EXHAUSTIVO.md` (raíz del proyecto)
+
+Este documento contiene un análisis exhaustivo completo del proyecto realizado en Diciembre 2024, cubriendo todas las áreas:
+1. Arquitectura y Estructura
+2. Código y Calidad
+3. Lógica de Negocio
+4. Base de Datos
+5. Seguridad
+6. Performance
+7. Testing
+8. Frontend
+9. Backend/API
+10. DevOps e Infraestructura
+11. Documentación
+12. Estado y Mantenibilidad
+13. Oportunidades y Mejoras
+
+### Realizar Análisis Exhaustivo
+
+Cuando se solicite un análisis exhaustivo del proyecto, seguir los **PROMPTS COMPLETOS PARA ANÁLISIS EXHAUSTIVO** disponibles. Estos prompts proporcionan un marco estructurado para análisis profundos.
+
+**PROMPT MAESTRO - ANÁLISIS COMPLETO:**
+
+```
+Realiza un ANÁLISIS COMPLETO Y EXHAUSTIVO del proyecto Zonix Eats Backend.
+
+INSTRUCCIONES GENERALES:
+- Explora TODA la estructura del proyecto sin dejar áreas sin revisar
+- Lee y analiza los archivos más importantes de cada módulo
+- Identifica patrones, anti-patrones y code smells
+- Proporciona ejemplos concretos de código cuando sea relevante
+- Prioriza hallazgos por criticidad (crítico, alto, medio, bajo)
+- Sugiere mejoras específicas y accionables
+
+REALIZA EL ANÁLISIS EN ESTAS SECCIONES:
+1. ARQUITECTURA Y ESTRUCTURA
+   - Mapea TODA la estructura de directorios y archivos
+   - Identifica patrón arquitectónico principal (MVC)
+   - Lista stack tecnológico completo con versiones
+   - Analiza configuración y entorno
+
+2. CÓDIGO Y CALIDAD
+   - Revisa consistencia de estilo y convenciones
+   - Analiza complejidad ciclomática
+   - Detecta duplicación de código (DRY violations)
+   - Identifica code smells y anti-patrones
+   - Evalúa aplicación de principios SOLID
+
+3. LÓGICA DE NEGOCIO
+   - Identifica TODOS los modelos de dominio y relaciones
+   - Mapea flujos de trabajo principales
+   - Analiza servicios y capa de negocio
+   - Revisa integraciones externas
+
+4. BASE DE DATOS
+   - Mapea esquema COMPLETO (tablas, columnas, tipos)
+   - Analiza relaciones y constraints
+   - Identifica queries lentas o problemáticas
+   - Detecta problemas N+1
+   - Revisa índices existentes y faltantes
+
+5. SEGURIDAD
+   - Analiza autenticación y autorización (Sanctum)
+   - Evalúa protección de datos
+   - Revisa validación de entrada
+   - Identifica vulnerabilidades OWASP Top 10
+   - Analiza gestión de secretos
+
+6. PERFORMANCE
+   - Identifica bottlenecks en código
+   - Analiza tiempo de respuesta de APIs
+   - Evalúa queries de base de datos
+   - Revisa estrategias de caching
+   - Analiza escalabilidad
+
+7. TESTING
+   - Analiza cobertura de tests (30+ tests)
+   - Evalúa estrategia de testing
+   - Revisa calidad de tests existentes
+   - Identifica áreas sin cobertura
+
+8. BACKEND/API
+   - Mapea TODOS los endpoints (150+)
+   - Analiza diseño de API (RESTful)
+   - Evalúa middleware y procesamiento
+   - Revisa validación y seguridad
+   - Analiza performance y escalabilidad
+
+9. DEVOPS E INFRAESTRUCTURA
+   - Analiza CI/CD (si existe)
+   - Revisa infraestructura y hosting
+   - Evalúa monitoreo y alerting
+   - Analiza dependencias y vulnerabilidades
+
+10. DOCUMENTACIÓN
+    - Evalúa README y documentación técnica
+    - Revisa comentarios en código
+    - Identifica documentación faltante
+    - Evalúa calidad de documentación
+
+11. ESTADO Y MANTENIBILIDAD
+    - Identifica funcionalidades completadas
+    - Analiza features en desarrollo
+    - Evalúa technical debt acumulado
+    - Calcula métricas del proyecto
+
+12. OPORTUNIDADES Y MEJORAS
+    - Identifica quick wins
+    - Prioriza refactorizaciones necesarias
+    - Sugiere optimizaciones críticas
+    - Crea roadmap técnico
+
+Para cada sección, proporciona:
+- Análisis detallado con hallazgos específicos
+- Fortalezas identificadas
+- Debilidades y problemas encontrados
+- Ejemplos de código o referencias a archivos
+- Recomendaciones priorizadas
+- Impacto estimado de las mejoras
+```
+
+**PROMPTS ESPECÍFICOS DISPONIBLES:**
+
+Además del prompt maestro, existen prompts específicos para análisis profundos:
+- **PROMPT 1:** Análisis Arquitectónico y Estructural
+- **PROMPT 2:** Análisis de Código y Calidad
+- **PROMPT 3:** Análisis de Lógica de Negocio
+- **PROMPT 4:** Análisis de Base de Datos
+- **PROMPT 5:** Análisis de Seguridad (OWASP Top 10)
+- **PROMPT 6:** Análisis de Performance
+- **PROMPT 7:** Análisis de Testing
+- **PROMPT 9:** Análisis de Backend/API
+- **PROMPT 10:** Análisis de DevOps e Infraestructura
+- **PROMPT 11:** Análisis de Documentación
+- **PROMPT 12:** Análisis de Estado y Mantenibilidad
+- **PROMPT 13:** Análisis de Oportunidades y Mejoras
+
+**Ver:** `prompts_analisis_completo.txt` (si existe) para prompts completos y detallados.
+
+### Actualizar Análisis
+
+**Cuándo actualizar:**
+- Después de cambios arquitectónicos importantes
+- Después de implementar mejoras críticas
+- Cada 3-6 meses o cuando se solicite
+- Antes de releases mayores
+
+**Cómo actualizar:**
+1. Revisar cambios desde último análisis
+2. Ejecutar análisis exhaustivo siguiendo prompts
+3. Actualizar `ANALISIS_EXHAUSTIVO.md`
+4. Actualizar esta sección con fecha de última actualización
+
+---
+
+**Última actualización:** Diciembre 2024  
+**Mantener este archivo actualizado con cambios arquitectónicos importantes**
