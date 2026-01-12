@@ -9,7 +9,7 @@ Backend de la aplicación Zonix Eats desarrollado en Laravel 10. Proporciona una
 ```
 app/
 ├── Http/
-│   ├── Controllers/     # 50+ controladores organizados por módulos
+│   ├── Controllers/     # 52 controladores organizados por módulos (verificado)
 │   │   ├── Authenticator/  # Autenticación
 │   │   ├── Buyer/          # Funcionalidades de comprador
 │   │   ├── Commerce/       # Funcionalidades de comercio
@@ -20,7 +20,7 @@ app/
 │   │   ├── RoleMiddleware.php
 │   │   └── ...
 │   └── Requests/        # Validación de requests
-├── Models/              # 25+ modelos Eloquent
+├── Models/              # 31 modelos Eloquent (verificado)
 ├── Services/            # 9 servicios de negocio
 │   ├── OrderService.php
 │   ├── CartService.php
@@ -574,7 +574,12 @@ php artisan test --coverage
 php artisan test tests/Feature/
 ```
 
-### Tests Implementados (30+)
+### Tests Implementados (VERIFICADO)
+
+**Resultado de ejecución:** `php artisan test --testsuite=Feature`
+- ✅ **201 tests pasaron** (736 assertions)
+- ❌ **2 tests fallaron** (requiere atención)
+- ⏱️ **Duración:** 10.50 segundos
 
 **Feature Tests:**
 - `AuthenticationTest.php` - Autenticación
