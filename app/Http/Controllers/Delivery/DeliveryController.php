@@ -7,8 +7,10 @@ use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\DeliveryAgent;
 use App\Models\OrderDelivery;
+use App\Models\Review;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class DeliveryController extends Controller
 {
@@ -174,21 +176,63 @@ class DeliveryController extends Controller
 
             $totalEarnings = OrderDelivery::where('agent_id', $deliveryAgentId)
                 ->where('status', 'delivered')
-                ->sum('costo_envio');
+                ->sum('costo_envio') ?? 0;
+
+            // Calcular average_rating desde reviews
+            $averageRating = Review::where('reviewable_type', 'App\Models\DeliveryAgent')
+                ->where('reviewable_id', $deliveryAgentId)
+                ->avg('rating') ?? 0;
+
+            // Contar total_reviews
+            $totalReviews = Review::where('reviewable_type', 'App\Models\DeliveryAgent')
+                ->where('reviewable_id', $deliveryAgentId)
+                ->count();
+
+            // Calcular average_delivery_time (tiempo promedio desde asignación hasta entrega)
+            $deliveryTimes = Order::whereHas('orderDelivery', function($q) use ($deliveryAgentId) {
+                    $q->where('agent_id', $deliveryAgentId);
+                })
+                ->where('status', 'delivered')
+                ->whereDate('created_at', '>=', now()->subDays(30))
+                ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as avg_minutes')
+                ->value('avg_minutes') ?? 0;
+
+            $averageDeliveryTime = round($deliveryTimes, 1);
+
+            // Calcular on_time_deliveries y late_deliveries
+            // Asumiendo que una entrega es "a tiempo" si se completa en menos de 45 minutos
+            $onTimeDeliveries = Order::whereHas('orderDelivery', function($q) use ($deliveryAgentId) {
+                    $q->where('agent_id', $deliveryAgentId);
+                })
+                ->where('status', 'delivered')
+                ->whereDate('created_at', '>=', now()->subDays(30))
+                ->selectRaw('TIMESTAMPDIFF(MINUTE, created_at, updated_at) as delivery_minutes')
+                ->get()
+                ->filter(function($order) {
+                    return $order->delivery_minutes <= 45;
+                })
+                ->count();
+
+            $lateDeliveries = $completedDeliveries - $onTimeDeliveries;
+
+            // Calcular customer_satisfaction desde ratings
+            $customerSatisfaction = $totalReviews > 0 
+                ? round(($averageRating / 5) * 100, 1)
+                : 0;
 
             $statistics = [
                 'total_deliveries' => $totalDeliveries,
                 'completed_deliveries' => $completedDeliveries,
                 'cancelled_deliveries' => $cancelledDeliveries,
-                'total_earnings' => $totalEarnings,
-                'average_rating' => 4.7, // TODO: Calculate from reviews
-                'total_reviews' => 89, // TODO: Count actual reviews
-                'on_time_deliveries' => $completedDeliveries, // TODO: Calculate based on estimated time
-                'late_deliveries' => 0, // TODO: Calculate based on estimated time
-                'average_delivery_time' => 28, // TODO: Calculate actual average
-                'total_distance' => 1250.5, // TODO: Calculate from tracking data
-                'fuel_efficiency' => 85.2, // TODO: Calculate from vehicle data
-                'customer_satisfaction' => 92.5, // TODO: Calculate from ratings
+                'total_earnings' => round($totalEarnings, 2),
+                'average_rating' => round($averageRating, 1),
+                'total_reviews' => $totalReviews,
+                'on_time_deliveries' => $onTimeDeliveries,
+                'late_deliveries' => max(0, $lateDeliveries),
+                'average_delivery_time' => $averageDeliveryTime,
+                'total_distance' => 0, // Requiere tracking GPS real
+                'fuel_efficiency' => 0, // Requiere datos de vehículo
+                'customer_satisfaction' => $customerSatisfaction,
             ];
 
             return response()->json([
@@ -254,15 +298,184 @@ class DeliveryController extends Controller
 
             $order->update(['status' => $request->status]);
 
+            // Update delivery status as well
+            if ($order->delivery) {
+                $order->delivery->update(['status' => $request->status === 'delivered' ? 'delivered' : 'on_way']);
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'Estado de la orden actualizado'
+                'message' => 'Estado de la orden actualizado',
+                'data' => $order->load(['commerce', 'profile', 'items', 'delivery'])
             ]);
         } catch (\Exception $e) {
             Log::error('Error al actualizar estado de orden de delivery: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error interno al actualizar estado de orden'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get delivery history for a delivery agent
+     */
+    public function getHistory($deliveryAgentId, Request $request)
+    {
+        try {
+            $startDate = $request->input('start_date');
+            $endDate = $request->input('end_date');
+
+            $query = Order::with(['commerce', 'profile', 'items', 'delivery'])
+                ->whereHas('delivery', function($q) use ($deliveryAgentId) {
+                    $q->where('agent_id', $deliveryAgentId);
+                })
+                ->whereIn('status', ['delivered', 'cancelled']);
+
+            if ($startDate) {
+                $query->where('created_at', '>=', $startDate);
+            }
+
+            if ($endDate) {
+                $query->where('created_at', '<=', $endDate);
+            }
+
+            $orders = $query->orderBy('created_at', 'desc')->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $orders
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching delivery history: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching delivery history'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get delivery earnings for a delivery agent
+     */
+    public function getEarnings($deliveryAgentId, Request $request)
+    {
+        try {
+            $startDate = $request->input('start_date');
+            $endDate = $request->input('end_date');
+
+            $query = OrderDelivery::where('agent_id', $deliveryAgentId)
+                ->where('status', 'delivered');
+
+            if ($startDate) {
+                $query->where('created_at', '>=', $startDate);
+            }
+
+            if ($endDate) {
+                $query->where('created_at', '<=', $endDate);
+            }
+
+            $deliveries = $query->with('order')->get();
+
+            $totalEarnings = $deliveries->sum('costo_envio');
+            $totalDeliveries = $deliveries->count();
+            
+            $deliveryTimes = [];
+            foreach ($deliveries as $delivery) {
+                if ($delivery->order && $delivery->order->created_at && $delivery->updated_at) {
+                    $deliveryTimes[] = $delivery->updated_at->diffInMinutes($delivery->order->created_at);
+                }
+            }
+            $averageDeliveryTime = count($deliveryTimes) > 0 
+                ? array_sum($deliveryTimes) / count($deliveryTimes) 
+                : 0;
+
+            // Calculate today's earnings
+            $todayEarnings = OrderDelivery::where('agent_id', $deliveryAgentId)
+                ->where('status', 'delivered')
+                ->whereDate('updated_at', today())
+                ->sum('costo_envio');
+
+            // Calculate weekly earnings
+            $weeklyEarnings = OrderDelivery::where('agent_id', $deliveryAgentId)
+                ->where('status', 'delivered')
+                ->whereBetween('updated_at', [now()->startOfWeek(), now()->endOfWeek()])
+                ->sum('costo_envio');
+
+            // Calculate monthly earnings
+            $monthlyEarnings = OrderDelivery::where('agent_id', $deliveryAgentId)
+                ->where('status', 'delivered')
+                ->whereMonth('updated_at', now()->month)
+                ->whereYear('updated_at', now()->year)
+                ->sum('costo_envio');
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'total_earnings' => $totalEarnings,
+                    'total_deliveries' => $totalDeliveries,
+                    'average_delivery_time' => round($averageDeliveryTime, 2),
+                    'today_earnings' => $todayEarnings,
+                    'weekly_earnings' => $weeklyEarnings,
+                    'monthly_earnings' => $monthlyEarnings,
+                    'delivery_fees' => $deliveries->pluck('costo_envio')->toArray(),
+                    'delivery_dates' => $deliveries->pluck('updated_at')->map(function($date) {
+                        return $date->toIso8601String();
+                    })->toArray(),
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching delivery earnings: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching delivery earnings'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get delivery routes for a delivery agent
+     */
+    public function getRoutes($deliveryAgentId)
+    {
+        try {
+            $assignedOrders = Order::with(['commerce', 'profile', 'delivery'])
+                ->whereHas('delivery', function($q) use ($deliveryAgentId) {
+                    $q->where('agent_id', $deliveryAgentId)
+                      ->whereIn('status', ['assigned', 'on_way']);
+                })
+                ->get();
+
+            // Group orders by route (simplified - in production would use routing algorithm)
+            $routes = [];
+            foreach ($assignedOrders as $index => $order) {
+                $routes[] = [
+                    'id' => $index + 1,
+                    'name' => 'Ruta ' . ($index + 1),
+                    'orders' => [$order->id],
+                    'estimated_time' => 30, // TODO: Calculate based on distance
+                    'total_distance' => 5.0, // TODO: Calculate actual distance
+                    'status' => $order->delivery->status ?? 'assigned',
+                    'start_location' => [
+                        'lat' => $order->commerce->latitude ?? -12.0464,
+                        'lng' => $order->commerce->longitude ?? -77.0428
+                    ],
+                    'end_location' => [
+                        'lat' => $order->delivery_address ? json_decode($order->delivery_address, true)['lat'] ?? -12.0464 : -12.0464,
+                        'lng' => $order->delivery_address ? json_decode($order->delivery_address, true)['lng'] ?? -77.0428 : -77.0428
+                    ],
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $routes
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching delivery routes: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching delivery routes'
             ], 500);
         }
     }

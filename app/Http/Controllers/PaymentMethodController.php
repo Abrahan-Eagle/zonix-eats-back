@@ -47,7 +47,7 @@ class PaymentMethodController extends Controller
                 'brand' => 'nullable|string',
                 'last4' => 'nullable|string|max:4',
                 'exp_month' => 'nullable|integer|between:1,12',
-                'exp_year' => 'nullable|integer|min:' . date('Y'),
+                'exp_year' => 'nullable|integer|min:' . (date('Y') - 1),
                 'cardholder_name' => 'nullable|string',
                 'account_number' => 'nullable|string',
                 'phone' => 'nullable|string',
@@ -90,9 +90,10 @@ class PaymentMethodController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Error al crear método de pago: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
             return response()->json([
                 'success' => false,
-                'message' => 'Error al crear método de pago'
+                'message' => 'Error al crear método de pago: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -112,7 +113,7 @@ class PaymentMethodController extends Controller
                 'brand' => 'nullable|string',
                 'last4' => 'nullable|string|max:4',
                 'exp_month' => 'nullable|integer|between:1,12',
-                'exp_year' => 'nullable|integer|min:' . date('Y'),
+                'exp_year' => 'nullable|integer|min:' . (date('Y') - 1),
                 'cardholder_name' => 'nullable|string',
                 'account_number' => 'nullable|string',
                 'phone' => 'nullable|string',

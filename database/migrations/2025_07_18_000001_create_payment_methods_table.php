@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('payment_methods', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('commerce_id')->constrained()->onDelete('cascade');
+            // Relación polimórfica - puede pertenecer a User, Commerce, o DeliveryAgent
+            $table->morphs('payable');
             // Tipo de método de pago
             // card: Tarjeta de crédito/débito (Visa, Mastercard, Amex, etc.)
             // mobile_payment: Pago móvil venezolano

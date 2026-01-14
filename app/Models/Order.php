@@ -89,4 +89,12 @@ class Order extends Model
     {
         return $this->hasMany(\App\Models\OrderItem::class);
     }
+
+    /**
+     * Relación con mensajes de chat
+     */
+    public function chatMessages()
+    {
+        return $this->hasMany(ChatMessage::class);
+    }
 }

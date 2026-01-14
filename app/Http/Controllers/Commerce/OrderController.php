@@ -14,7 +14,7 @@ class OrderController extends Controller
   public function index(Request $request)
     {
         try {
-            $user = Auth::user();
+            $user = Auth::user()->load('profile.commerce');
             $profile = $user->profile;
             
             if (!$profile || !$profile->commerce) {
@@ -28,10 +28,18 @@ class OrderController extends Controller
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
             
-            $orders = Order::where('commerce_id', $commerce->id)
-                ->with(['profile.user', 'orderItems.product'])
-                ->orderBy('created_at', 'desc')
-                ->get();
+            $perPage = $request->input('per_page', 15);
+            $status = $request->input('status');
+            
+            $query = Order::where('commerce_id', $commerce->id)
+                ->with(['profile.user', 'orderItems.product']);
+            
+            if ($status) {
+                $query->where('status', $status);
+            }
+            
+            $orders = $query->orderBy('created_at', 'desc')
+                ->paginate($perPage);
 
             return response()->json($orders);
         } catch (\Exception $e) {
@@ -43,7 +51,7 @@ class OrderController extends Controller
     public function show(Order $order)
     {
         try {
-            $user = Auth::user();
+            $user = Auth::user()->load('profile.commerce');
             $profile = $user->profile;
             
             if (!$profile || !$profile->commerce) {
@@ -65,7 +73,7 @@ class OrderController extends Controller
     public function updateStatus(Request $request, Order $order)
     {
         try {
-            $user = Auth::user();
+            $user = Auth::user()->load('profile.commerce');
             $profile = $user->profile;
             
             if (!$profile || !$profile->commerce) {
@@ -94,66 +102,10 @@ class OrderController extends Controller
 
     /**
      * Validar o rechazar comprobante de pago de una orden.
-     * @param \Illuminate\Http\Request $request
-     * @param int $id
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function validarComprobante(Request $request, $id)
-    {
-        try {
-            $validated = $request->validate([
-                'is_valid' => 'required|boolean',
-                'rejection_reason' => 'nullable|string|max:500',
-            ]);
-
-            $order = Order::findOrFail($id);
-            $user = Auth::user();
-
-            // Verificar que el usuario es el dueño del comercio
-            if ($order->commerce_id !== $user->commerce?->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No autorizado para validar esta orden'
-                ], 403);
-            }
-
-            if ($validated['is_valid']) {
-                $order->estado = 'pagado';
-                $order->save();
-                
-                // Emitir eventos
-                event(new PaymentValidated($order, true, $user->id));
-                event(new OrderStatusChanged($order));
-                
-                $message = 'Pago validado correctamente';
-            } else {
-                $order->estado = 'pago_rechazado';
-                $order->notas = $validated['rejection_reason'] ?? 'Pago rechazado por el comercio';
-                $order->save();
-                
-                // Emitir eventos
-                event(new PaymentValidated($order, false, $user->id));
-                event(new OrderStatusChanged($order));
-                
-                $message = 'Pago rechazado';
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => $message,
-                'order' => $order
-            ]);
-
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al validar el comprobante: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Validar o rechazar comprobante de pago de una orden.
+     * 
+     * Este método consolida validarComprobante() y validatePayment().
+     * Usa el campo 'status' en lugar de 'estado' para mantener consistencia.
+     * 
      * @param \Illuminate\Http\Request $request
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
@@ -167,7 +119,7 @@ class OrderController extends Controller
             ]);
 
             $order = Order::findOrFail($id);
-            $user = Auth::user();
+            $user = Auth::user()->load('profile.commerce');
             $profile = $user->profile;
 
             // Verificar que el usuario es el dueño del comercio
@@ -202,11 +154,23 @@ class OrderController extends Controller
                 'order' => $order
             ]);
 
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
+            \Log::error('Error al validar el comprobante: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error al validar el comprobante: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Alias para mantener compatibilidad con rutas existentes.
+     * Redirige a validatePayment().
+     * 
+     * @deprecated Usar validatePayment() en su lugar
+     */
+    public function validarComprobante(Request $request, $id)
+    {
+        return $this->validatePayment($request, $id);
     }
 }

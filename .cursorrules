@@ -9,7 +9,7 @@ alwaysApply: true
 **Laravel:** 10.x  
 **PHP:** 8.1+  
 **Estado:** ✅ MVP Completado - En desarrollo activo  
-**Tests:** 201 tests pasaron ✅, 2 tests fallaron ❌ (verificado: `php artisan test`)  
+**Tests:** 204 tests pasaron ✅, 0 tests fallaron ✅ (verificado: `php artisan test` - Enero 2025)  
 **Endpoints:** 232 rutas REST (verificado en `routes/api.php`)  
 **Controladores:** 52 (verificado)  
 **Modelos:** 31 (verificado)  
@@ -208,14 +208,17 @@ class StoreOrderRequest extends FormRequest
 
 ## ROLES Y PERMISOS
 
-### Roles del Sistema
+### Roles del Sistema (MVP)
 
-- **users** (Nivel 0): Cliente/Comprador
-- **commerce** (Nivel 1): Comercio/Restaurante
-- **delivery** (Nivel 2): Repartidor/Delivery
-- **transport** (Nivel 3): Agencia de Transporte
-- **affiliate** (Nivel 4): Afiliado a Delivery
-- **admin** (Nivel 5): Administrador
+**Roles implementados y funcionales:**
+- **users** (Level 0): Cliente/Comprador ✅
+- **commerce** (Level 1): Comercio/Restaurante ✅
+- **delivery** (Level 2): Repartidor/Delivery ✅
+- **admin** (Level 3): Administrador ✅
+
+**Roles excluidos del MVP:**
+- ~~**transport**~~ - Logística de mercancías (funcionalidad futura)
+- ~~**affiliate**~~ - Sistema de referidos/comisiones (funcionalidad futura)
 
 ### Middleware de Roles
 
@@ -789,7 +792,7 @@ Realiza análisis exhaustivo en estas secciones:
    - Analiza escalabilidad
 
 7. TESTING
-   - Analiza cobertura de tests (201 pasaron, 2 fallaron - verificado)
+   - Analiza cobertura de tests (204 pasaron, 0 fallaron - verificado Enero 2025)
    - Evalúa estrategia de testing
    - Revisa calidad de tests existentes
    - Identifica áreas sin cobertura

@@ -2,10 +2,27 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Session;
+use App\Models\Cart;
+use App\Models\CartItem;
+use App\Models\Product;
+use Illuminate\Support\Facades\Auth;
 
 class CartService
 {
+    /**
+     * Obtener o crear el carrito del usuario autenticado
+     *
+     * @return Cart
+     */
+    private function getOrCreateCart()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            throw new \Exception('Usuario no autenticado');
+        }
+        return Cart::getOrCreateForUser($user->id);
+    }
+
     /**
      * Agregar un producto al carrito.
      *
@@ -14,21 +31,32 @@ class CartService
      */
     public function addToCart(array $productData)
     {
-        $cart = Session::get('cart', []);
-        
-        // Verificar si el producto ya existe en el carrito
-        $existingIndex = $this->findProductIndex($cart, $productData['product_id']);
-        
-        if ($existingIndex !== false) {
+        $cart = $this->getOrCreateCart();
+        $productId = $productData['product_id'];
+        $quantity = $productData['quantity'] ?? 1;
+
+        // Verificar que el producto existe
+        $product = Product::findOrFail($productId);
+
+        // Buscar si el producto ya existe en el carrito
+        $cartItem = CartItem::where('cart_id', $cart->id)
+            ->where('product_id', $productId)
+            ->first();
+
+        if ($cartItem) {
             // Actualizar cantidad si ya existe
-            $cart[$existingIndex]['quantity'] += $productData['quantity'];
+            $cartItem->quantity += $quantity;
+            $cartItem->save();
         } else {
-            // Agregar nuevo producto
-        $cart[] = $productData;
+            // Crear nuevo item
+            CartItem::create([
+                'cart_id' => $cart->id,
+                'product_id' => $productId,
+                'quantity' => $quantity,
+            ]);
         }
-        
-        Session::put('cart', $cart);
-        return $cart;
+
+        return $this->formatCartResponse($cart);
     }
 
     /**
@@ -38,7 +66,8 @@ class CartService
      */
     public function getCart()
     {
-        return Session::get('cart', []);
+        $cart = $this->getOrCreateCart();
+        return $this->formatCartResponse($cart);
     }
 
     /**
@@ -50,15 +79,16 @@ class CartService
      */
     public function updateQuantity($productId, $quantity)
     {
-        $cart = Session::get('cart', []);
-        $index = $this->findProductIndex($cart, $productId);
+        $cart = $this->getOrCreateCart();
         
-        if ($index !== false) {
-            $cart[$index]['quantity'] = $quantity;
-            Session::put('cart', $cart);
-        }
-        
-        return $cart;
+        $cartItem = CartItem::where('cart_id', $cart->id)
+            ->where('product_id', $productId)
+            ->firstOrFail();
+
+        $cartItem->quantity = $quantity;
+        $cartItem->save();
+
+        return $this->formatCartResponse($cart);
     }
 
     /**
@@ -69,16 +99,13 @@ class CartService
      */
     public function removeFromCart($productId)
     {
-        $cart = Session::get('cart', []);
-        $index = $this->findProductIndex($cart, $productId);
+        $cart = $this->getOrCreateCart();
         
-        if ($index !== false) {
-            unset($cart[$index]);
-            $cart = array_values($cart); // Reindexar array
-            Session::put('cart', $cart);
-        }
-        
-        return $cart;
+        CartItem::where('cart_id', $cart->id)
+            ->where('product_id', $productId)
+            ->delete();
+
+        return $this->formatCartResponse($cart);
     }
 
     /**
@@ -89,10 +116,11 @@ class CartService
      */
     public function addNotes($notes)
     {
-        $cart = Session::get('cart', []);
-        $cart['notes'] = $notes;
-        Session::put('cart', $cart);
-        return $cart;
+        $cart = $this->getOrCreateCart();
+        $cart->notes = $notes;
+        $cart->save();
+
+        return $this->formatCartResponse($cart);
     }
 
     /**
@@ -102,24 +130,38 @@ class CartService
      */
     public function clearCart()
     {
-        Session::forget('cart');
-        return [];
+        $cart = $this->getOrCreateCart();
+        $cart->items()->delete();
+        $cart->notes = null;
+        $cart->save();
+
+        return $this->formatCartResponse($cart);
     }
 
     /**
-     * Encontrar el índice de un producto en el carrito.
+     * Formatear la respuesta del carrito en el formato esperado por el frontend
+     * Compatible con el formato anterior basado en Session
      *
-     * @param array $cart
-     * @param int $productId
-     * @return int|false
+     * @param Cart $cart
+     * @return array
      */
-    private function findProductIndex($cart, $productId)
+    private function formatCartResponse(Cart $cart)
     {
-        foreach ($cart as $index => $item) {
-            if (isset($item['product_id']) && $item['product_id'] == $productId) {
-                return $index;
-            }
+        $items = $cart->items()->with('product')->get();
+        
+        // Formatear items en el formato esperado (array indexado numéricamente)
+        $formattedItems = $items->map(function ($item) {
+            return [
+                'product_id' => $item->product_id,
+                'quantity' => $item->quantity,
+            ];
+        })->values()->toArray(); // values() reindexa el array numéricamente
+
+        // Si hay notas, agregarlas como clave separada (compatible con formato anterior)
+        if ($cart->notes) {
+            $formattedItems['notes'] = $cart->notes;
         }
-        return false;
+
+        return $formattedItems;
     }
 }

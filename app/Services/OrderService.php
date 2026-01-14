@@ -10,9 +10,10 @@ class OrderService
     /**
      * Obtener las órdenes del comprador autenticado.
      *
-     * @return \Illuminate\Database\Eloquent\Collection
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
-    public function getUserOrders()
+    public function getUserOrders($perPage = 15)
     {
         $user = Auth::user();
         $profile = $user->profile;
@@ -24,7 +25,7 @@ class OrderService
         return Order::where('profile_id', $profile->id)
             ->orderBy('created_at', 'desc')
             ->with('commerce', 'products')
-            ->get();
+            ->paginate($perPage);
     }
 
     /**

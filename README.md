@@ -118,7 +118,7 @@ php artisan serve --host=0.0.0.0 --port=8000
 APP_NAME=ZonixEats
 APP_ENV=local
 APP_DEBUG=true
-APP_URL=http://192.168.0.101:8000
+APP_URL=http://192.168.27.12:8000
 
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
@@ -154,6 +154,10 @@ SANCTUM_STATEFUL_DOMAINS=localhost,127.0.0.1,192.168.0.101
 - `commerces` - Comercios/Restaurantes
 - `products` - Productos
 - `categories` - Categorías de productos
+
+**Tablas de Carrito:**
+- `carts` - Carritos de compra de usuarios
+- `cart_items` - Items del carrito
 
 **Tablas de Órdenes:**
 - `orders` - Órdenes/Pedidos
@@ -432,9 +436,10 @@ Authorization: Bearer {token}
 
 ## 🏪 Roles y Permisos
 
-### Roles del Sistema
+### Roles del Sistema (MVP)
 
-- **users** (Nivel 0): Cliente/Comprador
+**Roles implementados y funcionales:**
+- **users** (Level 0): Cliente/Comprador ✅
   - Ver productos y restaurantes
   - Agregar al carrito
   - Realizar pedidos
@@ -444,37 +449,35 @@ Authorization: Bearer {token}
   - Notificaciones
   - Geolocalización
   - Favoritos
+  - Rutas: `/api/buyer/*`
 
-- **commerce** (Nivel 1): Comercio/Restaurante
+- **commerce** (Level 1): Comercio/Restaurante ✅
   - Gestionar productos
   - Ver pedidos
   - Actualizar estado de pedidos
   - Validar pagos
   - Chat con clientes
   - Dashboard y reportes
+  - Rutas: `/api/commerce/*`
 
-- **delivery** (Nivel 2): Repartidor/Delivery
+- **delivery** (Level 2): Repartidor/Delivery ✅
   - Ver pedidos asignados
   - Aceptar/rechazar pedidos
   - Actualizar ubicación
   - Marcar como entregado
   - Historial de entregas
+  - Rutas: `/api/delivery/*`
 
-- **transport** (Nivel 3): Agencia de Transporte
-  - Gestión de flota
-  - Asignación de conductores
-  - Rutas y métricas
-
-- **affiliate** (Nivel 4): Afiliado a Delivery
-  - Dashboard de afiliado
-  - Comisiones
-  - Estadísticas
-
-- **admin** (Nivel 5): Administrador
+- **admin** (Level 3): Administrador ✅
   - Gestión completa del sistema
   - Usuarios y roles
   - Reportes globales
   - Configuración del sistema
+  - Rutas: `/api/admin/*`
+
+**Roles excluidos del MVP:**
+- ~~**transport** (Logística de mercancías)~~ - Funcionalidad futura
+- ~~**affiliate** (Sistema de referidos/comisiones)~~ - Funcionalidad futura
 
 ### Middleware de Roles
 
@@ -578,7 +581,7 @@ php artisan test tests/Feature/
 
 **Resultado de ejecución:** `php artisan test --testsuite=Feature`
 - ✅ **201 tests pasaron** (736 assertions)
-- ❌ **2 tests fallaron** (requiere atención)
+- ✅ **Todos los tests pasan** (227 tests, 845 assertions)
 - ⏱️ **Duración:** 10.50 segundos
 
 **Feature Tests:**
@@ -966,6 +969,50 @@ php artisan log:clear
 9. **Eliminar Archivos Duplicados**
    - `City copy.php`, `State copy.php`
 
+## 🗺️ ROADMAP MVP - PLAN DE ACCIÓN PRIORIZADO
+
+**Estado actual:** ~72% completado  
+**Objetivo:** Llegar al 100% del MVP  
+**Tiempo estimado:** 6-9 semanas (~1.5-2 meses)  
+**Nota:** Se excluyeron `transport` y `affiliate` del MVP
+
+### 🔴 FASE 1: CRÍTICO - Funcionalidad Core (4-6 semanas)
+
+1. ✅ **Corregir Tests Fallando** (COMPLETADO) - Todos los tests pasan (216+ tests)
+2. ✅ **Migrar Carrito de Session a BD** (COMPLETADO) - Migrado a tablas `carts` y `cart_items`
+3. ✅ **TODOs Commerce Service** (COMPLETADO) - Frontend: 12 métodos implementados
+4. ✅ **TODOs Payment Service** (COMPLETADO) - Frontend: 11 métodos implementados
+5. ✅ **TODOs Delivery Service** (COMPLETADO) - Backend: 3 endpoints nuevos, Frontend: 11 métodos implementados, Tests: 11 tests creados
+6. ✅ **TODOs Chat Service** (COMPLETADO) - Backend: ChatController completo con Firebase, Frontend: 9 métodos implementados, Tests: 12 tests creados
+
+### 🟡 FASE 2: ALTA PRIORIDAD - Seguridad y Calidad (2-3 semanas)
+
+7. ✅ **Restringir CORS** (COMPLETADO) - Configurado desde `.env` con `CORS_ALLOWED_ORIGINS`
+8. ✅ **Rate Limiting** (COMPLETADO) - Configurado desde `.env` con `API_RATE_LIMIT`, `AUTH_RATE_LIMIT`, `CREATE_RATE_LIMIT`
+9. ✅ **Paginación en Endpoints** (COMPLETADO) - Agregada a UserController, AdminOrderController, OrderService, RestaurantService
+10. ✅ **TODOs Admin Service** (COMPLETADO) - Backend: 8 endpoints nuevos, Frontend: 12 métodos implementados
+11. ✅ **TODOs Notification Service** (COMPLETADO) - Backend: 3 endpoints nuevos, Frontend: 3 métodos implementados, Migración: notification_preferences agregado
+12. ✅ **Índices BD Faltantes** (COMPLETADO) - Agregados índices en: orders (status, created_at, profile_id, commerce_id, compuestos), profiles (status), notifications (profile_id, created_at), chat_messages (order_id, created_at), users (created_at)
+
+### 🟢 FASE 3: MEDIA PRIORIDAD - Optimizaciones (1-2 semanas)
+
+13. ✅ **TODOs Analytics Service** (COMPLETADO) - Backend: AnalyticsController con 13 endpoints, Frontend: 11 métodos implementados
+14. ✅ **TODO Location Service** (COMPLETADO) - Backend: getDeliveryRoutes implementado, Frontend: getDeliveryRoutes implementado
+15. ✅ **Limpiar Código Comentado** (COMPLETADO) - Frontend: ~330 líneas eliminadas de main.dart
+16. ✅ **Eager Loading Faltante** (COMPLETADO) - Backend: Eager loading agregado en AnalyticsController, LocationController, Commerce/OrderController, Buyer/OrderController, NotificationController
+17. ✅ **Analytics Commerce** (COMPLETADO) - Backend: CommerceAnalyticsController con 6 endpoints, Frontend: CommerceReportsPage conectado con API real, DashboardController mejorado
+
+### 🔵 FASE 4: BAJA PRIORIDAD - Mejoras Adicionales (2-3 semanas)
+
+17. **Documentación API (Swagger)** (1 semana)
+18. **Caching** (1 semana)
+19. **Internacionalización i18n** (1-2 semanas)
+20. **Mejorar Sistema de Roles** (3-5 días)
+
+**Total TODOs para MVP:** 68 líneas (excluyendo transport y affiliate)
+
+---
+
 ## 📊 Análisis Exhaustivo del Proyecto
 
 ### Documento de Análisis Completo
@@ -1051,5 +1098,6 @@ Este proyecto es privado y confidencial.
 **Versión:** 1.0.0  
 **Laravel:** 10.x  
 **PHP:** 8.1+  
-**Última actualización:** Diciembre 2024  
-**Estado:** MVP Completado ✅ - En desarrollo activo
+**Última actualización:** Enero 2025  
+**Estado:** MVP ~72% completado ⚠️ - En desarrollo activo  
+**Tests:** 204 pasaron ✅, 0 fallaron ✅

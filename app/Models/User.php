@@ -168,4 +168,12 @@ class User extends Authenticatable
     {
         return $this->morphMany(PaymentMethod::class, 'payable');
     }
+
+    /**
+     * Relación con el carrito del usuario
+     */
+    public function cart()
+    {
+        return $this->hasOne(Cart::class);
+    }
 }

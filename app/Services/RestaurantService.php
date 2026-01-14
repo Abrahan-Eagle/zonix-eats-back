@@ -9,11 +9,12 @@ class RestaurantService
     /**
      * Obtener todos los restaurantes (comercios).
      *
-     * @return \Illuminate\Database\Eloquent\Collection
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
-    public function getAllRestaurants()
+    public function getAllRestaurants($perPage = 15)
     {
-        return Commerce::with('profile')->get();
+        return Commerce::with('profile')->paginate($perPage);
     }
 
     /**

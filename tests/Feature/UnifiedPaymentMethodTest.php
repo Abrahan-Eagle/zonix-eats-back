@@ -61,6 +61,11 @@ class UnifiedPaymentMethodTest extends TestCase
             'cardholder_name' => 'Juan Pérez',
             'is_default' => false
         ]);
+        
+        if ($response->status() !== 201) {
+            dump($response->json());
+        }
+        
         $response->assertStatus(201)->assertJson(['success' => true]);
 
         // Ahora sí eliminar el primer método de pago

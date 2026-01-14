@@ -40,7 +40,7 @@ class ReviewServiceTest extends TestCase
             'notes' => 'Test order'
         ]);
 
-        $canReview = $this->reviewService->canUserReview($user->id, $order->id);
+        $canReview = $this->reviewService->canUserReview($order->id, $user->id);
 
         $this->assertTrue($canReview);
     }
@@ -61,7 +61,7 @@ class ReviewServiceTest extends TestCase
             'notes' => 'Test order'
         ]);
 
-        $canReview = $this->reviewService->canUserReview($user->id, $order->id);
+        $canReview = $this->reviewService->canUserReview($order->id, $user->id);
 
         $this->assertFalse($canReview);
     }

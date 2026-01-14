@@ -34,16 +34,27 @@ class Profile extends Model
         'business_type',
         'tax_id',
         'vehicle_type',
-        'license_number'
+        'license_number',
+        'fcm_device_token',
+        'notification_preferences'
     ];
 
     protected $casts = [
         'date_of_birth' => 'date',
         'status' => 'string',
+        'notification_preferences' => 'array',
     ];
 
 
- public function user()
+    /**
+     * Relación con ubicaciones del usuario
+     */
+    public function userLocations()
+    {
+        return $this->hasMany(UserLocation::class);
+    }
+
+    public function user()
     {
         return $this->belongsTo(User::class);
     }

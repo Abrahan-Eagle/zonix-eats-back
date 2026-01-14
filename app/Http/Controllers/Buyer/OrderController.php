@@ -34,11 +34,13 @@ class OrderController extends Controller
 
     /**
      * Listar las órdenes del comprador autenticado.
+     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function index()
+    public function index(Request $request)
     {
-        $orders = $this->orderService->getUserOrders();
+        $perPage = $request->input('per_page', 15);
+        $orders = $this->orderService->getUserOrders($perPage);
         return response()->json($orders);
     }
 
@@ -211,8 +213,8 @@ class OrderController extends Controller
                 'reference_number' => 'required|string|max:100',
             ]);
 
-            $user = Auth::user();
-            $profile = $user->profile;
+                $user = Auth::user()->load('profile');
+                $profile = $user->profile;
             
             \Log::info('ORDERS EN DB', [\App\Models\Order::all()->toArray()]);
             $order = \App\Models\Order::where('profile_id', $profile->id)->where('id', $id)->first();
@@ -279,8 +281,8 @@ class OrderController extends Controller
                 'reason' => 'required|string|max:500',
             ]);
 
-            $user = Auth::user();
-            $profile = $user->profile;
+                $user = Auth::user()->load('profile');
+                $profile = $user->profile;
             
             $order = \App\Models\Order::where('profile_id', $profile->id)->findOrFail($id);
             

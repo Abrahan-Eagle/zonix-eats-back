@@ -9,9 +9,25 @@ use Illuminate\Http\Request;
 
 class AdminOrderController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(Order::all());
+        $perPage = $request->input('per_page', 15);
+        $status = $request->input('status');
+        $commerceId = $request->input('commerce_id');
+        
+        $query = Order::with(['profile', 'commerce', 'items', 'orderDelivery.agent']);
+        
+        if ($status) {
+            $query->where('status', $status);
+        }
+        
+        if ($commerceId) {
+            $query->where('commerce_id', $commerceId);
+        }
+        
+        $orders = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        
+        return response()->json($orders);
     }
 
     public function updateStatus($id, Request $request)
@@ -26,8 +42,10 @@ class AdminOrderController extends Controller
         return response()->json(['message' => 'Estado actualizado', 'order' => $order]);
     }
 
-    public function commerces()
+    public function commerces(Request $request)
     {
-        return response()->json(Commerce::all());
+        $perPage = $request->input('per_page', 15);
+        $commerces = Commerce::with('profile')->paginate($perPage);
+        return response()->json($commerces);
     }
 }

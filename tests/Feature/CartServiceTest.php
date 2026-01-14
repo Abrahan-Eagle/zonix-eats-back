@@ -4,18 +4,40 @@ namespace Tests\Feature;
 
 use Tests\TestCase;
 use App\Services\CartService;
+use App\Models\User;
+use App\Models\Product;
+use App\Models\Commerce;
+use App\Models\Cart;
+use App\Models\CartItem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 class CartServiceTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $cartService;
+    protected $user;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->cartService = new CartService();
+        
+        // Crear usuario autenticado
+        $this->user = User::factory()->create(['role' => 'users']);
+        Sanctum::actingAs($this->user);
+
+        // Crear comercio y producto para los tests
+        $commerce = Commerce::factory()->create();
+        Product::factory()->create([
+            'commerce_id' => $commerce->id,
+            'id' => 1,
+        ]);
+        Product::factory()->create([
+            'commerce_id' => $commerce->id,
+            'id' => 2,
+        ]);
     }
 
     public function test_add_to_cart_new_product()
@@ -27,8 +49,10 @@ class CartServiceTest extends TestCase
 
         $cart = $this->cartService->addToCart($productData);
 
+        $this->assertIsArray($cart);
         $this->assertCount(1, $cart);
         $this->assertEquals(2, $cart[0]['quantity']);
+        $this->assertEquals(1, $cart[0]['product_id']);
     }
 
     public function test_add_to_cart_existing_product()
@@ -39,6 +63,7 @@ class CartServiceTest extends TestCase
         // Agregar el mismo producto de nuevo
         $cart = $this->cartService->addToCart(['product_id' => 1, 'quantity' => 3]);
 
+        $this->assertIsArray($cart);
         $this->assertCount(1, $cart);
         $this->assertEquals(5, $cart[0]['quantity']); // 2 + 3
     }
@@ -51,6 +76,7 @@ class CartServiceTest extends TestCase
         // Actualizar cantidad
         $cart = $this->cartService->updateQuantity(1, 5);
 
+        $this->assertIsArray($cart);
         $this->assertEquals(5, $cart[0]['quantity']);
     }
 
@@ -63,6 +89,7 @@ class CartServiceTest extends TestCase
         // Remover un producto
         $cart = $this->cartService->removeFromCart(1);
 
+        $this->assertIsArray($cart);
         $this->assertCount(1, $cart);
         $this->assertEquals(2, $cart[0]['product_id']);
     }
@@ -75,6 +102,7 @@ class CartServiceTest extends TestCase
         // Agregar notas
         $cart = $this->cartService->addNotes('Sin cebolla, por favor');
 
+        $this->assertIsArray($cart);
         $this->assertEquals('Sin cebolla, por favor', $cart['notes']);
     }
 
@@ -86,6 +114,7 @@ class CartServiceTest extends TestCase
         // Limpiar carrito
         $cart = $this->cartService->clearCart();
 
+        $this->assertIsArray($cart);
         $this->assertEmpty($cart);
     }
-} 
+}

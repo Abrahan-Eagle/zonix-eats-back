@@ -17,6 +17,9 @@ class DeliveryAgent extends Model
         'rating',
         'vehicle_type',
         'phone',
+        'current_latitude',
+        'current_longitude',
+        'last_location_update',
     ];
 
     protected $casts = [

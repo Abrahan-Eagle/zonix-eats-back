@@ -35,10 +35,10 @@ Route::post('/broadcasting/auth', [BroadcastingController::class, 'authenticate'
 
 // Rutas públicas para órdenes (sin autenticación para tests)
 Route::get('/orders', [BuyerOrderController::class, 'index']);
-Route::post('/orders', [BuyerOrderController::class, 'store']);
+Route::post('/orders', [BuyerOrderController::class, 'store'])->middleware('throttle:create');
 Route::get('/buyer/orders/{id}', [\App\Http\Controllers\Buyer\OrderController::class, 'show']);
 
-Route::prefix('auth')->group(function () {
+Route::prefix('auth')->middleware('throttle:auth')->group(function () {
     Route::post('/google', [AuthController::class, 'googleUser']);
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
@@ -313,6 +313,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/orders/{id}/validate-payment', [CommerceOrderController::class, 'validatePayment']);
         Route::post('/delivery/request', [DeliveryRequestController::class, 'store']);
         Route::post('commerce/orders/{id}/validar-comprobante', [\App\Http\Controllers\Commerce\OrderController::class, 'validarComprobante']);
+        
+        // Analytics routes for commerce
+        Route::prefix('analytics')->group(function () {
+            Route::get('/overview', [\App\Http\Controllers\Commerce\AnalyticsController::class, 'getOverview']);
+            Route::get('/revenue', [\App\Http\Controllers\Commerce\AnalyticsController::class, 'getRevenue']);
+            Route::get('/orders', [\App\Http\Controllers\Commerce\AnalyticsController::class, 'getOrders']);
+            Route::get('/products', [\App\Http\Controllers\Commerce\AnalyticsController::class, 'getProducts']);
+            Route::get('/customers', [\App\Http\Controllers\Commerce\AnalyticsController::class, 'getCustomers']);
+            Route::get('/performance', [\App\Http\Controllers\Commerce\AnalyticsController::class, 'getPerformance']);
+        });
     });
 
     // Delivery
@@ -328,14 +338,62 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/location/update', [DeliveryController::class, 'updateLocation']);
         Route::get('/statistics/{deliveryAgentId}', [DeliveryController::class, 'getStatistics']);
         Route::post('/orders/{orderId}/report-issue', [DeliveryController::class, 'reportIssue']);
+        Route::get('/history/{deliveryAgentId}', [DeliveryController::class, 'getHistory']);
+        Route::get('/earnings/{deliveryAgentId}', [DeliveryController::class, 'getEarnings']);
+        Route::get('/routes/{deliveryAgentId}', [DeliveryController::class, 'getRoutes']);
     });
 
     // Admin
     Route::middleware('role:admin')->prefix('admin')->group(function () {
+        // Users
         Route::get('/users', [AdminUserController::class, 'index']);
+        Route::get('/users/{id}', [AdminUserController::class, 'show']);
         Route::put('/users/{id}/role', [AdminUserController::class, 'updateRole']);
+        Route::put('/users/{id}/status', [AdminUserController::class, 'updateStatus']);
+        Route::delete('/users/{id}', [AdminUserController::class, 'destroy']);
+        Route::get('/users/{id}/activity', [AdminUserController::class, 'getUserActivity']);
+        
+        // Statistics
+        Route::get('/statistics', [AdminReportController::class, 'getStatistics']);
+        
+        // System Health
+        Route::get('/system-health', [AdminReportController::class, 'getSystemHealth']);
+        
+        // Analytics
+        Route::get('/analytics', [AdminReportController::class, 'getAnalytics']);
+        
+        // Analytics routes (for admin and commerce)
+        Route::prefix('analytics')->group(function () {
+            Route::get('/overview', [\App\Http\Controllers\Analytics\AnalyticsController::class, 'getOverview']);
+            Route::get('/revenue', [\App\Http\Controllers\Analytics\AnalyticsController::class, 'getRevenue']);
+            Route::get('/orders', [\App\Http\Controllers\Analytics\AnalyticsController::class, 'getOrders']);
+            Route::get('/customers', [\App\Http\Controllers\Analytics\AnalyticsController::class, 'getCustomers']);
+            Route::get('/restaurants', [\App\Http\Controllers\Analytics\AnalyticsController::class, 'getRestaurants']);
+            Route::get('/delivery', [\App\Http\Controllers\Analytics\AnalyticsController::class, 'getDelivery']);
+            Route::get('/marketing', [\App\Http\Controllers\Analytics\AnalyticsController::class, 'getMarketing']);
+            Route::post('/custom-report', [\App\Http\Controllers\Analytics\AnalyticsController::class, 'getCustomReport']);
+            Route::post('/export', [\App\Http\Controllers\Analytics\AnalyticsController::class, 'exportData']);
+            Route::get('/export/download/{filename}', [\App\Http\Controllers\Analytics\AnalyticsController::class, 'downloadExport']);
+            Route::get('/realtime', [\App\Http\Controllers\Analytics\AnalyticsController::class, 'getRealTime']);
+            Route::get('/predictive', [\App\Http\Controllers\Analytics\AnalyticsController::class, 'getPredictive']);
+            Route::get('/comparative', [\App\Http\Controllers\Analytics\AnalyticsController::class, 'getComparative']);
+            Route::get('/kpi-dashboard', [\App\Http\Controllers\Analytics\AnalyticsController::class, 'getKPIDashboard']);
+        });
+        
+        // Security Logs
+        Route::get('/security-logs', [AdminReportController::class, 'getSecurityLogs']);
+        
+        // System Settings
+        Route::get('/settings', [AdminReportController::class, 'getSystemSettings']);
+        Route::put('/settings', [AdminReportController::class, 'updateSystemSettings']);
+        
+        // Notifications
+        Route::post('/notifications', [AdminReportController::class, 'sendSystemNotification']);
+        
+        // Reports
         Route::get('/reports', [AdminReportController::class, 'index']);
-        // NUEVAS RUTAS PARA TESTS DE ADMIN
+        
+        // Orders & Commerces
         Route::get('/commerces', [\App\Http\Controllers\Admin\AdminOrderController::class, 'commerces']);
         Route::get('/orders', [\App\Http\Controllers\Admin\AdminOrderController::class, 'index']);
         Route::patch('/orders/{id}/status', [\App\Http\Controllers\Admin\AdminOrderController::class, 'updateStatus']);
@@ -357,6 +415,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{notificationId}/read', [NotificationController::class, 'markAsRead']);
         Route::post('/', [NotificationController::class, 'store']);
         Route::delete('/{notificationId}', [NotificationController::class, 'delete']);
+        
+        // Push notification
+        Route::post('/push', [NotificationController::class, 'sendPushNotification']);
+        
+        // Notification settings
+        Route::get('/settings', [NotificationController::class, 'getNotificationSettings']);
+        Route::put('/settings', [NotificationController::class, 'updateNotificationSettings']);
     });
 
     // Location routes
@@ -381,6 +446,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/block', [ChatController::class, 'blockUser']);
         Route::delete('/block/{userId}', [ChatController::class, 'unblockUser']);
         Route::get('/blocked-users', [ChatController::class, 'getBlockedUsers']);
+        // Firebase FCM token management
+        Route::post('/fcm/register', [ChatController::class, 'registerFcmToken']);
+        Route::post('/fcm/unregister', [ChatController::class, 'unregisterFcmToken']);
     });
 });
 

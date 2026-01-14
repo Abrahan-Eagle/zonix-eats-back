@@ -11,7 +11,7 @@ class State extends Model
 
     protected $table = 'states';
 
-    protected $fillable = ['code', 'name', 'country_id'];
+    protected $fillable = ['name', 'countries_id'];
 
     // Un estado tiene muchas ciudades
     public function cities()

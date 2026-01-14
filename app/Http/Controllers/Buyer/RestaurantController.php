@@ -32,11 +32,13 @@ class RestaurantController extends Controller
 
     /**
      * Listar todos los restaurantes.
+     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function index()
+    public function index(Request $request)
     {
-        $restaurants = $this->restaurantService->getAllRestaurants();
+        $perPage = $request->input('per_page', 15);
+        $restaurants = $this->restaurantService->getAllRestaurants($perPage);
         return response()->json($restaurants);
     }
 
