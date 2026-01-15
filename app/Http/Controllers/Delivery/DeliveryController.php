@@ -11,6 +11,7 @@ use App\Models\Review;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 class DeliveryController extends Controller
 {
@@ -21,8 +22,8 @@ class DeliveryController extends Controller
     {
         try {
             $availableOrders = Order::with(['commerce', 'profile', 'items'])
-                ->whereIn('status', ['paid', 'preparing'])
-                ->whereDoesntHave('delivery')
+                ->whereIn('status', ['paid', 'processing'])
+                ->whereDoesntHave('orderDelivery')
                 ->get();
 
             return response()->json([
@@ -88,7 +89,7 @@ class DeliveryController extends Controller
             }
 
             // Verificar que la orden no esté ya asignada
-            if ($order->delivery) {
+            if ($order->orderDelivery) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Order already assigned'
@@ -105,7 +106,8 @@ class DeliveryController extends Controller
             ]);
 
             // Update order status
-            $order->update(['status' => 'on_way']);
+            // El estado ya debe estar en 'shipped' cuando el comercio marca como enviado
+            // No cambiar estado aquí, solo crear OrderDelivery
 
             return response()->json([
                 'message' => 'Orden aceptada',
@@ -293,14 +295,19 @@ class DeliveryController extends Controller
             })->findOrFail($orderId);
 
             $request->validate([
-                'status' => 'required|in:on_way,delivered'
+                'status' => 'required|in:delivered'
             ]);
 
             $order->update(['status' => $request->status]);
 
             // Update delivery status as well
             if ($order->delivery) {
-                $order->delivery->update(['status' => $request->status === 'delivered' ? 'delivered' : 'on_way']);
+                $order->orderDelivery->update(['status' => $request->status === 'delivered' ? 'delivered' : 'shipped']);
+                
+                // Si se marca como entregado, actualizar estado de orden
+                if ($request->status === 'delivered') {
+                    $order->update(['status' => 'delivered']);
+                }
             }
 
             return response()->json([
@@ -442,27 +449,57 @@ class DeliveryController extends Controller
             $assignedOrders = Order::with(['commerce', 'profile', 'delivery'])
                 ->whereHas('delivery', function($q) use ($deliveryAgentId) {
                     $q->where('agent_id', $deliveryAgentId)
-                      ->whereIn('status', ['assigned', 'on_way']);
+                      ->whereIn('status', ['assigned', 'shipped']);
                 })
                 ->get();
 
             // Group orders by route (simplified - in production would use routing algorithm)
             $routes = [];
             foreach ($assignedOrders as $index => $order) {
+                $startLat = $order->commerce->latitude ?? -12.0464;
+                $startLng = $order->commerce->longitude ?? -77.0428;
+                
+                $deliveryAddress = $order->delivery_address ? json_decode($order->delivery_address, true) : null;
+                $endLat = $deliveryAddress['lat'] ?? $startLat;
+                $endLng = $deliveryAddress['lng'] ?? $startLng;
+                
+                // Calcular distancia y tiempo real usando OSRM
+                $distance = 5.0; // Default
+                $estimatedTime = 30; // Default (minutos)
+                
+                try {
+                    $osrmUrl = "http://router.project-osrm.org/route/v1/driving/$startLng,$startLat;$endLng,$endLat";
+                    $response = Http::timeout(5)->get($osrmUrl, [
+                        'overview' => 'false',
+                    ]);
+                    
+                    if ($response->successful()) {
+                        $data = $response->json();
+                        if (!empty($data['routes']) && !empty($data['routes'][0])) {
+                            $routeData = $data['routes'][0];
+                            $distance = round($routeData['distance'] / 1000, 2); // Convertir metros a km
+                            $estimatedTime = round($routeData['duration'] / 60); // Convertir segundos a minutos
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Error calculando ruta OSRM: ' . $e->getMessage());
+                    // Usar valores por defecto si falla
+                }
+                
                 $routes[] = [
                     'id' => $index + 1,
                     'name' => 'Ruta ' . ($index + 1),
                     'orders' => [$order->id],
-                    'estimated_time' => 30, // TODO: Calculate based on distance
-                    'total_distance' => 5.0, // TODO: Calculate actual distance
+                    'estimated_time' => $estimatedTime,
+                    'total_distance' => $distance,
                     'status' => $order->delivery->status ?? 'assigned',
                     'start_location' => [
-                        'lat' => $order->commerce->latitude ?? -12.0464,
-                        'lng' => $order->commerce->longitude ?? -77.0428
+                        'lat' => $startLat,
+                        'lng' => $startLng
                     ],
                     'end_location' => [
-                        'lat' => $order->delivery_address ? json_decode($order->delivery_address, true)['lat'] ?? -12.0464 : -12.0464,
-                        'lng' => $order->delivery_address ? json_decode($order->delivery_address, true)['lng'] ?? -77.0428 : -77.0428
+                        'lat' => $endLat,
+                        'lng' => $endLng
                     ],
                 ];
             }

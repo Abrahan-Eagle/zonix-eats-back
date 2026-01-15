@@ -52,103 +52,161 @@ class OrderController extends Controller
     public function store(Request $request)
     {
         try {
+            // Validación inicial de datos
             $validated = $request->validate([
                 'commerce_id' => 'required|exists:commerces,id',
                 'products' => 'required|array|min:1',
                 'products.*.id' => 'required|exists:products,id',
-                'products.*.quantity' => 'required|integer|min:1',
+                'products.*.quantity' => 'required|integer|min:1|max:100',
                 'delivery_type' => 'required|in:pickup,delivery',
                 'total' => 'required|numeric|min:0',
                 'notes' => 'nullable|string|max:500',
-                'delivery_address' => 'nullable|string|max:500',
+                'delivery_address' => 'required_if:delivery_type,delivery|nullable|string|max:500',
             ]);
 
             $user = Auth::user();
-            if (app()->environment('testing')) {
-                $user->role = 'users';
-                $user->save();
-                $profile = $user->profile;
-                if (!$profile) {
-                    $profile = \App\Models\Profile::firstOrCreate([
-                        'user_id' => $user->id
-                    ], [
-                        'firstName' => 'Test',
-                        'lastName' => 'User',
-                        'date_of_birth' => now()->subYears(20)->toDateString(),
-                        'maritalStatus' => 'single',
-                        'sex' => 'M',
-                        'status' => 'completeData',
-                        'address' => 'Calle Falsa 123',
-                        'phone' => '+10000000000'
-                    ]);
-                } else {
-                    $profile->status = 'completeData';
-                    if (!$profile->address) $profile->address = 'Calle Falsa 123';
-                    if (!$profile->phone) $profile->phone = '+10000000000';
-                    $profile->save();
-                }
-            } else {
-                if (!Auth::check() || Auth::id() !== $user->id) {
-                    Auth::loginUsingId($user->id);
-                }
-                $user->role = 'users';
-                $user->save();
-                $profile = $user->profile;
-                if (!$profile) {
-                    $profile = \App\Models\Profile::firstOrCreate([
-                        'user_id' => $user->id
-                    ], [
-                        'firstName' => 'Test',
-                        'lastName' => 'User',
-                        'date_of_birth' => now()->subYears(20)->toDateString(),
-                        'maritalStatus' => 'single',
-                        'sex' => 'M',
-                        'status' => 'completeData',
-                        'address' => 'Calle Falsa 123',
-                        'phone' => '+10000000000'
-                    ]);
-                } else {
-                    $profile->status = 'completeData';
-                    if (!$profile->address) $profile->address = 'Calle Falsa 123';
-                    if (!$profile->phone) $profile->phone = '+10000000000';
-                    $profile->save();
+            
+            // Validar role
+            if ($user->role !== 'users') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solo usuarios con rol de comprador pueden crear órdenes'
+                ], 403);
+            }
+
+            // Obtener profile
+            $profile = $user->profile;
+            if (!$profile) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Debes completar tu perfil antes de crear una orden'
+                ], 400);
+            }
+
+            // Validar datos mínimos del perfil para crear orden
+            $requiredFields = ['firstName', 'lastName', 'phone'];
+            if ($validated['delivery_type'] === 'delivery') {
+                $requiredFields[] = 'address';
+            }
+
+            foreach ($requiredFields as $field) {
+                if (empty($profile->$field)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Se requiere {$field} para crear una orden",
+                        'missing_field' => $field
+                    ], 400);
                 }
             }
 
-            \Log::info('Intentando crear orden', [
-                'user_id' => $user ? $user->id : null,
-                'user_role' => $user ? $user->role : null,
-                'profile_id' => isset($profile) ? $profile->id : null,
-                'profile_status' => isset($profile) ? $profile->status : null,
-                'validated' => isset($validated) ? $validated : null
-            ]);
+            // Validar commerce existe y está activo
+            $commerce = \App\Models\Commerce::find($validated['commerce_id']);
+            if (!$commerce) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Comercio no encontrado'
+                ], 404);
+            }
 
-            // Crear la orden
-            $order = \App\Models\Order::create([
-                'profile_id' => $profile->id,
-                'commerce_id' => $validated['commerce_id'],
-                'delivery_type' => $validated['delivery_type'],
-                'status' => 'pending_payment',
-                'total' => $validated['total'],
-                'notes' => $validated['notes'] ?? null,
-                'delivery_address' => $validated['delivery_address'] ?? null,
-            ]);
+            if (!$commerce->open) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El comercio no está disponible en este momento'
+                ], 400);
+            }
 
-            // Agregar productos a la orden
+            // Validar productos y calcular total
+            $calculatedTotal = 0;
+            $productModels = [];
+
             foreach ($validated['products'] as $product) {
                 $productModel = \App\Models\Product::find($product['id']);
-                $order->products()->attach($product['id'], [
-                    'quantity' => $product['quantity'],
-                    'unit_price' => $productModel->price
+                
+                if (!$productModel) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Producto {$product['id']} no encontrado"
+                    ], 404);
+                }
+
+                // Validar que producto está disponible
+                if (!$productModel->available) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "El producto '{$productModel->name}' no está disponible"
+                    ], 400);
+                }
+
+                // Validar que producto pertenece al commerce
+                if ($productModel->commerce_id !== $validated['commerce_id']) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "El producto '{$productModel->name}' no pertenece a este comercio"
+                    ], 400);
+                }
+
+                // Calcular subtotal
+                $subtotal = $productModel->price * $product['quantity'];
+                $calculatedTotal += $subtotal;
+                $productModels[] = [
+                    'model' => $productModel,
+                    'data' => $product
+                ];
+            }
+
+            // Validar que el total calculado coincide con el enviado (margen de 0.01 por redondeo)
+            if (abs($calculatedTotal - $validated['total']) > 0.01) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El precio de algunos productos ha cambiado. Por favor, revisa tu carrito.',
+                    'recalculated_total' => round($calculatedTotal, 2),
+                    'sent_total' => $validated['total']
+                ], 422);
+            }
+
+            // Crear orden en transacción
+            $order = \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $profile, $calculatedTotal, $productModels) {
+                // Crear la orden
+                $order = \App\Models\Order::create([
+                    'profile_id' => $profile->id,
+                    'commerce_id' => $validated['commerce_id'],
+                    'delivery_type' => $validated['delivery_type'],
+                    'status' => 'pending_payment',
+                    'total' => $calculatedTotal,
+                    'notes' => $validated['notes'] ?? null,
+                    'delivery_address' => $validated['delivery_address'] ?? null,
+                ]);
+
+                // Crear OrderItems usando el modelo OrderItem
+                foreach ($productModels as $item) {
+                    \App\Models\OrderItem::create([
+                        'order_id' => $order->id,
+                        'product_id' => $item['data']['id'],
+                        'quantity' => $item['data']['quantity'],
+                        'unit_price' => $item['model']->price
+                    ]);
+                }
+
+                return $order;
+            });
+
+            // Limpiar carrito después de crear orden exitosamente
+            try {
+                $cartService = app(\App\Services\CartService::class);
+                $cartService->clearCart();
+            } catch (\Exception $e) {
+                \Log::warning('No se pudo limpiar el carrito después de crear orden', [
+                    'order_id' => $order->id,
+                    'error' => $e->getMessage()
                 ]);
             }
 
             // Emitir evento de nueva orden
-            // event(new OrderCreated($order));
+            event(new OrderCreated($order));
 
-            // Notificación: orden creada
-            // Notification::send($user, new OrderCreated($order));
-            $orderWithProducts = $order->load('products');
+            // Cargar relaciones para respuesta
+            $orderWithProducts = $order->load(['commerce', 'orderItems.product', 'profile.user']);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Orden creada exitosamente',
@@ -166,7 +224,10 @@ class OrderController extends Controller
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            return response()->json(['success' => false, 'message' => 'Error interno al crear orden'], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error interno al crear orden: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -286,10 +347,11 @@ class OrderController extends Controller
             
             $order = \App\Models\Order::where('profile_id', $profile->id)->findOrFail($id);
             
-            if ($order->status === 'preparing') {
+            // Solo se puede cancelar si está en pending_payment
+            if ($order->status !== 'pending_payment') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No se puede cancelar una orden en preparación'
+                    'message' => 'Solo se puede cancelar una orden pendiente de pago'
                 ], 400);
             }
 

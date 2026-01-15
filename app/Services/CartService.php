@@ -35,8 +35,36 @@ class CartService
         $productId = $productData['product_id'];
         $quantity = $productData['quantity'] ?? 1;
 
+        // Validar cantidad
+        if ($quantity < 1 || $quantity > 100) {
+            throw new \Exception('La cantidad debe estar entre 1 y 100');
+        }
+
         // Verificar que el producto existe
-        $product = Product::findOrFail($productId);
+        $product = Product::with('commerce')->findOrFail($productId);
+
+        // Validar que producto está disponible
+        if (!$product->available) {
+            throw new \Exception('El producto no está disponible');
+        }
+
+        // Validar que commerce está activo
+        if (!$product->commerce || !$product->commerce->open) {
+            throw new \Exception('El comercio no está disponible');
+        }
+
+        // Validar que todos los productos del carrito sean del mismo commerce
+        $existingItems = CartItem::where('cart_id', $cart->id)
+            ->with('product')
+            ->get();
+
+        if ($existingItems->isNotEmpty()) {
+            $existingCommerceId = $existingItems->first()->product->commerce_id;
+            if ($existingCommerceId !== $product->commerce_id) {
+                // Limpiar carrito y agregar nuevo producto
+                CartItem::where('cart_id', $cart->id)->delete();
+            }
+        }
 
         // Buscar si el producto ya existe en el carrito
         $cartItem = CartItem::where('cart_id', $cart->id)
@@ -45,7 +73,11 @@ class CartService
 
         if ($cartItem) {
             // Actualizar cantidad si ya existe
-            $cartItem->quantity += $quantity;
+            $newQuantity = $cartItem->quantity + $quantity;
+            if ($newQuantity > 100) {
+                throw new \Exception('La cantidad máxima permitida es 100');
+            }
+            $cartItem->quantity = $newQuantity;
             $cartItem->save();
         } else {
             // Crear nuevo item
@@ -79,11 +111,22 @@ class CartService
      */
     public function updateQuantity($productId, $quantity)
     {
+        // Validar cantidad
+        if ($quantity < 1 || $quantity > 100) {
+            throw new \Exception('La cantidad debe estar entre 1 y 100');
+        }
+
         $cart = $this->getOrCreateCart();
         
         $cartItem = CartItem::where('cart_id', $cart->id)
             ->where('product_id', $productId)
+            ->with('product')
             ->firstOrFail();
+
+        // Validar que producto sigue disponible
+        if (!$cartItem->product->available) {
+            throw new \Exception('El producto ya no está disponible');
+        }
 
         $cartItem->quantity = $quantity;
         $cartItem->save();
@@ -147,10 +190,21 @@ class CartService
      */
     private function formatCartResponse(Cart $cart)
     {
-        $items = $cart->items()->with('product')->get();
+        $items = $cart->items()->with('product.commerce')->get();
         
+        // Validar que productos sigan disponibles y remover los que no
+        $validItems = $items->filter(function ($item) {
+            return $item->product && $item->product->available && $item->product->commerce && $item->product->commerce->open;
+        });
+
+        // Eliminar items con productos no disponibles
+        $invalidItems = $items->diff($validItems);
+        foreach ($invalidItems as $invalidItem) {
+            $invalidItem->delete();
+        }
+
         // Formatear items en el formato esperado (array indexado numéricamente)
-        $formattedItems = $items->map(function ($item) {
+        $formattedItems = $validItems->map(function ($item) {
             return [
                 'product_id' => $item->product_id,
                 'quantity' => $item->quantity,

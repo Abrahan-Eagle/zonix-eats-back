@@ -36,13 +36,18 @@ public function index()
     public function availableOrders()
     {
         try {
-            // Obtener órdenes disponibles para asignar
+            // Obtener órdenes disponibles para asignar (solo las que están en 'shipped')
+            // El comercio marca como 'shipped' cuando está listo para delivery
             $orders = Order::whereDoesntHave('orderDelivery')
-                ->where('status', 'paid')
+                ->where('status', 'shipped')
+                ->with(['commerce', 'profile.user', 'orderItems.product'])
                 ->orderBy('created_at', 'desc')
                 ->get();
 
-            return response()->json($orders);
+            return response()->json([
+                'success' => true,
+                'data' => $orders
+            ]);
         } catch (\Exception $e) {
             \Log::error('Error al listar órdenes disponibles de delivery: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error interno al listar órdenes disponibles'], 500);
@@ -68,8 +73,8 @@ public function index()
                 'status' => 'assigned'
             ]);
 
-            // Actualizar estado de la orden
-            $order->update(['status' => 'on_way']);
+            // Actualizar estado de la orden (ya está en shipped cuando el comercio lo marca)
+            // No cambiar estado aquí, solo crear OrderDelivery
 
             return response()->json([
                 'message' => 'Orden aceptada',
@@ -93,10 +98,21 @@ public function index()
             })->findOrFail($orderId);
 
             $request->validate([
-                'status' => 'required|in:on_way,delivered'
+                'status' => 'required|in:shipped,delivered'
             ]);
 
-            $order->update(['status' => $request->status]);
+            // Solo se puede marcar como entregado
+            if ($request->status === 'delivered') {
+                $order->update(['status' => 'delivered']);
+                
+                // Actualizar OrderDelivery
+                if ($order->orderDelivery) {
+                    $order->orderDelivery->update(['status' => 'delivered']);
+                }
+                
+                // Emitir evento de cambio de estado
+                event(new \App\Events\OrderStatusChanged($order));
+            }
 
             return response()->json([
                 'success' => true,
@@ -125,12 +141,21 @@ public function index()
         })->findOrFail($id);
 
         $validated = $request->validate([
-            'status' => 'required|in:on_way,delivered'
+                'status' => 'required|in:shipped,delivered'
         ]);
 
-        $order->update([
-            'status' => $validated['status']
-        ]);
+        // Solo se puede marcar como entregado
+        if ($validated['status'] === 'delivered') {
+            $order->update(['status' => 'delivered']);
+            
+            // Actualizar OrderDelivery
+            if ($order->orderDelivery) {
+                $order->orderDelivery->update(['status' => 'delivered']);
+            }
+            
+            // Emitir evento de cambio de estado
+            event(new \App\Events\OrderStatusChanged($order));
+        }
 
         return response()->json(['success' => true, 'message' => 'Estado de la orden actualizado']);
     }
@@ -151,6 +176,14 @@ public function index()
         $order->update([
             'status' => 'delivered'
         ]);
+        
+        // Actualizar OrderDelivery
+        if ($order->orderDelivery) {
+            $order->orderDelivery->update(['status' => 'delivered']);
+        }
+        
+        // Emitir evento de cambio de estado
+        event(new \App\Events\OrderStatusChanged($order));
 
         return response()->json(['message' => 'Pedido entregado con éxito']);
     }

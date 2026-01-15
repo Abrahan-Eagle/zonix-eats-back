@@ -265,7 +265,7 @@ class AnalyticsController extends Controller
             // Tasa de aceptación de órdenes (todas las órdenes son aceptadas por defecto)
             $totalOrders = Order::where('commerce_id', $commerceId)->count();
             $acceptedOrders = Order::where('commerce_id', $commerceId)
-                ->whereIn('status', ['paid', 'preparing', 'ready', 'on_way', 'delivered'])
+                ->whereIn('status', ['paid', 'processing', 'shipped', 'delivered'])
                 ->count();
             
             $acceptanceRate = $totalOrders > 0 ? ($acceptedOrders / $totalOrders) * 100 : 0;
@@ -516,10 +516,10 @@ class AnalyticsController extends Controller
 
     private function getAveragePreparationTime($commerceId)
     {
-        // Calcular tiempo promedio entre 'paid' y 'ready' o 'on_way'
+        // Calcular tiempo promedio entre 'paid' y 'shipped'
         // Por ahora retornar estimado basado en timestamps
         $orders = Order::where('commerce_id', $commerceId)
-            ->whereIn('status', ['ready', 'on_way', 'delivered'])
+            ->whereIn('status', ['shipped', 'delivered'])
             ->whereNotNull('updated_at')
             ->get();
 

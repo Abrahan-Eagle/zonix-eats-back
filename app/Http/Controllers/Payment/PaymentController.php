@@ -461,7 +461,7 @@ class PaymentController extends Controller
 
             $successfulPayments = Order::where('profile_id', $profileId)
                 ->whereNotNull('payment_proof')
-                ->whereIn('status', ['paid', 'preparing', 'on_way', 'delivered'])
+                ->whereIn('status', ['paid', 'processing', 'shipped', 'delivered'])
                 ->where('payment_validated_at', '>=', $startDate)
                 ->count();
 

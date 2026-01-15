@@ -86,13 +86,37 @@ class OrderController extends Controller
             }
 
             $request->validate([
-                'status' => 'required|in:pending_payment,paid,preparing,on_way,delivered,cancelled'
+                'status' => 'required|in:pending_payment,paid,processing,shipped,delivered,cancelled'
             ]);
+
+            // Validar transiciones de estado
+            $validTransitions = [
+                'paid' => ['processing', 'cancelled'],
+                'processing' => ['shipped', 'cancelled'],
+            ];
+
+            if (isset($validTransitions[$order->status])) {
+                if (!in_array($request->status, $validTransitions[$order->status])) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "No se puede cambiar de '{$order->status}' a '{$request->status}'"
+                    ], 400);
+                }
+            } else {
+                // Estados que no permiten cambios
+                if (in_array($order->status, ['pending_payment', 'delivered', 'cancelled'])) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "No se puede cambiar el estado de una orden en '{$order->status}'"
+                    ], 400);
+                }
+            }
 
             $order->update(['status' => $request->status]);
 
-            // Notificación: estado de orden actualizado
-            // Notification::send($order->profile->user, new OrderStatusUpdated($order));
+            // Emitir evento de cambio de estado
+            event(new \App\Events\OrderStatusChanged($order));
+
             return response()->json(['success' => true, 'message' => 'Estado de la orden actualizado']);
         } catch (\Exception $e) {
             \Log::error('Error al actualizar estado de orden de comercio: ' . $e->getMessage());
@@ -138,6 +162,9 @@ class OrderController extends Controller
                 ]);
                 
                 $message = 'Pago validado correctamente';
+                
+                // Emitir evento de pago validado
+                event(new PaymentValidated($order));
             } else {
                 $order->update([
                     'status' => 'cancelled',
@@ -146,6 +173,9 @@ class OrderController extends Controller
                 ]);
                 
                 $message = 'Pago rechazado';
+                
+                // Emitir evento de cambio de estado
+                event(new OrderStatusChanged($order));
             }
 
             return response()->json([

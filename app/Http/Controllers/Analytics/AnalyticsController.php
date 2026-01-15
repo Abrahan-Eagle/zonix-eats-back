@@ -424,7 +424,7 @@ class AnalyticsController extends Controller
     public function getRealTime()
     {
         try {
-            $activeOrders = Order::whereIn('status', ['paid', 'preparing', 'on_way'])->count();
+            $activeOrders = Order::whereIn('status', ['paid', 'processing', 'shipped'])->count();
             $activeDeliveryAgents = DeliveryAgent::whereHas('profile', function($q) {
                 $q->where('status', 'active');
             })->count();
@@ -858,13 +858,42 @@ class AnalyticsController extends Controller
 
     private function getDeliveryTimes()
     {
-        // Por ahora retornar estructura básica
-        // TODO: Implementar cuando haya timestamps de delivery
+        // Calcular tiempo promedio de delivery (desde creación hasta entrega)
+        $deliveryTimes = Order::where('status', 'delivered')
+            ->whereDate('created_at', '>=', now()->subDays(30))
+            ->selectRaw('TIMESTAMPDIFF(MINUTE, created_at, updated_at) as delivery_time')
+            ->get()
+            ->pluck('delivery_time')
+            ->filter(function($time) {
+                return $time > 0 && $time <= 120; // Filtrar valores anómalos (0 o >120 min)
+            });
+        
+        $average = $deliveryTimes->isNotEmpty() 
+            ? round($deliveryTimes->avg(), 1) 
+            : 0;
+        
+        $fastest = $deliveryTimes->isNotEmpty() 
+            ? round($deliveryTimes->min(), 1) 
+            : 0;
+        
+        $slowest = $deliveryTimes->isNotEmpty() 
+            ? round($deliveryTimes->max(), 1) 
+            : 0;
+        
+        // Distribución por rangos
+        $distribution = [
+            '0-15' => $deliveryTimes->where('>=', 0)->where('<', 15)->count(),
+            '15-30' => $deliveryTimes->where('>=', 15)->where('<', 30)->count(),
+            '30-45' => $deliveryTimes->where('>=', 30)->where('<', 45)->count(),
+            '45-60' => $deliveryTimes->where('>=', 45)->where('<', 60)->count(),
+            '60+' => $deliveryTimes->where('>=', 60)->count(),
+        ];
+        
         return [
-            'average' => 28.5,
-            'fastest' => 15.2,
-            'slowest' => 45.8,
-            'distribution' => [],
+            'average' => $average,
+            'fastest' => $fastest,
+            'slowest' => $slowest,
+            'distribution' => $distribution,
         ];
     }
 
@@ -940,10 +969,46 @@ class AnalyticsController extends Controller
 
     private function getRestaurantPerformanceMetrics()
     {
+        // Calcular tiempo promedio de preparación (desde creación hasta shipped o delivered)
+        // Filtrar valores anómalos (más de 120 minutos se considera anómalo)
+        $averagePreparationTime = Order::whereIn('status', ['shipped', 'delivered'])
+            ->whereDate('created_at', '>=', now()->subDays(30))
+            ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as avg_minutes')
+            ->havingRaw('avg_minutes <= 120') // Filtrar valores anómalos
+            ->value('avg_minutes') ?? 0;
+        
+        // Si no hay datos válidos, calcular sin filtro
+        if ($averagePreparationTime == 0) {
+            $averagePreparationTime = Order::whereIn('status', ['shipped', 'delivered'])
+                ->whereDate('created_at', '>=', now()->subDays(30))
+                ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as avg_minutes')
+                ->value('avg_minutes') ?? 12.5;
+        }
+        
+        // Calcular tasa de aceptación de órdenes
+        // Órdenes aceptadas = todas las que no están canceladas O fueron canceladas después de ser aceptadas
+        $totalOrders = Order::whereDate('created_at', '>=', now()->subDays(30))->count();
+        
+        $acceptedOrders = Order::whereDate('created_at', '>=', now()->subDays(30))
+            ->where(function($q) {
+                // Órdenes que NO están canceladas (fueron aceptadas)
+                $q->where('status', '!=', 'cancelled')
+                  // O están canceladas pero tenían payment_validated (fueron aceptadas primero)
+                  ->orWhere(function($subQ) {
+                      $subQ->where('status', 'cancelled')
+                           ->whereNotNull('payment_validated_at');
+                  });
+            })
+            ->count();
+        
+        $orderAcceptanceRate = $totalOrders > 0 
+            ? round(($acceptedOrders / $totalOrders) * 100, 1)
+            : 0;
+        
         return [
-            'average_preparation_time' => 12.5, // TODO: Calcular real
+            'average_preparation_time' => round($averagePreparationTime, 1),
             'average_rating' => round(Review::avg('rating') ?? 0, 1),
-            'order_acceptance_rate' => 96.8, // TODO: Calcular real
+            'order_acceptance_rate' => $orderAcceptanceRate,
             'customer_satisfaction' => round(Review::avg('rating') ?? 0, 1),
         ];
     }

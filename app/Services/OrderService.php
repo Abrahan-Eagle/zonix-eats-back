@@ -30,36 +30,20 @@ class OrderService
 
     /**
      * Crear una nueva orden con productos y datos validados.
+     * 
+     * NOTA: Este método está deprecado. Usar lógica directamente en OrderController::store()
+     * ya que requiere validaciones complejas que se manejan mejor en el controlador.
      *
      * @param array $validated
      * @param int $userId
      * @return \App\Models\Order
+     * @deprecated Usar lógica en OrderController::store() en su lugar
      */
     public function createOrder(array $validated, $userId)
     {
-        // Obtener el perfil del comprador
-        $user = \App\Models\User::find($userId);
-        $profile = $user ? $user->profile : null;
-        if (!$profile) {
-            throw new \Exception('El usuario no tiene perfil asociado.');
-        }
-        $order = \App\Models\Order::create([
-            'profile_id' => $profile->id,
-            'commerce_id' => $validated['commerce_id'],
-            'delivery_type' => $validated['delivery_type'] ?? 'pickup',
-            'status' => 'pending_payment',
-            'total' => $validated['total'] ?? 0,
-            'notes' => $validated['notes'] ?? null,
-            'delivery_address' => $validated['delivery_address'] ?? null,
-        ]);
-        foreach ($validated['products'] as $product) {
-            $productModel = \App\Models\Product::find($product['id']);
-            $order->products()->attach($product['id'], [
-                'quantity' => $product['quantity'],
-                'unit_price' => $productModel ? $productModel->price : 0
-            ]);
-        }
-        return $order->load('products');
+        // Este método se mantiene por compatibilidad pero la lógica principal
+        // está en OrderController::store() con todas las validaciones necesarias
+        throw new \Exception('Este método está deprecado. Usar OrderController::store() directamente.');
     }
 
     /**

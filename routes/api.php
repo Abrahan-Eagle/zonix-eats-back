@@ -461,6 +461,7 @@ Route::get('/banks', [\App\Http\Controllers\BankController::class, 'index']);
 
 
 
+// Route comentada - eliminada para producción
 // Route::get('/env-test', function () {
 //     dd(env('APP_NAME'), env('DB_DATABASE'), env('APP_DEBUG'));
 // });

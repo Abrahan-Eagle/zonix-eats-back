@@ -25,7 +25,7 @@ class DashboardController extends Controller
 
             // Órdenes pendientes
             $pendingOrders = Order::where('commerce_id', $commerceId)
-                ->whereIn('status', ['paid', 'preparing'])
+                ->whereIn('status', ['paid', 'processing'])
                 ->count();
 
             // Órdenes de hoy

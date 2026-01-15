@@ -482,7 +482,7 @@ class LocationController extends Controller
                 $orders = \App\Models\Order::whereHas('orderDelivery', function($q) use ($profile) {
                     $q->where('agent_id', $profile->deliveryAgent->id);
                 })
-                ->whereIn('status', ['on_way', 'preparing'])
+                ->whereIn('status', ['shipped', 'processing'])
                 ->with(['commerce.profile', 'profile.user', 'orderDelivery.agent.profile'])
                 ->get();
 
