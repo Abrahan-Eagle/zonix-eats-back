@@ -15,7 +15,16 @@ class DeliveryCompany extends Model
         'tax_id',
         'phone',
         'address',
+        'image',
+        'open',
+        'schedule',
         'activo',
+    ];
+
+    protected $casts = [
+        'open' => 'boolean',
+        'activo' => 'boolean',
+        'schedule' => 'array',
     ];
 
     public function profile()

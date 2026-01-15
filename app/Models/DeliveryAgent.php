@@ -32,6 +32,14 @@ class DeliveryAgent extends Model
         return $this->belongsTo(DeliveryCompany::class, 'company_id');
     }
 
+    /**
+     * Verificar si el motorizado es independiente (no pertenece a empresa)
+     */
+    public function isIndependent(): bool
+    {
+        return $this->company_id === null;
+    }
+
     public function profile()
     {
         return $this->belongsTo(Profile::class);

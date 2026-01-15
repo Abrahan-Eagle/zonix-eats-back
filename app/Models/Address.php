@@ -18,6 +18,11 @@ class Address extends Model
         'status',
         'profile_id',
         'city_id',
+        'is_default',
+    ];
+
+    protected $casts = [
+        'is_default' => 'boolean',
     ];
 
     // Definir la relación con el modelo Profile

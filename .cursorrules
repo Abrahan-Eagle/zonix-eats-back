@@ -15,6 +15,7 @@ alwaysApply: true
 **Modelos:** 31 (verificado)  
 **Migraciones:** 45 (verificado)  
 **Líneas de código:** 12,898 líneas PHP en `app/`  
+**Errores críticos:** ✅ Todos corregidos (valores hardcoded, OSRM integrado, analytics reales)  
 **Última actualización:** Enero 2025
 
 ---
@@ -77,7 +78,7 @@ zonix-eats-back/
 ├── routes/
 │   └── api.php              # 232 endpoints (verificado)
 └── tests/
-    └── Feature/             # 201 tests pasaron, 2 fallaron (verificado)
+    └── Feature/             # 204 tests pasaron ✅, 0 tests fallaron ✅ (verificado Enero 2025)
 ```
 
 ### Patrón Arquitectónico
@@ -213,12 +214,31 @@ class StoreOrderRequest extends FormRequest
 **Roles implementados y funcionales:**
 - **users** (Level 0): Cliente/Comprador ✅
 - **commerce** (Level 1): Comercio/Restaurante ✅
-- **delivery** (Level 2): Repartidor/Delivery ✅
+- **delivery** (Level 2): Repartidor/Delivery ✅ (con jerarquía: Delivery Company y Delivery Agent)
 - **admin** (Level 3): Administrador ✅
 
-**Roles excluidos del MVP:**
-- ~~**transport**~~ - Logística de mercancías (funcionalidad futura)
-- ~~**affiliate**~~ - Sistema de referidos/comisiones (funcionalidad futura)
+**IMPORTANTE:** Solo existen estos 4 roles. Los roles `transport` y `affiliate` fueron eliminados del código.
+
+### Datos Requeridos por Rol
+
+**USERS (Comprador):**
+- **Mínimos para orden:** firstName, lastName, phone, photo_users (required)
+- **Direcciones:** 2 direcciones (predeterminada casa con `is_default=true` + dirección de entrega)
+- **Ubicación:** GPS + inputs y selects para mayor precisión
+- **Campos dirección:** street, house_number, postal_code, latitude, longitude, city_id, is_default
+
+**COMMERCE (Vendedor):**
+- **Requeridos:** firstName, lastName, phone, address, business_name, business_type, tax_id
+- **Opcionales:** 16 campos (6 del perfil, 5 del comercio, 3 relaciones, 2 del sistema)
+- **Comercio:** image (logo), phone, address, open, schedule
+
+**DELIVERY:**
+- **Delivery Company:** firstName, lastName, phone, address, photo_users (required) + datos empresa
+- **Delivery Agent:** firstName, lastName, phone, address, photo_users (required), vehicle_type, license_number
+- **Delivery Company opcionales:** image (logo), phone, address, open, schedule (igual que COMMERCE)
+- **Puede ser independiente:** company_id = null
+
+**IMPORTANTE:** Ver README.md sección "📋 DATOS REQUERIDOS POR ACCIÓN Y ROL" para detalles completos.
 
 ### Middleware de Roles
 
@@ -330,7 +350,7 @@ DB::transaction(function () use ($validated, $userId) {
 
 **Servicios existentes:**
 - `OrderService` - Gestión de órdenes
-- `CartService` - Gestión de carrito ⚠️ **PROBLEMA:** Usa Session (no escalable)
+- `CartService` - Gestión de carrito ✅ **SOLUCIONADO:** Ahora usa base de datos (tabla `cart_items`)
 - `ProductService` - Gestión de productos
 - `RestaurantService` - Gestión de restaurantes
 - `ReviewService` - Gestión de reseñas
@@ -346,18 +366,20 @@ DB::transaction(function () use ($validated, $userId) {
 3. **Reutilizar servicios entre controladores**
 4. **Inyectar dependencias, no crear instancias directamente**
 
-### Problema Crítico: CartService
+### CartService
 
-**PROBLEMA ACTUAL:**
+**✅ SOLUCIONADO:** El carrito ahora usa base de datos
+
+**IMPLEMENTACIÓN ACTUAL:**
 ```php
-// CartService usa Session - NO funciona en API stateless
-$cart = Session::get('cart', []);
+// CartService ahora usa Eloquent (tabla cart_items)
+$cartItems = CartItem::where('profile_id', $profileId)->get();
 ```
 
-**SOLUCIÓN REQUERIDA:**
-- Migrar carrito a base de datos (tabla `carts` y `cart_items`)
-- O usar Redis para carrito de usuario
-- Actualizar `CartService` para usar Eloquent/Redis
+**REGLAS DE NEGOCIO:**
+- Solo productos de UN comercio por carrito
+- Validación de disponibilidad y stock
+- Asociado a `profile_id` del usuario
 
 ---
 
@@ -424,9 +446,11 @@ public function index(Request $request)
 
 ---
 
-## WEBSOCKET Y BROADCASTING
+## EVENTOS Y NOTIFICACIONES EN TIEMPO REAL
 
 ### Eventos
+
+**✅ IMPLEMENTADO:** Firebase Cloud Messaging (FCM) + Pusher (NO WebSocket)
 
 **Eventos existentes:**
 - `OrderCreated` - Nueva orden creada
@@ -453,10 +477,12 @@ class OrderStatusChanged implements ShouldBroadcast
 
 ### Configuración
 
-**Laravel Echo Server:**
-- Puerto: 6001
-- Driver: Redis (recomendado) o Pusher
+**Firebase + Pusher:**
+- Firebase Cloud Messaging (FCM) - Push notifications a móviles
+- Pusher - Broadcasting en tiempo real (web)
 - Autenticación: Sanctum tokens
+
+**IMPORTANTE:** NO usar WebSocket directamente. Usar Firebase + Pusher para notificaciones en tiempo real.
 
 ---
 
@@ -519,10 +545,10 @@ php artisan test --coverage
 
 ### 🔴 CRÍTICO - Acción Inmediata
 
-1. **Migrar Carrito de Session a Base de Datos**
-   - Crear tabla `carts` y `cart_items`
-   - Actualizar `CartService`
-   - Afecta escalabilidad
+1. ~~**Migrar Carrito de Session a Base de Datos**~~ ✅ **COMPLETADO**
+   - ✅ Tabla `carts` y `cart_items` creadas
+   - ✅ `CartService` actualizado para usar Eloquent
+   - ✅ Validaciones de negocio implementadas
 
 2. **Restringir CORS**
    - Cambiar `allowed_origins: ['*']` a dominios específicos
@@ -531,6 +557,12 @@ php artisan test --coverage
 3. **Agregar Rate Limiting**
    - Implementar en endpoints críticos (auth, creación)
    - Afecta seguridad
+
+4. **Ejecutar Migraciones Pendientes**
+   - `add_is_default_to_addresses_table.php`
+   - `make_company_id_nullable_in_delivery_agents_table.php`
+   - `add_stock_quantity_to_products_table.php`
+   - `add_image_open_schedule_to_delivery_companies_table.php`
 
 ### 🟡 ALTO - Próximas Semanas
 
@@ -623,32 +655,55 @@ php artisan migrate:fresh --seed
 
 ### Carrito de Compras
 
-**PROBLEMA ACTUAL:**
-- `CartService` usa Session de PHP
-- No funciona en arquitectura stateless (API REST)
-- No escalable horizontalmente
+**✅ SOLUCIONADO:** El carrito ahora usa base de datos (tablas `carts` y `cart_items`)
 
-**SOLUCIÓN REQUERIDA:**
-1. Crear migración para tablas `carts` y `cart_items`
-2. Actualizar `CartService` para usar Eloquent
-3. Asociar carrito a `profile_id` del usuario
-4. Actualizar endpoints de carrito
+**REGLAS DE NEGOCIO:**
+- **NO puede haber productos de diferentes comercios en el mismo carrito**
+- Si el usuario intenta agregar un producto de otro comercio, el sistema limpia el carrito automáticamente
+- Validación de cantidad: min:1, max:100
+- Validación de disponibilidad: Solo productos `available = true`
+- Validación de stock: Si tiene `stock_quantity`, verificar que haya suficiente
+
+**Implementación:**
+- `CartService` usa Eloquent (tabla `cart_items`)
+- Asociado a `profile_id` del usuario
+- Filtra productos no disponibles automáticamente
 
 ### Órdenes
 
-**Flujo de Estados:**
-- `pending_payment` → `confirmed` → `preparing` → `ready` → `delivered`
+**Flujo de Estados (MVP):**
+- `pending_payment` → `paid` → `processing` → `shipped` → `delivered`
 - `pending_payment` → `cancelled` (solo si no pagado)
 
-**Validaciones:**
-- Verificar productos disponibles antes de crear orden
-- Verificar stock suficiente
-- Validar método de pago
-- Validar dirección de entrega (si aplica)
+**Validaciones Críticas:**
+- ✅ Usuario debe tener rol `users` (comprador)
+- ✅ Perfil completo: firstName, lastName, phone, photo_users (required)
+- ✅ Comercio debe estar activo (`open = true`)
+- ✅ Productos disponibles (`available = true`)
+- ✅ Stock suficiente (si tiene `stock_quantity`)
+- ✅ Todos los productos del mismo comercio
+- ✅ Validación de precio: Recalcular y comparar con total enviado
+- ✅ Dirección de entrega (si `delivery_type = 'delivery'`)
+- ✅ Usar `DB::transaction` para atomicidad
 
-### WebSocket
+**Sistema de Delivery:**
+- **Jerarquía:** Delivery Company → Delivery Agents
+- **Tipos:** Propio del comercio, Empresa de delivery, Independiente (company_id = null)
+- **Asignación autónoma:** working=true, disponible, cercanía, aceptación
 
-**Canales:**
+### Eventos y Notificaciones en Tiempo Real
+
+**✅ IMPLEMENTADO:** Firebase Cloud Messaging (FCM) + Pusher (NO WebSocket)
+
+**Eventos:**
+- `OrderCreated` - Nueva orden creada
+- `OrderStatusChanged` - Estado de orden cambiado
+- `PaymentValidated` - Pago validado
+- `NewMessage` - Nuevo mensaje de chat
+- `DeliveryLocationUpdated` - Ubicación de delivery actualizada
+- `NotificationCreated` - Nueva notificación
+
+**Canales (Pusher):**
 - `private-user.{userId}` - Notificaciones de usuario
 - `private-order.{orderId}` - Actualizaciones de orden
 - `private-chat.{orderId}` - Chat de orden
@@ -657,6 +712,8 @@ php artisan migrate:fresh --seed
 **Autenticación:**
 - Usar Sanctum tokens
 - Endpoint: `/api/broadcasting/auth`
+
+**IMPORTANTE:** NO usar WebSocket. Usar Firebase + Pusher para notificaciones en tiempo real.
 
 ---
 
@@ -908,5 +965,35 @@ Antes de considerar el análisis completo, verificar:
 
 ---
 
-**Última actualización:** Diciembre 2024  
+**Última actualización:** Enero 2025  
 **Mantener este archivo actualizado con cambios arquitectónicos importantes**
+
+---
+
+## LÓGICA DE NEGOCIO - MVP (Actualizado Enero 2025)
+
+### Decisiones Clave del MVP
+
+1. **Carrito:** NO puede haber productos de diferentes comercios (uni-commerce)
+2. **Validación de Precio:** Recalcular y validar contra total enviado
+3. **Stock:** Ambas opciones permitidas (`available` O `stock_quantity`)
+4. **Delivery:** Sistema completo (propio, empresas, independientes con asignación autónoma)
+5. **Eventos:** Firebase + Pusher (NO WebSocket)
+6. **Perfiles:** Datos mínimos (USERS) vs completos (COMMERCE, DELIVERY)
+
+### Direcciones
+
+**USERS tiene 2 direcciones:**
+1. **Predeterminada (Casa):** `is_default = true` en tabla `addresses`
+2. **Entrega (Pedido):** Puede ser diferente, se guarda temporalmente o como nueva dirección
+
+**Ubicación:** GPS + inputs y selects para mayor precisión
+
+### Campos Requeridos por Rol
+
+**USERS:** firstName, lastName, phone, photo_users (required)
+**COMMERCE:** 7 campos requeridos + 16 opcionales
+**DELIVERY COMPANY:** 9 campos requeridos + campos opcionales (igual estructura que COMMERCE)
+**DELIVERY AGENT:** 7 campos requeridos + campos opcionales
+
+**IMPORTANTE:** Ver README.md sección completa "📋 DATOS REQUERIDOS POR ACCIÓN Y ROL" para detalles específicos de cada campo.
