@@ -8,13 +8,14 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
+     * 
+     * Crea tabla profiles con todos los campos consolidados de migraciones "add".
      */
     public function up(): void
     {
         Schema::create('profiles', function (Blueprint $table) {
-           $table->bigIncrements('id');
+            $table->bigIncrements('id');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-
 
             $table->string('firstName');
             $table->string('middleName')->nullable();
@@ -27,8 +28,13 @@ return new class extends Migration
             $table->enum('status', ['completeData', 'incompleteData', 'notverified'])->default('notverified');
             $table->string('phone')->nullable();
             $table->text('address')->nullable();
+            // Campos de notificaciones
+            $table->text('fcm_device_token')->nullable();
+            $table->json('notification_preferences')->nullable();
             $table->timestamps();
-
+            
+            // Índices de performance (consolidados desde add_performance_indexes)
+            $table->index('status', 'profiles_status_index');
         });
     }
 

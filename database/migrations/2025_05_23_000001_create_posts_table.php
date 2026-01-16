@@ -8,6 +8,9 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
+     * 
+     * Crea tabla posts con nombres en inglés desde el inicio.
+     * Consolidado: rename_spanish_fields_to_english (description en lugar de descripcion).
      */
     public function up(): void
     {
@@ -16,7 +19,7 @@ return new class extends Migration
             $table->foreignId('commerce_id')->constrained()->onDelete('cascade');
             $table->string('tipo');
             $table->string('media_url')->nullable();
-            $table->text('descripcion')->nullable();
+            $table->text('description')->nullable(); // En inglés desde el inicio (antes 'descripcion')
             $table->string('name');
             $table->decimal('price', 8, 2)->default(0);
             $table->timestamps();

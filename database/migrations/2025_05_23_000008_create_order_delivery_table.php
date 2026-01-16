@@ -8,6 +8,9 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
+     * 
+     * Crea tabla order_delivery con campos en inglés desde el inicio.
+     * Consolidado: rename_estado_envio_to_status, alter_status_column, y renombrado de campos en español.
      */
     public function up(): void
     {
@@ -15,12 +18,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('order_id')->constrained()->onDelete('cascade');
             $table->foreignId('agent_id')->constrained('delivery_agents')->onDelete('cascade');
-            $table->enum('estado_envio', ['asignado', 'en_camino', 'entregado', 'fallido']);
-            $table->decimal('costo_envio', 10, 2);
-            $table->text('notas')->nullable();
+            $table->string('status', 32); // Consolidado: directamente 'status' con tamaño 32
+            $table->decimal('delivery_fee', 10, 2); // En inglés desde el inicio (antes 'costo_envio')
+            $table->text('notes')->nullable(); // En inglés desde el inicio (antes 'notas')
             $table->timestamps();
         });
-
     }
 
     /**

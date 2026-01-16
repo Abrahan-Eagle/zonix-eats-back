@@ -34,6 +34,7 @@ class ProfileController extends Controller
             'lastName' => 'required|string|max:255',
             'secondLastName' => 'nullable|string|max:255',
             'photo_users' => 'nullable|image|mimes:jpeg,png,jpg',
+            'phone' => 'required|string|max:20', // Required según modelo de negocio
             'date_of_birth' => 'required|date',
             'maritalStatus' => 'required|in:married,divorced,single',
             'sex' => 'required|in:F,M',
@@ -64,7 +65,7 @@ class ProfileController extends Controller
         $profileData['secondLastName'] = $request->secondLastName ?? '';
         $profileData['status'] = 'notverified'; // Estado inicial.
 
-        // Manejar la carga de la imagen.
+        // Manejar la carga de la imagen (required para delivery agent).
         if ($request->hasFile('photo_users')) {
             // Obtener la URL base según el entorno.
             $baseUrl = env('APP_ENV') === 'production'
@@ -110,6 +111,7 @@ class ProfileController extends Controller
         'lastName' => 'required|string|max:255',
         'secondLastName' => 'nullable|string|max:255',
         'photo_users' => 'nullable|image|mimes:jpeg,png,jpg',
+        'phone' => 'required|string|max:20', // Required según modelo de negocio
         'date_of_birth' => 'required|date',
         'maritalStatus' => 'required|in:married,divorced,single',
         'sex' => 'required|in:F,M',
@@ -221,8 +223,10 @@ class ProfileController extends Controller
             'date_of_birth' => 'required|date',
             'maritalStatus' => 'required|in:married,divorced,single',
             'sex' => 'required|in:F,M',
-            'vehicle_type' => 'required|string|max:100',
-            'phone' => 'required|string|max:20',
+            'photo_users' => 'required|image|mimes:jpeg,png,jpg', // Required según modelo de negocio para DELIVERY
+            'phone' => 'required|string|max:20', // Required según modelo de negocio
+            'vehicle_type' => 'required|string|max:100', // Required según modelo de negocio
+            'license_number' => 'required|string|max:255', // Required según modelo de negocio
             'company_id' => 'nullable|exists:delivery_companies,id',
         ]);
 
@@ -241,12 +245,21 @@ class ProfileController extends Controller
         }
 
         $profileData = $request->only([
-            'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex'
+            'user_id', 'firstName', 'lastName', 'phone', 'date_of_birth', 'maritalStatus', 'sex'
         ]);
 
         $profileData['middleName'] = $request->middleName ?? '';
         $profileData['secondLastName'] = $request->secondLastName ?? '';
         $profileData['status'] = 'notverified';
+
+        // Manejar la carga de la imagen (required para delivery agent).
+        if ($request->hasFile('photo_users')) {
+            $baseUrl = env('APP_ENV') === 'production'
+                ? env('APP_URL_PRODUCTION')
+                : env('APP_URL_LOCAL');
+            $path = $request->file('photo_users')->store('profile_images', 'public');
+            $profileData['photo_users'] = $baseUrl . '/storage/' . $path;
+        }
 
         // Crear el perfil
         $profile = Profile::create($profileData);
@@ -254,7 +267,8 @@ class ProfileController extends Controller
         // Crear el delivery agent asociado
         $deliveryAgentData = [
             'profile_id' => $profile->id,
-            'vehicle_type' => $request->vehicle_type,
+            'vehicle_type' => $request->vehicle_type, // Required según modelo de negocio
+            'license_number' => $request->license_number, // Required según modelo de negocio
             'phone' => $request->phone,
             'status' => 'activo',
             'working' => false,
@@ -289,12 +303,15 @@ class ProfileController extends Controller
             'date_of_birth' => 'required|date',
             'maritalStatus' => 'required|in:married,divorced,single',
             'sex' => 'required|in:F,M',
-            'business_name' => 'required|string|max:255',
-            'description' => 'required|string',
+            'photo_users' => 'required|image|mimes:jpeg,png,jpg', // Required según modelo de negocio para COMMERCE
+            'phone' => 'required|string|max:20', // Required según modelo de negocio
+            'business_name' => 'required|string|max:255', // Required según modelo de negocio
+            'business_type' => 'required|string|max:255', // Required según modelo de negocio
+            'tax_id' => 'required|string|max:255', // Required según modelo de negocio
+            'description' => 'nullable|string',
             'address' => 'required|string|max:500',
-            'phone' => 'required|string|max:20',
-            'email' => 'required|email',
-            'is_open' => 'required|boolean',
+            'email' => 'nullable|email',
+            'is_open' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -311,11 +328,20 @@ class ProfileController extends Controller
         }
 
         $profileData = $request->only([
-            'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex'
+            'user_id', 'firstName', 'lastName', 'phone', 'date_of_birth', 'maritalStatus', 'sex'
         ]);
         $profileData['middleName'] = $request->middleName ?? '';
         $profileData['secondLastName'] = $request->secondLastName ?? '';
         $profileData['status'] = 'notverified';
+
+        // Manejar la carga de la imagen (required para commerce).
+        if ($request->hasFile('photo_users')) {
+            $baseUrl = env('APP_ENV') === 'production'
+                ? env('APP_URL_PRODUCTION')
+                : env('APP_URL_LOCAL');
+            $path = $request->file('photo_users')->store('profile_images', 'public');
+            $profileData['photo_users'] = $baseUrl . '/storage/' . $path;
+        }
 
         // Crear el perfil
         $profile = Profile::create($profileData);
@@ -323,11 +349,13 @@ class ProfileController extends Controller
         // Crear el commerce asociado
         $commerce = \App\Models\Commerce::create([
             'profile_id' => $profile->id,
-            'business_name' => $request->business_name,
-            'description' => $request->description,
+            'business_name' => $request->business_name, // Required según modelo de negocio
+            'business_type' => $request->business_type, // Required según modelo de negocio
+            'tax_id' => $request->tax_id, // Required según modelo de negocio
+            'description' => $request->description ?? null,
             'address' => $request->address,
             'phone' => $request->phone,
-            'open' => $request->is_open,
+            'open' => $request->is_open ?? false,
         ]);
 
         return response()->json([
@@ -358,9 +386,11 @@ class ProfileController extends Controller
             'date_of_birth' => 'required|date',
             'maritalStatus' => 'required|in:married,divorced,single',
             'sex' => 'required|in:F,M',
+            'photo_users' => 'required|image|mimes:jpeg,png,jpg', // Required según modelo de negocio para DELIVERY COMPANY
+            'phone' => 'required|string|max:20', // Required según modelo de negocio
             'company_name' => 'required|string|max:255',
             'address' => 'required|string|max:500',
-            'phone' => 'required|string|max:20',
+            'ci' => 'required|string|max:255', // tax_id required según modelo de negocio
         ]);
 
         if ($validator->fails()) {
@@ -378,12 +408,21 @@ class ProfileController extends Controller
         }
 
         $profileData = $request->only([
-            'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex'
+            'user_id', 'firstName', 'lastName', 'phone', 'date_of_birth', 'maritalStatus', 'sex'
         ]);
 
         $profileData['middleName'] = $request->middleName ?? '';
         $profileData['secondLastName'] = $request->secondLastName ?? '';
         $profileData['status'] = 'notverified';
+
+        // Manejar la carga de la imagen (required para delivery company).
+        if ($request->hasFile('photo_users')) {
+            $baseUrl = env('APP_ENV') === 'production'
+                ? env('APP_URL_PRODUCTION')
+                : env('APP_URL_LOCAL');
+            $path = $request->file('photo_users')->store('profile_images', 'public');
+            $profileData['photo_users'] = $baseUrl . '/storage/' . $path;
+        }
 
         // Crear el perfil
         $profile = Profile::create($profileData);
@@ -392,10 +431,10 @@ class ProfileController extends Controller
         $deliveryCompany = \App\Models\DeliveryCompany::create([
             'profile_id' => $profile->id,
             'name' => $request->company_name,
-            'tax_id' => $request->ci ?? '00000000000',
+            'tax_id' => $request->ci, // Required según modelo de negocio
             'phone' => $request->phone,
             'address' => $request->address,
-            'activo' => true,
+            'active' => true,
         ]);
 
         return response()->json([

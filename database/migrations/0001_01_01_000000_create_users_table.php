@@ -26,6 +26,9 @@ return new class extends Migration
             $table->enum('role', ['admin', 'users', 'commerce', 'delivery_company', 'delivery_agent', 'delivery'])->default('users');
             $table->rememberToken();
             $table->timestamps();
+            
+            // Índices de performance (consolidados desde add_performance_indexes)
+            $table->index('created_at', 'users_created_at_index');
         });
     }
 

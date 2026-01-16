@@ -8,6 +8,8 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
+     * 
+     * Crea tabla addresses con todos los campos consolidados de migraciones "add".
      */
     public function up(): void
     {
@@ -19,6 +21,7 @@ return new class extends Migration
             $table->decimal('latitude', 10, 7); // Almacena la latitud con 7 decimales de precisión
             $table->decimal('longitude', 10, 7); // Almacena la longitud con 7 decimales de precisión
             $table->enum('status', ['completeData', 'incompleteData', 'notverified'])->default('notverified');
+            $table->boolean('is_default')->default(false); // Marca dirección predeterminada (casa)
             $table->timestamps();
 
             // Claves foráneas

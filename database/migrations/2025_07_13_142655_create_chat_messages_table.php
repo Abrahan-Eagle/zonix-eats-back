@@ -22,8 +22,10 @@ return new class extends Migration
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
 
-            $table->index(['order_id', 'created_at']);
-            $table->index(['sender_id', 'read_at']);
+            // Índices de performance (consolidados desde add_performance_indexes)
+            $table->index('order_id', 'chat_messages_order_id_index');
+            $table->index(['order_id', 'created_at'], 'chat_messages_order_created_index');
+            $table->index(['sender_id', 'read_at']); // Índice adicional para consultas de mensajes no leídos
         });
     }
 
