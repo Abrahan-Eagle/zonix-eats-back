@@ -72,7 +72,8 @@ class DeliveryController extends Controller
         try {
             $order = Order::findOrFail($orderId);
             
-            if ($order->status !== 'paid' && $order->status !== 'preparing') {
+            // Validar que la orden está en estado 'shipped' (antes era 'paid' o 'preparing')
+            if ($order->status !== 'shipped') {
                 return response()->json([
                     'success' => false,
                     'message' => 'Order is not available for delivery'

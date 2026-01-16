@@ -84,7 +84,7 @@ class OrderController extends Controller
             }
 
             // Validar datos mínimos del perfil para crear orden
-            $requiredFields = ['firstName', 'lastName', 'phone'];
+            $requiredFields = ['firstName', 'lastName', 'phone', 'photo_users'];
             if ($validated['delivery_type'] === 'delivery') {
                 $requiredFields[] = 'address';
             }
@@ -93,7 +93,7 @@ class OrderController extends Controller
                 if (empty($profile->$field)) {
                     return response()->json([
                         'success' => false,
-                        'message' => "Se requiere {$field} para crear una orden",
+                        'message' => "Se requiere {$field} para crear una orden. Por favor, completa tu perfil.",
                         'missing_field' => $field
                     ], 400);
                 }
@@ -177,7 +177,7 @@ class OrderController extends Controller
                     'delivery_address' => $validated['delivery_address'] ?? null,
                 ]);
 
-                // Crear OrderItems usando el modelo OrderItem
+                // Crear OrderItems y descontar stock si aplica
                 foreach ($productModels as $item) {
                     \App\Models\OrderItem::create([
                         'order_id' => $order->id,
@@ -185,6 +185,16 @@ class OrderController extends Controller
                         'quantity' => $item['data']['quantity'],
                         'unit_price' => $item['model']->price
                     ]);
+
+                    // Descontar stock si tiene stock_quantity
+                    if ($item['model']->stock_quantity !== null) {
+                        $item['model']->decrement('stock_quantity', $item['data']['quantity']);
+                        
+                        // Si el stock llega a 0, marcar como no disponible automáticamente
+                        if ($item['model']->stock_quantity <= 0) {
+                            $item['model']->update(['available' => false]);
+                        }
+                    }
                 }
 
                 return $order;
@@ -347,12 +357,34 @@ class OrderController extends Controller
             
             $order = \App\Models\Order::where('profile_id', $profile->id)->findOrFail($id);
             
-            // Solo se puede cancelar si está en pending_payment
+            // Validar que puede cancelar (solo en pending_payment y dentro del tiempo límite)
             if ($order->status !== 'pending_payment') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Solo se puede cancelar una orden pendiente de pago'
+                    'message' => 'Solo puedes cancelar órdenes pendientes de pago'
                 ], 400);
+            }
+
+            // Validar límite de tiempo: 5 minutos después de crear la orden O hasta que el comercio valide el pago
+            // Si el comercio ya validó el pago (status = 'paid'), no se puede cancelar
+            $timeLimit = $order->created_at->addMinutes(5);
+            if (now()->greaterThan($timeLimit)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El tiempo límite para cancelar esta orden ha expirado (5 minutos)'
+                ], 400);
+            }
+
+            // Restaurar stock si se cancela la orden (si tiene stock_quantity)
+            foreach ($order->orderItems as $item) {
+                $product = $item->product;
+                if ($product && $product->stock_quantity !== null) {
+                    $product->increment('stock_quantity', $item->quantity);
+                    // Si había stock 0 y se restauró, marcar como disponible nuevamente
+                    if ($product->stock_quantity > 0 && !$product->available) {
+                        $product->update(['available' => true]);
+                    }
+                }
             }
 
             $order->update([

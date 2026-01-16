@@ -285,8 +285,8 @@ foreach ($requiredFields as $field) {
 |----------|----------------|-------|
 | Carrito Multi-Commerce | Solo un comercio por carrito | Simplifica checkout y UX |
 | Validación de Precio | Validar y recalcular | Protege al usuario |
-| Stock | AMBAS opciones (available O stock_quantity) | El comercio elige |
-| Delivery | Sistema completo (propio, empresas, independientes) | Flexibilidad total |
+| Stock | AMBAS opciones (available Y stock_quantity) | Validar siempre available, si tiene stock_quantity validar cantidad |
+| Delivery | Sistema completo (propio, empresas, independientes) + Asignación autónoma con expansión de área | Flexibilidad total |
 | Eventos | Firebase + Pusher (NO WebSocket) | Ya implementado |
 | Perfiles | Datos mínimos (USERS) vs completos (COMMERCE, DELIVERY) | Por rol |
 
@@ -355,8 +355,16 @@ foreach ($requiredFields as $field) {
 - **Cancelar:** reason (required, max:500)
 - **Subir comprobante:** payment_proof (file), payment_method, reference_number
 
-**Reviews:**
-- **Crear:** reviewable_type, reviewable_id, rating (1-5), comentario (opcional)
+**Reviews/Calificaciones:**
+- **Crear:** reviewable_type (commerce, delivery_agent), reviewable_id, rating (1-5), comentario (opcional)
+- **Obligatorio:** Después de cada orden entregada (`delivered`), el cliente DEBE calificar:
+  - Comercio (obligatorio)
+  - Delivery (obligatorio si hubo delivery)
+- **Separado:** Comercio y Delivery se califican por separado (son 2 servicios independientes)
+- **No editable:** Una vez creada la reseña, NO se puede editar ni eliminar
+- **Implementación:**
+  - Bloquear acceso a nuevas órdenes hasta que califique la orden anterior
+  - Notificación: "Por favor, califica tu experiencia para continuar comprando"
 
 ---
 
@@ -506,7 +514,7 @@ foreach ($requiredFields as $field) {
 - **Actualizar estado:** PUT /api/delivery/orders/{id}/status (shipped, delivered)
 - **Actualizar ubicación:** PUT /api/delivery/location (latitude, longitude)
 
-**⚠️ NOTA:** La migración actual tiene `company_id` como required. Se necesita hacer nullable para motorizados independientes.
+**✅ NOTA:** La migración `make_company_id_nullable_in_delivery_agents_table.php` ya fue creada para permitir motorizados independientes (`company_id = null`).
 
 ---
 
@@ -523,18 +531,54 @@ foreach ($requiredFields as $field) {
 
 ### 🔄 FLUJOS TRANSVERSALES
 
+#### Flujo de Búsqueda de Comercios por Geolocalización
+
+**1. Usuario busca comercios/productos:**
+- **Ubicación base:** Dirección predeterminada del usuario (casa) con `is_default = true`
+  - Usa coordenadas: `latitude`, `longitude` de la dirección predeterminada
+- **Rango inicial:** 1-1.5 km desde la ubicación del usuario
+- **Resultados:** Lista de comercios abiertos (`open = true`) dentro del rango
+- **Productos:** Muestra productos disponibles (`available = true`) de los comercios encontrados
+
+**2. Expansión automática si no hay comercios abiertos:**
+- **Si no encuentra comercios abiertos en 1-1.5 km:**
+  - Expansión automática a 2 km adicionales (total 4-5 km)
+- **Si aún no encuentra:**
+  - Continuar expandiendo hasta encontrar comercios abiertos
+- **Expansión manual:** Usuario puede ampliar el rango manualmente si desea buscar más lejos
+
+**3. Cálculo de distancia:**
+- **Método:** Haversine o similar para calcular distancia entre coordenadas GPS
+- **Ubicación usuario:** `latitude`, `longitude` de dirección predeterminada
+- **Ubicación comercio:** `latitude`, `longitude` del comercio (o dirección del comercio)
+- **Resultado:** Distancia en km desde usuario hasta comercio
+- **Ordenamiento:** Comercios más cercanos primero
+
+**Endpoints relacionados:**
+- `GET /api/buyer/search/restaurants` - Búsqueda de comercios por geolocalización
+- `GET /api/buyer/search/products` - Búsqueda de productos con filtro por distancia
+
+---
+
 #### Flujo Completo: Crear Orden y Procesarla
 
-1. **Usuario agrega productos al carrito**
-   - Validar producto disponible
-   - Validar commerce activo
-   - Validar mismo commerce (si ya hay productos)
+1. **Usuario busca comercios por geolocalización**
+   - Sistema busca comercios a 1-1.5 km de su dirección predeterminada
+   - Si no hay abiertos, expande automáticamente a 4-5 km
+   - Usuario puede expandir manualmente el rango
 
-2. **Usuario crea orden**
-   - Validar profile con datos mínimos (firstName, lastName, phone, address si delivery)
+2. **Usuario agrega productos al carrito**
+   - Validar producto disponible (`available = true`)
+   - Validar stock suficiente (si tiene `stock_quantity`)
+   - Validar commerce activo (`open = true`)
+   - Validar mismo commerce (si ya hay productos) - limpia carrito si es diferente
+
+3. **Usuario crea orden**
+   - Validar profile con datos mínimos (firstName, lastName, phone, **photo_users** (required), address si delivery)
    - Validar todos los productos disponibles
    - Validar todos los productos del mismo commerce
    - Recalcular total y validar
+   - Descontar stock automáticamente (si tiene `stock_quantity`)
    - Crear orden en transacción
    - Limpiar carrito
 
@@ -553,13 +597,37 @@ foreach ($requiredFields as $field) {
 6. **Comercio marca como enviado**
    - `processing` → `shipped` (listo para delivery)
 
-7. **Delivery acepta orden**
-   - Crear OrderDelivery
-   - Estado sigue `shipped`
+7. **Sistema busca delivery disponible (Asignación Autónoma con Expansión)**
+   - **Criterios de búsqueda (en orden):**
+     1. Delivery con `working = true`
+     2. Delivery disponible (no tiene órdenes activas en estado `shipped` o `delivered`)
+     3. **Cercanía inicial:** 1-1.5 km del comercio Y del usuario
+     4. Si no encuentra, **expansión automática** a 2 km adicionales (total 4-5 km)
+     5. Continuar expandiendo hasta encontrar delivery disponible
+   - **Cálculo de distancia:** Haversine entre:
+     - Coordenadas del delivery (current_latitude, current_longitude)
+     - Coordenadas del comercio
+     - Coordenadas del usuario (dirección de entrega)
+   - **Ordenamiento:** Delivery más cercano primero
+   - **Solicitud:** Sistema envía solicitud al delivery más cercano disponible
+   - **Aceptación:** Delivery acepta o rechaza la solicitud
+   - **Si rechaza:** Sistema busca el siguiente delivery disponible en el área expandida
+   - **Si no encuentra en área expandida:** Continúa expandiendo el área de búsqueda hasta encontrar un delivery disponible
+   - **Si después de expandir mucho no encuentra:** Orden se mantiene en estado `shipped` esperando delivery disponible
+   - **Notificación al cliente:** "Buscando delivery disponible. Te notificaremos cuando sea asignado."
+   - **Notificación al comercio:** "Orden lista para envío. Buscando delivery disponible."
+   - **No se cancela:** La orden NO se cancela, solo espera hasta que haya un delivery disponible
+   - **Si no encuentra en área máxima:** Esperar a que un delivery esté disponible
 
-8. **Delivery marca como entregado**
+8. **Delivery acepta orden**
+   - Crear OrderDelivery
+   - Estado sigue `shipped` (no cambia al aceptar)
+   - Marcar delivery como no disponible temporalmente
+
+9. **Delivery marca como entregado**
    - `shipped` → `delivered`
-   - Marcar delivery como disponible
+   - Marcar delivery como disponible (`working = true`)
+   - Restaurar disponibilidad del delivery
 
 ---
 
@@ -611,9 +679,563 @@ shipped → delivered (delivery entrega)
 ```
 
 **Reglas de Cancelación:**
-- **Comprador:** Solo puede cancelar en `pending_payment`
-- **Comercio:** Puede cancelar en `paid` o `processing`
-- **Admin:** Puede cancelar en cualquier estado
+
+**Comprador:**
+- Solo puede cancelar en `pending_payment`
+- **Límite de tiempo:** 5 minutos después de crear la orden O hasta que el comercio valide el pago
+- Si el comercio ya validó el pago (`status = 'paid'`), no se puede cancelar
+- Al cancelar, se restaura el stock automáticamente (si tiene `stock_quantity`)
+- **Penalización:** Si cancela múltiples órdenes sin pagar, puede ser penalizado (suspensión temporal)
+
+**Comercio:**
+- Puede cancelar en `paid` o `processing`
+- **Casos permitidos:**
+  - Producto agotado o no disponible
+  - Problema con el pago (comprobante inválido o sospechoso)
+  - Cliente no responde o no está disponible
+  - Problema logístico (no puede preparar/enviar)
+  - Orden duplicada o error del sistema
+- **Penalizaciones:**
+  - Si cancela más de X órdenes en un período (ej: 5 cancelaciones en 30 días), puede ser suspendido temporalmente
+  - Si cancela después de `paid`, se cobra comisión como penalización (no se resta de factura mensual)
+  - Sistema trackea `commerce.cancellation_count` y `commerce.last_cancellation_date`
+- **Notificación:** Debe justificar la cancelación con razón obligatoria
+
+**Admin:**
+- Puede cancelar en cualquier estado
+- Sin penalizaciones (tiene control total)
+
+**Reembolsos:**
+- ❌ **NO hay reembolso automático** (se maneja manualmente)
+- Si la orden se cancela en `pending_payment`, no se procesa el pago
+- Si la orden se cancela en `paid` o `processing`, el reembolso se gestiona manualmente por el admin/comercio
+
+---
+
+### 💰 MODELO DE NEGOCIO - PRECIOS, COSTOS Y COMISIONES
+
+#### 1. **Costo de Delivery**
+
+**✅ RECOMENDACIÓN: Modelo Híbrido (Base Fija + Por Distancia)**
+
+**Cálculo:**
+```
+Costo Delivery = Costo Base + (Distancia en km × Precio por km)
+```
+
+**Ejemplo:**
+- **Costo Base:** $2.00 (cubierto en primeros 1-2 km)
+- **Precio por km adicional:** $0.50/km (después de 2 km)
+- **Ejemplo 1:** 1.5 km → $2.00 (solo base)
+- **Ejemplo 2:** 5 km → $2.00 + (3 km × $0.50) = $3.50
+
+**Configuración:**
+- Admin configura: `delivery_base_cost` y `delivery_cost_per_km`
+- Flexible: Se puede ajustar por zona, comercio o tipo de vehículo
+
+**Alternativas consideradas:**
+- ❌ Solo fijo: No refleja distancia real
+- ❌ Solo por distancia: Puede ser muy barato para entregas cercanas
+- ✅ **Híbrido (RECOMENDADO):** Balance entre justicia y simplicidad
+
+---
+
+#### 2. **¿Quién Paga el Delivery?**
+
+**✅ DECISIÓN: El Cliente Paga el Delivery (Confirmado)**
+
+**Justificación:**
+- ✅ Estándar en e-commerce de delivery (Rappi, Uber Eats, etc.)
+- ✅ Cliente decide si quiere delivery o recoger
+- ✅ Transparente: Cliente ve el costo antes de pedir
+- ✅ Comercio no asume costos de entrega
+- ✅ Modelo más justo: Quien usa el servicio lo paga
+
+**Implementación:**
+- El cliente ve el costo de delivery antes de confirmar orden
+- Se agrega al total de la orden
+- El comercio no paga nada de delivery
+- Cliente paga: `subtotal_productos + delivery_fee`
+
+---
+
+#### 3. **Membresía y Comisiones de la Plataforma**
+
+**✅ DECISIÓN: Membresía Mensual (Base) + Comisión % sobre Ventas del Mes (Extra)**
+
+**Modelo Híbrido:**
+- **Comercio paga:** Membresía mensual fija (ej: $50/mes, $100/mes según plan) **Y** comisión porcentual sobre ventas del mes
+- **Ventaja:** Ingresos fijos (membresía) + ingreso variable basado en performance (comisión)
+- **Beneficio para comercio:** Acceso a la plataforma garantizado durante el mes
+
+**Estructura de Pagos:**
+
+**1. Membresía Mensual (Obligatoria):**
+- **Campo en BD:** `commerce.membership_type` (basic, premium, enterprise), `membership_expires_at`
+- **Pago:** Fijo mensual, independiente de ventas
+- **Beneficio:** Acceso a la plataforma, sin límite de órdenes
+- **Si no paga membresía:** Suspendido hasta pagar
+
+**2. Comisión sobre Ventas del Mes (Adicional):**
+- **Campo en BD:** `commerce.commission_percentage` (configurable por admin, ej: 5%, 10%, 15%)
+- **Cálculo por orden:** `comisión_orden = (subtotal_orden - delivery_fee) × commission_percentage / 100`
+- **Cálculo mensual:** `comisión_mes = Suma de todas las comisiones de órdenes del mes`
+- **Liquidación:** Al final del mes, se genera factura con total de comisiones acumuladas
+
+**Ejemplo:**
+```
+Comercio con membresía $100/mes + 10% comisión
+
+Mes: Enero
+- Membresía: $100 (fijo)
+- Ventas totales del mes: $5,000 (sin incluir delivery fees)
+- Comisión del mes: $5,000 × 10% = $500
+- Total a pagar en febrero: $100 + $500 = $600
+```
+
+**Configuración:**
+- Admin configura `membership_type` y `membership_monthly_fee` por plan
+- Admin configura `commission_percentage` por comercio o globalmente
+- Sistema calcula comisiones automáticamente en cada orden
+- Sistema genera reporte mensual de comisiones
+
+**Implementación:**
+```php
+// Al crear orden (calcular comisión)
+$subtotal = $order->total - $order->delivery_fee;
+$commission = $subtotal * ($commerce->commission_percentage / 100);
+
+// Guardar comisión en orden
+$order->commission_amount = $commission;
+$order->save();
+
+// Al final del mes (liquidación)
+$totalCommission = Order::where('commerce_id', $commerceId)
+    ->whereMonth('created_at', $month)
+    ->whereYear('created_at', $year)
+    ->sum('commission_amount');
+    
+// Generar factura: membresía + comisiones
+$invoice = [
+    'membership_fee' => $commerce->membership_monthly_fee,
+    'commission_amount' => $totalCommission,
+    'total' => $commerce->membership_monthly_fee + $totalCommission
+];
+```
+
+**Campos en BD necesarios:**
+- `commerces.membership_type` (enum: basic, premium, enterprise)
+- `commerces.membership_monthly_fee` (decimal, precio mensual)
+- `commerces.membership_expires_at` (timestamp)
+- `commerces.commission_percentage` (decimal, porcentaje sobre ventas)
+- `orders.commission_amount` (decimal, comisión de esta orden)
+- Tabla `commerce_invoices` (opcional, para trackear facturas mensuales)
+
+---
+
+#### 4. **Mínimo de Pedido**
+
+**✅ DECISIÓN: NO hay mínimo de pedido**
+
+- Los usuarios pueden pedir cualquier cantidad
+- No hay restricción de monto mínimo
+
+---
+
+#### 5. **Métodos de Pago Aceptados**
+
+**✅ DECISIÓN: Todos los métodos disponibles**
+
+**Métodos soportados:**
+- 💵 **Efectivo** (al recibir)
+- 🏦 **Transferencia bancaria** (Zelle, Pago Móvil, ACH)
+- 💳 **Tarjeta de crédito/débito** (Visa, Mastercard, Amex)
+- 📱 **Pago Móvil** (Pagos electrónicos locales)
+- 💻 **Pagos digitales** (PayPal, Stripe, etc.)
+
+**Implementación:**
+- Tabla `payment_methods` con todos los métodos disponibles
+- Comercio puede configurar qué métodos acepta
+- Cliente elige método al crear orden
+- Campo en orden: `payment_method` (efectivo, transferencia, tarjeta, pago_movil, digital)
+
+---
+
+#### 6. **¿Quién Recibe el Pago?**
+
+**✅ DECISIÓN: El Comercio Recibe Directamente**
+
+**Flujo:**
+- Cliente paga → Comercio recibe directamente
+- Comercio coloca sus datos bancarios en su perfil
+- La plataforma NO intermedia el pago (excepto comisión si aplica)
+- Comercio gestiona su propio flujo de caja
+
+**Datos del Comercio:**
+- `commerce.bank_account` (opcional, para transferencias)
+- `commerce.payment_info` (JSON con información de métodos de pago)
+
+---
+
+#### 7. **Manejo de Pagos**
+
+**✅ DECISIÓN: Tiempo Real (Para Fluidez)**
+
+**Flujo:**
+1. **Cliente crea orden** → Estado: `pending_payment`
+2. **Cliente sube comprobante** (transferencia, captura de pantalla, etc.)
+3. **Comercio valida pago** → Si válido: `paid`, si inválido: `cancelled`
+4. **Cliente paga al delivery** (si aplica) → Al recibir el pedido
+
+**Objetivo:** Fluidez en transacciones entre usuario, comercio y delivery
+
+**Validación:**
+- Comercio valida comprobante manualmente
+- Sistema puede enviar notificaciones automáticas cuando se sube comprobante
+
+**Tiempos Límite y Timeouts:**
+
+**1. Cliente sube comprobante:**
+- **Tiempo límite:** 5 minutos después de crear la orden
+- **Si no sube:** Sistema envía notificación recordando que debe subir comprobante
+- **Si pasa 5 minutos sin subir:** Orden se cancela automáticamente (como si nunca pagó)
+- **Notificación:** "Debes subir el comprobante de pago. Si no se sube en 5 minutos, la orden se cancelará automáticamente."
+
+**2. Comercio valida pago:**
+- **Tiempo límite:** 5 minutos después de que cliente sube comprobante
+- **Si no valida:** Sistema envía notificación recordando que debe validar
+- **Si pasa 5 minutos sin validar:** Orden se cancela automáticamente
+- **Notificación:** "Debes validar el pago de esta orden. Si no se valida en 5 minutos, la orden se cancelará automáticamente."
+
+**3. Cliente no paga (nunca sube comprobante):**
+- **Tiempo límite:** 5 minutos después de crear la orden
+- **Si no sube comprobante:** Orden se cancela automáticamente
+- **Penalización:** Si el cliente crea múltiples órdenes sin pagar, puede ser penalizado (suspensión temporal)
+- **Razón:** El comercio no va a preparar el producto (ej: hamburguesa) si no hay pago confirmado
+
+**Implementación:**
+- Job/Queue que verifica órdenes en `pending_payment` cada minuto
+- Si `created_at + 5 minutos < now()` y no hay comprobante → Cancelar automáticamente
+- Si `payment_proof_uploaded_at + 5 minutos < now()` y no está validado → Cancelar automáticamente
+
+---
+
+#### 8. **Pago al Delivery**
+
+**✅ DECISIÓN: El Comercio Paga al Delivery (Después de Recibir Pago del Cliente)**
+
+**Explicación de las 3 opciones:**
+
+**Opción A: Delivery recibe 100% del delivery_fee**
+- Cliente paga: `$10 productos + $3 delivery = $13 total`
+- Comercio recibe: `$10 productos` (después de comisión)
+- Delivery recibe: `$3` (100% del delivery_fee)
+- **Ventaja:** Simple, transparente
+- **Desventaja:** Comercio no gana nada del delivery
+
+**Opción B: Comercio retiene un porcentaje del delivery_fee**
+- Cliente paga: `$10 productos + $3 delivery = $13 total`
+- Comercio recibe: `$10 productos + $0.50 (retiene 15% del delivery) = $10.50`
+- Delivery recibe: `$2.50` (85% del delivery_fee)
+- **Ventaja:** Comercio tiene incentivo para usar delivery
+- **Desventaja:** Delivery recibe menos
+
+**Opción C: Comercio puede negociar con delivery (flexible)**
+- Comercio puede pagar más o menos del delivery_fee según acuerdo
+- Ejemplo: Delivery cobra $3, pero comercio le paga $4 (bonificación) o $2.50 (descuento)
+- **Ventaja:** Máxima flexibilidad
+- **Desventaja:** Complejo de gestionar
+
+**✅ RECOMENDACIÓN: Opción A (Delivery recibe 100% del delivery_fee)**
+
+**Justificación:**
+- ✅ Más simple y transparente
+- ✅ Estándar en apps de delivery (Uber Eats, Rappi)
+- ✅ El delivery asume el costo de transporte, merece el 100%
+- ✅ El comercio ya tiene su ganancia en los productos
+
+**Flujo:**
+1. Cliente paga al comercio (orden total + delivery fee)
+2. Comercio recibe pago
+3. Comercio paga al delivery: **100% del delivery_fee** (el mismo monto que pagó el cliente)
+4. Plataforma puede gestionar el pago automáticamente (opcional)
+
+**Cálculo:**
+- **Si cliente eligió delivery:** El total incluye `delivery_fee`
+- **Cliente paga:** `subtotal_productos + delivery_fee`
+- **Comercio recibe:** `subtotal_productos` (después de comisión si aplica)
+- **Delivery recibe:** `delivery_fee` (100% del monto que pagó el cliente)
+
+**Ejemplo:**
+```
+Cliente pide: $20 productos + $3 delivery = $23 total
+Cliente paga: $23
+Comercio recibe: $20 (después de comisión 10% = $18 neto)
+Delivery recibe: $3 (100% del delivery_fee)
+```
+
+**Implementación:**
+- Campo en orden: `delivery_fee` (cantidad que paga el cliente por delivery)
+- Campo en orden: `delivery_payment_amount` (cantidad que recibe el delivery = delivery_fee)
+- Tabla `delivery_payments` (opcional, para trackear pagos a delivery)
+- Estado: `pending_payment_to_delivery`, `paid_to_delivery`
+
+**Nota:** El recargo por delivery es visible al cliente antes de confirmar
+
+---
+
+#### 9. **Tarifa de Servicio Adicional**
+
+**❌ DECISIÓN: NO hay tarifa de servicio adicional para el cliente**
+
+**Explicación:**
+- Ya existe comisión/membresía para el comercio
+- El delivery tiene su costo separado
+- No se cobra tarifa adicional al cliente
+- El único costo visible para el cliente es: `subtotal + delivery_fee`
+
+---
+
+#### 10. **Propinas**
+
+**❌ DECISIÓN: NO se permite dar propina al delivery**
+
+- El delivery recibe su pago fijo del comercio
+- No hay opción de propina en la app
+- Si el cliente quiere dar propina, puede hacerlo en efectivo directamente (fuera de la plataforma)
+
+---
+
+#### 11. **Límite de Distancia para Entrega**
+
+**✅ DECISIÓN: Máximo 60 minutos de distancia estimada**
+
+**Implementación:**
+- **Cálculo:** Usar tiempo estimado de viaje (Google Maps API o similar)
+- **Validación:** Antes de crear orden, verificar que tiempo estimado ≤ 60 minutos
+- **Expansión automática:** Continúa hasta encontrar delivery, pero no excede 60 min de viaje
+- **Campo:** `estimated_delivery_time` (en minutos)
+
+**Lógica:**
+```
+Si tiempo_estimado_delivery > 60 minutos:
+    → Mostrar mensaje: "La distancia de entrega excede 60 minutos. Por favor, elige recoger o selecciona un comercio más cercano."
+Si tiempo_estimado_delivery ≤ 60 minutos:
+    → Permitir crear orden con delivery
+```
+
+---
+
+#### 12. **Manejo de Quejas/Disputas**
+
+**✅ RECOMENDACIÓN: Sistema de Tickets/Chat con Soporte Admin**
+
+**Implementación sugerida:**
+
+**Tabla `disputes` o `tickets`:**
+- `order_id` (FK)
+- `reported_by` (user_id, commerce_id, delivery_id)
+- `reported_against` (user_id, commerce_id, delivery_id)
+- `type` (quality_issue, delivery_problem, payment_issue, other)
+- `description` (texto del problema)
+- `status` (pending, in_review, resolved, closed)
+- `admin_notes` (notas del admin)
+- `resolved_at` (timestamp)
+
+**Flujo:**
+1. **Usuario/Comercio/Delivery crea queja** → Estado: `pending`
+2. **Admin revisa queja** → Estado: `in_review`
+3. **Admin resuelve** → Estado: `resolved` o `closed`
+4. **Notificaciones:** Todas las partes reciben actualizaciones vía Firebase + Pusher
+
+**Chat de Orden (Ya implementado):**
+- Usuario, comercio y delivery pueden chatear en tiempo real dentro de la orden
+- Útil para resolver problemas antes de escalar a queja formal
+
+**Endpoints sugeridos:**
+- `POST /api/buyer/disputes` - Crear queja
+- `GET /api/buyer/disputes` - Ver mis quejas
+- `GET /api/admin/disputes` - Admin: Ver todas las quejas
+- `PUT /api/admin/disputes/{id}/resolve` - Admin: Resolver queja
+
+---
+
+#### 13. **Promociones y Descuentos**
+
+**✅ DECISIÓN: Promociones/Descuentos Manuales (Comercio y Admin pueden crear)**
+
+**Quién crea:**
+- **Comercio:** Puede crear promociones para sus productos/comercio
+- **Admin:** Puede crear promociones globales o para cualquier comercio
+- **Ambos:** Tienen capacidad de crear promociones
+
+**Tipos de promociones:**
+- **Descuento porcentual:** Ej: "20% de descuento en todos los productos"
+- **Descuento fijo:** Ej: "$5 de descuento en pedidos mayores a $30"
+- **Envío gratis:** Ej: "Envío gratis en pedidos mayores a $50"
+- **Producto gratis:** Ej: "Compra 2, lleva 3"
+
+**Cómo se aplican:**
+- **Código promocional:** Cliente ingresa código (ej: "DESCUENTO20") al checkout
+- **Automático:** Se aplica automáticamente si cumple condiciones (ej: "Envío gratis si pedido > $50")
+- **Ambos:** Puede ser código O automático según tipo de promoción
+
+**Implementación:**
+- Tabla `promotions` con campos: `code` (nullable), `type` (percentage, fixed, free_shipping), `value`, `min_order_amount`, `max_uses`, `expires_at`
+- Campo `promotion_code` en orden (opcional, si usa código)
+- Campo `discount_amount` en orden (descuento aplicado)
+- Validación: Verificar que código es válido, no expirado, y no exceda `max_uses`
+
+**Ejemplo:**
+```
+Promoción: "DESCUENTO10" - 10% de descuento, mínimo $20
+Cliente ingresa código → Sistema aplica 10% al subtotal
+Si subtotal < $20 → Error: "Pedido mínimo no alcanzado"
+```
+
+---
+
+#### 14. **Programa de Fidelización**
+
+**❌ DECISIÓN: Por ahora NO hay programa de fidelización**
+
+- No hay puntos acumulables, descuentos automáticos por puntos ni promociones automáticas basadas en historial
+- Se puede implementar en el futuro (Post-MVP)
+
+---
+
+#### 15. **Comisión en Cancelaciones**
+
+**✅ DECISIÓN: Penalización por Cancelación (No se resta de factura mensual)**
+
+**Reglas:**
+- **Si comercio cancela después de `paid`:** Se cobra comisión como penalización (no se resta, es adicional)
+- **Si cliente cancela:** NO se cobra comisión al comercio (cliente no pagó, no hay venta)
+- **Si se cancela en `pending_payment`:** NO se cobra comisión (no hubo pago validado)
+
+**Ejemplo:**
+```
+Comercio cancela orden en `paid`:
+- Orden: $100 productos
+- Comisión normal: $10 (10%)
+- Penalización por cancelar: $10 (comisión adicional)
+- Total comisión en factura: $20 (comisión + penalización)
+```
+
+**Implementación:**
+- Campo `orders.cancellation_penalty` (decimal, comisión adicional si cancela después de paid)
+- Campo `orders.cancelled_by` (user_id, commerce_id, admin_id)
+- Campo `orders.cancellation_reason` (texto obligatorio)
+
+---
+
+#### 16. **Métodos de Pago Múltiples**
+
+**✅ DECISIÓN: Solo un método de pago por orden**
+
+- Cliente elige UN método de pago al crear la orden
+- NO se puede pagar mitad con tarjeta y mitad en efectivo
+- **Razón:** Más simple, menos confusión, más fácil de validar
+- **Alternativa futura:** Se puede implementar pago parcial en Post-MVP si es necesario
+
+---
+
+#### 17. **Delivery No Encontrado**
+
+**✅ DECISIÓN: Continuar Buscando Hasta Encontrar (No Cancelar)**
+
+**Flujo:**
+1. Sistema busca delivery en área inicial (1-1.5 km)
+2. Si no encuentra, expande automáticamente (4-5 km)
+3. Si aún no encuentra, continúa expandiendo hasta encontrar delivery disponible
+4. **NO se cancela la orden:** Se mantiene en estado `shipped` esperando delivery
+5. **Notificaciones:**
+   - Cliente: "Buscando delivery disponible. Te notificaremos cuando sea asignado."
+   - Comercio: "Orden lista para envío. Buscando delivery disponible."
+6. **Cuando encuentra delivery:** Se envía solicitud automáticamente
+7. **Si delivery acepta:** Se crea OrderDelivery y continúa el flujo normal
+
+**Implementación:**
+- Job/Queue que busca delivery cada X minutos si orden está en `shipped` sin delivery asignado
+- Expandir área de búsqueda progresivamente hasta encontrar
+- Notificar a cliente y comercio del estado de búsqueda
+
+---
+
+#### 18. **Horarios de Comercios**
+
+**✅ DECISIÓN: Comercios Definen Horarios, Ellos Marcan si Están Abiertos**
+
+**Implementación:**
+- Campo `commerce.schedule` (JSON con horarios por día de la semana)
+- Campo `commerce.open` (boolean - el comercio marca manualmente si está abierto/cerrado)
+- **Búsqueda:** Solo muestra comercios con `open = true`
+- **Comercio controla:** Puede abrir/cerrar manualmente independientemente de su horario programado
+
+**Ejemplo de schedule:**
+```json
+{
+  "monday": {"open": "09:00", "close": "21:00"},
+  "tuesday": {"open": "09:00", "close": "21:00"},
+  "wednesday": {"open": "09:00", "close": "21:00"},
+  ...
+}
+```
+
+**Nota:** El horario es informativo, pero `open` es lo que realmente controla si aparece en búsqueda
+
+---
+
+#### 19. **Horarios de Delivery**
+
+**✅ DECISIÓN: 24/7 (Según Disponibilidad del Delivery)**
+
+**Implementación:**
+- Campo `delivery_agent.working` (boolean) - El delivery marca si está en servicio
+- **No hay horarios fijos:** El delivery trabaja cuando quiere (gig economy)
+- **Búsqueda:** Solo encuentra delivery con `working = true`
+- **Disponibilidad:** El delivery controla manualmente si está disponible o no
+
+**Nota:** Similar a Uber Eats/Rappi - el delivery trabaja cuando está disponible
+
+**Penalizaciones por Rechazo de Órdenes:**
+- **Ideal:** Si el delivery no está trabajando, debe bajar el switch `working = false`
+- **Si rechaza múltiples órdenes:** Debe justificar el porqué
+- **Penalización:** Si rechaza más de 3-5 órdenes seguidas sin justificación válida, puede ser suspendido temporalmente
+- **Sistema trackea:** `delivery_agent.rejection_count`, `delivery_agent.last_rejection_date`
+- **Justificaciones válidas:** Orden muy lejos, problema con vehículo, emergencia personal, etc.
+
+---
+
+### 📊 RESUMEN DEL MODELO DE NEGOCIO
+
+| Aspecto | Decisión | Detalles |
+|---------|----------|----------|
+| **Costo Delivery** | Híbrido (Base + Distancia) | Base $2.00 + $0.50/km (configurable) |
+| **Quién paga delivery** | Cliente | Se agrega al total de la orden (confirmado) |
+| **Delivery recibe** | 100% del delivery_fee | El mismo monto que pagó el cliente |
+| **Comisión plataforma** | Membresía mensual (base) + Comisión % sobre ventas del mes (extra) | Membresía fija + % de ventas mensuales |
+| **Mínimo pedido** | No hay mínimo | Pueden pedir cualquier cantidad |
+| **Métodos de pago** | Todos (efectivo, transferencia, tarjeta, pago móvil, digitales) | Cliente elige UN método por orden |
+| **Quién recibe pago** | Comercio directamente | Plataforma NO intermedia |
+| **Manejo pagos** | Tiempo real | Validación manual de comprobante |
+| **Pago a delivery** | Del comercio | 100% del delivery_fee después de recibir pago |
+| **Tarifa servicio** | No hay | Solo subtotal + delivery |
+| **Propinas** | No permitidas | Solo pago fijo a delivery |
+| **Límite distancia** | Máximo 60 minutos | Tiempo estimado de viaje |
+| **Tiempos límite** | 5 minutos | Cliente sube comprobante, comercio valida pago |
+| **Timeout automático** | Cancelación automática | Si no sube/valida en 5 minutos |
+| **Cancelación comercio** | Puede cancelar en paid/processing | Con justificación, penalizaciones si excede límite |
+| **Penalizaciones** | Por cancelaciones/rechazos excesivos | Suspensión temporal (3-5 rechazos/cancelaciones) |
+| **Comisión en cancelaciones** | Penalización si comercio cancela después de paid | No se resta, es adicional |
+| **Delivery rechaza** | Debe justificar, penalización si excede 3-5 | Ideal: bajar switch working si no está disponible |
+| **Delivery no encontrado** | Continúa buscando hasta encontrar | No cancela, espera delivery disponible |
+| **Quejas/disputas** | Sistema de tickets con admin | Tabla `disputes` + chat de orden |
+| **Promociones/Descuentos** | Manual (comercio y admin) | Código promocional o automático |
+| **Fidelización** | Por ahora no | Post-MVP |
+| **Rating/Reviews** | Obligatorio después de orden | Comercio y delivery separados, no editables |
+| **Horarios comercio** | Comercio define + marca `open` | Control manual |
+| **Horarios delivery** | 24/7 según disponibilidad | Campo `working` |
 
 ---
 
@@ -833,8 +1455,8 @@ foreach ($requiredFields as $field) {
 |----------|----------------|-------|
 | Carrito Multi-Commerce | Solo un comercio por carrito | Simplifica checkout y UX |
 | Validación de Precio | Validar y recalcular | Protege al usuario |
-| Stock | AMBAS opciones (available O stock_quantity) | El comercio elige |
-| Delivery | Sistema completo (propio, empresas, independientes) | Flexibilidad total |
+| Stock | AMBAS opciones (available Y stock_quantity) | Validar siempre available, si tiene stock_quantity validar cantidad |
+| Delivery | Sistema completo (propio, empresas, independientes) + Asignación autónoma con expansión de área | Flexibilidad total |
 | Eventos | Firebase + Pusher (NO WebSocket) | Ya implementado |
 | Perfiles | Datos mínimos (USERS) vs completos (COMMERCE, DELIVERY) | Por rol |
 

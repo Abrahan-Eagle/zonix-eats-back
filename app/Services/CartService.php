@@ -123,9 +123,16 @@ class CartService
             ->with('product')
             ->firstOrFail();
 
-        // Validar que producto sigue disponible
+        // Validar que producto sigue disponible (available Y stock_quantity)
         if (!$cartItem->product->available) {
             throw new \Exception('El producto ya no está disponible');
+        }
+
+        // Si tiene stock_quantity, validar que hay suficiente cantidad
+        if ($cartItem->product->stock_quantity !== null) {
+            if ($cartItem->product->stock_quantity < $quantity) {
+                throw new \Exception("Stock insuficiente. Solo hay {$cartItem->product->stock_quantity} unidades disponibles");
+            }
         }
 
         $cartItem->quantity = $quantity;

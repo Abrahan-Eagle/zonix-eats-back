@@ -247,7 +247,8 @@ class OrderTrackingController extends Controller
      */
     private function calculateEstimatedArrival(Order $order): string
     {
-        if ($order->status !== 'on_way') {
+        // Actualizado: usar 'shipped' en lugar de 'on_way'
+        if ($order->status !== 'shipped') {
             return 'N/A';
         }
 
