@@ -85,7 +85,10 @@ class ProductFactory extends Factory
 
         return [
             'commerce_id' => Commerce::factory(),
-            'category_id' => $this->faker->optional(0.7)->passthrough(\App\Models\Category::factory()),
+            'category_id' => $this->faker->optional(0.7)->passthrough(function () {
+                // Usar categorías existentes en lugar de crear nuevas
+                return \App\Models\Category::inRandomOrder()->first()?->id;
+            }),
             'name' => $this->faker->words(3, true),
             'description' => $this->faker->paragraph(),
             'price' => $this->faker->randomFloat(2, 5, 50),

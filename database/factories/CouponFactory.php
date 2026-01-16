@@ -31,14 +31,14 @@ class CouponFactory extends Factory
         return [
             'code' => strtoupper($this->faker->unique()->bothify('COUPON-####')),
             'title' => $this->faker->sentence(3),
-            'description' => $this->faker->optional(0.8)->paragraph(),
+            'description' => $this->faker->paragraph(), // Siempre generar descripción (no es nullable)
             'discount_type' => $discountType,
             'discount_value' => $discountValue,
-            'minimum_order' => $this->faker->optional(0.6)->randomFloat(2, 10, 50),
+            'minimum_order' => $this->faker->optional(0.6)->randomFloat(2, 10, 50) ?? 0, // Default 0 si es null
             'maximum_discount' => $discountType === 'percentage' 
                 ? $this->faker->optional(0.5)->randomFloat(2, 10, 50) 
                 : null,
-            'usage_limit' => $this->faker->optional(0.7)->numberBetween(10, 1000),
+            'usage_limit' => $this->faker->optional(0.7)->numberBetween(10, 1000) ?? 1, // Default 1 si es null (según migración)
             'start_date' => $startDate,
             'end_date' => $endDate,
             'terms_conditions' => $this->faker->optional(0.5)->paragraph(),

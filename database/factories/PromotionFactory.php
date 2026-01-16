@@ -29,10 +29,10 @@ class PromotionFactory extends Factory
         
         return [
             'title' => $this->faker->sentence(3),
-            'description' => $this->faker->optional(0.8)->paragraph(),
+            'description' => $this->faker->paragraph(), // Siempre generar descripción (no es nullable)
             'discount_type' => $discountType,
             'discount_value' => $discountValue,
-            'minimum_order' => $this->faker->optional(0.6)->randomFloat(2, 10, 50),
+            'minimum_order' => $this->faker->optional(0.6)->randomFloat(2, 10, 50) ?? 0, // Default 0 si es null
             'maximum_discount' => $discountType === 'percentage' 
                 ? $this->faker->optional(0.5)->randomFloat(2, 10, 50) 
                 : null,

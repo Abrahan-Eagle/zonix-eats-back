@@ -34,7 +34,7 @@ return new class extends Migration
             // Índices
             $table->index('order_id');
             $table->index('status');
-            $table->index(['reported_by_type', 'reported_by_id']);
+            // Nota: morphs() ya crea índices automáticamente para reported_by y reported_against
         });
     }
 

@@ -16,8 +16,8 @@ return new class extends Migration
         Schema::create('addresses', function (Blueprint $table) {
             $table->id();
             $table->string('street');
-            $table->string('house_number');
-            $table->string('postal_code');
+            $table->string('house_number')->nullable();
+            $table->string('postal_code')->nullable();
             $table->decimal('latitude', 10, 7); // Almacena la latitud con 7 decimales de precisión
             $table->decimal('longitude', 10, 7); // Almacena la longitud con 7 decimales de precisión
             $table->enum('status', ['completeData', 'incompleteData', 'notverified'])->default('notverified');
