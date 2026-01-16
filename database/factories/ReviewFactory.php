@@ -14,23 +14,26 @@ class ReviewFactory extends Factory
 
     public function definition()
     {
+        $reviewableType = $this->faker->randomElement([Commerce::class, \App\Models\DeliveryAgent::class]);
+        
         return [
             'profile_id' => Profile::factory(),
             'order_id' => Order::factory(),
-            'commerce_id' => Commerce::factory(),
-            'type' => 'restaurant',
+            'reviewable_type' => $reviewableType,
+            'reviewable_id' => $reviewableType === Commerce::class 
+                ? Commerce::factory() 
+                : \App\Models\DeliveryAgent::factory(),
             'rating' => $this->faker->numberBetween(1, 5),
-            'comment' => $this->faker->sentence,
-            'photos' => null,
+            'comment' => $this->faker->optional(0.8)->sentence(),
         ];
     }
 
-    public function forRestaurant()
+    public function forCommerce()
     {
         return $this->state(function (array $attributes) {
             return [
-                'type' => 'restaurant',
-                'delivery_agent_id' => null,
+                'reviewable_type' => Commerce::class,
+                'reviewable_id' => Commerce::factory(),
             ];
         });
     }
@@ -39,8 +42,8 @@ class ReviewFactory extends Factory
     {
         return $this->state(function (array $attributes) {
             return [
-                'type' => 'delivery_agent',
-                'commerce_id' => null,
+                'reviewable_type' => \App\Models\DeliveryAgent::class,
+                'reviewable_id' => \App\Models\DeliveryAgent::factory(),
             ];
         });
     }

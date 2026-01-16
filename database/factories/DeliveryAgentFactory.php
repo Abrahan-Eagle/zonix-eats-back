@@ -18,14 +18,23 @@ class DeliveryAgentFactory extends Factory
      */
     public function definition(): array
     {
+        $working = $this->faker->boolean(60);
+        $status = $working ? 'activo' : $this->faker->randomElement(['inactivo', 'suspendido']);
+        
         return [
-            'company_id' => DeliveryCompany::factory(),
+            'company_id' => $this->faker->optional(0.5)->passthrough(DeliveryCompany::factory()), // 50% independientes
             'profile_id' => Profile::factory(),
-            'status' => $this->faker->randomElement(['activo', 'inactivo', 'suspendido']),
-            'working' => $this->faker->boolean,
-            'rating' => $this->faker->randomFloat(2, 1, 5),
+            'status' => $status,
+            'working' => $working,
+            'rating' => $this->faker->randomFloat(2, 3.5, 5),
             'vehicle_type' => $this->faker->randomElement(['motorcycle', 'car', 'bicycle', 'truck']),
+            'license_number' => $this->faker->bothify('LIC-#######'),
             'phone' => $this->faker->phoneNumber,
+            'current_latitude' => $working ? $this->faker->latitude(10.0, 10.5) : null,
+            'current_longitude' => $working ? $this->faker->longitude(-67.0, -66.5) : null,
+            'last_location_update' => $working ? $this->faker->dateTimeBetween('-1 hour', 'now') : null,
+            'rejection_count' => $this->faker->numberBetween(0, 3),
+            'last_rejection_date' => $this->faker->optional(0.2)->dateTimeBetween('-1 month', 'now'),
         ];
     }
 }

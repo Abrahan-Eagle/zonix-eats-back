@@ -85,11 +85,13 @@ class ProductFactory extends Factory
 
         return [
             'commerce_id' => Commerce::factory(),
+            'category_id' => $this->faker->optional(0.7)->passthrough(\App\Models\Category::factory()),
             'name' => $this->faker->words(3, true),
             'description' => $this->faker->paragraph(),
             'price' => $this->faker->randomFloat(2, 5, 50),
             'image' => $this->faker->randomElement($foodImages),
             'available' => $this->faker->boolean(80),
+            'stock_quantity' => $this->faker->optional(0.6)->numberBetween(0, 100), // 60% con stock, 40% solo available
         ];
     }
 

@@ -31,12 +31,17 @@ class CommerceFactory extends Factory
             'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=500&h=300&fit=crop',
         ];
 
+        $membershipType = $this->faker->randomElement(['basic', 'premium', 'enterprise']);
+        $membershipFees = ['basic' => 50, 'premium' => 100, 'enterprise' => 200];
+        
         return [
             'profile_id' => Profile::factory(),
             'business_name' => $this->faker->company,
+            'business_type' => $this->faker->randomElement(['restaurant', 'cafe', 'bakery', 'fast_food', 'pizzeria', 'bar', 'food_truck']),
+            'tax_id' => $this->faker->numerify('J-########-#'),
             'image' => $this->faker->randomElement($restaurantImages),
-            'address' => $this->faker->address,
             'phone' => $this->faker->phoneNumber,
+            'address' => $this->faker->address,
             'open' => $this->faker->boolean(70),
             'schedule' => [
                 'monday' => ['open' => '08:00', 'close' => '18:00'],
@@ -47,6 +52,12 @@ class CommerceFactory extends Factory
                 'saturday' => ['open' => '09:00', 'close' => '16:00'],
                 'sunday' => ['open' => '10:00', 'close' => '15:00'],
             ],
+            'membership_type' => $membershipType,
+            'membership_monthly_fee' => $membershipFees[$membershipType],
+            'membership_expires_at' => $this->faker->dateTimeBetween('now', '+1 year'),
+            'commission_percentage' => $this->faker->randomFloat(2, 5, 15), // 5% a 15%
+            'cancellation_count' => $this->faker->numberBetween(0, 5),
+            'last_cancellation_date' => $this->faker->optional(0.3)->dateTimeBetween('-6 months', 'now'),
         ];
     }
 
