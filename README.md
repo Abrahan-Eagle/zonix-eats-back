@@ -1901,7 +1901,7 @@ app/
 │   │   ├── RoleMiddleware.php
 │   │   └── ...
 │   └── Requests/        # Validación de requests
-├── Models/              # 31 modelos Eloquent (verificado)
+├── Models/              # 35 modelos Eloquent (verificado)
 ├── Services/            # 9 servicios de negocio
 │   ├── OrderService.php
 │   ├── CartService.php
@@ -2727,8 +2727,7 @@ Order::with(['commerce', 'orderItems.product', 'orderDelivery'])
 ### 🟡 Altos
 
 4. **Archivos Duplicados**
-   - `City copy.php` y `State copy.php` en Models
-   - **Solución:** Eliminar archivos duplicados
+   - ✅ **RESUELTO:** `City copy.php`, `Country copy.php` y `State copy.php` eliminados
 
 5. **Falta Paginación**
    - Algunos endpoints sin límites
@@ -2787,6 +2786,9 @@ php artisan make:migration create_orders_table
 
 # Crear seeder
 php artisan make:seeder OrderSeeder
+
+# Crear factory
+php artisan make:factory OrderFactory --model=Order
 
 # Crear Form Request
 php artisan make:request StoreOrderRequest

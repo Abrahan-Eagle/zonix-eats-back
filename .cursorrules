@@ -12,8 +12,9 @@ alwaysApply: true
 **Tests:** 204 tests pasaron ✅, 0 tests fallaron ✅ (verificado: `php artisan test` - Enero 2025)  
 **Endpoints:** 232 rutas REST (verificado en `routes/api.php`)  
 **Controladores:** 52 (verificado)  
-**Modelos:** 31 (verificado)  
-**Migraciones:** 45 (verificado)  
+**Modelos:** 35 (verificado)  
+**Migraciones:** 45 (verificado)
+**Factories:** 27 (verificado)  
 **Líneas de código:** 12,898 líneas PHP en `app/`  
 **Errores críticos:** ✅ Todos corregidos (valores hardcoded, OSRM integrado, analytics reales)  
 **Última actualización:** Enero 2025
@@ -64,7 +65,7 @@ zonix-eats-back/
 │   │   │   ├── RoleMiddleware.php
 │   │   │   └── ...
 │   │   └── Requests/        # Validación de requests
-│   ├── Models/              # Modelos Eloquent (31 modelos verificados)
+│   ├── Models/              # Modelos Eloquent (35 modelos verificados)
 │   ├── Services/            # Servicios de negocio (9 servicios)
 │   │   ├── OrderService.php
 │   │   ├── CartService.php
