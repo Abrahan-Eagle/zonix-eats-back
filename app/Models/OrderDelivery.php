@@ -19,12 +19,12 @@ class OrderDelivery extends Model
         'order_id',
         'agent_id',
         'status',
-        'costo_envio',
-        'notas'
+        'delivery_fee',
+        'notes'
     ];
 
     protected $casts = [
-        'costo_envio' => 'decimal:2'
+        'delivery_fee' => 'decimal:2'
     ];
 
     public function order()

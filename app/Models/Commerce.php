@@ -12,16 +12,29 @@ class Commerce extends Model
     protected $fillable = [
         'profile_id',
         'business_name',
+        'business_type',
+        'tax_id',
         'image',
-        'address',
         'phone',
+        'address',
         'open',
-        'schedule'
+        'schedule',
+        'membership_type',
+        'membership_monthly_fee',
+        'membership_expires_at',
+        'commission_percentage',
+        'cancellation_count',
+        'last_cancellation_date'
     ];
 
     protected $casts = [
         'open' => 'boolean',
-        'schedule' => 'array'
+        'schedule' => 'array',
+        'membership_monthly_fee' => 'decimal:2',
+        'commission_percentage' => 'decimal:2',
+        'membership_expires_at' => 'datetime',
+        'last_cancellation_date' => 'datetime',
+        'cancellation_count' => 'integer'
     ];
 
     /**
@@ -62,5 +75,29 @@ class Commerce extends Model
     public function paymentMethods()
     {
         return $this->morphMany(PaymentMethod::class, 'payable');
+    }
+
+    /**
+     * Relación con facturas mensuales
+     */
+    public function invoices()
+    {
+        return $this->hasMany(CommerceInvoice::class);
+    }
+
+    /**
+     * Relación con posts sociales
+     */
+    public function posts()
+    {
+        return $this->hasMany(Post::class);
+    }
+
+    /**
+     * Relación con categorías a través de productos
+     */
+    public function categories()
+    {
+        return $this->hasManyThrough(Category::class, Product::class);
     }
 }

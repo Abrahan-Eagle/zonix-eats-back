@@ -11,6 +11,7 @@ class Product extends Model
 
     protected $fillable = [
         'commerce_id',
+        'category_id',
         'name',
         'description',
         'price',
@@ -31,6 +32,14 @@ class Product extends Model
     public function commerce()
     {
         return $this->belongsTo(Commerce::class);
+    }
+
+    /**
+     * Relación con la categoría
+     */
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
     }
 
     /**

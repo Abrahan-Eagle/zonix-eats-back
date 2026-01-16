@@ -18,12 +18,12 @@ class DeliveryCompany extends Model
         'image',
         'open',
         'schedule',
-        'activo',
+        'active',
     ];
 
     protected $casts = [
         'open' => 'boolean',
-        'activo' => 'boolean',
+        'active' => 'boolean',
         'schedule' => 'array',
     ];
 

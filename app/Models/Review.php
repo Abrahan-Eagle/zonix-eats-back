@@ -11,10 +11,11 @@ class Review extends Model
 
     protected $fillable = [
         'profile_id',
+        'order_id',
         'reviewable_type',
         'reviewable_id',
         'rating',
-        'comentario'
+        'comment'
     ];
 
     protected $casts = [
@@ -29,5 +30,13 @@ class Review extends Model
     public function profile()
     {
         return $this->belongsTo(Profile::class);
+    }
+
+    /**
+     * Relación con la orden (para validar que se califica después de orden entregada)
+     */
+    public function order()
+    {
+        return $this->belongsTo(Order::class);
     }
 }

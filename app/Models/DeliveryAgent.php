@@ -16,15 +16,23 @@ class DeliveryAgent extends Model
         'working',
         'rating',
         'vehicle_type',
+        'license_number',
         'phone',
         'current_latitude',
         'current_longitude',
         'last_location_update',
+        'rejection_count',
+        'last_rejection_date'
     ];
 
     protected $casts = [
         'working' => 'boolean',
         'rating' => 'decimal:2',
+        'current_latitude' => 'decimal:7',
+        'current_longitude' => 'decimal:7',
+        'last_location_update' => 'datetime',
+        'last_rejection_date' => 'datetime',
+        'rejection_count' => 'integer'
     ];
 
     public function company()
@@ -58,5 +66,21 @@ class DeliveryAgent extends Model
     public function paymentMethods()
     {
         return $this->morphMany(PaymentMethod::class, 'payable');
+    }
+
+    /**
+     * Relación con pagos recibidos
+     */
+    public function payments()
+    {
+        return $this->hasMany(DeliveryPayment::class);
+    }
+
+    /**
+     * Relación con reviews/calificaciones recibidas
+     */
+    public function reviews()
+    {
+        return $this->morphMany(Review::class, 'reviewable');
     }
 }

@@ -15,19 +15,32 @@ class Order extends Model
         'delivery_type',
         'status',
         'total',
+        'delivery_fee',
+        'delivery_payment_amount',
+        'commission_amount',
+        'cancellation_penalty',
+        'cancelled_by',
+        'estimated_delivery_time',
         'receipt_url',
-        'notes',
         'payment_proof',
         'payment_method',
         'reference_number',
         'payment_validated_at',
+        'payment_proof_uploaded_at',
         'cancellation_reason',
-        'delivery_address'
+        'delivery_address',
+        'notes'
     ];
 
     protected $casts = [
         'total' => 'decimal:2',
-        'payment_validated_at' => 'datetime'
+        'delivery_fee' => 'decimal:2',
+        'delivery_payment_amount' => 'decimal:2',
+        'commission_amount' => 'decimal:2',
+        'cancellation_penalty' => 'decimal:2',
+        'estimated_delivery_time' => 'integer',
+        'payment_validated_at' => 'datetime',
+        'payment_proof_uploaded_at' => 'datetime'
     ];
 
     /**
@@ -96,5 +109,29 @@ class Order extends Model
     public function chatMessages()
     {
         return $this->hasMany(ChatMessage::class);
+    }
+
+    /**
+     * Relación con disputas/quejas
+     */
+    public function disputes()
+    {
+        return $this->hasMany(Dispute::class);
+    }
+
+    /**
+     * Relación con pagos a delivery
+     */
+    public function deliveryPayments()
+    {
+        return $this->hasMany(DeliveryPayment::class);
+    }
+
+    /**
+     * Relación con reviews/calificaciones
+     */
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
     }
 }

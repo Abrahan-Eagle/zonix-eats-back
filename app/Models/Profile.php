@@ -17,7 +17,7 @@ class Profile extends Model
     protected $table = 'profiles';
 
     // Definir los campos que se pueden llenar de forma masiva
-       protected $fillable = [
+    protected $fillable = [
         'user_id',
         'firstName',
         'middleName',
@@ -30,13 +30,10 @@ class Profile extends Model
         'status',
         'phone',
         'address',
-        'business_name',
-        'business_type',
-        'tax_id',
-        'vehicle_type',
-        'license_number',
         'fcm_device_token',
         'notification_preferences'
+        // Nota: business_name, business_type, tax_id están en Commerce
+        // Nota: vehicle_type, license_number están en DeliveryAgent
     ];
 
     protected $casts = [
@@ -94,11 +91,51 @@ class Profile extends Model
 
 
 
-// Relación uno a muchos con el modelo Address
-    public function addresses() {
+    /**
+     * Relación uno a muchos con el modelo Address
+     */
+    public function addresses()
+    {
         return $this->hasMany(Address::class);
     }
 
+    /**
+     * Relación con teléfonos
+     */
+    public function phones()
+    {
+        return $this->hasMany(Phone::class);
+    }
 
+    /**
+     * Relación con documentos
+     */
+    public function documents()
+    {
+        return $this->hasMany(Document::class);
+    }
 
+    /**
+     * Relación con notificaciones
+     */
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
+    }
+
+    /**
+     * Relación con cupones asignados
+     */
+    public function assignedCoupons()
+    {
+        return $this->hasMany(Coupon::class, 'assigned_to_profile_id');
+    }
+
+    /**
+     * Relación con usos de cupones
+     */
+    public function couponUsages()
+    {
+        return $this->hasMany(CouponUsage::class);
+    }
 }
