@@ -26,7 +26,7 @@ class DeliveryRoleTest extends TestCase
         $user = User::factory()->create(['role' => 'users']);
         $profile = Profile::factory()->create(['user_id' => $user->id]);
         $orders = Order::factory()->count(2)->create([
-            'status' => 'on_way',
+            'status' => 'shipped',
             'profile_id' => $profile->id
         ]);
         
@@ -55,7 +55,7 @@ class DeliveryRoleTest extends TestCase
         $user = User::factory()->create(['role' => 'users']);
         $profile = Profile::factory()->create(['user_id' => $user->id]);
         $order = Order::factory()->create([
-            'status' => 'on_way',
+            'status' => 'shipped',
             'profile_id' => $profile->id
         ]);
         

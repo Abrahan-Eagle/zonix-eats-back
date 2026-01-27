@@ -17,8 +17,11 @@ class CommerceOrderTest extends TestCase
     {
         $user = User::factory()->create(['role' => 'commerce']);
         $profile = Profile::factory()->create(['user_id' => $user->id]);
-        $commerce = Commerce::factory()->create(['profile_id' => $profile->id]);
-        $order = Order::factory()->create(['commerce_id' => $commerce->id]);
+        $commerce = Commerce::factory()->create(['profile_id' => $profile->id, 'open' => true]);
+        $order = Order::factory()->create([
+            'commerce_id' => $commerce->id,
+            'status' => 'paid',
+        ]);
         $this->actingAs($user, 'sanctum');
 
         // Listar órdenes
@@ -41,10 +44,10 @@ class CommerceOrderTest extends TestCase
 
         // Actualizar estado de la orden
         $response = $this->putJson('/api/commerce/orders/' . $order->id . '/status', [
-            'status' => 'preparing'
+            'status' => 'processing'
         ]);
         $response->assertStatus(200)->assertJson(['success' => true]);
         $order->refresh();
-        $this->assertEquals('preparing', $order->status);
+        $this->assertEquals('processing', $order->status);
     }
 } 

@@ -18,8 +18,8 @@ class CartControllerTest extends TestCase
         $user = User::factory()->create(['role' => 'users']);
         Sanctum::actingAs($user);
         
-        // Crear comercio y producto
-        $commerce = Commerce::factory()->create();
+        // Crear comercio y producto (comercio abierto)
+        $commerce = Commerce::factory()->create(['open' => true]);
         $product = Product::factory()->create([
             'commerce_id' => $commerce->id,
         ]);

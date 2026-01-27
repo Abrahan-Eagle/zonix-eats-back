@@ -15,6 +15,8 @@ return [
     |
     */
 
+    // Usaremos Pusher como servicio de broadcasting por defecto,
+    // igual que en CorralX-Backend (integración con Pusher Cloud).
     'default' => env('BROADCAST_DRIVER', 'pusher'),
 
     /*
@@ -32,16 +34,17 @@ return [
 
         'pusher' => [
             'driver' => 'pusher',
-            'key' => env('PUSHER_APP_KEY', 'zonix-eats-key'),
-            'secret' => env('PUSHER_APP_SECRET', 'zonix-eats-secret'),
-            'app_id' => env('PUSHER_APP_ID', 'zonix-eats-app'),
+            'key' => env('PUSHER_APP_KEY'),
+            'secret' => env('PUSHER_APP_SECRET'),
+            'app_id' => env('PUSHER_APP_ID'),
             'options' => [
+                // Configuración alineada con CorralX-Backend para usar Pusher Cloud
                 'cluster' => env('PUSHER_APP_CLUSTER', 'mt1'),
-                'host' => env('PUSHER_HOST', 'localhost'),
-                'port' => env('PUSHER_PORT', 6001),
-                'scheme' => env('PUSHER_SCHEME', 'http'),
-                'encrypted' => false,
-                'useTLS' => env('PUSHER_SCHEME', 'http') === 'https',
+                'host' => env('PUSHER_HOST') ?: 'api-'.env('PUSHER_APP_CLUSTER', 'mt1').'.pusher.com',
+                'port' => env('PUSHER_PORT', 443),
+                'scheme' => env('PUSHER_SCHEME', 'https'),
+                'encrypted' => true,
+                'useTLS' => env('PUSHER_SCHEME', 'https') === 'https',
             ],
             'client_options' => [
                 // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html

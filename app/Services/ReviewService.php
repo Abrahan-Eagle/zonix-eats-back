@@ -50,7 +50,7 @@ class ReviewService
         $reviewData = [
             'profile_id' => $profile->id,
             'rating' => $data['rating'],
-            'comentario' => $data['comment'] ?? null
+            'comment' => $data['comment'] ?? null
         ];
         
         // Asignar campos reviewable según el tipo
@@ -208,7 +208,7 @@ class ReviewService
 
         $review->update([
             'rating' => $data['rating'],
-            'comentario' => $data['comment'] ?? $review->comentario,
+            'comment' => $data['comment'] ?? $review->comment,
         ]);
 
         return [

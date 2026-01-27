@@ -37,7 +37,8 @@ class ProfileControllerTest extends TestCase
             'lastName' => 'Doe',
             'date_of_birth' => '1985-05-15',
             'maritalStatus' => 'single',
-            'sex' => 'M'
+            'sex' => 'M',
+            'phone' => '1234567890',
         ];
 
         $response = $this->actingAs($this->user, 'sanctum')
@@ -63,7 +64,8 @@ class ProfileControllerTest extends TestCase
             'lastName' => 'Doe',
             'date_of_birth' => '1985-05-15',
             'maritalStatus' => 'single',
-            'sex' => 'M'
+            'sex' => 'M',
+            'phone' => '1234567890',
         ];
 
         $response = $this->actingAs($this->user, 'sanctum')

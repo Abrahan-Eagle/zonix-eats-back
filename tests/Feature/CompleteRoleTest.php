@@ -28,7 +28,7 @@ class CompleteRoleTest extends TestCase
         // Crear datos de prueba
         $users = User::factory()->count(3)->create();
         $profile = Profile::factory()->create();
-        $commerce = Commerce::factory()->create(['profile_id' => $profile->id]);
+        $commerce = Commerce::factory()->create(['profile_id' => $profile->id, 'open' => true]);
         $orders = Order::factory()->count(3)->create();
 
         // Verificar acceso a listar usuarios
@@ -73,10 +73,21 @@ class CompleteRoleTest extends TestCase
     public function test_users_can_create_orders()
     {
         $user = User::factory()->buyer()->create();
-        $profile = Profile::factory()->create(['user_id' => $user->id]);
+        $profile = Profile::factory()->create([
+            'user_id' => $user->id,
+            'firstName' => 'Client',
+            'lastName' => 'Test',
+            'address' => 'Client Address 123',
+            'phone' => '1234567890',
+            'photo_users' => 'https://via.placeholder.com/150',
+            'status' => 'completeData',
+        ]);
         $commerceProfile = Profile::factory()->create();
-        $commerce = Commerce::factory()->create(['profile_id' => $commerceProfile->id]);
-        $product = Product::factory()->create(['commerce_id' => $commerce->id]);
+        $commerce = Commerce::factory()->create(['profile_id' => $commerceProfile->id, 'open' => true]);
+        $product = Product::factory()->create([
+            'commerce_id' => $commerce->id,
+            'available' => true,
+        ]);
         
         Sanctum::actingAs($user);
 
@@ -90,7 +101,8 @@ class CompleteRoleTest extends TestCase
             ],
             'commerce_id' => $commerce->id,
             'delivery_type' => 'delivery',
-            'total' => 25.99
+            'delivery_address' => 'Client Address 123',
+            'total' => $product->price * 2,
         ];
 
         $response = $this->postJson('/api/buyer/orders', $orderData);
@@ -113,7 +125,8 @@ class CompleteRoleTest extends TestCase
             'lastName' => 'Nuevo Apellido',
             'date_of_birth' => '1990-01-01',
             'maritalStatus' => 'single',
-            'sex' => 'M'
+            'sex' => 'M',
+            'phone' => '1234567890',
         ]);
         $response->assertStatus(200);
     }
@@ -125,7 +138,7 @@ class CompleteRoleTest extends TestCase
     {
         $commerceUser = User::factory()->commerce()->create();
         $profile = Profile::factory()->create(['user_id' => $commerceUser->id]);
-        $commerce = Commerce::factory()->create(['profile_id' => $profile->id]);
+        $commerce = Commerce::factory()->create(['profile_id' => $profile->id, 'open' => true]);
         Sanctum::actingAs($commerceUser);
 
         // Verificar acceso a órdenes del comercio
@@ -145,18 +158,18 @@ class CompleteRoleTest extends TestCase
     {
         $commerceUser = User::factory()->commerce()->create();
         $profile = Profile::factory()->create(['user_id' => $commerceUser->id]);
-        $commerce = Commerce::factory()->create(['profile_id' => $profile->id]);
+        $commerce = Commerce::factory()->create(['profile_id' => $profile->id, 'open' => true]);
         Sanctum::actingAs($commerceUser);
 
         // Crear orden para este comercio
         $order = Order::factory()->create([
             'commerce_id' => $commerce->id,
-            'status' => 'pending_payment'
+            'status' => 'paid'
         ]);
 
         // Verificar que puede actualizar estado de la orden
         $response = $this->putJson("/api/commerce/orders/{$order->id}/status", [
-            'status' => 'preparing'
+            'status' => 'processing'
         ]);
         $response->assertStatus(200);
     }
@@ -165,7 +178,7 @@ class CompleteRoleTest extends TestCase
     {
         $commerceUser = User::factory()->commerce()->create();
         $profile = Profile::factory()->create(['user_id' => $commerceUser->id]);
-        $commerce = Commerce::factory()->create(['profile_id' => $profile->id]);
+        $commerce = Commerce::factory()->create(['profile_id' => $profile->id, 'open' => true]);
         Sanctum::actingAs($commerceUser);
 
         // Verificar que puede crear productos
@@ -205,7 +218,7 @@ class CompleteRoleTest extends TestCase
 
         // Crear orden asignada al repartidor
         $order = Order::factory()->create([
-            'status' => 'on_way'
+            'status' => 'shipped'
         ]);
 
         // Crear la relación order_delivery
@@ -213,7 +226,7 @@ class CompleteRoleTest extends TestCase
             'order_id' => $order->id,
             'agent_id' => $deliveryAgent->id,
             'status' => 'assigned',
-            'costo_envio' => 10.0
+            'delivery_fee' => 10.0
         ]);
 
         // Verificar que puede marcar orden como entregada
@@ -304,17 +317,17 @@ class CompleteRoleTest extends TestCase
         // Test para commerce
         $commerceUser = User::factory()->commerce()->create();
         $profile = Profile::factory()->create(['user_id' => $commerceUser->id]);
-        $commerce = Commerce::factory()->create(['profile_id' => $profile->id]);
+        $commerce = Commerce::factory()->create(['profile_id' => $profile->id, 'open' => true]);
         Sanctum::actingAs($commerceUser);
 
         $order = Order::factory()->create([
             'commerce_id' => $commerce->id,
-            'status' => 'pending_payment'
+            'status' => 'paid'
         ]);
 
-        // Commerce puede cambiar de pendiente a preparando
+        // Commerce puede cambiar de paid a processing
         $response = $this->putJson("/api/commerce/orders/{$order->id}/status", [
-            'status' => 'preparing'
+            'status' => 'processing'
         ]);
         $response->assertStatus(200);
 
@@ -325,7 +338,7 @@ class CompleteRoleTest extends TestCase
         Sanctum::actingAs($deliveryUser);
 
         $order->update([
-            'status' => 'on_way'
+            'status' => 'shipped'
         ]);
 
         // Crear la relación order_delivery
@@ -333,7 +346,7 @@ class CompleteRoleTest extends TestCase
             'order_id' => $order->id,
             'agent_id' => $deliveryAgent->id,
             'status' => 'assigned',
-            'costo_envio' => 10.0
+            'delivery_fee' => 10.0
         ]);
 
         // Delivery puede cambiar de en_camino a entregado

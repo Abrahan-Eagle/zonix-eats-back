@@ -33,9 +33,9 @@ class DeliveryControllerTest extends TestCase
 
     public function test_get_available_orders()
     {
-        $commerce = Commerce::factory()->create();
+        $commerce = Commerce::factory()->create(['open' => true]);
         $order1 = Order::factory()->create(['status' => 'paid', 'commerce_id' => $commerce->id]);
-        $order2 = Order::factory()->create(['status' => 'preparing', 'commerce_id' => $commerce->id]);
+        $order2 = Order::factory()->create(['status' => 'processing', 'commerce_id' => $commerce->id]);
         $order3 = Order::factory()->create(['status' => 'delivered', 'commerce_id' => $commerce->id]);
 
         $response = $this->getJson('/api/delivery/available-orders');
@@ -45,13 +45,13 @@ class DeliveryControllerTest extends TestCase
                  ->assertJsonStructure(['success', 'data']);
 
         $data = $response->json('data');
-        $this->assertCount(2, $data); // Solo paid y preparing
+        $this->assertCount(2, $data); // Solo paid y processing
     }
 
     public function test_get_assigned_orders()
     {
-        $commerce = Commerce::factory()->create();
-        $order1 = Order::factory()->create(['status' => 'on_way', 'commerce_id' => $commerce->id]);
+        $commerce = Commerce::factory()->create(['open' => true]);
+        $order1 = Order::factory()->create(['status' => 'shipped', 'commerce_id' => $commerce->id]);
         $order2 = Order::factory()->create(['status' => 'delivered', 'commerce_id' => $commerce->id]);
         
         OrderDelivery::factory()->create([
@@ -77,7 +77,7 @@ class DeliveryControllerTest extends TestCase
 
     public function test_accept_order()
     {
-        $commerce = Commerce::factory()->create();
+        $commerce = Commerce::factory()->create(['open' => true]);
         $order = Order::factory()->create(['status' => 'paid', 'commerce_id' => $commerce->id]);
 
         $response = $this->postJson("/api/delivery/orders/{$order->id}/accept", [
@@ -94,7 +94,7 @@ class DeliveryControllerTest extends TestCase
         ]);
 
         $order->refresh();
-        $this->assertEquals('on_way', $order->status);
+        $this->assertEquals('shipped', $order->status);
     }
 
     public function test_update_location()
@@ -114,7 +114,7 @@ class DeliveryControllerTest extends TestCase
 
     public function test_get_statistics()
     {
-        $commerce = Commerce::factory()->create();
+        $commerce = Commerce::factory()->create(['open' => true]);
         $order1 = Order::factory()->create(['status' => 'delivered', 'commerce_id' => $commerce->id]);
         $order2 = Order::factory()->create(['status' => 'delivered', 'commerce_id' => $commerce->id]);
         
@@ -122,13 +122,13 @@ class DeliveryControllerTest extends TestCase
             'order_id' => $order1->id,
             'agent_id' => $this->deliveryAgent->id,
             'status' => 'delivered',
-            'costo_envio' => 10.50
+            'delivery_fee' => 10.50
         ]);
         OrderDelivery::factory()->create([
             'order_id' => $order2->id,
             'agent_id' => $this->deliveryAgent->id,
             'status' => 'delivered',
-            'costo_envio' => 15.00
+            'delivery_fee' => 15.00
         ]);
 
         $response = $this->getJson("/api/delivery/statistics/{$this->deliveryAgent->id}");
@@ -150,7 +150,7 @@ class DeliveryControllerTest extends TestCase
 
     public function test_get_history()
     {
-        $commerce = Commerce::factory()->create();
+        $commerce = Commerce::factory()->create(['open' => true]);
         $order1 = Order::factory()->create(['status' => 'delivered', 'commerce_id' => $commerce->id]);
         $order2 = Order::factory()->create(['status' => 'cancelled', 'commerce_id' => $commerce->id]);
         
@@ -177,7 +177,7 @@ class DeliveryControllerTest extends TestCase
 
     public function test_get_history_with_date_filters()
     {
-        $commerce = Commerce::factory()->create();
+        $commerce = Commerce::factory()->create(['open' => true]);
         $order1 = Order::factory()->create([
             'status' => 'delivered',
             'commerce_id' => $commerce->id,
@@ -215,7 +215,7 @@ class DeliveryControllerTest extends TestCase
 
     public function test_get_earnings()
     {
-        $commerce = Commerce::factory()->create();
+        $commerce = Commerce::factory()->create(['open' => true]);
         $order1 = Order::factory()->create(['status' => 'delivered', 'commerce_id' => $commerce->id]);
         $order2 = Order::factory()->create(['status' => 'delivered', 'commerce_id' => $commerce->id]);
         
@@ -223,14 +223,14 @@ class DeliveryControllerTest extends TestCase
             'order_id' => $order1->id,
             'agent_id' => $this->deliveryAgent->id,
             'status' => 'delivered',
-            'costo_envio' => 10.00,
+            'delivery_fee' => 10.00,
             'updated_at' => now()
         ]);
         OrderDelivery::factory()->create([
             'order_id' => $order2->id,
             'agent_id' => $this->deliveryAgent->id,
             'status' => 'delivered',
-            'costo_envio' => 15.00,
+            'delivery_fee' => 15.00,
             'updated_at' => now()
         ]);
 
@@ -254,14 +254,14 @@ class DeliveryControllerTest extends TestCase
 
     public function test_get_routes()
     {
-        $commerce = Commerce::factory()->create();
-        $order1 = Order::factory()->create(['status' => 'on_way', 'commerce_id' => $commerce->id]);
-        $order2 = Order::factory()->create(['status' => 'on_way', 'commerce_id' => $commerce->id]);
+        $commerce = Commerce::factory()->create(['open' => true]);
+        $order1 = Order::factory()->create(['status' => 'shipped', 'commerce_id' => $commerce->id]);
+        $order2 = Order::factory()->create(['status' => 'shipped', 'commerce_id' => $commerce->id]);
         
         OrderDelivery::factory()->create([
             'order_id' => $order1->id,
             'agent_id' => $this->deliveryAgent->id,
-            'status' => 'on_way'
+            'status' => 'shipped'
         ]);
         OrderDelivery::factory()->create([
             'order_id' => $order2->id,
@@ -282,13 +282,13 @@ class DeliveryControllerTest extends TestCase
 
     public function test_report_issue()
     {
-        $commerce = Commerce::factory()->create();
-        $order = Order::factory()->create(['status' => 'on_way', 'commerce_id' => $commerce->id]);
+        $commerce = Commerce::factory()->create(['open' => true]);
+        $order = Order::factory()->create(['status' => 'shipped', 'commerce_id' => $commerce->id]);
         
         OrderDelivery::factory()->create([
             'order_id' => $order->id,
             'agent_id' => $this->deliveryAgent->id,
-            'status' => 'on_way'
+            'status' => 'shipped'
         ]);
 
         $response = $this->postJson("/api/delivery/orders/{$order->id}/report-issue", [
@@ -302,7 +302,7 @@ class DeliveryControllerTest extends TestCase
 
     public function test_cannot_accept_already_assigned_order()
     {
-        $commerce = Commerce::factory()->create();
+        $commerce = Commerce::factory()->create(['open' => true]);
         $order = Order::factory()->create(['status' => 'paid', 'commerce_id' => $commerce->id]);
         
         // Assign order to another agent
@@ -318,6 +318,6 @@ class DeliveryControllerTest extends TestCase
         ]);
 
         $response->assertStatus(400)
-                 ->assertJson(['success' => false, 'message' => 'Order already assigned']);
+                 ->assertJson(['success' => false, 'message' => 'Order is not available for delivery']);
     }
 }

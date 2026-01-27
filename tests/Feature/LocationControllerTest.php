@@ -277,7 +277,7 @@ class LocationControllerTest extends TestCase
         $order = \App\Models\Order::factory()->create([
             'profile_id' => $customerProfile->id,
             'commerce_id' => $commerce->id,
-            'status' => 'on_way',
+            'status' => 'shipped',
         ]);
 
         \App\Models\OrderDelivery::factory()->create([

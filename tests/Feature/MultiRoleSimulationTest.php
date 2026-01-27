@@ -55,6 +55,8 @@ class MultiRoleSimulationTest extends TestCase
             'firstName' => 'Juan',
             'lastName' => 'Comprador',
             'address' => 'Calle Principal 123',
+            'phone' => '1234567890',
+            'photo_users' => 'https://via.placeholder.com/150',
             'status' => 'completeData'
         ]);
 
@@ -90,7 +92,7 @@ class MultiRoleSimulationTest extends TestCase
         $this->deliveryAgent = DeliveryAgent::factory()->create([
             'profile_id' => $this->deliveryProfile->id,
             'company_id' => $deliveryCompany->id,
-            'status' => 'active'
+            'status' => 'activo'
         ]);
 
         // Crear ADMIN
@@ -245,15 +247,15 @@ class MultiRoleSimulationTest extends TestCase
             'status' => 'paid'
         ]);
 
-        // 2.4 Commerce cambia estado a "preparing"
+        // 2.4 Commerce cambia estado a "processing"
         $updateStatusResponse = $this->putJson("/api/commerce/orders/{$orderId}/status", [
-            'status' => 'preparing'
+            'status' => 'processing'
         ]);
         $updateStatusResponse->assertStatus(200);
 
         $this->assertDatabaseHas('orders', [
             'id' => $orderId,
-            'status' => 'preparing'
+            'status' => 'processing'
         ]);
 
         // 2.5 Commerce ve sus analytics
@@ -264,7 +266,7 @@ class MultiRoleSimulationTest extends TestCase
                 'data'
             ]);
 
-        // 2.6 Commerce mantiene orden en "preparing" hasta que esté lista
+        // 2.6 Commerce mantiene orden en \"processing\" hasta que esté lista
         // (El estado 'ready' no existe, se pasa directamente a 'on_way' cuando delivery acepta)
 
         // ============================================
@@ -276,14 +278,11 @@ class MultiRoleSimulationTest extends TestCase
         $deliveryOrdersResponse = $this->getJson('/api/delivery/orders');
         $deliveryOrdersResponse->assertStatus(200);
 
-        // 3.2 Delivery acepta la orden (simular asignación)
-        // Nota: En un flujo real, esto podría ser automático o manual por admin
-        OrderDelivery::create([
-            'order_id' => $orderId,
-            'agent_id' => $this->deliveryAgent->id,
-            'status' => 'assigned',
-            'costo_envio' => 5.00
+        // 3.2 Delivery acepta la orden usando el endpoint real
+        $acceptResponse = $this->postJson("/api/delivery/orders/{$orderId}/accept", [
+            'notes' => 'Entrega asignada en simulación'
         ]);
+        $acceptResponse->assertStatus(200);
 
         $this->assertDatabaseHas('order_delivery', [
             'order_id' => $orderId,
@@ -291,15 +290,10 @@ class MultiRoleSimulationTest extends TestCase
             'status' => 'assigned'
         ]);
 
-        // 3.3 Delivery actualiza estado a "on_way"
-        $onWayResponse = $this->patchJson("/api/delivery/orders/{$orderId}/status", [
-            'status' => 'on_way'
-        ]);
-        $onWayResponse->assertStatus(200);
-
+        // 3.3 La aceptación de la orden debe moverla a \"shipped\"
         $this->assertDatabaseHas('orders', [
             'id' => $orderId,
-            'status' => 'on_way'
+            'status' => 'shipped'
         ]);
 
         // 3.5 Delivery ve sus rutas de entrega (opcional, puede no estar implementado)
@@ -452,7 +446,7 @@ class MultiRoleSimulationTest extends TestCase
         $order = Order::factory()->create([
             'profile_id' => $this->buyerProfile->id,
             'commerce_id' => $this->commerce->id,
-            'status' => 'preparing'
+            'status' => 'processing'
         ]);
 
         // 1. Buyer envía mensaje al comercio usando el endpoint de buyer/chat/send

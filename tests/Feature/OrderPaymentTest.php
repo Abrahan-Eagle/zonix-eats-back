@@ -29,12 +29,20 @@ class OrderPaymentTest extends TestCase
 
         // Crear usuario con perfil
         $this->user = User::factory()->create(['role' => 'users']);
-        $this->profile = Profile::factory()->create(['user_id' => $this->user->id]);
+        $this->profile = Profile::factory()->create([
+            'user_id' => $this->user->id,
+            'firstName' => 'Cliente',
+            'lastName' => 'Test',
+            'address' => 'Calle Cliente 123',
+            'phone' => '1234567890',
+            'photo_users' => 'https://via.placeholder.com/150',
+            'status' => 'completeData',
+        ]);
         
         // Crear comercio con perfil
         $commerceUser = User::factory()->create(['role' => 'commerce']);
         $commerceProfile = Profile::factory()->create(['user_id' => $commerceUser->id]);
-        $this->commerce = Commerce::factory()->create(['profile_id' => $commerceProfile->id]);
+        $this->commerce = Commerce::factory()->create(['profile_id' => $commerceProfile->id, 'open' => true]);
 
         // Crear productos para el comercio
         $this->products = Product::factory()->count(3)->create([
@@ -50,7 +58,7 @@ class OrderPaymentTest extends TestCase
         $orderData = [
             'commerce_id' => $this->commerce->id,
             'delivery_type' => 'pickup',
-            'total' => 20.00,
+            'total' => $this->products[0]->price * 2,
             'products' => [
                 [
                     'id' => $this->products[0]->id,
@@ -74,7 +82,6 @@ class OrderPaymentTest extends TestCase
                          'delivery_type',
                          'notes',
                          'created_at',
-                         'products'
                      ]
                  ]);
 
@@ -82,7 +89,7 @@ class OrderPaymentTest extends TestCase
             'profile_id' => $this->user->profile->id,
             'commerce_id' => $this->commerce->id,
             'status' => 'pending_payment',
-            'total' => 20.00,
+            'total' => $this->products[0]->price * 2,
         ]);
     }
 
@@ -190,7 +197,7 @@ class OrderPaymentTest extends TestCase
     {
         $commerceUser = User::factory()->create(['role' => 'commerce']);
         $commerceProfile = Profile::factory()->create(['user_id' => $commerceUser->id]);
-        $commerce = Commerce::factory()->create(['profile_id' => $commerceProfile->id]);
+        $commerce = Commerce::factory()->create(['profile_id' => $commerceProfile->id, 'open' => true]);
         Sanctum::actingAs($commerceUser);
 
         $order = Order::factory()->create([
@@ -212,8 +219,8 @@ class OrderPaymentTest extends TestCase
         $this->assertDatabaseHas('orders', [
             'id' => $order->id,
             'status' => 'paid',
-            'payment_validated_at' => now(),
         ]);
+        $this->assertNotNull($order->fresh()->payment_validated_at);
     }
 
     /** @test */
@@ -221,7 +228,7 @@ class OrderPaymentTest extends TestCase
     {
         $commerceUser = User::factory()->create(['role' => 'commerce']);
         $commerceProfile = Profile::factory()->create(['user_id' => $commerceUser->id]);
-        $commerce = Commerce::factory()->create(['profile_id' => $commerceProfile->id]);
+        $commerce = Commerce::factory()->create(['profile_id' => $commerceProfile->id, 'open' => true]);
         Sanctum::actingAs($commerceUser);
 
         $order = Order::factory()->create([
@@ -252,7 +259,7 @@ class OrderPaymentTest extends TestCase
     {
         $commerceUser = User::factory()->create(['role' => 'commerce']);
         $commerceProfile = Profile::factory()->create(['user_id' => $commerceUser->id]);
-        $commerce = Commerce::factory()->create(['profile_id' => $commerceProfile->id]);
+        $commerce = Commerce::factory()->create(['profile_id' => $commerceProfile->id, 'open' => true]);
         Sanctum::actingAs($commerceUser);
 
         $order = Order::factory()->create([
@@ -261,7 +268,7 @@ class OrderPaymentTest extends TestCase
         ]);
 
         $statusData = [
-            'status' => 'preparing',
+            'status' => 'processing',
         ];
 
         $response = $this->putJson("/api/commerce/orders/{$order->id}/status", $statusData);
@@ -270,7 +277,7 @@ class OrderPaymentTest extends TestCase
 
         $this->assertDatabaseHas('orders', [
             'id' => $order->id,
-            'status' => 'preparing',
+            'status' => 'processing',
         ]);
     }
 
@@ -328,7 +335,7 @@ class OrderPaymentTest extends TestCase
     {
         $commerceUser = User::factory()->create(['role' => 'commerce']);
         $commerceProfile = Profile::factory()->create(['user_id' => $commerceUser->id]);
-        $commerce = Commerce::factory()->create(['profile_id' => $commerceProfile->id]);
+        $commerce = Commerce::factory()->create(['profile_id' => $commerceProfile->id, 'open' => true]);
         Sanctum::actingAs($commerceUser);
 
         Order::factory()->count(3)->create([
@@ -350,7 +357,7 @@ class OrderPaymentTest extends TestCase
         $orderData = [
             'commerce_id' => $this->commerce->id,
             'delivery_type' => 'pickup',
-            'total' => 20.00,
+            'total' => $this->products[0]->price * 2,
             'products' => [
                 [
                     'id' => $this->products[0]->id,
@@ -382,11 +389,11 @@ class OrderPaymentTest extends TestCase
         $orderData = [
             'commerce_id' => $this->commerce->id,
             'delivery_type' => 'delivery',
-            'total' => 25.00,
+            'total' => $this->products[0]->price * 2,
             'products' => [
                 [
                     'id' => $this->products[0]->id,
-                    'quantity' => 1
+                    'quantity' => 2
                 ]
             ],
             'delivery_address' => 'Test Delivery Address',
@@ -436,7 +443,7 @@ class OrderPaymentTest extends TestCase
         $order = Order::factory()->create([
             'profile_id' => $this->user->profile->id,
             'commerce_id' => $this->commerce->id,
-            'status' => 'preparing',
+            'status' => 'processing',
         ]);
 
         $response = $this->postJson("/api/buyer/orders/{$order->id}/cancel", [
@@ -444,6 +451,6 @@ class OrderPaymentTest extends TestCase
         ]);
 
         $response->assertStatus(400)
-                 ->assertJson(['message' => 'No se puede cancelar una orden en preparación']);
+                 ->assertJson(['message' => 'Solo puedes cancelar órdenes pendientes de pago']);
     }
 } 

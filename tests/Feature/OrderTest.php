@@ -19,9 +19,20 @@ class OrderTest extends TestCase
     {
         Storage::fake('public');
         $user = User::factory()->create(['role' => 'users']);
-        $profile = Profile::factory()->create(['user_id' => $user->id]);
-        $commerce = Commerce::factory()->create(['profile_id' => $profile->id]);
-        $product = Product::factory()->create();
+        $profile = Profile::factory()->create([
+            'user_id' => $user->id,
+            'firstName' => 'Cliente',
+            'lastName' => 'Test',
+            'address' => 'Calle 123',
+            'phone' => '1234567890',
+            'photo_users' => 'https://via.placeholder.com/150',
+            'status' => 'completeData',
+        ]);
+        $commerce = Commerce::factory()->create(['profile_id' => $profile->id, 'open' => true]);
+        $product = Product::factory()->create([
+            'commerce_id' => $commerce->id,
+            'available' => true,
+        ]);
         $this->actingAs($user, 'sanctum');
 
         // Crear orden
@@ -31,7 +42,7 @@ class OrderTest extends TestCase
                 ['id' => $product->id, 'quantity' => 2]
             ],
             'delivery_type' => 'pickup',
-            'total' => 100,
+            'total' => $product->price * 2,
             'notes' => 'Sin cebolla',
             'delivery_address' => 'Calle 123'
         ]);

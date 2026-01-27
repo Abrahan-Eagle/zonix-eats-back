@@ -91,7 +91,7 @@ class ReviewServiceTest extends TestCase
 
         $this->assertInstanceOf(Review::class, $result);
         $this->assertEquals(5, $result->rating);
-        $this->assertEquals('Excelente servicio', $result->comentario);
+        $this->assertEquals('Excelente servicio', $result->comment);
         $this->assertEquals($profile->id, $result->profile_id);
         $this->assertEquals('App\\Models\\Commerce', $result->reviewable_type);
         $this->assertEquals($commerce->id, $result->reviewable_id);

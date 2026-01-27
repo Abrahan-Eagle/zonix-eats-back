@@ -5,13 +5,12 @@ namespace Tests\Feature;
 use Tests\TestCase;
 use App\Models\User;
 use App\Models\Profile;
-use App\Models\Commerce;
-use App\Models\DeliveryCompany;
-use App\Models\DeliveryAgent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 
 class AuthenticationTest extends TestCase
 {
@@ -181,6 +180,10 @@ class AuthenticationTest extends TestCase
         $user = User::factory()->create(['role' => 'commerce']);
         Sanctum::actingAs($user);
 
+        Storage::fake('public');
+
+        $photo = UploadedFile::fake()->image('commerce.jpg');
+
         $commerceData = [
             'user_id' => $user->id,
             'firstName' => 'John',
@@ -188,14 +191,14 @@ class AuthenticationTest extends TestCase
             'date_of_birth' => '1990-01-01',
             'maritalStatus' => 'single',
             'sex' => 'M',
+            'photo_users' => $photo,
+            'business_type' => 'restaurant',
+            'tax_id' => 'J-12345678-9',
             'business_name' => 'Test Restaurant',
             'description' => 'Test restaurant description',
             'address' => 'Test Address',
             'phone' => '1234567890',
             'email' => 'restaurant@example.com',
-            'mobile_payment_bank' => 'Test Bank',
-            'mobile_payment_id' => '123456789',
-            'mobile_payment_phone' => '1234567890',
             'is_open' => true,
         ];
 
@@ -229,6 +232,10 @@ class AuthenticationTest extends TestCase
         $user = User::factory()->create(['role' => 'users']);
         Sanctum::actingAs($user);
 
+        Storage::fake('public');
+
+        $photo = UploadedFile::fake()->image('delivery-company.jpg');
+
         $deliveryData = [
             'user_id' => $user->id,
             'firstName' => 'John',
@@ -236,9 +243,11 @@ class AuthenticationTest extends TestCase
             'date_of_birth' => '1990-01-01',
             'maritalStatus' => 'single',
             'sex' => 'M',
+            'photo_users' => $photo,
             'company_name' => 'Test Delivery Company',
             'address' => 'Test Address',
             'phone' => '1234567890',
+            'ci' => 'V-12345678',
         ];
 
         $response = $this->postJson('/api/profiles/delivery-company', $deliveryData);
@@ -263,6 +272,10 @@ class AuthenticationTest extends TestCase
         $user = User::factory()->create(['role' => 'delivery']);
         Sanctum::actingAs($user);
 
+        Storage::fake('public');
+
+        $photo = UploadedFile::fake()->image('delivery-agent.jpg');
+
         $deliveryAgentData = [
             'user_id' => $user->id,
             'firstName' => 'John',
@@ -272,6 +285,8 @@ class AuthenticationTest extends TestCase
             'sex' => 'M',
             'vehicle_type' => 'motorcycle',
             'phone' => '1234567890',
+            'license_number' => 'LIC-123456',
+            'photo_users' => $photo,
         ];
 
         $response = $this->postJson('/api/profiles/delivery-agent', $deliveryAgentData);
@@ -298,6 +313,10 @@ class AuthenticationTest extends TestCase
         $company = \App\Models\DeliveryCompany::factory()->create();
         Sanctum::actingAs($user);
 
+        Storage::fake('public');
+
+        $photo = UploadedFile::fake()->image('delivery-agent-company.jpg');
+
         $deliveryAgentData = [
             'user_id' => $user->id,
             'firstName' => 'John',
@@ -308,6 +327,8 @@ class AuthenticationTest extends TestCase
             'vehicle_type' => 'motorcycle',
             'phone' => '1234567890',
             'company_id' => $company->id,
+            'license_number' => 'LIC-654321',
+            'photo_users' => $photo,
         ];
 
         $response = $this->postJson('/api/profiles/delivery-agent', $deliveryAgentData);

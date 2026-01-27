@@ -1028,12 +1028,12 @@ class AnalyticsController extends Controller
                 ->where('reviewable_id', $agent->id)
                 ->avg('rating') ?? 0;
 
-            // Calcular ganancias reales sumando costo_envio de las entregas
+            // Calcular ganancias reales sumando delivery_fee de las entregas
             $earnings = \App\Models\OrderDelivery::where('agent_id', $agent->id)
                 ->whereHas('order', function($q) {
                     $q->where('status', 'delivered');
                 })
-                ->sum('costo_envio') ?? 0;
+                ->sum('delivery_fee') ?? 0;
 
             $profile = $agent->profile;
             $name = $profile ? trim(($profile->firstName ?? '') . ' ' . ($profile->lastName ?? '')) : 'Repartidor';

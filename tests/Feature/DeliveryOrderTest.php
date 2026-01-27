@@ -46,10 +46,10 @@ class DeliveryOrderTest extends TestCase
 
         // Actualizar estado de la orden
         $response = $this->patchJson('/api/delivery/orders/' . $order->id . '/status', [
-            'status' => 'on_way'
+            'status' => 'shipped'
         ]);
         $response->assertStatus(200)->assertJson(['success' => true]);
         $order->refresh();
-        $this->assertEquals('on_way', $order->status);
+        $this->assertEquals('shipped', $order->status);
     }
 } 

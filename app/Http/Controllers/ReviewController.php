@@ -26,7 +26,7 @@ class ReviewController extends Controller
             'reviewable_id' => 'required|integer',
             'reviewable_type' => 'required|string|in:App\Models\Commerce,App\Models\Product',
             'rating' => 'required|integer|between:1,5',
-            'comentario' => 'nullable|string|max:500',
+            'comment' => 'nullable|string|max:500',
         ]);
 
         $result = $this->reviewService->createReview($validated);
@@ -65,7 +65,7 @@ class ReviewController extends Controller
     {
         $validated = $request->validate([
             'rating' => 'required|integer|between:1,5',
-            'comentario' => 'nullable|string|max:500',
+            'comment' => 'nullable|string|max:500',
         ]);
 
         $result = $this->reviewService->updateReview($reviewId, $validated);

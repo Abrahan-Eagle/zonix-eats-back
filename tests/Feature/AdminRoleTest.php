@@ -38,7 +38,7 @@ class AdminRoleTest extends TestCase
         $order = Order::factory()->create(['status' => 'pending_payment']);
 
         // Cambiar estado de la orden (simulación de endpoint admin)
-        $response = $this->patchJson("/api/admin/orders/{$order->id}/status", ['status' => 'preparing']);
+        $response = $this->patchJson("/api/admin/orders/{$order->id}/status", ['status' => 'processing']);
         $response->assertStatus(200);
     }
 }

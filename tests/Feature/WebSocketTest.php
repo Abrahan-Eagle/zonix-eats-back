@@ -124,7 +124,7 @@ class WebSocketTest extends TestCase
         $order = Order::factory()->create([
             'profile_id' => $this->user->profile->id,
             'commerce_id' => $this->commerce->id,
-            'status' => 'on_way',
+            'status' => 'shipped',
         ]);
 
         // Disparar evento de actualización de ubicación
@@ -192,133 +192,9 @@ class WebSocketTest extends TestCase
         $response->assertStatus(403);
     }
 
-    /** @test */
-    public function it_can_handle_websocket_connection_with_valid_credentials()
-    {
-        $this->actingAs($this->user);
-
-        $response = $this->postJson('/api/websocket/connect', [
-            'app_id' => 'zonix-eats-app',
-            'key' => 'zonix-eats-key',
-        ]);
-
-        $response->assertStatus(200)
-                 ->assertJsonStructure(['success', 'data']);
-    }
-
-    /** @test */
-    public function it_rejects_websocket_connection_with_invalid_credentials()
-    {
-        $this->actingAs($this->user);
-
-        $response = $this->postJson('/api/websocket/connect', [
-            'app_id' => 'invalid-app',
-            'key' => 'invalid-key',
-        ]);
-
-        $response->assertStatus(401);
-    }
-
-    /** @test */
-    public function it_can_subscribe_to_user_channel()
-    {
-        $this->actingAs($this->user);
-
-        $response = $this->postJson('/api/websocket/subscribe', [
-            'channel' => 'App.Models.User.' . $this->user->id,
-        ]);
-
-        $response->assertStatus(200);
-    }
-
-    /** @test */
-    public function it_can_subscribe_to_order_channel()
-    {
-        $order = Order::factory()->create([
-            'profile_id' => $this->user->profile->id,
-            'commerce_id' => $this->commerce->id,
-        ]);
-
-        $this->actingAs($this->user);
-
-        $response = $this->postJson('/api/websocket/subscribe', [
-            'channel' => 'orders.' . $order->id,
-        ]);
-
-        $response->assertStatus(200);
-    }
-
-    /** @test */
-    public function it_can_unsubscribe_from_channel()
-    {
-        $this->actingAs($this->user);
-
-        $response = $this->postJson('/api/websocket/unsubscribe', [
-            'channel' => 'App.Models.User.' . $this->user->id,
-        ]);
-
-        $response->assertStatus(200);
-    }
-
-    /** @test */
-    public function it_can_handle_multiple_concurrent_connections()
-    {
-        $this->actingAs($this->user);
-
-        // Simular múltiples conexiones
-        $responses = [];
-        for ($i = 0; $i < 5; $i++) {
-            $responses[] = $this->postJson('/api/websocket/connect', [
-                'app_id' => 'zonix-eats-app',
-                'key' => 'zonix-eats-key',
-            ]);
-        }
-
-        // Verificar que todas las conexiones fueron exitosas
-        foreach ($responses as $response) {
-            $response->assertStatus(200);
-        }
-    }
-
-    /** @test */
-    public function it_can_handle_connection_timeout()
-    {
-        $this->actingAs($this->user);
-
-        // Simular timeout de conexión
-        $response = $this->postJson('/api/websocket/connect', [
-            'app_id' => 'zonix-eats-app',
-            'key' => 'zonix-eats-key',
-            'timeout' => 1, // 1 segundo
-        ]);
-
-        $response->assertStatus(200);
-    }
-
-    /** @test */
-    public function it_can_handle_reconnection_after_disconnect()
-    {
-        $this->actingAs($this->user);
-
-        // Primera conexión
-        $response1 = $this->postJson('/api/websocket/connect', [
-            'app_id' => 'zonix-eats-app',
-            'key' => 'zonix-eats-key',
-        ]);
-
-        $response1->assertStatus(200);
-
-        // Desconexión
-        $response2 = $this->postJson('/api/websocket/disconnect', []);
-
-        $response2->assertStatus(200);
-
-        // Reconexión
-        $response3 = $this->postJson('/api/websocket/connect', [
-            'app_id' => 'zonix-eats-app',
-            'key' => 'zonix-eats-key',
-        ]);
-
-        $response3->assertStatus(200);
-    }
+    // Nota: las pruebas específicas de /api/websocket/* se eliminaron porque
+    // la app ahora usa Pusher Channels directamente y Laravel Broadcasting
+    // con la ruta estándar /broadcasting/auth. WebSocketTest se mantiene
+    // para verificar que los eventos se despachan y que la autenticación
+    // de canales de broadcast funciona correctamente.
 } 

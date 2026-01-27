@@ -164,7 +164,7 @@ class OrderController extends Controller
                 $message = 'Pago validado correctamente';
                 
                 // Emitir evento de pago validado
-                event(new PaymentValidated($order));
+                event(new PaymentValidated($order, true, $profile->id));
             } else {
                 $order->update([
                     'status' => 'cancelled',

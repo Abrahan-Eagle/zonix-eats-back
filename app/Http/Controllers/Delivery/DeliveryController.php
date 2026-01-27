@@ -71,9 +71,9 @@ class DeliveryController extends Controller
     {
         try {
             $order = Order::findOrFail($orderId);
-            
-            // Validar que la orden está en estado 'shipped' (antes era 'paid' o 'preparing')
-            if ($order->status !== 'shipped') {
+
+            // La orden solo es aceptable si está pagada o en preparación
+            if (!in_array($order->status, ['paid', 'processing'])) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Order is not available for delivery'
@@ -93,7 +93,7 @@ class DeliveryController extends Controller
             if ($order->orderDelivery) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Order already assigned'
+                    'message' => 'Order is not available for delivery'
                 ], 400);
             }
 
@@ -102,13 +102,12 @@ class DeliveryController extends Controller
                 'order_id' => $orderId,
                 'agent_id' => $deliveryAgent->id,
                 'status' => 'assigned',
-                'costo_envio' => $order->delivery_fee ?? 0,
-                'notas' => $request->input('notes', '')
+                'delivery_fee' => $order->delivery_fee ?? 0,
+                'notes' => $request->input('notes', '')
             ]);
 
-            // Update order status
-            // El estado ya debe estar en 'shipped' cuando el comercio marca como enviado
-            // No cambiar estado aquí, solo crear OrderDelivery
+            // Actualizar estado de la orden a 'shipped' cuando un repartidor la acepta
+            $order->update(['status' => 'shipped']);
 
             return response()->json([
                 'message' => 'Orden aceptada',
@@ -179,7 +178,7 @@ class DeliveryController extends Controller
 
             $totalEarnings = OrderDelivery::where('agent_id', $deliveryAgentId)
                 ->where('status', 'delivered')
-                ->sum('costo_envio') ?? 0;
+                ->sum('delivery_fee') ?? 0;
 
             // Calcular average_rating desde reviews
             $averageRating = Review::where('reviewable_type', 'App\Models\DeliveryAgent')
@@ -296,7 +295,7 @@ class DeliveryController extends Controller
             })->findOrFail($orderId);
 
             $request->validate([
-                'status' => 'required|in:delivered'
+                'status' => 'required|in:shipped,delivered'
             ]);
 
             $order->update(['status' => $request->status]);
@@ -385,7 +384,7 @@ class DeliveryController extends Controller
 
             $deliveries = $query->with('order')->get();
 
-            $totalEarnings = $deliveries->sum('costo_envio');
+            $totalEarnings = $deliveries->sum('delivery_fee');
             $totalDeliveries = $deliveries->count();
             
             $deliveryTimes = [];
@@ -402,20 +401,20 @@ class DeliveryController extends Controller
             $todayEarnings = OrderDelivery::where('agent_id', $deliveryAgentId)
                 ->where('status', 'delivered')
                 ->whereDate('updated_at', today())
-                ->sum('costo_envio');
+                ->sum('delivery_fee');
 
             // Calculate weekly earnings
             $weeklyEarnings = OrderDelivery::where('agent_id', $deliveryAgentId)
                 ->where('status', 'delivered')
                 ->whereBetween('updated_at', [now()->startOfWeek(), now()->endOfWeek()])
-                ->sum('costo_envio');
+                ->sum('delivery_fee');
 
             // Calculate monthly earnings
             $monthlyEarnings = OrderDelivery::where('agent_id', $deliveryAgentId)
                 ->where('status', 'delivered')
                 ->whereMonth('updated_at', now()->month)
                 ->whereYear('updated_at', now()->year)
-                ->sum('costo_envio');
+                ->sum('delivery_fee');
 
             return response()->json([
                 'success' => true,
@@ -426,7 +425,7 @@ class DeliveryController extends Controller
                     'today_earnings' => $todayEarnings,
                     'weekly_earnings' => $weeklyEarnings,
                     'monthly_earnings' => $monthlyEarnings,
-                    'delivery_fees' => $deliveries->pluck('costo_envio')->toArray(),
+                    'delivery_fees' => $deliveries->pluck('delivery_fee')->toArray(),
                     'delivery_dates' => $deliveries->pluck('updated_at')->map(function($date) {
                         return $date->toIso8601String();
                     })->toArray(),
