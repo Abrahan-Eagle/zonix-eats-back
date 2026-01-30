@@ -56,6 +56,14 @@ class Profile extends Model
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Relación con el carrito del comprador (carrito asociado al perfil, no al user).
+     */
+    public function cart()
+    {
+        return $this->hasOne(Cart::class);
+    }
+
     // Relaciones con otros modelos
     public function commerce()
     {

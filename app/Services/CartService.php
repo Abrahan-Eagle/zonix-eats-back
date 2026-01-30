@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\Auth;
 class CartService
 {
     /**
-     * Obtener o crear el carrito del usuario autenticado
+     * Obtener o crear el carrito del perfil del usuario autenticado.
+     * El carrito está asociado al perfil (no al user); solo profiles y user_roles en users.
      *
      * @return Cart
      */
@@ -20,7 +21,11 @@ class CartService
         if (!$user) {
             throw new \Exception('Usuario no autenticado');
         }
-        return Cart::getOrCreateForUser($user->id);
+        $profile = $user->profile;
+        if (!$profile) {
+            throw new \Exception('Debe completar su perfil para usar el carrito');
+        }
+        return Cart::getOrCreateForProfile($profile->id);
     }
 
     /**

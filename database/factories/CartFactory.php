@@ -3,7 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Cart;
-use App\Models\User;
+use App\Models\Profile;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -21,7 +21,7 @@ class CartFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id' => User::factory(),
+            'profile_id' => Profile::factory(),
             'notes' => $this->faker->optional(0.3)->sentence(),
         ];
     }

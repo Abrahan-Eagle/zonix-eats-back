@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use Tests\TestCase;
 use App\Services\CartService;
 use App\Models\User;
+use App\Models\Profile;
 use App\Models\Product;
 use App\Models\Commerce;
 use App\Models\Cart;
@@ -24,8 +25,9 @@ class CartServiceTest extends TestCase
         parent::setUp();
         $this->cartService = new CartService();
         
-        // Crear usuario autenticado
+        // Crear usuario autenticado con perfil (carrito asociado a profile)
         $this->user = User::factory()->create(['role' => 'users']);
+        Profile::factory()->create(['user_id' => $this->user->id]);
         Sanctum::actingAs($this->user);
 
         // Crear comercio y productos para los tests (stock suficiente para update quantity a 5)

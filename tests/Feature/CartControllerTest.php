@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use App\Models\User;
+use App\Models\Profile;
 use App\Models\Product;
 use App\Models\Commerce;
 use Laravel\Sanctum\Sanctum;
@@ -16,6 +17,7 @@ class CartControllerTest extends TestCase
     public function test_add_product_to_cart()
     {
         $user = User::factory()->create(['role' => 'users']);
+        Profile::factory()->create(['user_id' => $user->id]);
         Sanctum::actingAs($user);
         
         // Crear comercio y producto (comercio abierto)
@@ -38,6 +40,7 @@ class CartControllerTest extends TestCase
     public function test_show_cart_contents()
     {
         $user = User::factory()->create(['role' => 'users']);
+        Profile::factory()->create(['user_id' => $user->id]);
         Sanctum::actingAs($user);
         
         $response = $this->getJson('/api/buyer/cart');

@@ -22,6 +22,7 @@ class WorkingRoleTest extends TestCase
     public function test_users_can_access_client_features()
     {
         $user = User::factory()->buyer()->create();
+        Profile::factory()->create(['user_id' => $user->id]);
         Sanctum::actingAs($user);
 
         // Verificar acceso a productos

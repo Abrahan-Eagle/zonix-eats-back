@@ -10,16 +10,16 @@ class Cart extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
+        'profile_id',
         'notes',
     ];
 
     /**
-     * Relación con el usuario propietario del carrito
+     * Relación con el perfil propietario del carrito (solo profiles conectado a users; dominio va a profile).
      */
-    public function user()
+    public function profile()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Profile::class);
     }
 
     /**
@@ -31,10 +31,10 @@ class Cart extends Model
     }
 
     /**
-     * Obtener o crear el carrito de un usuario
+     * Obtener o crear el carrito de un perfil
      */
-    public static function getOrCreateForUser($userId)
+    public static function getOrCreateForProfile($profileId)
     {
-        return static::firstOrCreate(['user_id' => $userId]);
+        return static::firstOrCreate(['profile_id' => $profileId]);
     }
 }

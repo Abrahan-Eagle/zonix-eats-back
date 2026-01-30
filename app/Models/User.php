@@ -170,10 +170,10 @@ class User extends Authenticatable
     }
 
     /**
-     * Relación con el carrito del usuario
+     * Relación con el carrito del usuario (vía perfil: solo profile y user_roles en users).
      */
     public function cart()
     {
-        return $this->hasOne(Cart::class);
+        return $this->hasOneThrough(Cart::class, Profile::class, 'user_id', 'profile_id');
     }
 }
