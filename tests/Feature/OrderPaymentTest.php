@@ -44,9 +44,10 @@ class OrderPaymentTest extends TestCase
         $commerceProfile = Profile::factory()->create(['user_id' => $commerceUser->id]);
         $this->commerce = Commerce::factory()->create(['profile_id' => $commerceProfile->id, 'open' => true]);
 
-        // Crear productos para el comercio
+        // Crear productos para el comercio (disponibles para poder crear orden)
         $this->products = Product::factory()->count(3)->create([
             'commerce_id' => $this->commerce->id,
+            'available' => true,
         ]);
     }
 

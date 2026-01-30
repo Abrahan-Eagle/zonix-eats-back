@@ -22,6 +22,7 @@ class CartControllerTest extends TestCase
         $commerce = Commerce::factory()->create(['open' => true]);
         $product = Product::factory()->create([
             'commerce_id' => $commerce->id,
+            'available' => true,
         ]);
         
         $data = [

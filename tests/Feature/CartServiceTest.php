@@ -28,17 +28,19 @@ class CartServiceTest extends TestCase
         $this->user = User::factory()->create(['role' => 'users']);
         Sanctum::actingAs($this->user);
 
-        // Crear comercio y producto para los tests
+        // Crear comercio y productos para los tests (stock suficiente para update quantity a 5)
         $commerce = Commerce::factory()->create(['open' => true]);
         Product::factory()->create([
             'commerce_id' => $commerce->id,
             'id' => 1,
             'available' => true,
+            'stock_quantity' => 10,
         ]);
         Product::factory()->create([
             'commerce_id' => $commerce->id,
             'id' => 2,
             'available' => true,
+            'stock_quantity' => 10,
         ]);
     }
 

@@ -57,10 +57,10 @@ class ProfileController extends Controller
 
 
         $profileData = $request->only([
-            'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex'
+            'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex', 'phone'
         ]);
 
-          // Establecer valores predeterminados para campos opcionales.
+        // Establecer valores predeterminados para campos opcionales.
         $profileData['middleName'] = $request->middleName ?? '';
         $profileData['secondLastName'] = $request->secondLastName ?? '';
         $profileData['status'] = 'notverified'; // Estado inicial.

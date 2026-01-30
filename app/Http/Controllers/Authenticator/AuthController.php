@@ -150,23 +150,25 @@ class AuthController extends Controller
     }
 
 
-     // Actualizar una user el campo  completed_onboarding
+     // Actualizar usuario: completed_onboarding y opcionalmente role (al final del onboarding)
      public function update(Request $request, $id)
      {
-         // Busca al usuario por ID y verifica si existe
          $user = User::find($id);
 
          if (!$user) {
              return response()->json(['error' => 'Usuario no encontrado'], 404);
          }
 
-         // Valida el campo 'completed_onboarding' como booleano
          $validated = $request->validate([
              'completed_onboarding' => 'required|boolean',
+             'role' => 'nullable|string|in:users,commerce',
          ]);
 
-         // Actualiza el usuario con el campo validado
-         $user->update($validated);
+         $user->completed_onboarding = $validated['completed_onboarding'];
+         if (!empty($validated['role'])) {
+             $user->role = $validated['role'];
+         }
+         $user->save();
 
          return response()->json($user, 200);
      }

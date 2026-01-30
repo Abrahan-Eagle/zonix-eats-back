@@ -47,6 +47,46 @@ class ProfileControllerTest extends TestCase
                  ->assertJson(['message' => 'Perfil creado exitosamente.']);
     }
 
+    public function testStoreFailsWithoutPhone()
+    {
+        $data = [
+            'user_id' => $this->user->id,
+            'firstName' => 'John',
+            'lastName' => 'Doe',
+            'date_of_birth' => '1985-05-15',
+            'maritalStatus' => 'single',
+            'sex' => 'M',
+        ];
+
+        $response = $this->actingAs($this->user, 'sanctum')
+                        ->post('/api/profiles', $data);
+        $response->assertStatus(400)
+                 ->assertJsonStructure(['error']);
+    }
+
+    public function testStoreSavesPhoneInDatabase()
+    {
+        $data = [
+            'user_id' => $this->user->id,
+            'firstName' => 'John',
+            'lastName' => 'Doe',
+            'date_of_birth' => '1985-05-15',
+            'maritalStatus' => 'single',
+            'sex' => 'M',
+            'phone' => '9876543210',
+        ];
+
+        $this->actingAs($this->user, 'sanctum')
+             ->post('/api/profiles', $data);
+
+        $this->assertDatabaseHas('profiles', [
+            'user_id' => $this->user->id,
+            'firstName' => 'John',
+            'lastName' => 'Doe',
+            'phone' => '9876543210',
+        ]);
+    }
+
     public function testShow()
     {
         $profile = Profile::factory()->create(['user_id' => $this->user->id]);
