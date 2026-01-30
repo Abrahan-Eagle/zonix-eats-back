@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use App\Models\User;
+use App\Models\Profile;
 use App\Models\Product;
 use App\Models\Commerce;
 use Laravel\Sanctum\Sanctum;
@@ -17,12 +18,12 @@ class EcommerceFlowTest extends TestCase
     {
         // Crear usuario buyer y autenticar
         $user = User::factory()->create(['role' => 'users']);
-        // Asociar perfil al usuario buyer
-        $profile = $user->profile()->create([
+        // Perfil con factory para que se cree un teléfono en tabla phones (requerido para orden)
+        $profile = Profile::factory()->create([
+            'user_id' => $user->id,
             'firstName' => 'Comprador',
             'lastName' => 'Test',
             'address' => 'Calle Falsa 123',
-            'phone' => '1234567890',
             'photo_users' => 'https://via.placeholder.com/150',
             'status' => 'completeData',
         ]);

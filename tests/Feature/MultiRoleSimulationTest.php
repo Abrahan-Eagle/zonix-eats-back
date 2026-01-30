@@ -55,7 +55,6 @@ class MultiRoleSimulationTest extends TestCase
             'firstName' => 'Juan',
             'lastName' => 'Comprador',
             'address' => 'Calle Principal 123',
-            'phone' => '1234567890',
             'photo_users' => 'https://via.placeholder.com/150',
             'status' => 'completeData'
         ]);

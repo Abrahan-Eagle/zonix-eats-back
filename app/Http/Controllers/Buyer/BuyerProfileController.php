@@ -35,12 +35,11 @@ class BuyerProfileController extends Controller
         $request->validate([
             'first_name' => 'sometimes|string|max:255',
             'last_name' => 'sometimes|string|max:255',
-            'phone' => 'sometimes|string|max:20',
             'address' => 'sometimes|string|max:500',
         ]);
 
         $profile->update($request->only([
-            'first_name', 'last_name', 'phone', 'address'
+            'first_name', 'last_name', 'address'
         ]));
 
         return response()->json([

@@ -15,7 +15,6 @@ class Commerce extends Model
         'business_type',
         'tax_id',
         'image',
-        'phone',
         'address',
         'open',
         'schedule',
@@ -26,6 +25,8 @@ class Commerce extends Model
         'cancellation_count',
         'last_cancellation_date'
     ];
+
+    protected $appends = ['phone'];
 
     protected $casts = [
         'open' => 'boolean',
@@ -43,6 +44,14 @@ class Commerce extends Model
     public function profile()
     {
         return $this->belongsTo(Profile::class);
+    }
+
+    /**
+     * Teléfono del comercio (desde perfil → tabla phones). Una sola fuente de verdad.
+     */
+    public function getPhoneAttribute(): ?string
+    {
+        return $this->profile?->phone;
     }
 
     /**

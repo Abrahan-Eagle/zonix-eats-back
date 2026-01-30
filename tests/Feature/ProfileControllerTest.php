@@ -38,7 +38,6 @@ class ProfileControllerTest extends TestCase
             'date_of_birth' => '1985-05-15',
             'maritalStatus' => 'single',
             'sex' => 'M',
-            'phone' => '1234567890',
         ];
 
         $response = $this->actingAs($this->user, 'sanctum')
@@ -47,7 +46,7 @@ class ProfileControllerTest extends TestCase
                  ->assertJson(['message' => 'Perfil creado exitosamente.']);
     }
 
-    public function testStoreFailsWithoutPhone()
+    public function testStoreSucceedsWithoutPhone()
     {
         $data = [
             'user_id' => $this->user->id,
@@ -60,30 +59,11 @@ class ProfileControllerTest extends TestCase
 
         $response = $this->actingAs($this->user, 'sanctum')
                         ->post('/api/profiles', $data);
-        $response->assertStatus(400)
-                 ->assertJsonStructure(['error']);
-    }
-
-    public function testStoreSavesPhoneInDatabase()
-    {
-        $data = [
-            'user_id' => $this->user->id,
-            'firstName' => 'John',
-            'lastName' => 'Doe',
-            'date_of_birth' => '1985-05-15',
-            'maritalStatus' => 'single',
-            'sex' => 'M',
-            'phone' => '9876543210',
-        ];
-
-        $this->actingAs($this->user, 'sanctum')
-             ->post('/api/profiles', $data);
-
+        $response->assertStatus(201);
         $this->assertDatabaseHas('profiles', [
             'user_id' => $this->user->id,
             'firstName' => 'John',
             'lastName' => 'Doe',
-            'phone' => '9876543210',
         ]);
     }
 
@@ -105,7 +85,6 @@ class ProfileControllerTest extends TestCase
             'date_of_birth' => '1985-05-15',
             'maritalStatus' => 'single',
             'sex' => 'M',
-            'phone' => '1234567890',
         ];
 
         $response = $this->actingAs($this->user, 'sanctum')

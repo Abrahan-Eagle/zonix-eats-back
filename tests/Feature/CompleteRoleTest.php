@@ -78,7 +78,6 @@ class CompleteRoleTest extends TestCase
             'firstName' => 'Client',
             'lastName' => 'Test',
             'address' => 'Client Address 123',
-            'phone' => '1234567890',
             'photo_users' => 'https://via.placeholder.com/150',
             'status' => 'completeData',
         ]);
@@ -126,7 +125,6 @@ class CompleteRoleTest extends TestCase
             'date_of_birth' => '1990-01-01',
             'maritalStatus' => 'single',
             'sex' => 'M',
-            'phone' => '1234567890',
         ]);
         $response->assertStatus(200);
     }

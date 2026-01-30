@@ -46,6 +46,15 @@ class Phone extends Model
         return $this->belongsTo(OperatorCode::class, 'operator_code_id');
     }
 
+    /**
+     * Número completo: código de operador + número (ej. 04121234567).
+     */
+    public function getFullNumberAttribute(): string
+    {
+        $code = $this->operatorCode?->code ?? '';
+        return $code . $this->number;
+    }
+
 
 
 

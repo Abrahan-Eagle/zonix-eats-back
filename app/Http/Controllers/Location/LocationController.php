@@ -172,7 +172,6 @@ class LocationController extends Controller
                 commerces.*,
                 commerces.business_name,
                 commerces.address,
-                commerces.phone,
                 commerces.open,
                 addresses.latitude,
                 addresses.longitude,

@@ -28,7 +28,6 @@ class Profile extends Model
         'maritalStatus',
         'sex',
         'status',
-        'phone',
         'address',
         'fcm_device_token',
         'notification_preferences'
@@ -113,6 +112,16 @@ class Profile extends Model
     public function phones()
     {
         return $this->hasMany(Phone::class);
+    }
+
+    /**
+     * Número de teléfono principal (desde tabla phones).
+     * Compatibilidad: reemplaza el antiguo campo profile.phone.
+     */
+    public function getPhoneAttribute(): ?string
+    {
+        $primary = $this->phones()->where('is_primary', true)->where('status', true)->first();
+        return $primary ? $primary->full_number : null;
     }
 
     /**

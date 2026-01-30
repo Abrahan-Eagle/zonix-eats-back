@@ -222,7 +222,6 @@ class AuthenticationTest extends TestCase
 
         $this->assertDatabaseHas('commerces', [
             'business_name' => 'Test Restaurant',
-            'phone' => '1234567890'
         ]);
     }
 
@@ -302,7 +301,6 @@ class AuthenticationTest extends TestCase
 
         $this->assertDatabaseHas('delivery_agents', [
             'vehicle_type' => 'motorcycle',
-            'phone' => '1234567890'
         ]);
     }
 
@@ -344,7 +342,6 @@ class AuthenticationTest extends TestCase
 
         $this->assertDatabaseHas('delivery_agents', [
             'vehicle_type' => 'motorcycle',
-            'phone' => '1234567890',
             'company_id' => $company->id
         ]);
     }

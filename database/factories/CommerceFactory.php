@@ -40,7 +40,6 @@ class CommerceFactory extends Factory
             'business_type' => $this->faker->randomElement(['restaurant', 'cafe', 'bakery', 'fast_food', 'pizzeria', 'bar', 'food_truck']),
             'tax_id' => $this->faker->numerify('J-########-#'),
             'image' => $this->faker->randomElement($restaurantImages),
-            'phone' => $this->faker->phoneNumber,
             'address' => $this->faker->address,
             'open' => $this->faker->boolean(70),
             'schedule' => [

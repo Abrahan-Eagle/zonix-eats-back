@@ -83,13 +83,13 @@ class OrderController extends Controller
                 ], 400);
             }
 
-            // Validar datos mínimos del perfil para crear orden
-            $requiredFields = ['firstName', 'lastName', 'phone', 'photo_users'];
+            // Validar datos mínimos del perfil para crear orden (teléfono en tabla phones)
+            $requiredProfileFields = ['firstName', 'lastName', 'photo_users'];
             if ($validated['delivery_type'] === 'delivery') {
-                $requiredFields[] = 'address';
+                $requiredProfileFields[] = 'address';
             }
 
-            foreach ($requiredFields as $field) {
+            foreach ($requiredProfileFields as $field) {
                 if (empty($profile->$field)) {
                     return response()->json([
                         'success' => false,
@@ -97,6 +97,14 @@ class OrderController extends Controller
                         'missing_field' => $field
                     ], 400);
                 }
+            }
+
+            if (!$profile->phones()->where('status', true)->exists()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Se requiere al menos un teléfono para crear una orden. Por favor, agrega un teléfono en tu perfil.',
+                    'missing_field' => 'phone'
+                ], 400);
             }
 
             // Validar commerce existe y está activo

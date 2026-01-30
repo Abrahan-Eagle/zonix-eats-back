@@ -21,7 +21,6 @@ class DeliveryCompanyFactory extends Factory
             'profile_id' => Profile::factory(),
             'name' => $this->faker->company,
             'tax_id' => $this->faker->unique()->numerify('J-########-#'),
-            'phone' => $this->faker->phoneNumber,
             'address' => $this->faker->address,
             'image' => $this->faker->optional(0.7)->imageUrl(),
             'open' => $this->faker->boolean(80),

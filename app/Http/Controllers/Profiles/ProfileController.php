@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Profiles;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Profile;
+use App\Models\Phone;
+use App\Models\OperatorCode;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
@@ -34,7 +36,6 @@ class ProfileController extends Controller
             'lastName' => 'required|string|max:255',
             'secondLastName' => 'nullable|string|max:255',
             'photo_users' => 'nullable|image|mimes:jpeg,png,jpg',
-            'phone' => 'required|string|max:20', // Required según modelo de negocio
             'date_of_birth' => 'required|date',
             'maritalStatus' => 'required|in:married,divorced,single',
             'sex' => 'required|in:F,M',
@@ -57,7 +58,7 @@ class ProfileController extends Controller
 
 
         $profileData = $request->only([
-            'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex', 'phone'
+            'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex'
         ]);
 
         // Establecer valores predeterminados para campos opcionales.
@@ -111,7 +112,6 @@ class ProfileController extends Controller
         'lastName' => 'required|string|max:255',
         'secondLastName' => 'nullable|string|max:255',
         'photo_users' => 'nullable|image|mimes:jpeg,png,jpg',
-        'phone' => 'required|string|max:20', // Required según modelo de negocio
         'date_of_birth' => 'required|date',
         'maritalStatus' => 'required|in:married,divorced,single',
         'sex' => 'required|in:F,M',
@@ -245,7 +245,7 @@ class ProfileController extends Controller
         }
 
         $profileData = $request->only([
-            'user_id', 'firstName', 'lastName', 'phone', 'date_of_birth', 'maritalStatus', 'sex'
+            'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex'
         ]);
 
         $profileData['middleName'] = $request->middleName ?? '';
@@ -264,12 +264,14 @@ class ProfileController extends Controller
         // Crear el perfil
         $profile = Profile::create($profileData);
 
+        // Registrar teléfono en tabla phones (una sola fuente de verdad)
+        $this->createPhoneForProfile($profile, $request->phone);
+
         // Crear el delivery agent asociado
         $deliveryAgentData = [
             'profile_id' => $profile->id,
             'vehicle_type' => $request->vehicle_type, // Required según modelo de negocio
             'license_number' => $request->license_number, // Required según modelo de negocio
-            'phone' => $request->phone,
             'status' => 'activo',
             'working' => false,
         ];
@@ -328,7 +330,7 @@ class ProfileController extends Controller
         }
 
         $profileData = $request->only([
-            'user_id', 'firstName', 'lastName', 'phone', 'date_of_birth', 'maritalStatus', 'sex'
+            'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex'
         ]);
         $profileData['middleName'] = $request->middleName ?? '';
         $profileData['secondLastName'] = $request->secondLastName ?? '';
@@ -346,6 +348,9 @@ class ProfileController extends Controller
         // Crear el perfil
         $profile = Profile::create($profileData);
 
+        // Registrar teléfono en tabla phones (una sola fuente de verdad)
+        $this->createPhoneForProfile($profile, $request->phone);
+
         // Crear el commerce asociado
         $commerce = \App\Models\Commerce::create([
             'profile_id' => $profile->id,
@@ -354,7 +359,6 @@ class ProfileController extends Controller
             'tax_id' => $request->tax_id, // Required según modelo de negocio
             'description' => $request->description ?? null,
             'address' => $request->address,
-            'phone' => $request->phone,
             'open' => $request->is_open ?? false,
         ]);
 
@@ -408,7 +412,7 @@ class ProfileController extends Controller
         }
 
         $profileData = $request->only([
-            'user_id', 'firstName', 'lastName', 'phone', 'date_of_birth', 'maritalStatus', 'sex'
+            'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex'
         ]);
 
         $profileData['middleName'] = $request->middleName ?? '';
@@ -427,12 +431,14 @@ class ProfileController extends Controller
         // Crear el perfil
         $profile = Profile::create($profileData);
 
+        // Registrar teléfono en tabla phones (una sola fuente de verdad)
+        $this->createPhoneForProfile($profile, $request->phone);
+
         // Crear la delivery company asociada
         $deliveryCompany = \App\Models\DeliveryCompany::create([
             'profile_id' => $profile->id,
             'name' => $request->company_name,
             'tax_id' => $request->ci, // Required según modelo de negocio
-            'phone' => $request->phone,
             'address' => $request->address,
             'active' => true,
         ]);
@@ -445,5 +451,31 @@ class ProfileController extends Controller
                 'delivery_company' => $deliveryCompany
             ]
         ], 201);
+    }
+
+    /**
+     * Registrar teléfono del perfil en tabla phones (una sola fuente de verdad para todos los roles).
+     */
+    private function createPhoneForProfile(Profile $profile, string $phoneString): void
+    {
+        $digits = preg_replace('/\D/', '', $phoneString);
+        if (strlen($digits) < 7) {
+            return;
+        }
+        $number = substr($digits, -7);
+        $code4 = substr($digits, 0, 4);
+        $code3 = ltrim($code4, '0');
+        $operatorCode = OperatorCode::where('code', $code4)->orWhere('code', $code3)->first()
+            ?? OperatorCode::first();
+        if (!$operatorCode) {
+            return;
+        }
+        Phone::create([
+            'profile_id' => $profile->id,
+            'operator_code_id' => $operatorCode->id,
+            'number' => $number,
+            'is_primary' => true,
+            'status' => true,
+        ]);
     }
 }

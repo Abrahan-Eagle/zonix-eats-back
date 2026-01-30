@@ -17,13 +17,14 @@ class DeliveryAgent extends Model
         'rating',
         'vehicle_type',
         'license_number',
-        'phone',
         'current_latitude',
         'current_longitude',
         'last_location_update',
         'rejection_count',
         'last_rejection_date'
     ];
+
+    protected $appends = ['phone'];
 
     protected $casts = [
         'working' => 'boolean',
@@ -51,6 +52,14 @@ class DeliveryAgent extends Model
     public function profile()
     {
         return $this->belongsTo(Profile::class);
+    }
+
+    /**
+     * Teléfono del repartidor (desde perfil → tabla phones). Una sola fuente de verdad.
+     */
+    public function getPhoneAttribute(): ?string
+    {
+        return $this->profile?->phone;
     }
 
     public function user()

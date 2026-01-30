@@ -29,7 +29,6 @@ class DeliveryAgentFactory extends Factory
             'rating' => $this->faker->randomFloat(2, 3.5, 5),
             'vehicle_type' => $this->faker->randomElement(['motorcycle', 'car', 'bicycle', 'truck']),
             'license_number' => $this->faker->bothify('LIC-#######'),
-            'phone' => $this->faker->phoneNumber,
             'current_latitude' => $working ? $this->faker->latitude(10.0, 10.5) : null,
             'current_longitude' => $working ? $this->faker->longitude(-67.0, -66.5) : null,
             'last_location_update' => $working ? $this->faker->dateTimeBetween('-1 hour', 'now') : null,

@@ -24,7 +24,6 @@ class OrderTest extends TestCase
             'firstName' => 'Cliente',
             'lastName' => 'Test',
             'address' => 'Calle 123',
-            'phone' => '1234567890',
             'photo_users' => 'https://via.placeholder.com/150',
             'status' => 'completeData',
         ]);

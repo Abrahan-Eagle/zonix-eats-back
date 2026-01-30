@@ -42,7 +42,6 @@ class WebSocketTest extends TestCase
         $this->commerce = Commerce::factory()->create([
             'business_name' => 'Test Restaurant',
             'address' => 'Test Address',
-            'phone' => '1234567890',
             'open' => true,
         ]);
 

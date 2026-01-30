@@ -13,13 +13,14 @@ class DeliveryCompany extends Model
         'profile_id',
         'name',
         'tax_id',
-        'phone',
         'address',
         'image',
         'open',
         'schedule',
         'active',
     ];
+
+    protected $appends = ['phone'];
 
     protected $casts = [
         'open' => 'boolean',
@@ -30,6 +31,14 @@ class DeliveryCompany extends Model
     public function profile()
     {
         return $this->belongsTo(Profile::class);
+    }
+
+    /**
+     * Teléfono de la empresa (desde perfil → tabla phones). Una sola fuente de verdad.
+     */
+    public function getPhoneAttribute(): ?string
+    {
+        return $this->profile?->phone;
     }
 
     public function deliveryAgents()
