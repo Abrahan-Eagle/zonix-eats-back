@@ -17,7 +17,7 @@ alwaysApply: true
 **Factories:** 27 (verificado)  
 **Líneas de código:** 12,898 líneas PHP en `app/`  
 **Errores críticos:** ✅ Todos corregidos (valores hardcoded, OSRM integrado, analytics reales, broadcasting/Pusher configurado)  
-**Última actualización:** 27 Enero 2025
+**Última actualización:** 9 Febrero 2025
 
 ---
 
@@ -274,13 +274,12 @@ $request->user()->tokens()->delete();
 
 ### Seguridad
 
-**CRÍTICO - CORS:**
-- ⚠️ Actualmente configurado con `allowed_origins: ['*']`
-- **Recomendación:** Restringir a dominios específicos en producción
+**CORS:**
+- ✅ Configurable vía `CORS_ALLOWED_ORIGINS` en `.env` (lista separada por comas). Si no se define, se usa `['*']`.
+- **Recomendación:** En producción definir dominios específicos.
 
 **Rate Limiting:**
-- ⚠️ No implementado en endpoints críticos
-- **Recomendación:** Agregar rate limiting a endpoints de autenticación y creación
+- ✅ Implementado en rutas críticas: `throttle:auth` (auth), `throttle:create` (crear orden). Configurable en `RouteServiceProvider` / `App\Providers\RouteServiceProvider`.
 
 **Validación:**
 - ✅ Siempre validar input del usuario
@@ -551,48 +550,42 @@ php artisan test --coverage
    - ✅ `CartService` actualizado para usar Eloquent
    - ✅ Validaciones de negocio implementadas
 
-2. **Restringir CORS**
-   - Cambiar `allowed_origins: ['*']` a dominios específicos
-   - Afecta seguridad
+2. ~~**Restringir CORS**~~ ✅ **Configurable**
+   - CORS se configura con `CORS_ALLOWED_ORIGINS` en `.env`. En producción definir dominios.
 
-3. **Agregar Rate Limiting**
-   - Implementar en endpoints críticos (auth, creación)
-   - Afecta seguridad
+3. ~~**Agregar Rate Limiting**~~ ✅ **Implementado**
+   - `throttle:auth` y `throttle:create` en `routes/api.php`.
 
-4. **Ejecutar Migraciones Pendientes**
-   - `add_is_default_to_addresses_table.php`
-   - `make_company_id_nullable_in_delivery_agents_table.php`
-   - `add_stock_quantity_to_products_table.php`
-   - `add_image_open_schedule_to_delivery_companies_table.php`
+4. **Migraciones:** Las que existían en la lista ya están en el proyecto o aplicadas (p. ej. `make_city_id_nullable_in_addresses_table`). Revisar con `php artisan migrate:status` y ejecutar las pendientes si las hubiera.
 
 ### 🟡 ALTO - Próximas Semanas
 
-4. **Agregar Paginación**
+5. **Agregar Paginación**
    - Implementar en todos los endpoints de listado
    - Afecta performance
 
-5. **Agregar Índices a BD**
+6. **Agregar Índices a BD**
    - `orders.status`, `orders.created_at`
    - `products.commerce_id`, `products.is_available`
    - Afecta performance
 
-6. **Implementar Caching**
+7. **Implementar Caching**
    - Redis para queries frecuentes
    - Cachear respuestas de API
    - Afecta performance
 
 ### 🟢 MEDIO - Mejoras Futuras
 
-7. **Mejorar Sistema de Roles**
+8. **Mejorar Sistema de Roles**
    - Permisos granulares
    - Múltiples roles por usuario
    - Afecta seguridad/flexibilidad
 
-8. **Implementar Swagger/OpenAPI**
+9. **Implementar Swagger/OpenAPI**
    - Documentación de API
    - Afecta desarrollo/documentación
 
-9. **Eliminar Archivos Duplicados**
+10. **Eliminar Archivos Duplicados**
    - `City copy.php`, `State copy.php`
    - Afecta mantenibilidad
 
@@ -972,12 +965,12 @@ Antes de considerar el análisis completo, verificar:
 
 ---
 
-**Última actualización:** 27 Enero 2025  
+**Última actualización:** 9 Febrero 2025  
 **Mantener este archivo actualizado con cambios arquitectónicos importantes**
 
 ---
 
-## LÓGICA DE NEGOCIO - MVP (Actualizado Enero 2025)
+## LÓGICA DE NEGOCIO - MVP (Actualizado Febrero 2025)
 
 ### Decisiones Clave del MVP
 

@@ -29,24 +29,6 @@ class OrderService
     }
 
     /**
-     * Crear una nueva orden con productos y datos validados.
-     * 
-     * NOTA: Este método está deprecado. Usar lógica directamente en OrderController::store()
-     * ya que requiere validaciones complejas que se manejan mejor en el controlador.
-     *
-     * @param array $validated
-     * @param int $userId
-     * @return \App\Models\Order
-     * @deprecated Usar lógica en OrderController::store() en su lugar
-     */
-    public function createOrder(array $validated, $userId)
-    {
-        // Este método se mantiene por compatibilidad pero la lógica principal
-        // está en OrderController::store() con todas las validaciones necesarias
-        throw new \Exception('Este método está deprecado. Usar OrderController::store() directamente.');
-    }
-
-    /**
      * Obtener detalles de una orden específica del comprador.
      *
      * @param int $orderId

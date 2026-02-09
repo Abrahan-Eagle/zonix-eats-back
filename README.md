@@ -2616,38 +2616,24 @@ php artisan storage:link
 
 ### CORS
 
-**⚠️ CRÍTICO:** Actualmente configurado con `allowed_origins: ['*']`
+**✅ Configurable:** Los orígenes permitidos se leen de la variable de entorno `CORS_ALLOWED_ORIGINS` (lista separada por comas). Si no está definida, se usa `['*']`.
 
-**Configuración actual (`config/cors.php`):**
+**Configuración (`config/cors.php`):**
 ```php
-return [
-    'paths' => ['api/*', 'sanctum/csrf-cookie'],
-    'allowed_methods' => ['*'],
-    'allowed_origins' => ['*'],  // ⚠️ RIESGO DE SEGURIDAD
-    'allowed_headers' => ['*'],
-    'supports_credentials' => true,
-];
+'allowed_origins' => env('CORS_ALLOWED_ORIGINS')
+    ? explode(',', env('CORS_ALLOWED_ORIGINS'))
+    : ['*'],
 ```
 
-**Recomendación para producción:**
-```php
-'allowed_origins' => [
-    'https://zonix.uniblockweb.com',
-    'https://app.zonix.uniblockweb.com',
-],
-```
+**En producción:** Definir en `.env` por ejemplo: `CORS_ALLOWED_ORIGINS=https://zonix.uniblockweb.com,https://app.zonix.uniblockweb.com`
 
 ### Rate Limiting
 
-**⚠️ NO implementado en endpoints críticos**
+**✅ Implementado** en rutas críticas en `routes/api.php`:
+- `throttle:auth` en el grupo de rutas de autenticación (`/api/auth/*`)
+- `throttle:create` en la creación de órdenes (`POST /api/buyer/orders`)
 
-**Recomendación:**
-```php
-Route::middleware(['throttle:60,1'])->group(function () {
-    Route::post('/api/auth/login', [AuthController::class, 'login']);
-    Route::post('/api/auth/register', [AuthController::class, 'register']);
-});
-```
+Los límites se configuran en `App\Providers\RouteServiceProvider` (rate limiters `auth` y `create`).
 
 ### Validación de Input
 
@@ -2711,19 +2697,11 @@ Order::with(['commerce', 'orderItems.product', 'orderDelivery'])
 
 ### 🔴 Críticos
 
-1. **CartService usa Session**
-   - **Problema:** No funciona en arquitectura stateless
-   - **Ubicación:** `app/Services/CartService.php`
-   - **Solución:** Migrar a base de datos (tablas `carts` y `cart_items`)
+1. ~~**CartService usa Session**~~ ✅ **RESUELTO:** Carrito migrado a BD (tablas `carts` y `cart_items`)
 
-2. **CORS muy permisivo**
-   - **Problema:** `allowed_origins: ['*']` es riesgo de seguridad
-   - **Ubicación:** `config/cors.php`
-   - **Solución:** Restringir a dominios específicos
+2. ~~**CORS muy permisivo**~~ ✅ **CONFIGURABLE:** Orígenes vía `CORS_ALLOWED_ORIGINS` en `.env`; en producción definir dominios
 
-3. **Falta Rate Limiting**
-   - **Problema:** Endpoints críticos sin protección
-   - **Solución:** Implementar rate limiting en auth y creación
+3. ~~**Falta Rate Limiting**~~ ✅ **RESUELTO:** `throttle:auth` y `throttle:create` en `routes/api.php`
 
 ### 🟡 Altos
 
@@ -2824,17 +2802,11 @@ php artisan log:clear
 
 ### 🔴 Acción Inmediata
 
-1. **Migrar Carrito de Session a Base de Datos**
-   - Crear tablas `carts` y `cart_items`
-   - Actualizar `CartService`
-   - Actualizar endpoints
+1. ~~**Migrar Carrito de Session a Base de Datos**~~ ✅ **COMPLETADO** (tablas `carts` y `cart_items`, `CartService` en BD)
 
-2. **Restringir CORS**
-   - Cambiar `allowed_origins: ['*']` a dominios específicos
+2. ~~**Restringir CORS**~~ ✅ **Configurable** (variable `CORS_ALLOWED_ORIGINS` en `.env`; en producción definir dominios)
 
-3. **Implementar Rate Limiting**
-   - Agregar a endpoints de autenticación
-   - Agregar a endpoints de creación
+3. ~~**Implementar Rate Limiting**~~ ✅ **Implementado** (`throttle:auth`, `throttle:create` en `routes/api.php`)
 
 ### 🟡 Próximas Semanas
 
@@ -2870,7 +2842,7 @@ php artisan log:clear
 
 ### 🔴 FASE 1: CRÍTICO - Funcionalidad Core (4-6 semanas)
 
-1. ✅ **Corregir Tests Fallando** (COMPLETADO) - Todos los tests pasan (216+ tests)
+1. ✅ **Corregir Tests Fallando** (COMPLETADO) - Todos los tests pasan (204+ tests)
 2. ✅ **Migrar Carrito de Session a BD** (COMPLETADO) - Migrado a tablas `carts` y `cart_items`
 3. ✅ **TODOs Commerce Service** (COMPLETADO) - Frontend: 12 métodos implementados
 4. ✅ **TODOs Payment Service** (COMPLETADO) - Frontend: 11 métodos implementados
@@ -3997,7 +3969,7 @@ Este proyecto es privado y confidencial.
 **Versión:** 1.0.0  
 **Laravel:** 10.x  
 **PHP:** 8.1+  
-**Última actualización:** 27 Enero 2025  
+**Última actualización:** 9 Febrero 2025  
 **Estado:** ✅ MVP Completado - En desarrollo activo  
 **Tests:** 204+ pasaron ✅, 0 fallaron ✅ (incl. PusherConfigTest)  
 **Errores críticos:** ✅ Todos corregidos
