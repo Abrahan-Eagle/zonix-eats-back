@@ -33,6 +33,33 @@ class OnboardingTest extends TestCase
     }
 
     /** @test */
+    public function authenticated_user_can_complete_onboarding_and_update_role()
+    {
+        $user = User::factory()->create([
+            'completed_onboarding' => false,
+            'role' => 'users',
+        ]);
+        Sanctum::actingAs($user);
+
+        $response = $this->putJson("/api/onboarding/{$user->id}", [
+            'completed_onboarding' => true,
+            'role' => 'commerce',
+        ]);
+
+        $response->assertStatus(200)
+                 ->assertJson([
+                     'completed_onboarding' => 1,
+                     'role' => 'commerce',
+                 ]);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'completed_onboarding' => 1,
+            'role' => 'commerce',
+        ]);
+    }
+
+    /** @test */
     public function complete_onboarding_returns_403_when_updating_other_user()
     {
         $user = User::factory()->create();
