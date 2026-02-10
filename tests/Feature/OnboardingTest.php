@@ -24,26 +24,27 @@ class OnboardingTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson(['completed_onboarding' => true]);
+                 ->assertJson(['completed_onboarding' => 1]);
 
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
-            'completed_onboarding' => true,
+            'completed_onboarding' => 1,
         ]);
     }
 
     /** @test */
-    public function complete_onboarding_returns_404_for_nonexistent_user()
+    public function complete_onboarding_returns_403_when_updating_other_user()
     {
         $user = User::factory()->create();
         Sanctum::actingAs($user);
 
+        // Solo puede actualizar su propio registro; id distinto devuelve 403
         $response = $this->putJson('/api/onboarding/99999', [
             'completed_onboarding' => true,
         ]);
 
-        $response->assertStatus(404)
-                 ->assertJson(['error' => 'Usuario no encontrado']);
+        $response->assertStatus(403)
+                 ->assertJson(['message' => 'No autorizado']);
     }
 
     /** @test */

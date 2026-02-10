@@ -150,28 +150,35 @@ class AuthController extends Controller
     }
 
 
-     // Actualizar usuario: completed_onboarding y opcionalmente role (al final del onboarding)
-     public function update(Request $request, $id)
-     {
-         $user = User::find($id);
+    /**
+     * Actualizar usuario: completed_onboarding y opcionalmente role (al final del onboarding).
+     * Solo el usuario autenticado puede actualizar su propio registro.
+     */
+    public function update(Request $request, $id)
+    {
+        $authUser = $request->user();
+        if ((int) $id !== (int) $authUser->id) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
 
-         if (!$user) {
-             return response()->json(['error' => 'Usuario no encontrado'], 404);
-         }
+        $validated = $request->validate([
+            'completed_onboarding' => 'required|boolean',
+            'role' => 'nullable|string|in:users,commerce',
+        ]);
 
-         $validated = $request->validate([
-             'completed_onboarding' => 'required|boolean',
-             'role' => 'nullable|string|in:users,commerce',
-         ]);
+        // Guardar como entero 1 o 0 en BD (columna tinyint)
+        $authUser->completed_onboarding = $validated['completed_onboarding'] ? 1 : 0;
+        if (!empty($validated['role'])) {
+            $authUser->role = $validated['role'];
+        }
+        $authUser->save();
 
-         $user->completed_onboarding = $validated['completed_onboarding'];
-         if (!empty($validated['role'])) {
-             $user->role = $validated['role'];
-         }
-         $user->save();
-
-         return response()->json($user, 200);
-     }
+        return response()->json([
+            'id' => $authUser->id,
+            'completed_onboarding' => (int) $authUser->completed_onboarding,
+            'role' => $authUser->role,
+        ], 200);
+    }
 
     /**
      * Registra un nuevo usuario
