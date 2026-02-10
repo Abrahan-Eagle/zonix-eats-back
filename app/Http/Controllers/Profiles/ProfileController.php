@@ -88,7 +88,23 @@ class ProfileController extends Controller
     }
 
     /**
-     * Mostrar un perfil específico.
+     * Mostrar el perfil del usuario autenticado (GET /api/profile).
+     */
+    public function showCurrent(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'No autenticado'], 401);
+        }
+        $profile = Profile::with(['user', 'addresses'])->where('user_id', $user->id)->first();
+        if (!$profile) {
+            return response()->json(['message' => 'Perfil no encontrado'], 404);
+        }
+        return response()->json($profile);
+    }
+
+    /**
+     * Mostrar un perfil específico por ID.
      */
     public function show($id)
     {

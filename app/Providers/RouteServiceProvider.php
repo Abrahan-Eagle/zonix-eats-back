@@ -30,8 +30,8 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute((int)$apiLimit)->by($request->user()?->id ?: $request->ip());
         });
 
-        // Rate limiting para autenticación (más restrictivo)
-        $authLimit = env('AUTH_RATE_LIMIT', 5);
+        // Rate limiting para autenticación (configurable; 10 por minuto en desarrollo para evitar 429 en login/Google)
+        $authLimit = env('AUTH_RATE_LIMIT', 10);
         RateLimiter::for('auth', function (Request $request) use ($authLimit) {
             return Limit::perMinute((int)$authLimit)->by($request->ip());
         });

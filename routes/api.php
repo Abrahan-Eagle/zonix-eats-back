@@ -226,8 +226,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/{id}', [AuthController::class, 'update']);
     });
 
-    // Perfil
-    Route::get('/profile', [ProfileController::class, 'show']);
+    // Perfil del usuario autenticado (sin id en la ruta)
+    Route::get('/profile', [ProfileController::class, 'showCurrent']);
     Route::put('/profile', [ProfileController::class, 'update']);
 
      Route::prefix('profiles')->group(function () {
