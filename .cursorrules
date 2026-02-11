@@ -9,15 +9,15 @@ alwaysApply: true
 **Laravel:** 10.x  
 **PHP:** 8.1+  
 **Estado:** ✅ MVP Completado - En desarrollo activo  
-**Tests:** 204+ tests pasaron ✅, 0 tests fallaron ✅ (verificado: `php artisan test` - incl. PusherConfigTest)  
+**Tests:** 206+ tests pasaron ✅, 0 tests fallaron ✅ (verificado: `php artisan test` - incl. PusherConfigTest, ProfileControllerTest add-commerce)  
 **Endpoints:** 232 rutas REST (verificado en `routes/api.php`)  
 **Controladores:** 52 (verificado)  
 **Modelos:** 35 (verificado)  
-**Migraciones:** 45 (verificado)
+**Migraciones:** 48 (verificado; incl. addresses: role, commerce_id, profile_id nullable)
 **Factories:** 27 (verificado)  
 **Líneas de código:** 12,898 líneas PHP en `app/`  
 **Errores críticos:** ✅ Todos corregidos (valores hardcoded, OSRM integrado, analytics reales, broadcasting/Pusher configurado)  
-**Última actualización:** 9 Febrero 2025
+**Última actualización:** 11 Febrero 2025
 
 ---
 
@@ -691,6 +691,14 @@ php artisan migrate:fresh --seed
   4. aceptación
 - **Expansión automática:** Si no encuentra delivery en 1-1.5km, expande automáticamente hasta encontrar disponible
 
+### Onboarding comercio (add-commerce)
+
+**Endpoint:** `POST /api/profiles/add-commerce` (perfil ya existente; onboarding paso 4).
+- **Body:** profile_id, business_name, business_type, tax_id, address, open, **schedule** (string), owner_ci.
+- **Validación:** `schedule` debe ser **string** (nullable|string|max:500). Si el front envía un objeto/array, devolver 400.
+- **Respuesta 201:** `data.id` = commerce_id para vincular la dirección del establecimiento.
+- **Dirección del establecimiento:** Crear en `addresses` con `commerce_id` y sin `profile_id` (role commerce).
+
 ### Eventos y Notificaciones en Tiempo Real
 
 **✅ IMPLEMENTADO:** Firebase Cloud Messaging (FCM) + Pusher (NO WebSocket)
@@ -965,7 +973,7 @@ Antes de considerar el análisis completo, verificar:
 
 ---
 
-**Última actualización:** 9 Febrero 2025  
+**Última actualización:** 11 Febrero 2025 
 **Mantener este archivo actualizado con cambios arquitectónicos importantes**
 
 ---
@@ -1039,6 +1047,10 @@ Antes de considerar el análisis completo, verificar:
 - Código promocional O automático según tipo
 
 ### Direcciones y Geolocalización
+
+**Tabla `addresses`:**
+- **Perfil (usuario):** `profile_id` + `role` (ej. usuario, comercio). Para USERS: 2 direcciones (casa `is_default=true` + entrega).
+- **Establecimiento (comercio):** `commerce_id` sin `profile_id` (opción onboarding). Dirección del local vinculada solo al comercio.
 
 **USERS tiene 2 direcciones:**
 1. **Predeterminada (Casa):** `is_default = true` en tabla `addresses`

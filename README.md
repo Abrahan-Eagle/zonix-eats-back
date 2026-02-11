@@ -344,6 +344,7 @@ foreach ($requiredFields as $field) {
 - **Crear:** street, house_number, postal_code, latitude, longitude, city_id, is_default (opcional)
 - **Actualizar:** Cualquier campo opcional
 - **Nota:** La tabla `addresses` usa estructura con `street`, `house_number`, `postal_code`, `latitude`, `longitude`, `city_id`, no `name`, `address_line_1`, `city`, `state`, `country`
+- **Dirección del establecimiento (comercio):** Crear con `commerce_id` y sin `profile_id` (role commerce); migraciones: `role`, `commerce_id`, `profile_id` nullable.
 
 **Carrito:**
 - **Agregar:** product_id, quantity (min:1, max:100)
@@ -2322,6 +2323,7 @@ Authorization: Bearer {token}
 | PUT | `/api/profile` | Actualizar perfil | Sí |
 | GET | `/api/profiles` | Listar perfiles | Sí |
 | POST | `/api/profiles` | Crear perfil | Sí |
+| POST | `/api/profiles/add-commerce` | Añadir comercio a perfil existente (onboarding paso 4); body: profile_id, business_name, business_type, tax_id, address, open, schedule (string), owner_ci | Sí |
 | GET | `/api/profiles/{id}` | Detalles de perfil | Sí |
 | PUT | `/api/profiles/{id}` | Actualizar perfil | Sí |
 
@@ -3969,7 +3971,7 @@ Este proyecto es privado y confidencial.
 **Versión:** 1.0.0  
 **Laravel:** 10.x  
 **PHP:** 8.1+  
-**Última actualización:** 9 Febrero 2025  
+**Última actualización:** 11 Febrero 2025  
 **Estado:** ✅ MVP Completado - En desarrollo activo  
-**Tests:** 204+ pasaron ✅, 0 fallaron ✅ (incl. PusherConfigTest)  
+**Tests:** 206+ pasaron ✅, 0 fallaron ✅ (incl. PusherConfigTest, ProfileControllerTest add-commerce)  
 **Errores críticos:** ✅ Todos corregidos
