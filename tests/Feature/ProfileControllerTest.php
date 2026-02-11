@@ -101,4 +101,69 @@ class ProfileControllerTest extends TestCase
         $response->assertStatus(200)
                  ->assertJson(['message' => 'Perfil eliminado exitosamente']);
     }
+
+    /**
+     * add-commerce acepta schedule como string y crea el comercio (onboarding paso 4).
+     */
+    public function test_add_commerce_to_profile_accepts_schedule_as_string()
+    {
+        $profile = Profile::factory()->create(['user_id' => $this->user->id]);
+        $payload = [
+            'profile_id' => $profile->id,
+            'business_name' => 'Mi Restaurante',
+            'business_type' => 'Restaurante',
+            'tax_id' => 'J-12345678-9',
+            'address' => 'Av. Principal 123',
+            'open' => true,
+            'schedule' => 'Lunes a Viernes 8:00-18:00',
+        ];
+
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->postJson('/api/profiles/add-commerce', $payload);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'id' => $profile->fresh()->commerce->id,
+                    'business_name' => 'Mi Restaurante',
+                    'address' => 'Av. Principal 123',
+                    'open' => true,
+                ],
+            ]);
+        $this->assertDatabaseHas('commerces', [
+            'profile_id' => $profile->id,
+            'business_name' => 'Mi Restaurante',
+        ]);
+    }
+
+    /**
+     * add-commerce rechaza schedule cuando no es string (ej. objeto/array) y devuelve 400.
+     */
+    public function test_add_commerce_to_profile_returns_400_when_schedule_is_not_string()
+    {
+        $profile = Profile::factory()->create(['user_id' => $this->user->id]);
+        $payload = [
+            'profile_id' => $profile->id,
+            'business_name' => 'Otro Restaurante',
+            'business_type' => 'Restaurante',
+            'tax_id' => 'J-87654321-1',
+            'address' => 'Calle Secundaria 456',
+            'open' => false,
+            'schedule' => ['Lunes' => ['open' => '09:00', 'close' => '18:00']],
+        ];
+
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->postJson('/api/profiles/add-commerce', $payload);
+
+        $response->assertStatus(400)
+            ->assertJson([
+                'message' => 'Datos no válidos.',
+            ])
+            ->assertJsonValidationErrors(['schedule']);
+        $this->assertDatabaseMissing('commerces', [
+            'profile_id' => $profile->id,
+            'business_name' => 'Otro Restaurante',
+        ]);
+    }
 }

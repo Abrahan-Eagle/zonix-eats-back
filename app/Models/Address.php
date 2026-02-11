@@ -19,6 +19,8 @@ class Address extends Model
         'profile_id',
         'city_id',
         'is_default',
+        'role',
+        'commerce_id',
     ];
 
     protected $casts = [
@@ -36,5 +38,11 @@ class Address extends Model
     public function city()
     {
         return $this->belongsTo(City::class);
+    }
+
+    // Cuando role = 'commerce', la dirección pertenece a un comercio
+    public function commerce()
+    {
+        return $this->belongsTo(\App\Models\Commerce::class);
     }
 }

@@ -35,34 +35,46 @@ public function store(Request $request)
 // Datos recibidos: {"profile_id":3,"street":"hshshshshdhd","house_number":"jsjdjdjdjdb","city_id":47294,"postal_code":"64646464","latitude":10.1252979,"longitude":-68.0512854,"status":"activo"}
 
 
-    // Validar los datos de la solicitud
+    // Validar: dirección de persona (profile_id) O dirección de comercio (commerce_id), no ambos obligatorios.
     $validator = Validator::make($request->all(), [
-        'profile_id' => 'required|exists:profiles,user_id',
+        'profile_id' => 'required_without:commerce_id|nullable|exists:profiles,user_id',
+        'commerce_id' => 'required_without:profile_id|nullable|exists:commerces,id',
         'street' => 'required|string|max:255',
         'house_number' => 'required|string|max:50',
         'postal_code' => 'required|string|max:20',
         'latitude' => 'required|numeric',
         'longitude' => 'required|numeric',
-            // 'status' => 'required|in:completeData,incompleteData,notverified',
         'city_id' => 'required|exists:cities,id',
+        'role' => 'nullable|string|in:users,commerce,delivery,admin',
     ]);
 
     if ($validator->fails()) {
         return response()->json(['error' => $validator->errors()], 400);
     }
 
-    $profile = Profile::where('user_id', $request->profile_id)->firstOrFail();
-
-    // Verificar si ya existe una dirección para el perfil
-    $existingAddress = Address::where('profile_id', $profile->id)->first();
-
-    if ($existingAddress) {
-        return response()->json(['message' => 'Ya tiene un registro guardado'], 409); // 409 Conflict
-    }
-
     $statusx = 'notverified';
 
-    // Crear una nueva dirección
+    // Opción A: dirección del establecimiento → solo commerce_id (sin profile_id).
+    if ($request->filled('commerce_id')) {
+        $address = Address::create([
+            'street' => $request->street,
+            'house_number' => $request->house_number,
+            'postal_code' => $request->postal_code,
+            'latitude' => $request->latitude,
+            'longitude' => $request->longitude,
+            'status' => $statusx,
+            'profile_id' => null,
+            'city_id' => $request->city_id,
+            'role' => $request->role ?? 'commerce',
+            'commerce_id' => $request->commerce_id,
+        ]);
+        return response()->json(['message' => 'Address created successfully', 'address' => $address], 201);
+    }
+
+    // Dirección de persona (dueño, usuario, etc.): requiere profile_id.
+    $profile = Profile::where('user_id', $request->profile_id)->firstOrFail();
+    $role = $request->role ?? $profile->user->role ?? null;
+
     $address = Address::create([
         'street' => $request->street,
         'house_number' => $request->house_number,
@@ -72,6 +84,8 @@ public function store(Request $request)
         'status' => $statusx,
         'profile_id' => $profile->id,
         'city_id' => $request->city_id,
+        'role' => $role,
+        'commerce_id' => null,
     ]);
 
     return response()->json(['message' => 'Address created successfully', 'address' => $address], 201);

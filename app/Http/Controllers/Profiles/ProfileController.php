@@ -106,14 +106,15 @@ class ProfileController extends Controller
     /**
      * Mostrar un perfil específico por ID.
      */
-    public function show($id)
+    public function show($id = null)
     {
+        if ($id === null || $id === '' || (is_string($id) && trim($id) === '')) {
+            return response()->json(['message' => 'ID de perfil requerido'], 400);
+        }
         $profile = Profile::with(['user', 'addresses'])->find($id);
-
         if (!$profile) {
             return response()->json(['message' => 'Perfil no encontrado'], 404);
         }
-
         return response()->json($profile);
     }
     public function update(Request $request, $id)
@@ -367,14 +368,16 @@ class ProfileController extends Controller
         // Registrar teléfono en tabla phones (una sola fuente de verdad)
         $this->createPhoneForProfile($profile, $request->phone);
 
-        // Crear el commerce asociado
+        // Crear el commerce asociado.
+        // IMPORTANTE: la dirección completa se gestiona en la tabla addresses
+        // (addresses.role = 'commerce'); aquí no se persiste en la tabla commerces
+        // para evitar duplicar información.
         $commerce = \App\Models\Commerce::create([
             'profile_id' => $profile->id,
             'business_name' => $request->business_name, // Required según modelo de negocio
             'business_type' => $request->business_type, // Required según modelo de negocio
             'tax_id' => $request->tax_id, // Required según modelo de negocio
             'description' => $request->description ?? null,
-            'address' => $request->address,
             'open' => $request->is_open ?? false,
         ]);
 
@@ -384,7 +387,9 @@ class ProfileController extends Controller
                 'id' => $commerce->id,
                 'business_name' => $commerce->business_name,
                 'description' => $commerce->description,
-                'address' => $commerce->address,
+                // La dirección principal del comercio se obtiene de addresses;
+                // por compatibilidad, devolvemos la que llegó en la petición.
+                'address' => $request->address,
                 'phone' => $commerce->phone,
                 'open' => $commerce->open,
                 'mobile_payment_id' => null, // Agregado para el test
@@ -392,6 +397,89 @@ class ProfileController extends Controller
                 'mobile_payment_phone' => null // Agregado para el test
             ]
         ], 201);
+    }
+
+    /**
+     * Añadir comercio a un perfil ya existente (onboarding: perfil ya creado).
+     * Devuelve el commerce creado con id para vincular la dirección del establecimiento.
+     */
+    public function addCommerceToProfile(Request $request)
+    {
+        \Illuminate\Support\Facades\Log::info('addCommerceToProfile request', [
+            'profile_id' => $request->input('profile_id'),
+            'business_name' => $request->input('business_name'),
+        ]);
+        $profileId = $request->input('profile_id');
+        if ($profileId !== null && is_numeric($profileId)) {
+            $request->merge(['profile_id' => (int) $profileId]);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'profile_id' => 'required|integer|exists:profiles,id',
+            'business_name' => 'required|string|max:255',
+            'business_type' => 'required|string|max:255',
+            'tax_id' => 'required|string|max:255',
+            'address' => 'required|string|max:500',
+            'open' => 'nullable|boolean',
+            'schedule' => 'nullable|string|max:500',
+            'owner_ci' => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            \Illuminate\Support\Facades\Log::warning('addCommerceToProfile validation failed', [
+                'errors' => $validator->errors()->toArray(),
+                'payload' => $request->only(['profile_id', 'business_name', 'tax_id']),
+            ]);
+            return response()->json([
+                'message' => 'Datos no válidos.',
+                'errors' => $validator->errors(),
+            ], 400);
+        }
+
+        try {
+            $profile = Profile::findOrFail($request->profile_id);
+            if ($profile->commerce) {
+                return response()->json([
+                    'message' => 'Este perfil ya tiene un comercio asociado.',
+                    'data' => ['id' => $profile->commerce->id],
+                ], 409);
+            }
+
+            $scheduleValue = null;
+            if ($request->filled('schedule')) {
+                $scheduleValue = is_array($request->schedule)
+                    ? $request->schedule
+                    : ['raw' => (string) $request->schedule];
+            }
+
+            $commerce = \App\Models\Commerce::create([
+                'profile_id' => $profile->id,
+                'business_name' => $request->business_name,
+                'business_type' => $request->business_type,
+                'tax_id' => $request->tax_id,
+                'address' => $request->address,
+                'open' => (bool) $request->input('open', false),
+                'schedule' => $scheduleValue,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $commerce->id,
+                    'business_name' => $commerce->business_name,
+                    'address' => $commerce->address,
+                    'open' => $commerce->open,
+                ],
+            ], 201);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('addCommerceToProfile: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'message' => 'Error al crear el comercio.',
+                'error' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
+        }
     }
 
     /**

@@ -235,6 +235,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [ProfileController::class, 'store']);
         Route::post('/delivery-agent', [ProfileController::class, 'createDeliveryAgent']);
         Route::post('/commerce', [ProfileController::class, 'createCommerce']);
+        Route::post('/add-commerce', [ProfileController::class, 'addCommerceToProfile']);
         Route::post('/delivery-company', [ProfileController::class, 'createDeliveryCompany']);
         Route::get('/{id}', [ProfileController::class, 'show']);
         Route::post('/{id}', [ProfileController::class, 'update']);
