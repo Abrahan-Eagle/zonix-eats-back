@@ -56,7 +56,7 @@ class PhoneController extends Controller
         $validator = Validator::make($payload, [
             'profile_id' => 'required|exists:profiles,id',
             'operator_code_id' => 'required|exists:operator_codes,id',
-            'number' => 'required|string|min:7|max:15',
+            'number' => 'required|string|size:7',
             'is_primary' => 'boolean',
         ]);
 
