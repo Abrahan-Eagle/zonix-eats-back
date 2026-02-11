@@ -50,14 +50,13 @@ class PhoneController extends Controller
 
     public function store(Request $request)
     {
-        // Log::info('Datos recibidos:', $request->all());
-        // local.INFO: Datos recibidos: {"id":0,"profile_id":3,"operator_code_id":1,"operator_code_name":null,"number":"1234567","is_primary":1,"status":1}
+        $number = preg_replace('/\D/', '', (string) ($request->input('number', '') ?? ''));
+        $payload = array_merge($request->all(), ['number' => $number]);
 
-
-        $validator = Validator::make($request->all(), [
-            'profile_id' => 'required|exists:profiles,user_id',
+        $validator = Validator::make($payload, [
+            'profile_id' => 'required|exists:profiles,id',
             'operator_code_id' => 'required|exists:operator_codes,id',
-            'number' => 'required|string|min:7|max:15|unique:phones,number',
+            'number' => 'required|string|min:7|max:15',
             'is_primary' => 'boolean',
         ]);
 
@@ -65,7 +64,12 @@ class PhoneController extends Controller
             return response()->json(['error' => $validator->errors()], 400);
         }
 
-        $profile = Profile::where('user_id', $request->profile_id)->firstOrFail();
+        $exists = Phone::where('number', $number)->exists();
+        if ($exists) {
+            return response()->json(['error' => ['number' => ['El número ya está registrado.']]], 400);
+        }
+
+        $profile = Profile::findOrFail($request->profile_id);
 
         if ($request->is_primary) {
             Phone::where('profile_id', $profile->id)
@@ -75,8 +79,8 @@ class PhoneController extends Controller
 
         $phone = Phone::create([
             'profile_id' => $profile->id,
-            'operator_code_id' => $request->operator_code_id, // Agregar este campo si es necesario
-            'number' => $request->number,
+            'operator_code_id' => $request->operator_code_id,
+            'number' => $number,
             'is_primary' => $request->is_primary ?? false,
         ]);
 
