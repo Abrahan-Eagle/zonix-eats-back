@@ -99,10 +99,16 @@ class ProductController extends Controller
             // Agregar commerce_id del usuario autenticado
             $validatedData['commerce_id'] = $commerce->id;
 
+            // Mapear stock a stock_quantity
+            if (isset($validatedData['stock'])) {
+                $validatedData['stock_quantity'] = $validatedData['stock'];
+                unset($validatedData['stock']);
+            }
+
             // Manejar imagen si existe
-            if ($request->hasFile('imagen')) {
-                $imagePath = $request->file('imagen')->store('productos', 'public');
-                $validatedData['imagen'] = $imagePath;
+            if ($request->hasFile('image')) {
+                $imagePath = $request->file('image')->store('productos', 'public');
+                $validatedData['image'] = $imagePath;
             }
 
             $product = Product::create($validatedData);
@@ -168,15 +174,21 @@ class ProductController extends Controller
             $product = Product::where('commerce_id', $commerce->id)->findOrFail($id);
             $validatedData = $request->validated();
 
+            // Mapear stock a stock_quantity
+            if (isset($validatedData['stock'])) {
+                $validatedData['stock_quantity'] = $validatedData['stock'];
+                unset($validatedData['stock']);
+            }
+
             // Manejar imagen si existe
-            if ($request->hasFile('imagen')) {
+            if ($request->hasFile('image')) {
                 // Eliminar imagen anterior
-                if ($product->imagen && Storage::disk('public')->exists($product->imagen)) {
-                    Storage::disk('public')->delete($product->imagen);
+                if ($product->image && Storage::disk('public')->exists($product->image)) {
+                    Storage::disk('public')->delete($product->image);
                 }
 
-                $imagePath = $request->file('imagen')->store('productos', 'public');
-                $validatedData['imagen'] = $imagePath;
+                $imagePath = $request->file('image')->store('productos', 'public');
+                $validatedData['image'] = $imagePath;
             }
 
             $product->update($validatedData);
@@ -212,8 +224,8 @@ class ProductController extends Controller
             $product = Product::where('commerce_id', $commerce->id)->findOrFail($id);
 
             // Eliminar imagen si existe
-            if ($product->imagen && Storage::disk('public')->exists($product->imagen)) {
-                Storage::disk('public')->delete($product->imagen);
+            if ($product->image && Storage::disk('public')->exists($product->image)) {
+                Storage::disk('public')->delete($product->image);
             }
 
             $product->delete();
@@ -249,9 +261,9 @@ class ProductController extends Controller
                 ], 404);
             }
             $product = Product::where('commerce_id', $commerce->id)->findOrFail($id);
-            $product->update(['disponible' => !$product->disponible]);
+            $product->update(['available' => !$product->available]);
 
-            $message = $product->disponible ? 'Producto marcado como disponible' : 'Producto marcado como no disponible';
+            $message = $product->available ? 'Producto marcado como disponible' : 'Producto marcado como no disponible';
 
             return response()->json([
                 'success' => true,

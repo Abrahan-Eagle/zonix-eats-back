@@ -22,6 +22,19 @@ class NotificationController extends Controller
         return response()->json(['success' => true, 'data' => $notifications]);
     }
 
+    // Estadísticas de notificaciones (unread count)
+    public function getStats()
+    {
+        $profile = Auth::user()->load('profile')->profile;
+        $unreadCount = Notification::where('profile_id', $profile->id)
+            ->whereNull('read_at')
+            ->count();
+        return response()->json([
+            'success' => true,
+            'data' => ['unread_count' => $unreadCount],
+        ]);
+    }
+
     // Marcar una notificación como leída
     public function markAsRead($notificationId)
     {
@@ -56,6 +69,16 @@ class NotificationController extends Controller
         event(new NotificationCreated($notification));
 
         return response()->json(['success' => true, 'data' => $notification]);
+    }
+
+    // Marcar todas las notificaciones como leídas
+    public function markAllAsRead()
+    {
+        $profile = Auth::user()->load('profile')->profile;
+        Notification::where('profile_id', $profile->id)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+        return response()->json(['success' => true]);
     }
 
     // Eliminar notificación

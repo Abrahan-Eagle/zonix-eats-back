@@ -10,6 +10,7 @@ class Promotion extends Model
     use HasFactory;
 
     protected $fillable = [
+        'commerce_id',
         'title',
         'description',
         'discount_type',
@@ -33,4 +34,9 @@ class Promotion extends Model
         'end_date' => 'datetime',
         'is_active' => 'boolean'
     ];
+
+    public function commerce()
+    {
+        return $this->belongsTo(Commerce::class);
+    }
 } 

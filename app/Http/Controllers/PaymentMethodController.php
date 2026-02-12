@@ -12,13 +12,45 @@ use Illuminate\Support\Facades\Log;
 class PaymentMethodController extends Controller
 {
     /**
+     * Determinar la entidad dueña de los métodos de pago según el rol actual.
+     * - users      → User (comprador)
+     * - commerce   → Commerce (vendedor)
+     * - delivery   → DeliveryAgent
+     * - otros      → User por defecto
+     */
+    protected function getPayableOwner()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return $user;
+        }
+
+        try {
+            $role = $user->role ?? null;
+            $profile = $user->profile ?? null;
+
+            if ($role === 'commerce' && $profile && $profile->commerce) {
+                return $profile->commerce;
+            }
+
+            if ($role === 'delivery' && $profile && $profile->deliveryAgent) {
+                return $profile->deliveryAgent;
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Error determinando payable owner para métodos de pago: ' . $e->getMessage());
+        }
+
+        // Fallback: usuario autenticado (rol users/admin)
+        return $user;
+    }
+    /**
      * Obtener métodos de pago del usuario autenticado
      */
     public function index()
     {
         try {
-            $user = Auth::user();
-            $methods = $user->paymentMethods()->with('bank')->active()->get();
+            $owner = $this->getPayableOwner();
+            $methods = $owner->paymentMethods()->with('bank')->active()->get();
             
             return response()->json([
                 'success' => true,
@@ -39,7 +71,7 @@ class PaymentMethodController extends Controller
     public function store(Request $request)
     {
         try {
-            $user = Auth::user();
+            $owner = $this->getPayableOwner();
             
             $data = $request->validate([
                 'type' => 'required|string|in:card,mobile_payment,cash,paypal,stripe,mercadopago,digital_wallet,bank_transfer,other',
@@ -60,7 +92,7 @@ class PaymentMethodController extends Controller
             ]);
 
             // Validar duplicados
-            $exists = $user->paymentMethods()
+            $exists = $owner->paymentMethods()
                 ->where('type', $data['type'])
                 ->where('bank_id', $data['bank_id'] ?? null)
                 ->where(function($q) use ($data) {
@@ -78,10 +110,10 @@ class PaymentMethodController extends Controller
 
             // Si es método por defecto, desactivar otros
             if ($data['is_default'] ?? false) {
-                $user->paymentMethods()->update(['is_default' => false]);
+                $owner->paymentMethods()->update(['is_default' => false]);
             }
 
-            $method = $user->paymentMethods()->create($data);
+            $method = $owner->paymentMethods()->create($data);
 
             return response()->json([
                 'success' => true,
@@ -104,8 +136,8 @@ class PaymentMethodController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            $user = Auth::user();
-            $method = $user->paymentMethods()->findOrFail($id);
+            $owner = $this->getPayableOwner();
+            $method = $owner->paymentMethods()->findOrFail($id);
 
             $data = $request->validate([
                 'type' => 'sometimes|string|in:card,mobile_payment,cash,paypal,stripe,mercadopago,digital_wallet,bank_transfer,other',
@@ -127,7 +159,7 @@ class PaymentMethodController extends Controller
 
             // Si es método por defecto, desactivar otros
             if ($data['is_default'] ?? false) {
-                $user->paymentMethods()->where('id', '!=', $id)->update(['is_default' => false]);
+                $owner->paymentMethods()->where('id', '!=', $id)->update(['is_default' => false]);
             }
 
             $method->update($data);
@@ -152,22 +184,26 @@ class PaymentMethodController extends Controller
     public function destroy($id)
     {
         try {
-            $user = Auth::user();
-            $method = $user->paymentMethods()->findOrFail($id);
+            $owner = $this->getPayableOwner();
+            $method = $owner->paymentMethods()->findOrFail($id);
 
-            // No permitir eliminar el método por defecto si es el único
-            if ($method->is_default && $user->paymentMethods()->count() === 1) {
+            // No permitir desactivar el método por defecto si es el único activo
+            if ($method->is_default && $owner->paymentMethods()->active()->count() === 1) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No se puede eliminar el único método de pago disponible.'
+                    'message' => 'No se puede desactivar el único método de pago disponible.'
                 ], 422);
             }
 
-            $method->delete();
+            // En lugar de eliminar físicamente, marcar como inactivo y no predeterminado
+            $method->update([
+                'is_active' => false,
+                'is_default' => false,
+            ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Método de pago eliminado correctamente'
+                'message' => 'Método de pago desactivado correctamente'
             ]);
 
         } catch (\Exception $e) {
@@ -185,11 +221,11 @@ class PaymentMethodController extends Controller
     public function setDefault($id)
     {
         try {
-            $user = Auth::user();
-            $method = $user->paymentMethods()->findOrFail($id);
+            $owner = $this->getPayableOwner();
+            $method = $owner->paymentMethods()->active()->findOrFail($id);
 
             // Desactivar otros métodos por defecto
-            $user->paymentMethods()->where('id', '!=', $id)->update(['is_default' => false]);
+            $owner->paymentMethods()->update(['is_default' => false]);
             
             // Activar este método como por defecto
             $method->update(['is_default' => true]);

@@ -307,14 +307,19 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Commerce
     Route::middleware('role:commerce')->prefix('commerce')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Commerce\CommerceDataController::class, 'show']);
+        Route::put('/', [\App\Http\Controllers\Commerce\CommerceDataController::class, 'update']);
         Route::get('/dashboard', [DashboardController::class, 'index']);
         Route::post('/logo', [\App\Http\Controllers\Commerce\CommerceDataController::class, 'uploadLogo']);
+        Route::put('/products/{id}/toggle-disponible', [ProductController::class, 'toggleDisponible']);
         Route::resource('/products', ProductController::class);
         Route::get('/orders', [CommerceOrderController::class, 'index']);
         Route::put('/orders/{id}/status', [CommerceOrderController::class, 'updateStatus']);
         Route::post('/orders/{id}/validate-payment', [CommerceOrderController::class, 'validatePayment']);
         Route::post('/delivery/request', [DeliveryRequestController::class, 'store']);
         Route::post('commerce/orders/{id}/validar-comprobante', [\App\Http\Controllers\Commerce\OrderController::class, 'validarComprobante']);
+        Route::put('promotions/{id}/toggle', [\App\Http\Controllers\Commerce\CommercePromotionController::class, 'toggle']);
+        Route::apiResource('promotions', \App\Http\Controllers\Commerce\CommercePromotionController::class);
         
         // Analytics routes for commerce
         Route::prefix('analytics')->group(function () {
@@ -414,6 +419,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Notification routes
     Route::prefix('notifications')->group(function () {
         Route::get('/', [NotificationController::class, 'getNotifications']);
+        Route::get('/stats', [NotificationController::class, 'getStats']);
+        Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead']);
         Route::post('/{notificationId}/read', [NotificationController::class, 'markAsRead']);
         Route::post('/', [NotificationController::class, 'store']);
         Route::delete('/{notificationId}', [NotificationController::class, 'delete']);

@@ -96,7 +96,7 @@ class ProfileController extends Controller
         if (!$user) {
             return response()->json(['message' => 'No autenticado'], 401);
         }
-        $profile = Profile::with(['user', 'addresses'])->where('user_id', $user->id)->first();
+        $profile = Profile::with(['user', 'addresses', 'commerce'])->where('user_id', $user->id)->first();
         if (!$profile) {
             return response()->json(['message' => 'Perfil no encontrado'], 404);
         }
