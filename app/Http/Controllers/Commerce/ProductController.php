@@ -21,7 +21,7 @@ class ProductController extends Controller
         try {
             $user = Auth::user();
             $profile = $user->profile;
-            $commerce = $profile ? \App\Models\Commerce::where('profile_id', $profile->id)->first() : null;
+            $commerce = $profile ? $profile->getPrimaryCommerce() : null;
             if (!$commerce) {
                 \Log::error('No se encontró comercio para el usuario', ['user_id' => $user->id]);
                 return response()->json([
@@ -86,7 +86,7 @@ class ProductController extends Controller
         try {
             $user = Auth::user();
             $profile = $user->profile;
-            $commerce = $profile ? \App\Models\Commerce::where('profile_id', $profile->id)->first() : null;
+            $commerce = $profile ? $profile->getPrimaryCommerce() : null;
             if (!$commerce) {
                 \Log::error('No se encontró comercio para el usuario', ['user_id' => $user->id]);
                 return response()->json([
@@ -133,7 +133,7 @@ class ProductController extends Controller
         try {
             $user = Auth::user();
             $profile = $user->profile;
-            $commerce = $profile ? \App\Models\Commerce::where('profile_id', $profile->id)->first() : null;
+            $commerce = $profile ? $profile->getPrimaryCommerce() : null;
             if (!$commerce) {
                 \Log::error('No se encontró comercio para el usuario', ['user_id' => $user->id]);
                 return response()->json([
@@ -163,7 +163,7 @@ class ProductController extends Controller
         try {
             $user = Auth::user();
             $profile = $user->profile;
-            $commerce = $profile ? \App\Models\Commerce::where('profile_id', $profile->id)->first() : null;
+            $commerce = $profile ? $profile->getPrimaryCommerce() : null;
             if (!$commerce) {
                 \Log::error('No se encontró comercio para el usuario', ['user_id' => $user->id]);
                 return response()->json([
@@ -213,7 +213,7 @@ class ProductController extends Controller
         try {
             $user = Auth::user();
             $profile = $user->profile;
-            $commerce = $profile ? \App\Models\Commerce::where('profile_id', $profile->id)->first() : null;
+            $commerce = $profile ? $profile->getPrimaryCommerce() : null;
             if (!$commerce) {
                 \Log::error('No se encontró comercio para el usuario', ['user_id' => $user->id]);
                 return response()->json([
@@ -252,7 +252,7 @@ class ProductController extends Controller
         try {
             $user = Auth::user();
             $profile = $user->profile;
-            $commerce = $profile ? \App\Models\Commerce::where('profile_id', $profile->id)->first() : null;
+            $commerce = $profile ? $profile->getPrimaryCommerce() : null;
             if (!$commerce) {
                 \Log::error('No se encontró comercio para el usuario', ['user_id' => $user->id]);
                 return response()->json([

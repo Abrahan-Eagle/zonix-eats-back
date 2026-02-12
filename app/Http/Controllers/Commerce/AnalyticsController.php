@@ -18,14 +18,13 @@ class AnalyticsController extends Controller
     public function getOverview()
     {
         try {
-            $user = Auth::user()->load('profile.commerce');
+            $user = Auth::user()->load('profile.commerces');
             $profile = $user->profile;
+            $commerce = $profile?->getPrimaryCommerce();
             
-            if (!$profile || !$profile->commerce) {
+            if (!$profile || !$commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
-
-            $commerce = $profile->commerce;
             $commerceId = $commerce->id;
 
             // Total de órdenes del comercio
@@ -105,14 +104,13 @@ class AnalyticsController extends Controller
     public function getRevenue(Request $request)
     {
         try {
-            $user = Auth::user()->load('profile.commerce');
+            $user = Auth::user()->load('profile.commerces');
             $profile = $user->profile;
+            $commerce = $profile?->getPrimaryCommerce();
             
-            if (!$profile || !$profile->commerce) {
+            if (!$profile || !$commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
-
-            $commerce = $profile->commerce;
             $commerceId = $commerce->id;
             
             $period = $request->input('period', 'month');
@@ -145,14 +143,13 @@ class AnalyticsController extends Controller
     public function getOrders(Request $request)
     {
         try {
-            $user = Auth::user()->load('profile.commerce');
+            $user = Auth::user()->load('profile.commerces');
             $profile = $user->profile;
+            $commerce = $profile?->getPrimaryCommerce();
             
-            if (!$profile || !$profile->commerce) {
+            if (!$profile || !$commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
-
-            $commerce = $profile->commerce;
             $commerceId = $commerce->id;
 
             $statusDistribution = $this->getOrderStatusDistribution($commerceId);
@@ -181,14 +178,13 @@ class AnalyticsController extends Controller
     public function getProducts()
     {
         try {
-            $user = Auth::user()->load('profile.commerce');
+            $user = Auth::user()->load('profile.commerces');
             $profile = $user->profile;
+            $commerce = $profile?->getPrimaryCommerce();
             
-            if (!$profile || !$profile->commerce) {
+            if (!$profile || !$commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
-
-            $commerce = $profile->commerce;
             $commerceId = $commerce->id;
 
             $topProducts = $this->getTopProducts($commerceId);
@@ -215,14 +211,13 @@ class AnalyticsController extends Controller
     public function getCustomers()
     {
         try {
-            $user = Auth::user()->load('profile.commerce');
+            $user = Auth::user()->load('profile.commerces');
             $profile = $user->profile;
+            $commerce = $profile?->getPrimaryCommerce();
             
-            if (!$profile || !$profile->commerce) {
+            if (!$profile || !$commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
-
-            $commerce = $profile->commerce;
             $commerceId = $commerce->id;
 
             $newVsReturning = $this->getNewVsReturningCustomers($commerceId);
@@ -249,14 +244,13 @@ class AnalyticsController extends Controller
     public function getPerformance()
     {
         try {
-            $user = Auth::user()->load('profile.commerce');
+            $user = Auth::user()->load('profile.commerces');
             $profile = $user->profile;
+            $commerce = $profile?->getPrimaryCommerce();
             
-            if (!$profile || !$profile->commerce) {
+            if (!$profile || !$commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
-
-            $commerce = $profile->commerce;
             $commerceId = $commerce->id;
 
             // Tiempo promedio de preparación (estimado basado en estados)

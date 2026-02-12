@@ -10,14 +10,30 @@ use Illuminate\Support\Facades\Storage;
 class CommerceDataController extends Controller
 {
     /**
+     * Resolver el comercio: por commerce_id (query/header) o principal.
+     */
+    protected function resolveCommerce(Request $request): ?\App\Models\Commerce
+    {
+        $profile = Auth::user()->profile;
+        if (!$profile) {
+            return null;
+        }
+        $commerceId = $request->query('commerce_id') ?? $request->header('X-Commerce-Id') ?? $request->input('commerce_id');
+        if ($commerceId) {
+            $commerce = $profile->commerces()->find($commerceId);
+            return $commerce ?? $profile->getPrimaryCommerce();
+        }
+        return $profile->getPrimaryCommerce();
+    }
+
+    /**
      * Get current user's commerce data.
-     * GET /api/commerce
+     * GET /api/commerce o GET /api/commerce?commerce_id=1
      */
     public function show(Request $request)
     {
-        $user = Auth::user();
-        $profile = $user->profile;
-        if (!$profile || !$profile->commerce) {
+        $commerce = $this->resolveCommerce($request);
+        if (!$commerce) {
             return response()->json([
                 'success' => false,
                 'message' => 'Comercio no encontrado para el usuario autenticado',
@@ -25,26 +41,23 @@ class CommerceDataController extends Controller
         }
         return response()->json([
             'success' => true,
-            'data' => $profile->commerce,
+            'data' => $commerce,
         ]);
     }
 
     /**
      * Update commerce data.
-     * PUT /api/commerce
+     * PUT /api/commerce o PUT /api/commerce con commerce_id en body/query
      */
     public function update(Request $request)
     {
-        $user = Auth::user();
-        $profile = $user->profile;
-        if (!$profile || !$profile->commerce) {
+        $commerce = $this->resolveCommerce($request);
+        if (!$commerce) {
             return response()->json([
                 'success' => false,
                 'message' => 'Comercio no encontrado para el usuario autenticado',
             ], 404);
         }
-
-        $commerce = $profile->commerce;
         $data = $request->validate([
             'business_name' => 'sometimes|string|max:255',
             'business_type' => 'sometimes|string|max:255',
@@ -77,16 +90,13 @@ class CommerceDataController extends Controller
             'image' => 'required|image|mimes:jpeg,png,jpg|max:5120',
         ]);
 
-        $user = Auth::user();
-        $profile = $user->profile;
-        if (!$profile || !$profile->commerce) {
+        $commerce = $this->resolveCommerce($request);
+        if (!$commerce) {
             return response()->json([
                 'success' => false,
                 'message' => 'Comercio no encontrado para el usuario autenticado',
             ], 404);
         }
-
-        $commerce = $profile->commerce;
 
         // Delete previous image if exists
         if ($commerce->image) {

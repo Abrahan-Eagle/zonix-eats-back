@@ -36,6 +36,7 @@ class CommerceFactory extends Factory
         
         return [
             'profile_id' => Profile::factory(),
+            'is_primary' => true,
             'business_name' => $this->faker->company,
             'business_type' => $this->faker->randomElement(['restaurant', 'cafe', 'bakery', 'fast_food', 'pizzeria', 'bar', 'food_truck']),
             'tax_id' => $this->faker->numerify('J-########-#'),

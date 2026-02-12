@@ -64,9 +64,28 @@ class Profile extends Model
     }
 
     // Relaciones con otros modelos
+    /** @return \Illuminate\Database\Eloquent\Relations\HasMany */
+    public function commerces()
+    {
+        return $this->hasMany(Commerce::class);
+    }
+
+    /**
+     * Comercio principal (para compatibilidad y multi-restaurante).
+     * Retorna el marcado is_primary o el primero si no hay.
+     */
     public function commerce()
     {
-        return $this->hasOne(Commerce::class);
+        return $this->hasOne(Commerce::class)->where('is_primary', true);
+    }
+
+    /**
+     * Obtener el comercio principal (o el único). Para código que usa $profile->commerce como modelo.
+     */
+    public function getPrimaryCommerce(): ?Commerce
+    {
+        return $this->commerces()->where('is_primary', true)->first()
+            ?? $this->commerces()->orderBy('id')->first();
     }
 
     public function deliveryCompany()

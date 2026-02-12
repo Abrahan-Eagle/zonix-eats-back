@@ -307,6 +307,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Commerce
     Route::middleware('role:commerce')->prefix('commerce')->group(function () {
+        Route::get('/commerces', [\App\Http\Controllers\Commerce\CommerceListController::class, 'index']);
+        Route::post('/commerces', [\App\Http\Controllers\Commerce\CommerceListController::class, 'store']);
+        Route::put('/commerces/{commerce}/set-primary', [\App\Http\Controllers\Commerce\CommerceListController::class, 'setPrimary']);
         Route::get('/', [\App\Http\Controllers\Commerce\CommerceDataController::class, 'show']);
         Route::put('/', [\App\Http\Controllers\Commerce\CommerceDataController::class, 'update']);
         Route::get('/dashboard', [DashboardController::class, 'index']);

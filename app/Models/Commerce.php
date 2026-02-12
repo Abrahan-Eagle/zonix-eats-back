@@ -11,6 +11,7 @@ class Commerce extends Model
 
     protected $fillable = [
         'profile_id',
+        'is_primary',
         'business_name',
         'business_type',
         'tax_id',
@@ -29,6 +30,7 @@ class Commerce extends Model
     protected $appends = ['phone'];
 
     protected $casts = [
+        'is_primary' => 'boolean',
         'open' => 'boolean',
         'schedule' => 'array',
         'membership_monthly_fee' => 'decimal:2',

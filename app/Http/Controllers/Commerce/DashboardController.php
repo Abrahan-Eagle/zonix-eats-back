@@ -13,14 +13,13 @@ class DashboardController extends Controller
     public function index()
     {
         try {
-            $user = Auth::user()->load('profile.commerce');
+            $user = Auth::user()->load('profile.commerces');
             $profile = $user->profile;
+            $commerce = $profile?->getPrimaryCommerce();
             
-            if (!$profile || !$profile->commerce) {
+            if (!$profile || !$commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
-
-            $commerce = $profile->commerce;
             $commerceId = $commerce->id;
 
             // Órdenes pendientes

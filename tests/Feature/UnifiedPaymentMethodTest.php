@@ -68,10 +68,10 @@ class UnifiedPaymentMethodTest extends TestCase
         
         $response->assertStatus(201)->assertJson(['success' => true]);
 
-        // Ahora sí eliminar el primer método de pago
+        // Ahora sí desactivar el primer método de pago (soft delete)
         $response = $this->deleteJson("/api/payment-methods/$id");
         $response->assertStatus(200)->assertJson(['success' => true]);
-        $this->assertDatabaseMissing('payment_methods', ['id' => $id]);
+        $this->assertDatabaseHas('payment_methods', ['id' => $id, 'is_active' => false]);
     }
 
     public function test_commerce_can_manage_payment_methods()
@@ -94,10 +94,10 @@ class UnifiedPaymentMethodTest extends TestCase
         ]);
         $response->assertStatus(201)->assertJson(['success' => true]);
 
-        // Verificar que se creó con la relación polimórfica correcta
+        // Verificar que se creó con la relación polimórfica correcta (commerce usa Commerce, no User)
         $this->assertDatabaseHas('payment_methods', [
-            'payable_type' => 'App\\Models\\User',
-            'payable_id' => $user->id,
+            'payable_type' => 'App\\Models\\Commerce',
+            'payable_id' => $commerce->id,
             'type' => 'card',
             'brand' => 'Visa'
         ]);
@@ -122,10 +122,10 @@ class UnifiedPaymentMethodTest extends TestCase
         ]);
         $response->assertStatus(201)->assertJson(['success' => true]);
 
-        // Verificar que se creó con la relación polimórfica correcta
+        // Verificar que se creó con la relación polimórfica correcta (delivery usa DeliveryAgent, no User)
         $this->assertDatabaseHas('payment_methods', [
-            'payable_type' => 'App\\Models\\User',
-            'payable_id' => $user->id,
+            'payable_type' => 'App\\Models\\DeliveryAgent',
+            'payable_id' => $deliveryAgent->id,
             'type' => 'bank_transfer',
             'owner_name' => 'Repartidor Test'
         ]);

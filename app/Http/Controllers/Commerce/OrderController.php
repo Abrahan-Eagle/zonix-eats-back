@@ -14,18 +14,21 @@ class OrderController extends Controller
   public function index(Request $request)
     {
         try {
-            $user = Auth::user()->load('profile.commerce');
+            $user = Auth::user()->load('profile.commerces');
             $profile = $user->profile;
+            $commerce = $profile?->getPrimaryCommerce();
             
-            if (!$profile || !$profile->commerce) {
+            if (!$profile || !$commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
 
-            $commerce = $profile->commerce;
-            
-            // Verificar si se solicita un commerce_id específico
-            if ($request->has('commerce_id') && $request->commerce_id != $commerce->id) {
-                return response()->json(['error' => 'Unauthorized'], 403);
+            // Si se solicita commerce_id específico, debe pertenecer al perfil; si no, 403
+            if ($request->has('commerce_id')) {
+                $requested = $profile->commerces()->find($request->commerce_id);
+                if (!$requested) {
+                    return response()->json(['error' => 'Unauthorized'], 403);
+                }
+                $commerce = $requested;
             }
             
             $perPage = $request->input('per_page', 15);
@@ -51,15 +54,14 @@ class OrderController extends Controller
     public function show(Order $order)
     {
         try {
-            $user = Auth::user()->load('profile.commerce');
+            $user = Auth::user()->load('profile.commerces');
             $profile = $user->profile;
             
-            if (!$profile || !$profile->commerce) {
+            if (!$profile || !$profile->commerces()->exists()) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
 
-            // Verificar que la orden pertenece al comercio del usuario
-            if ($order->commerce_id !== $profile->commerce->id) {
+            if (!$profile->commerces()->where('id', $order->commerce_id)->exists()) {
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
 
@@ -73,15 +75,15 @@ class OrderController extends Controller
     public function updateStatus(Request $request, Order $order)
     {
         try {
-            $user = Auth::user()->load('profile.commerce');
+            $user = Auth::user()->load('profile.commerces');
             $profile = $user->profile;
             
-            if (!$profile || !$profile->commerce) {
+            if (!$profile || !$profile->commerces()->exists()) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
 
             // Verificar que la orden pertenece al comercio del usuario
-            if ($order->commerce_id !== $profile->commerce->id) {
+            if (!$profile->commerces()->where('id', $order->commerce_id)->exists()) {
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
 
@@ -143,11 +145,11 @@ class OrderController extends Controller
             ]);
 
             $order = Order::findOrFail($id);
-            $user = Auth::user()->load('profile.commerce');
+            $user = Auth::user()->load('profile.commerces');
             $profile = $user->profile;
 
-            // Verificar que el usuario es el dueño del comercio
-            if (!$profile || !$profile->commerce || $order->commerce_id !== $profile->commerce->id) {
+            // Verificar que el usuario es dueño del comercio de la orden
+            if (!$profile || !$profile->commerces()->where('id', $order->commerce_id)->exists()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No autorizado para validar esta orden'

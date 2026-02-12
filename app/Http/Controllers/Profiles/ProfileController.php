@@ -438,12 +438,7 @@ class ProfileController extends Controller
 
         try {
             $profile = Profile::findOrFail($request->profile_id);
-            if ($profile->commerce) {
-                return response()->json([
-                    'message' => 'Este perfil ya tiene un comercio asociado.',
-                    'data' => ['id' => $profile->commerce->id],
-                ], 409);
-            }
+            $isFirstCommerce = $profile->commerces()->count() === 0;
 
             $scheduleValue = null;
             if ($request->filled('schedule')) {
@@ -454,6 +449,7 @@ class ProfileController extends Controller
 
             $commerce = \App\Models\Commerce::create([
                 'profile_id' => $profile->id,
+                'is_primary' => $isFirstCommerce,
                 'business_name' => $request->business_name,
                 'business_type' => $request->business_type,
                 'tax_id' => $request->tax_id,

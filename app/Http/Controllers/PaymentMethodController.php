@@ -29,8 +29,15 @@ class PaymentMethodController extends Controller
             $role = $user->role ?? null;
             $profile = $user->profile ?? null;
 
-            if ($role === 'commerce' && $profile && $profile->commerce) {
-                return $profile->commerce;
+            if ($role === 'commerce' && $profile) {
+                $commerceId = request()->query('commerce_id') ?? request()->header('X-Commerce-Id') ?? request()->input('commerce_id');
+                if ($commerceId) {
+                    $commerce = $profile->commerces()->find($commerceId);
+                    if ($commerce) {
+                        return $commerce;
+                    }
+                }
+                return $profile->getPrimaryCommerce();
             }
 
             if ($role === 'delivery' && $profile && $profile->deliveryAgent) {
