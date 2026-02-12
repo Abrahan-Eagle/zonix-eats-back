@@ -4,6 +4,29 @@
 
 Backend de la aplicación Zonix Eats desarrollado en Laravel 10. Proporciona una API REST completa para la gestión de pedidos, productos, usuarios y comunicación en tiempo real mediante Firebase Cloud Messaging (FCM) y Pusher.
 
+## 📊 Estado del Proyecto (Actualizado: 12 Feb 2026)
+
+| Métrica | Valor |
+|---------|-------|
+| **Versión** | 1.0.0 |
+| **Laravel** | 10.x / PHP 8.1+ |
+| **Endpoints** | 233+ rutas REST |
+| **Controladores** | 54 |
+| **Modelos** | 35 |
+| **Migraciones** | 51 |
+| **Tests** | 206+ pasaron ✅, 0 fallaron |
+| **Seguridad** | Sanctum + RBAC + Rate Limiting + Upload validation |
+
+### Cambios Recientes (Feb 2026)
+- ✅ Validación `max:5120` (5MB) en todas las subidas de archivos
+- ✅ Tokens Sanctum con expiración 24h (configurable vía `SANCTUM_TOKEN_EXPIRATION`)
+- ✅ `APP_DEBUG=false` en CI/CD de producción
+- ✅ `env()` → `config()` en controladores (compatible con `config:cache`)
+- ✅ Nuevo endpoint `POST /api/commerce/logo` para subida de logo de comercio
+- ✅ Código comentado eliminado de `routes/api.php` (~64 líneas)
+- ✅ CI/CD workflow limpiado (código duplicado eliminado, typo corregido)
+- ✅ Typo `$photo_usersxxx` → `$photoUsersPath` en ProfileController
+
 ## 📋 LÓGICA DE NEGOCIO Y DATOS REQUERIDOS POR ROL - MVP
 
 ### ❓ DECISIONES TOMADAS SEGÚN MEJORES PRÁCTICAS DE ECOMMERCE

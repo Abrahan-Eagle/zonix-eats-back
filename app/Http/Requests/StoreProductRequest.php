@@ -27,7 +27,7 @@ class StoreProductRequest extends FormRequest
             'description' => 'required|string|max:1000',
             'price' => 'required|numeric|min:0|max:999999.99',
             'available' => 'boolean',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
             // Campos adicionales si los tienes
             'stock' => 'nullable|integer|min:0',
             'category' => 'nullable|string|max:100',
@@ -48,7 +48,7 @@ class StoreProductRequest extends FormRequest
             'available.boolean' => 'The availability must be true or false',
             'image.image' => 'The file must be an image',
             'image.mimes' => 'The image must be jpeg, png, jpg or gif',
-            'image.max' => 'The image cannot exceed 2MB',
+            'image.max' => 'The image cannot exceed 5MB',
             'stock.integer' => 'The stock must be an integer',
             'stock.min' => 'The stock cannot be negative'
         ];

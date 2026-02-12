@@ -35,7 +35,7 @@ class ProfileController extends Controller
             'middleName' => 'nullable|string|max:255',
             'lastName' => 'required|string|max:255',
             'secondLastName' => 'nullable|string|max:255',
-            'photo_users' => 'nullable|image|mimes:jpeg,png,jpg',
+            'photo_users' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
             'date_of_birth' => 'required|date',
             'maritalStatus' => 'required|in:married,divorced,single',
             'sex' => 'required|in:F,M',
@@ -69,9 +69,9 @@ class ProfileController extends Controller
         // Manejar la carga de la imagen (required para delivery agent).
         if ($request->hasFile('photo_users')) {
             // Obtener la URL base según el entorno.
-            $baseUrl = env('APP_ENV') === 'production'
-                ? env('APP_URL_PRODUCTION')
-                : env('APP_URL_LOCAL');
+            $baseUrl = config('app.env') === 'production'
+                ? config('app.url_production')
+                : config('app.url_local');
 
             // Guardar la nueva imagen en el disco público.
             $path = $request->file('photo_users')->store('profile_images', 'public');
@@ -128,7 +128,7 @@ class ProfileController extends Controller
         'middleName' => 'nullable|string|max:255',
         'lastName' => 'required|string|max:255',
         'secondLastName' => 'nullable|string|max:255',
-        'photo_users' => 'nullable|image|mimes:jpeg,png,jpg',
+        'photo_users' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
         'date_of_birth' => 'required|date',
         'maritalStatus' => 'required|in:married,divorced,single',
         'sex' => 'required|in:F,M',
@@ -155,12 +155,12 @@ class ProfileController extends Controller
     $newImageName = "photo_users-{$created_at}-{$date_of_birth}-{$firstName}-{$lastName}-{$randomDigits}.jpg";
 
     // Obtener la URL base según el entorno
-    $baseUrl = env('APP_ENV') === 'production'
-        ? env('APP_URL_PRODUCTION')
-        : env('APP_URL_LOCAL');
+    $baseUrl = config('app.env') === 'production'
+        ? config('app.url_production')
+        : config('app.url_local');
 
     // Mantener la URL de la foto anterior (si existe)
-    $photo_usersxxx = $profile->photo_users;
+    $photoUsersPath = $profile->photo_users;
 
     // Actualizar los campos del perfil
     $profile->fill($validatedData);
@@ -170,7 +170,7 @@ class ProfileController extends Controller
         // Eliminar la imagen anterior si existe
         if ($profile->photo_users) {
             // Log de la imagen anterior desde la base de datos
-            Storage::disk('public')->delete(str_replace($baseUrl . '/storage/', '', $photo_usersxxx));
+            Storage::disk('public')->delete(str_replace($baseUrl . '/storage/', '', $photoUsersPath));
         } else {
             Log::info('No hay imagen anterior para eliminar.');
         }
@@ -204,9 +204,9 @@ class ProfileController extends Controller
 
         // Eliminar la imagen asociada si existe.
         if ($profile->photo_users) {
-            $baseUrl = env('APP_ENV') === 'production'
-                ? env('APP_URL_PRODUCTION')
-                : env('APP_URL_LOCAL');
+            $baseUrl = config('app.env') === 'production'
+                ? config('app.url_production')
+                : config('app.url_local');
             Storage::disk('public')->delete(str_replace($baseUrl . '/storage/', '', $profile->photo_users));
         }
 
@@ -240,7 +240,7 @@ class ProfileController extends Controller
             'date_of_birth' => 'required|date',
             'maritalStatus' => 'required|in:married,divorced,single',
             'sex' => 'required|in:F,M',
-            'photo_users' => 'required|image|mimes:jpeg,png,jpg', // Required según modelo de negocio para DELIVERY
+            'photo_users' => 'required|image|mimes:jpeg,png,jpg|max:5120', // Required según modelo de negocio para DELIVERY
             'phone' => 'required|string|max:20', // Required según modelo de negocio
             'vehicle_type' => 'required|string|max:100', // Required según modelo de negocio
             'license_number' => 'required|string|max:255', // Required según modelo de negocio
@@ -271,9 +271,9 @@ class ProfileController extends Controller
 
         // Manejar la carga de la imagen (required para delivery agent).
         if ($request->hasFile('photo_users')) {
-            $baseUrl = env('APP_ENV') === 'production'
-                ? env('APP_URL_PRODUCTION')
-                : env('APP_URL_LOCAL');
+            $baseUrl = config('app.env') === 'production'
+                ? config('app.url_production')
+                : config('app.url_local');
             $path = $request->file('photo_users')->store('profile_images', 'public');
             $profileData['photo_users'] = $baseUrl . '/storage/' . $path;
         }
@@ -322,7 +322,7 @@ class ProfileController extends Controller
             'date_of_birth' => 'required|date',
             'maritalStatus' => 'required|in:married,divorced,single',
             'sex' => 'required|in:F,M',
-            'photo_users' => 'required|image|mimes:jpeg,png,jpg', // Required según modelo de negocio para COMMERCE
+            'photo_users' => 'required|image|mimes:jpeg,png,jpg|max:5120', // Required según modelo de negocio para COMMERCE
             'phone' => 'required|string|max:20', // Required según modelo de negocio
             'business_name' => 'required|string|max:255', // Required según modelo de negocio
             'business_type' => 'required|string|max:255', // Required según modelo de negocio
@@ -355,9 +355,9 @@ class ProfileController extends Controller
 
         // Manejar la carga de la imagen (required para commerce).
         if ($request->hasFile('photo_users')) {
-            $baseUrl = env('APP_ENV') === 'production'
-                ? env('APP_URL_PRODUCTION')
-                : env('APP_URL_LOCAL');
+            $baseUrl = config('app.env') === 'production'
+                ? config('app.url_production')
+                : config('app.url_local');
             $path = $request->file('photo_users')->store('profile_images', 'public');
             $profileData['photo_users'] = $baseUrl . '/storage/' . $path;
         }
@@ -494,7 +494,7 @@ class ProfileController extends Controller
             'date_of_birth' => 'required|date',
             'maritalStatus' => 'required|in:married,divorced,single',
             'sex' => 'required|in:F,M',
-            'photo_users' => 'required|image|mimes:jpeg,png,jpg', // Required según modelo de negocio para DELIVERY COMPANY
+            'photo_users' => 'required|image|mimes:jpeg,png,jpg|max:5120', // Required según modelo de negocio para DELIVERY COMPANY
             'phone' => 'required|string|max:20', // Required según modelo de negocio
             'company_name' => 'required|string|max:255',
             'address' => 'required|string|max:500',
@@ -525,9 +525,9 @@ class ProfileController extends Controller
 
         // Manejar la carga de la imagen (required para delivery company).
         if ($request->hasFile('photo_users')) {
-            $baseUrl = env('APP_ENV') === 'production'
-                ? env('APP_URL_PRODUCTION')
-                : env('APP_URL_LOCAL');
+            $baseUrl = config('app.env') === 'production'
+                ? config('app.url_production')
+                : config('app.url_local');
             $path = $request->file('photo_users')->store('profile_images', 'public');
             $profileData['photo_users'] = $baseUrl . '/storage/' . $path;
         }

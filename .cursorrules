@@ -10,14 +10,15 @@ alwaysApply: true
 **PHP:** 8.1+  
 **Estado:** ✅ MVP Completado - En desarrollo activo  
 **Tests:** 206+ tests pasaron ✅, 0 tests fallaron ✅ (verificado: `php artisan test` - incl. PusherConfigTest, ProfileControllerTest add-commerce)  
-**Endpoints:** 232 rutas REST (verificado en `routes/api.php`)  
-**Controladores:** 52 (verificado)  
+**Endpoints:** 233+ rutas REST (verificado en `routes/api.php`; incl. POST /api/commerce/logo)  
+**Controladores:** 54 (verificado; incl. CommerceDataController)  
 **Modelos:** 35 (verificado)  
-**Migraciones:** 48 (verificado; incl. addresses: role, commerce_id, profile_id nullable)
+**Migraciones:** 51 (verificado; incl. addresses: role, commerce_id, profile_id nullable)  
 **Factories:** 27 (verificado)  
-**Líneas de código:** 12,898 líneas PHP en `app/`  
+**Líneas de código:** ~12,500 líneas PHP en `app/` (reducido tras limpieza de código comentado)  
 **Errores críticos:** ✅ Todos corregidos (valores hardcoded, OSRM integrado, analytics reales, broadcasting/Pusher configurado)  
-**Última actualización:** 11 Febrero 2025
+**Seguridad (Feb 2026):** ✅ Validación max:5120 en uploads, tokens Sanctum con expiración 24h, APP_DEBUG=false en CI/CD, env()→config() corregido  
+**Última actualización:** 12 Febrero 2026
 
 ---
 
@@ -543,7 +544,7 @@ php artisan test --coverage
 
 ## MEJORAS CRÍTICAS PENDIENTES
 
-### 🔴 CRÍTICO - Acción Inmediata
+### 🔴 CRÍTICO - Acción Inmediata (TODOS RESUELTOS ✅)
 
 1. ~~**Migrar Carrito de Session a Base de Datos**~~ ✅ **COMPLETADO**
    - ✅ Tabla `carts` y `cart_items` creadas
@@ -556,38 +557,67 @@ php artisan test --coverage
 3. ~~**Agregar Rate Limiting**~~ ✅ **Implementado**
    - `throttle:auth` y `throttle:create` en `routes/api.php`.
 
-4. **Migraciones:** Las que existían en la lista ya están en el proyecto o aplicadas (p. ej. `make_city_id_nullable_in_addresses_table`). Revisar con `php artisan migrate:status` y ejecutar las pendientes si las hubiera.
+4. ~~**Validación de tamaño en uploads**~~ ✅ **COMPLETADO (Feb 2026)**
+   - `max:5120` (5MB) en todos los controladores con subida de archivos
+   - ProfileController, ReviewController, ProductController, CommerceDataController, DocumentController
+
+5. ~~**Tokens sin expiración**~~ ✅ **COMPLETADO (Feb 2026)**
+   - `config/sanctum.php` → expiración 24h configurable vía `SANCTUM_TOKEN_EXPIRATION`
+
+6. ~~**APP_DEBUG=true en CI/CD producción**~~ ✅ **CORREGIDO (Feb 2026)**
+   - `.github/workflows/main.yml` → `APP_DEBUG=false`
+
+7. ~~**env() directo en controllers**~~ ✅ **CORREGIDO (Feb 2026)**
+   - ProfileController y CommerceDataController → `config()` compatible con `config:cache`
+
+8. ~~**Código comentado en routes/api.php**~~ ✅ **LIMPIADO (Feb 2026)**
+   - ~64 líneas de rutas comentadas eliminadas
+
+9. ~~**Typo $photo_usersxxx**~~ ✅ **CORREGIDO (Feb 2026)**
+   - ProfileController → `$photoUsersPath`
+
+10. ~~**CI/CD workflow duplicado**~~ ✅ **LIMPIADO (Feb 2026)**
+    - ~86 líneas duplicadas eliminadas, typo "Completoxx" corregido
 
 ### 🟡 ALTO - Próximas Semanas
 
-5. **Agregar Paginación**
-   - Implementar en todos los endpoints de listado
-   - Afecta performance
+11. **Agregar Paginación**
+    - Implementar en 30+ endpoints de listado que usan `->get()` sin paginación
+    - Afecta performance con muchos datos
 
-6. **Agregar Índices a BD**
-   - `orders.status`, `orders.created_at`
-   - `products.commerce_id`, `products.is_available`
-   - Afecta performance
+12. **Agregar Índices a BD**
+    - `orders.status`, `orders.created_at`
+    - `products.commerce_id`, `products.is_available`
+    - Afecta performance
 
-7. **Implementar Caching**
-   - Redis para queries frecuentes
-   - Cachear respuestas de API
-   - Afecta performance
+13. **Implementar Caching**
+    - Redis para queries frecuentes
+    - Cachear respuestas de API
+    - Afecta performance
+
+14. **Refactorizar God Classes**
+    - `AnalyticsController.php` (1,130 líneas) → dividir en servicios
+    - `PaymentController.php` Buyer (815 líneas) → dividir
+    - `ChatController.php` (733 líneas) → dividir
 
 ### 🟢 MEDIO - Mejoras Futuras
 
-8. **Mejorar Sistema de Roles**
-   - Permisos granulares
-   - Múltiples roles por usuario
-   - Afecta seguridad/flexibilidad
+15. **Mejorar Sistema de Roles**
+    - Permisos granulares
+    - Múltiples roles por usuario
+    - Afecta seguridad/flexibilidad
 
-9. **Implementar Swagger/OpenAPI**
-   - Documentación de API
-   - Afecta desarrollo/documentación
+16. **Implementar Swagger/OpenAPI**
+    - Documentación de API
+    - Afecta desarrollo/documentación
 
-10. **Eliminar Archivos Duplicados**
-   - `City copy.php`, `State copy.php`
-   - Afecta mantenibilidad
+17. **Implementar Monitoreo**
+    - Sentry o similar para error tracking
+    - Alertas para errores críticos
+
+18. **Implementar Queues**
+    - Envío de emails, procesamiento de imágenes
+    - Operaciones pesadas que no necesitan ser síncronas
 
 ---
 
@@ -973,7 +1003,7 @@ Antes de considerar el análisis completo, verificar:
 
 ---
 
-**Última actualización:** 11 Febrero 2025 
+**Última actualización:** 12 Febrero 2026 
 **Mantener este archivo actualizado con cambios arquitectónicos importantes**
 
 ---

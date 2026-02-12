@@ -25,7 +25,7 @@ class ReviewController extends Controller
             'rating' => 'required|integer|between:1,5',
             'comment' => 'nullable|string|max:500',
             'photos' => 'nullable|array|max:5',
-            'photos.*' => 'image|mimes:jpeg,png,jpg|max:2048'
+            'photos.*' => 'image|mimes:jpeg,png,jpg|max:5120'
         ]);
 
         if ($validator->fails()) {

@@ -308,6 +308,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Commerce
     Route::middleware('role:commerce')->prefix('commerce')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index']);
+        Route::post('/logo', [\App\Http\Controllers\Commerce\CommerceDataController::class, 'uploadLogo']);
         Route::resource('/products', ProductController::class);
         Route::get('/orders', [CommerceOrderController::class, 'index']);
         Route::put('/orders/{id}/status', [CommerceOrderController::class, 'updateStatus']);
@@ -455,111 +456,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Endpoint público para listar bancos activos
 Route::get('/banks', [\App\Http\Controllers\BankController::class, 'index']);
-
-
-// // Ruta pública para pruebas
-// Route::get('/ping', fn() => response()->json(['message' => 'API funcionando']));
-
-
-
-// Route comentada - eliminada para producción
-// Route::get('/env-test', function () {
-//     dd(env('APP_NAME'), env('DB_DATABASE'), env('APP_DEBUG'));
-// });
-
-
-// Route::get('/migrate-refresh', function () {
-//     Artisan::call('migrate:refresh', ['--seed' => true]);
-//     return 'Database migration refreshed and seeded successfully!';
-// });
-
-
-
-// Route::prefix('auth')->group(function () {
-//     Route::post('/google', [AuthController::class, 'googleUser']);
-//     Route::middleware('auth:sanctum')->post('/logout', [AuthController::class, 'logout']);
-//     Route::middleware('auth:sanctum')->get('/user', [AuthController::class, 'getUser']);
-// });
-
-// Route::post('/orders', [OrderController::class, 'store'])->middleware(['auth:sanctum', 'role:comprador', 'commerce.open']);
-
-// Route::middleware('auth:sanctum')->group(function () {
-
-//     Route::prefix('onboarding')->group(function () {
-//         Route::put('/{id}', [AuthController::class, 'update']);
-//     });
-
-//     Route::prefix('profiles')->group(function () {
-//         Route::get('/', [ProfileController::class, 'index']);
-//         Route::post('/', [ProfileController::class, 'store']);
-//         Route::get('/{id}', [ProfileController::class, 'show']);
-//         Route::post('/{id}', [ProfileController::class, 'update']);
-//         Route::delete('/{id}', [ProfileController::class, 'destroy']);
-//     });
-
-
-//     // En routes/api.php
-// Route::prefix('commerce')->group(function () {
-
-//     // Productos del comercio
-//     Route::get('/products', [ProductController::class, 'index']);
-//     Route::post('/products', [ProductController::class, 'store']);
-//     Route::get('/products/{id}', [ProductController::class, 'show']);
-//     Route::put('/products/{id}', [ProductController::class, 'update']);
-//     Route::delete('/products/{id}', [ProductController::class, 'destroy']);
-
-//     // Nuevas funcionalidades
-//     Route::put('/products/{id}/toggle-disponible', [ProductController::class, 'toggleDisponible']);
-//     Route::get('/products-stats', [ProductController::class, 'estadisticas']);
-
-// });
-
-
-
-//      /**
-//      * Buyer
-//      */
-//     Route::prefix('buyer')->group(function () {
-//         Route::get('/orders', [OrderController::class, 'orders']);
-//         Route::post('/orders', [OrderController::class, 'placeOrder']);
-//     });
-
-//     /**
-//      * Commerce (Dueño del restaurante)
-//      */
-//     Route::prefix('commerce')->group(function () {
-//         Route::get('/products', [ProductController::class, 'products']);
-//         Route::post('/products', [ProductController::class, 'storeProduct']);
-//         Route::get('/orders', [CommerceOrderController::class, 'orders']);
-//         Route::post('/orders/{id}/status', [CommerceOrderController::class, 'updateOrderStatus']);
-//     });
-
-//     /**
-//      * Delivery
-//      */
-//     Route::prefix('delivery')->group(function () {
-//         Route::get('/available-orders', [OrderController::class, 'availableOrders']);
-//         Route::post('/orders/{id}/accept', [OrderController::class, 'acceptOrder']);
-//         Route::post('/orders/{id}/deliver', [OrderController::class, 'deliverOrder']);
-//     });
-
-//     /**
-//      * Admin
-//      */
-//     Route::prefix('admin')->group(function () {
-//         // Usuarios
-//         Route::get('/users', [UserController::class, 'index']);
-//         Route::get('/users/{id}', [UserController::class, 'show']);
-//         Route::put('/users/{id}/role', [UserController::class, 'updateRole']);
-//         Route::delete('/users/{id}', [UserController::class, 'destroy']);
-
-//         // Comercios
-//         Route::get('/commerces', [CommerceController::class, 'index']);
-//         Route::put('/commerces/{id}/status', [CommerceController::class, 'updateStatus']);
-//     });
-
-
-// });
 
 // Ruta pública para pruebas
 Route::get('/ping', fn() => response()->json(['message' => 'API funcionando']));

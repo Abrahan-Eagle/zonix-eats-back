@@ -158,21 +158,21 @@ class DocumentController extends Controller
             'issued_at' => 'nullable|date',
             'expires_at' => 'nullable|date|after_or_equal:issued_at',
             'status' => 'boolean',
-            'front_image' => 'nullable|image|mimes:jpg,jpeg,png',
+            'front_image' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         ];
 
         switch ($type) {
             case 'ci':
                 $rules = array_merge($rules, [
                     'number_ci' => 'required|integer', // Cambiar 'number' por 'number_ci'
-                    'front_image' => 'nullable|image|mimes:jpg,jpeg,png',
+                    'front_image' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
                 ]);
                 break;
             case 'passport':
                 $rules = array_merge($rules, [
                     'number_ci' => 'required|integer',
                     'RECEIPT_N' => 'nullable|integer',
-                    'front_image' => 'nullable|image|mimes:jpg,jpeg,png',
+                    'front_image' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
                 ]);
                 break;
 
@@ -182,7 +182,7 @@ class DocumentController extends Controller
                     'RECEIPT_N' => 'nullable|integer',
                     'rif_url' => 'nullable|string',
                     'taxDomicile' => 'nullable|string',
-                    'front_image' => 'nullable|image|mimes:jpg,jpeg,png',
+                    'front_image' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
                 ]);
                 break;
 
@@ -191,7 +191,7 @@ class DocumentController extends Controller
                     'commune_register' => 'nullable|string',  // Agregar validación para 'commune_register'
                     'community_rif' => 'nullable|string',    // Agregar validación para 'community_rif'
                     'taxDomicile' => 'nullable|string',
-                    'front_image' => 'nullable|image|mimes:jpg,jpeg,png',
+                    'front_image' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
                 ]);
                 break;
         }
