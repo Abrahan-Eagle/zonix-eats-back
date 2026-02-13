@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Commerce;
 
 use App\Http\Controllers\Controller;
 use App\Models\Commerce;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\Review;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -77,9 +80,35 @@ class CommerceListController extends Controller
             ->orderByRaw('is_primary DESC, id ASC')
             ->get();
 
+        $commerceIds = $commerces->pluck('id')->all();
+        $productCounts = Product::whereIn('commerce_id', $commerceIds)
+            ->selectRaw('commerce_id, count(*) as c')
+            ->groupBy('commerce_id')
+            ->pluck('c', 'commerce_id');
+        $ventasCounts = Order::whereIn('commerce_id', $commerceIds)
+            ->where('status', 'delivered')
+            ->selectRaw('commerce_id, count(*) as c')
+            ->groupBy('commerce_id')
+            ->pluck('c', 'commerce_id');
+        $ratings = Review::where('reviewable_type', Commerce::class)
+            ->whereIn('reviewable_id', $commerceIds)
+            ->selectRaw('reviewable_id, ROUND(AVG(rating), 1) as avg')
+            ->groupBy('reviewable_id')
+            ->pluck('avg', 'reviewable_id');
+
+        $data = $commerces->map(function ($commerce) use ($productCounts, $ventasCounts, $ratings) {
+            $arr = $commerce->toArray();
+            $arr['stats'] = [
+                'rating' => (float) ($ratings[$commerce->id] ?? 0),
+                'ventas' => (int) ($ventasCounts[$commerce->id] ?? 0),
+                'productos' => (int) ($productCounts[$commerce->id] ?? 0),
+            ];
+            return $arr;
+        });
+
         return response()->json([
             'success' => true,
-            'data' => $commerces,
+            'data' => $data,
         ]);
     }
 
