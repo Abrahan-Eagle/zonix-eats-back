@@ -60,9 +60,11 @@ class OrderController extends Controller
                 'products.*.quantity' => 'required|integer|min:1|max:100',
                 'delivery_type' => 'required|in:pickup,delivery',
                 'total' => 'required|numeric|min:0',
+                'delivery_fee' => 'nullable|numeric|min:0',
                 'notes' => 'nullable|string|max:500',
                 'delivery_address' => 'required_if:delivery_type,delivery|nullable|string|max:500',
             ]);
+            $validated['delivery_fee'] = (float) ($validated['delivery_fee'] ?? 0);
 
             $user = Auth::user();
             
@@ -162,25 +164,27 @@ class OrderController extends Controller
                 ];
             }
 
-            // Validar que el total calculado coincide con el enviado (margen de 0.01 por redondeo)
-            if (abs($calculatedTotal - $validated['total']) > 0.01) {
+            // Total esperado = subtotal + delivery_fee
+            $expectedTotal = $calculatedTotal + $validated['delivery_fee'];
+            if (abs($expectedTotal - $validated['total']) > 0.01) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'El precio de algunos productos ha cambiado. Por favor, revisa tu carrito.',
-                    'recalculated_total' => round($calculatedTotal, 2),
+                    'message' => 'El total no coincide. Por favor, revisa tu carrito.',
+                    'recalculated_total' => round($expectedTotal, 2),
                     'sent_total' => $validated['total']
                 ], 422);
             }
 
             // Crear orden en transacción
-            $order = \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $profile, $calculatedTotal, $productModels) {
+            $order = \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $profile, $expectedTotal, $productModels) {
                 // Crear la orden
                 $order = \App\Models\Order::create([
                     'profile_id' => $profile->id,
                     'commerce_id' => $validated['commerce_id'],
                     'delivery_type' => $validated['delivery_type'],
                     'status' => 'pending_payment',
-                    'total' => $calculatedTotal,
+                    'total' => $expectedTotal,
+                    'delivery_fee' => $validated['delivery_fee'],
                     'notes' => $validated['notes'] ?? null,
                     'delivery_address' => $validated['delivery_address'] ?? null,
                 ]);
