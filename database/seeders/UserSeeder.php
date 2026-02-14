@@ -14,7 +14,7 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Crea 10 usuarios con perfil
-        Profile::factory()->count(10)->create();
+        // 8 dueños (cada uno con 5 comercios) + 10 compradores = 18 perfiles
+        Profile::factory()->count(18)->create();
     }
 }

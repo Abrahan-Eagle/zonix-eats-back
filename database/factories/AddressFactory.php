@@ -21,19 +21,20 @@ class AddressFactory extends Factory
      */
     public function definition(): array
     {
-        // Obtener una ciudad aleatoria (siempre debe haber ciudades por el CitiesSeeder)
         $city = City::inRandomOrder()->first();
-        
+        // Carabobo, Valencia Venezuela: lat 10.0-10.3, lng -68.2 a -67.5
+        $lat = $this->faker->latitude(10.08, 10.28);
+        $lng = $this->faker->longitude(-68.12, -67.55);
         return [
             'profile_id' => Profile::factory(),
-            'city_id' => $city ? $city->id : 1, // Fallback a ID 1 si no hay ciudades (no debería pasar)
+            'city_id' => $city ? $city->id : 1,
             'street' => $this->faker->streetAddress(),
             'house_number' => $this->faker->optional(0.7)->buildingNumber(),
             'postal_code' => $this->faker->optional(0.5)->postcode(),
-            'latitude' => $this->faker->latitude(10.0, 10.5), // Coordenadas de Venezuela (Caracas)
-            'longitude' => $this->faker->longitude(-67.0, -66.5),
+            'latitude' => $lat,
+            'longitude' => $lng,
             'status' => $this->faker->randomElement(['completeData', 'incompleteData', 'notverified']),
-            'is_default' => $this->faker->boolean(20), // 20% son direcciones por defecto
+            'is_default' => $this->faker->boolean(20),
         ];
     }
 

@@ -7,11 +7,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Models\Order;
 use App\Models\Review;
-use App\Models\Commerce;
 use App\Models\DeliveryAgent;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Storage;
 
 class ReviewController extends Controller
 {
@@ -24,8 +22,6 @@ class ReviewController extends Controller
             'order_id' => 'required|exists:orders,id',
             'rating' => 'required|integer|between:1,5',
             'comment' => 'nullable|string|max:500',
-            'photos' => 'nullable|array|max:5',
-            'photos.*' => 'image|mimes:jpeg,png,jpg|max:5120'
         ]);
 
         if ($validator->fails()) {
@@ -55,9 +51,10 @@ class ReviewController extends Controller
                 ], 400);
             }
 
-            // Verificar que no se haya calificado antes
+            // Verificar que no se haya calificado antes (schema: reviewable_type, reviewable_id)
             $existingReview = Review::where('order_id', $order->id)
-                ->where('type', 'restaurant')
+                ->where('reviewable_type', 'App\\Models\\Commerce')
+                ->where('reviewable_id', $order->commerce_id)
                 ->first();
 
             if ($existingReview) {
@@ -67,29 +64,15 @@ class ReviewController extends Controller
                 ], 400);
             }
 
-            // Procesar fotos si las hay
-            $photoUrls = [];
-            if ($request->hasFile('photos')) {
-                foreach ($request->file('photos') as $photo) {
-                    $path = $photo->store('reviews', 'public');
-                    $photoUrls[] = Storage::url($path);
-                }
-            }
-
-            // Crear la reseña
+            // Crear la reseña (schema: profile_id, order_id, reviewable_type, reviewable_id, rating, comment)
             $review = Review::create([
                 'order_id' => $order->id,
-                'commerce_id' => $order->commerce_id,
                 'profile_id' => $order->profile_id,
-                'type' => 'restaurant',
+                'reviewable_type' => 'App\\Models\\Commerce',
+                'reviewable_id' => $order->commerce_id,
                 'rating' => $request->rating,
                 'comment' => $request->comment,
-                'photos' => json_encode($photoUrls),
-                'created_at' => now()
             ]);
-
-            // Actualizar calificación promedio del restaurante
-            $this->updateCommerceRating($order->commerce_id);
 
             return response()->json([
                 'success' => true,
@@ -98,7 +81,7 @@ class ReviewController extends Controller
                     'review_id' => $review->id,
                     'rating' => $review->rating,
                     'comment' => $review->comment,
-                    'photos' => $photoUrls
+                    'photos' => []
                 ]
             ]);
         } catch (\Exception $e) {
@@ -156,9 +139,10 @@ class ReviewController extends Controller
                 ], 400);
             }
 
-            // Verificar que no se haya calificado antes
+            // Verificar que no se haya calificado antes (schema: reviewable_type, reviewable_id)
             $existingReview = Review::where('order_id', $order->id)
-                ->where('type', 'delivery_agent')
+                ->where('reviewable_type', 'App\\Models\\DeliveryAgent')
+                ->where('reviewable_id', $order->delivery_agent_id)
                 ->first();
 
             if ($existingReview) {
@@ -168,18 +152,16 @@ class ReviewController extends Controller
                 ], 400);
             }
 
-            // Crear la reseña
+            // Crear la reseña (schema: profile_id, order_id, reviewable_type, reviewable_id, rating, comment)
             $review = Review::create([
                 'order_id' => $order->id,
-                'delivery_agent_id' => $order->delivery_agent_id,
                 'profile_id' => $order->profile_id,
-                'type' => 'delivery_agent',
+                'reviewable_type' => 'App\\Models\\DeliveryAgent',
+                'reviewable_id' => $order->delivery_agent_id,
                 'rating' => $request->rating,
                 'comment' => $request->comment,
-                'created_at' => now()
             ]);
 
-            // Actualizar calificación promedio del repartidor
             $this->updateDeliveryAgentRating($order->delivery_agent_id);
 
             return response()->json([
@@ -207,19 +189,25 @@ class ReviewController extends Controller
     {
         try {
             $reviews = Review::with(['profile'])
-                ->where('commerce_id', $commerceId)
-                ->where('type', 'restaurant')
+                ->where('reviewable_type', 'App\\Models\\Commerce')
+                ->where('reviewable_id', $commerceId)
                 ->orderBy('created_at', 'desc')
                 ->paginate(10);
 
             $reviewsData = $reviews->map(function ($review) {
+                $profile = $review->profile;
+                $customerName = $profile
+                    ? trim(($profile->firstName ?? '') . ' ' . ($profile->lastName ?? ''))
+                    : 'Cliente';
+                $customerName = $customerName !== '' ? $customerName : 'Cliente';
+
                 return [
                     'id' => $review->id,
                     'rating' => $review->rating,
                     'comment' => $review->comment,
-                    'photos' => json_decode($review->photos, true) ?? [],
-                    'customer_name' => $review->profile->full_name ?? 'Cliente',
-                    'customer_avatar' => $review->profile->avatar_url ?? null,
+                    'photos' => [],
+                    'customer_name' => $customerName,
+                    'customer_avatar' => $profile?->photo_users,
                     'created_at' => $review->created_at->format('d/m/Y H:i')
                 ];
             });
@@ -252,18 +240,24 @@ class ReviewController extends Controller
     {
         try {
             $reviews = Review::with(['profile'])
-                ->where('delivery_agent_id', $agentId)
-                ->where('type', 'delivery_agent')
+                ->where('reviewable_type', 'App\\Models\\DeliveryAgent')
+                ->where('reviewable_id', $agentId)
                 ->orderBy('created_at', 'desc')
                 ->paginate(10);
 
             $reviewsData = $reviews->map(function ($review) {
+                $profile = $review->profile;
+                $customerName = $profile
+                    ? trim(($profile->firstName ?? '') . ' ' . ($profile->lastName ?? ''))
+                    : 'Cliente';
+                $customerName = $customerName !== '' ? $customerName : 'Cliente';
+
                 return [
                     'id' => $review->id,
                     'rating' => $review->rating,
                     'comment' => $review->comment,
-                    'customer_name' => $review->profile->full_name ?? 'Cliente',
-                    'customer_avatar' => $review->profile->avatar_url ?? null,
+                    'customer_name' => $customerName,
+                    'customer_avatar' => $profile?->photo_users,
                     'created_at' => $review->created_at->format('d/m/Y H:i')
                 ];
             });
@@ -290,36 +284,16 @@ class ReviewController extends Controller
     }
 
     /**
-     * Actualizar calificación promedio del restaurante
-     */
-    private function updateCommerceRating($commerceId): void
-    {
-        $averageRating = Review::where('commerce_id', $commerceId)
-            ->where('type', 'restaurant')
-            ->avg('rating');
-
-        Commerce::where('id', $commerceId)->update([
-            'average_rating' => round($averageRating, 1),
-            'total_reviews' => Review::where('commerce_id', $commerceId)
-                ->where('type', 'restaurant')
-                ->count()
-        ]);
-    }
-
-    /**
-     * Actualizar calificación promedio del repartidor
+     * Actualizar calificación promedio del repartidor (campo rating en delivery_agents)
      */
     private function updateDeliveryAgentRating($agentId): void
     {
-        $averageRating = Review::where('delivery_agent_id', $agentId)
-            ->where('type', 'delivery_agent')
+        $averageRating = Review::where('reviewable_type', 'App\\Models\\DeliveryAgent')
+            ->where('reviewable_id', $agentId)
             ->avg('rating');
 
         DeliveryAgent::where('id', $agentId)->update([
-            'average_rating' => round($averageRating, 1),
-            'total_reviews' => Review::where('delivery_agent_id', $agentId)
-                ->where('type', 'delivery_agent')
-                ->count()
+            'rating' => round((float) $averageRating, 2),
         ]);
     }
 } 

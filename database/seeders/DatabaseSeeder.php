@@ -30,8 +30,9 @@ class DatabaseSeeder extends Seeder
             // Seeders de usuarios y perfiles
             UserSeeder::class,
             
-            // Seeders de comercios y productos
+            // Seeders de comercios (AddressSeeder después para nearby-places)
             CommerceSeeder::class,
+            AddressSeeder::class,
             ProductSeeder::class,
             
             // Seeders de delivery
@@ -47,8 +48,7 @@ class DatabaseSeeder extends Seeder
             CartSeeder::class,
             CartItemSeeder::class,
             
-            // Seeders de direcciones y ubicaciones
-            AddressSeeder::class,
+            // Seeders de ubicaciones (AddressSeeder ya ejecutado tras CommerceSeeder)
             UserLocationSeeder::class,
             
             // Seeders de promociones y cupones

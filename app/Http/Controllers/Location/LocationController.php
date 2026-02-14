@@ -155,7 +155,7 @@ class LocationController extends Controller
         $request->validate([
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',
-            'radius' => 'nullable|numeric|min:0.1|max:50', // km
+            'radius' => 'nullable|numeric|min:1|max:400', // km (1-400 como Facebook)
             'type' => 'nullable|string|in:restaurant,store,gas_station,pharmacy',
         ]);
 
