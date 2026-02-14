@@ -57,4 +57,20 @@ class Product extends Model
     {
         return $this->belongsToMany(Order::class, 'order_items');
     }
+
+    /**
+     * Extras/addons con precio adicional (ej: Extra Queso, Doble Carne)
+     */
+    public function extras()
+    {
+        return $this->hasMany(ProductExtra::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Preferencias sin precio (ej: Sin Cebolla, Sin Tomate)
+     */
+    public function preferences()
+    {
+        return $this->hasMany(ProductPreference::class)->orderBy('sort_order');
+    }
 }

@@ -20,7 +20,7 @@ class ProductService
      */
     public function getProductById($id)
     {
-        return Product::find($id);
+        return Product::with(['extras', 'preferences'])->find($id);
     }
 
     /**
@@ -31,7 +31,7 @@ class ProductService
      */
     public function getProductsByCommerce($commerceId)
     {
-        return Product::where('commerce_id', $commerceId)->get();
+        return Product::where('commerce_id', $commerceId)->with(['extras', 'preferences'])->get();
     }
 
     /**
@@ -46,6 +46,6 @@ class ProductService
         if ($search) {
             $query->where('name', 'like', "%$search%");
         }
-        return $query->get();
+        return $query->with(['extras', 'preferences'])->get();
     }
 }

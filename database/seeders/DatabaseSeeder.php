@@ -34,6 +34,8 @@ class DatabaseSeeder extends Seeder
             CommerceSeeder::class,
             AddressSeeder::class,
             ProductSeeder::class,
+            ProductExtraSeeder::class,
+            ProductPreferenceSeeder::class,
             
             // Seeders de delivery
             DeliveryCompanySeeder::class,
