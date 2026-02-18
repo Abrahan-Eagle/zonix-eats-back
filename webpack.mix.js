@@ -75,11 +75,10 @@ mix.copyDirectory("resources/assets/frontend/legacy/fonts", "public/fonts")
 // CoreUI: SVG icons
 .copyDirectory("resources/assets/coreui/svg", "public/icons/svg/free")
 // Dashboard: Copiar solo assets estáticos seguros, evitar JS/CSS compilados
-.copyDirectory("resources/assets/dashboard/fonts", "public/fonts")
-.copyDirectory("resources/assets/dashboard/images", "public/images")
-.copyDirectory("resources/assets/dashboard/icons", "public/icons")
-.copyDirectory("resources/assets/dashboard/svg", "public/svg")
-// .copyDirectory("resources/assets/dashboard", "public") // COMENTADO: Evitar sobrescribir public/js/back-app.js
+.copyDirectory("resources/assets/dashboard", "public")
+// Explicitly copy required dashboard CSS/JS that are not compiled by Mix
+// .copy("resources/assets/dashboard/css/dashboard.css", "public/css/dashboard.css")
+// .copy("resources/assets/dashboard/js/dashboard.js", "public/js/dashboard.js")
 // CoreUI Icons desde node_modules
 .copyDirectory("node_modules/@coreui/icons/fonts", "public/fonts")
 .copyDirectory("node_modules/@coreui/icons/svg/flag", "public/svg/flag")
