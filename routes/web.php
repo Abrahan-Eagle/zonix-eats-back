@@ -21,3 +21,7 @@ Route::get('/', function () {
 Route::get('/login', function () {
     return response()->json(['message' => 'Please use the mobile app to login'], 401);
 })->name('login');
+
+Auth::routes();
+
+Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
