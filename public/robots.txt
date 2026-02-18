@@ -1,2 +1,42 @@
+# robots.txt para Corral X - Marketplace Ganadero
+# https://corralx.com/robots.txt
+
 User-agent: *
-Disallow:
+Allow: /
+
+# Bloquear solo backend/dashboard
+Disallow: /login
+Disallow: /dashboard
+Disallow: /home
+Disallow: /users
+Disallow: /roles
+
+# Sitemap
+Sitemap: https://corralx.com/sitemap.xml
+
+# Bots específicos (Google, Bing, Yahoo)
+User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+# Bloquear bots maliciosos
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+

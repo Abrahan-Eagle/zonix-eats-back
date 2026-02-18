@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="80" viewBox="0 0 160 80">
+  <rect width="160" height="80" rx="8" fill="#f6f5f2" stroke="#487531" stroke-width="1"/>
+  <text x="80" y="48" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" fill="#487531" text-anchor="middle">INSAI</text>
+  <text x="80" y="65" font-family="Inter, Arial, sans-serif" font-size="8" fill="#1d3215" text-anchor="middle" opacity="0.7">Salud Agrícola Integral</text>
+</svg>
