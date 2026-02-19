@@ -26,17 +26,15 @@ use App\Http\Controllers\Web\RolePermission\RoleController;
 // Rutas de autenticación (Laravel UI)
 Auth::routes();
 
-// Ruta dinámica para robots.txt (bloquea test.corralx.com)
+// Ruta dinámica para robots.txt
 Route::get('/robots.txt', function () {
-    $isTestEnvironment = str_contains(request()->getHost(), 'test.corralx.com');
+    $isTestEnvironment = str_contains(request()->getHost(), 'test.zonixeats.com');
     
     if ($isTestEnvironment) {
-        // Bloquear completamente test.corralx.com
         return response("User-agent: *\nDisallow: /", 200)
             ->header('Content-Type', 'text/plain');
     }
     
-    // Para producción (corralx.com), usar el archivo estático
     $file = public_path('robots.txt');
     if (file_exists($file)) {
         return response(file_get_contents($file), 200)
@@ -74,18 +72,10 @@ Route::get('/clear', function() {
 
 Route::get('/', [IndexController::class, 'index'])->name('front.home');
 
-// Páginas legales
-Route::get('/politica-privacidad', function () {
-    return view('front.pages.politica-privacidad');
-})->name('pages.privacy');
-
-Route::get('/terminos-condiciones', function () {
-    return view('front.pages.terminos-condiciones');
-})->name('pages.terms');
-
-Route::get('/eliminar-cuenta', function () {
-    return view('front.pages.eliminar-cuenta');
-})->name('pages.delete-account');
+// Páginas legales (pendientes de reimplementación)
+// Route::get('/politica-privacidad', ...)->name('pages.privacy');
+// Route::get('/terminos-condiciones', ...)->name('pages.terms');
+// Route::get('/eliminar-cuenta', ...)->name('pages.delete-account');
 
 // ============================================
 // RUTAS PROTEGIDAS (requieren autenticación web)

@@ -16,7 +16,7 @@ return [
     */
 
     // Usaremos Pusher como servicio de broadcasting por defecto,
-    // igual que en CorralX-Backend (integración con Pusher Cloud).
+    // igual que en Zonix-Eats-Backend (integración con Pusher Cloud).
     'default' => env('BROADCAST_DRIVER', 'pusher'),
 
     /*
@@ -38,7 +38,7 @@ return [
             'secret' => env('PUSHER_APP_SECRET'),
             'app_id' => env('PUSHER_APP_ID'),
             'options' => [
-                // Configuración alineada con CorralX-Backend para usar Pusher Cloud
+                // Configuración alineada con Zonix-Eats-Backend para usar Pusher Cloud
                 'cluster' => env('PUSHER_APP_CLUSTER', 'mt1'),
                 'host' => env('PUSHER_HOST') ?: 'api-'.env('PUSHER_APP_CLUSTER', 'mt1').'.pusher.com',
                 'port' => env('PUSHER_PORT', 443),

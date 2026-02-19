@@ -1,5 +1,5 @@
-# robots.txt para Corral X - Marketplace Ganadero
-# https://corralx.com/robots.txt
+# robots.txt para Zonix Eats
+# https://zonixeats.com/robots.txt
 
 User-agent: *
 Allow: /
@@ -12,7 +12,7 @@ Disallow: /users
 Disallow: /roles
 
 # Sitemap
-Sitemap: https://corralx.com/sitemap.xml
+Sitemap: https://zonixeats.com/sitemap.xml
 
 # Bots específicos (Google, Bing, Yahoo)
 User-agent: Googlebot

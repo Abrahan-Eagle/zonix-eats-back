@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="160" height="80" viewBox="0 0 160 80">
-  <rect width="160" height="80" rx="8" fill="#f6f5f2" stroke="#487531" stroke-width="1"/>
-  <text x="80" y="42" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="600" fill="#487531" text-anchor="middle">Asociaciones</text>
-  <text x="80" y="58" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="600" fill="#487531" text-anchor="middle">Regionales</text>
-  <text x="80" y="72" font-family="Inter, Arial, sans-serif" font-size="8" fill="#1d3215" text-anchor="middle" opacity="0.6">Sector ganadero</text>
-</svg>

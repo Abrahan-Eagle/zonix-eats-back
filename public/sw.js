@@ -1,12 +1,11 @@
-const CACHE_NAME = 'corral-x-v1.0.0';
+const CACHE_NAME = 'zonix-eats-v1.0.0';
 const urlsToCache = [
   '/',
-  '/corralX.html',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap',
-  '/assets/front/images/Favicon/web-app-manifest-192x192.png',
-  '/assets/front/images/images/phone-mockup.jpg'
+  'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap',
+  '/assets/img/logo.png',
+  '/assets/img/hero/desktop-pizza.jpg'
 ];
 
 // Instalación del Service Worker
@@ -67,7 +66,7 @@ self.addEventListener('fetch', event => {
       .catch(() => {
         // Fallback para páginas offline
         if (event.request.mode === 'navigate') {
-          return caches.match('/corralX.html');
+          return caches.match('/');
         }
       })
   );
@@ -95,9 +94,9 @@ function doBackgroundSync() {
 // Push notifications
 self.addEventListener('push', event => {
   const options = {
-    body: event.data ? event.data.text() : '¡Nueva notificación de Corral X!',
-    icon: '/assets/Favicon/web-app-manifest-192x192.png',
-    badge: '/assets/Favicon/web-app-manifest-192x192.png',
+    body: event.data ? event.data.text() : '¡Nueva notificación de Zonix Eats!',
+    icon: '/assets/img/logo.png',
+    badge: '/assets/img/logo.png',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
@@ -107,18 +106,18 @@ self.addEventListener('push', event => {
       {
         action: 'explore',
         title: 'Ver más',
-        icon: '/assets/Favicon/web-app-manifest-192x192.png'
+        icon: '/assets/img/logo.png'
       },
       {
         action: 'close',
         title: 'Cerrar',
-        icon: '/assets/Favicon/web-app-manifest-192x192.png'
+        icon: '/assets/img/logo.png'
       }
     ]
   };
   
   event.waitUntil(
-    self.registration.showNotification('Corral X', options)
+    self.registration.showNotification('Zonix Eats', options)
   );
 });
 

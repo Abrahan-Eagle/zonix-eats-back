@@ -1,25 +1,25 @@
 {
-  "name": "Corral X - Marketplace Ganadero de Venezuela",
-  "short_name": "Corral X",
-  "description": "Corral X es el marketplace ganadero más grande de Venezuela. Compra y vende ganado bovino, bufalino, equino y porcino. También encuentra equipos de hacienda, maquinaria agrícola, insumos ganaderos y servicios de transporte. Conecta directamente con ganaderos, sin intermediarios. Análisis de mercado con IA, perfiles verificados y chat seguro.",
+  "name": "Zonix Eats - Delivery de Comida",
+  "short_name": "Zonix Eats",
+  "description": "Zonix Eats es tu plataforma de delivery favorita en Venezuela. Pide comida de los mejores restaurantes, desde hamburguesas y pizza hasta sushi y postres. Entregas rápidas y seguras.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#386A20",
-  "theme_color": "#386A20",
+  "background_color": "#ffffff",
+  "theme_color": "#ff3d40",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "es",
-  "categories": ["business", "shopping", "food", "agriculture", "marketplace", "livestock", "farm", "venezuela"],
-  "keywords": ["ganado", "ganadería", "venezuela", "marketplace", "compra ganado", "vende ganado", "equipos agrícolas", "maquinaria ganadera", "bovinos", "bufalinos", "equinos", "porcinos", "tractores", "ordeñadoras", "insumos ganaderos", "transporte ganadero", "fincas venezuela", "hatos ganaderos", "corral x", "corralx", "marketplace ganadero venezuela", "comprar ganado online", "vender ganado online", "ganado bovino venezuela", "ganado bufalino", "ganado equino", "ganado porcino", "equipos de hacienda", "maquinaria agrícola venezuela"],
+  "categories": ["food", "delivery", "shopping", "lifestyle"],
+  "keywords": ["delivery", "comida", "venezuela", "hamburguesas", "pizza", "sushi", "restaurantes", "domicilio", "zonix eats", "zonix"],
   "icons": [
     {
-      "src": "/assets/front/images/Favicon/web-app-manifest-192x192.png",
+      "src": "/assets/img/logo.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/assets/front/images/Favicon/web-app-manifest-512x512.png",
+      "src": "/assets/img/logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -27,7 +27,7 @@
   ],
   "screenshots": [
     {
-      "src": "/assets/front/images/images/phone-mockup.jpg",
+      "src": "/assets/img/hero/desktop-pizza.jpg",
       "sizes": "1280x720",
       "type": "image/jpeg",
       "form_factor": "wide"
@@ -35,13 +35,13 @@
   ],
   "shortcuts": [
     {
-      "name": "Publicar Ganado",
-      "short_name": "Publicar",
-      "description": "Publica tu ganado en el marketplace",
-      "url": "/#descargar",
+      "name": "Pedir Comida",
+      "short_name": "Pedir",
+      "description": "Explora restaurantes y pide ahora",
+      "url": "/",
       "icons": [
         {
-          "src": "/assets/front/images/Favicon/web-app-manifest-192x192.png",
+          "src": "/assets/img/logo.png",
           "sizes": "96x96"
         }
       ]
@@ -50,7 +50,7 @@
   "related_applications": [
     {
       "platform": "webapp",
-      "url": "https://corralx.com"
+      "url": "https://zonixeats.com"
     }
   ],
   "prefer_related_applications": false,
