@@ -1167,11 +1167,5 @@
     "/svg/flag/cif-za.svg": "/svg/flag/cif-za.svg",
     "/svg/flag/cif-zm.svg": "/svg/flag/cif-zm.svg",
     "/svg/flag/cif-zw.svg": "/svg/flag/cif-zw.svg",
-    "/sw.js": "/sw.js",
-    "/xxxxx/css/app.css": "/xxxxx/css/app.css",
-    "/xxxxx/favicon.ico": "/xxxxx/favicon.ico",
-    "/xxxxx/index.php": "/xxxxx/index.php",
-    "/xxxxx/js/app.js": "/xxxxx/js/app.js",
-    "/xxxxx/mix-manifest.json": "/xxxxx/mix-manifest.json",
-    "/xxxxx/robots.txt": "/xxxxx/robots.txt"
+    "/sw.js": "/sw.js"
 }
