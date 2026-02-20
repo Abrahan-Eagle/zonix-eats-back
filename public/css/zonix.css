@@ -1379,9 +1379,9 @@ body {
         line-height: 1.1 !important;
     }
     
-    /* 2. Hero Spacing (Clear Fixed Navbar) */
+    /* 2. Hero Spacing (Tighter for Mobile) */
     .hero-wrapper {
-        padding-top: 6rem !important; /* Push content down */
+        padding-top: 1rem !important; /* Reduced from 6rem */
     }
     
     /* 3. Navbar Tweaks */
@@ -1394,6 +1394,7 @@ body {
     
     /* 4. Center Mobile Text if desired? No, keep left aligned but guarded */
     .hero-left {
+        padding-top: 2rem !important; /* Tighten top space */
         padding-right: 1rem;
     }
 }
