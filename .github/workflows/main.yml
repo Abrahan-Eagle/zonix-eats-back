@@ -25,7 +25,7 @@ jobs:
 
       # Paso 3: Construir assets (si es necesario)
       - name: 🔨 Construir proyecto
-        run: npm install && npm run build
+        run: npm install && npm run prod
 
       # Paso 4: Configurar PHP (opcional, solo para proyectos PHP)
       - name: 🐘 Configurar PHP 8.2
