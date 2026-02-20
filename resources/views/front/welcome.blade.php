@@ -27,7 +27,7 @@
     <nav class="navbar-zonix d-flex align-items-center">
         <div class="container-zonix w-100 d-flex align-items-center justify-content-between">
             <!-- Brand -->
-            <a class="navbar-brand d-flex align-items-center gap-1" href="#">
+            <a class="navbar-brand d-flex align-items-center gap-1" href="{{ url('/') }}">
                 <img src="{{ asset('assets/img/logo.png') }}" alt="Zonix EATS" class="navbar-brand-logo">
                 <span class="navbar-brand-text fs-3 font-black tracking-tighter leading-none">Zonix<span class="text-primary-zonix">EATS</span></span>
             </a>
@@ -76,10 +76,10 @@
 
                 <div class="d-flex flex-wrap gap-3">
                 <div class="d-flex flex-wrap gap-3">
-                    <a href="#" class="app-badge">
+                    <a href="javascript:void(0)" class="app-badge" onclick="alert('Disponible pronto en App Store')">
                         <img src="{{ asset('assets/img/badges/app-store.png') }}" alt="Download on App Store" class="h-100">
                     </a>
-                    <a href="#" class="app-badge">
+                    <a href="javascript:void(0)" class="app-badge" onclick="alert('Disponible pronto en Google Play')">
                         <img src="{{ asset('assets/img/badges/google-play.png') }}" alt="Get it on Google Play" class="h-100">
                     </a>
                 </div>
@@ -186,7 +186,7 @@
                             </div>
                             <h3 class="text-2xl font-bold text-navy mb-2">Pide ahora en la App</h3>
                             <p class="text-slate-600 mb-4 flex-grow-1">Accede a miles de restaurantes y recibe tu comida en minutos.</p>
-                            <button class="btn w-100 py-3 rounded-xl bg-slate-100 text-navy font-bold hover:bg-primary-zonix hover:text-white transition-colors border-0">
+                            <button class="btn w-100 py-3 rounded-xl bg-slate-100 text-navy font-bold hover:bg-primary-zonix hover:text-white transition-colors border-0" data-bs-toggle="modal" data-bs-target="#registerModal">
                                 Pedir Ahora
                             </button>
                         </div>
@@ -201,7 +201,7 @@
                             </div>
                             <h3 class="text-2xl font-bold text-navy mb-2">Gana Dinero</h3>
                             <p class="text-slate-600 mb-4 flex-grow-1">Conduce, entrega y genera ingresos extra con tu propio horario.</p>
-                            <button class="btn w-100 py-3 rounded-xl bg-slate-100 text-navy font-bold hover:bg-blue-zonix hover:text-white transition-colors border-0">
+                            <button class="btn w-100 py-3 rounded-xl bg-slate-100 text-navy font-bold hover:bg-blue-zonix hover:text-white transition-colors border-0" onclick="alert('Próximamente: Registro de Repartidores')">
                                 Ser Repartidor
                             </button>
                         </div>
@@ -216,7 +216,7 @@
                             </div>
                             <h3 class="text-2xl font-bold text-navy mb-2">Vende más con Zonix</h3>
                             <p class="text-slate-600 mb-4 flex-grow-1">Digitaliza tu restaurante y llega a nuevos clientes hoy mismo.</p>
-                            <button class="btn w-100 py-3 rounded-xl bg-slate-100 text-navy font-bold hover:bg-yellow hover:text-navy transition-colors border-0">
+                            <button class="btn w-100 py-3 rounded-xl bg-slate-100 text-navy font-bold hover:bg-yellow hover:text-navy transition-colors border-0" onclick="alert('Próximamente: Registro de Aliados')">
                                 Registrar Restaurante
                             </button>
                         </div>
@@ -272,7 +272,7 @@
     </section>
 
     <!-- Promotions -->
-    <section class="py-5 bg-light">
+    <section id="offers" class="py-5 bg-light">
         <div class="container-zonix">
             <div class="d-flex align-items-end justify-content-between mb-4">
                 <div>
@@ -564,10 +564,10 @@
                     <p class="text-white text-opacity-75 text-lg mb-4 mb-md-0">Únete a la comunidad de comida más grande. Descarga la App hoy.</p>
                 </div>
                 <div class="d-flex flex-wrap gap-3">
-                    <a href="#" class="app-badge">
+                    <a href="javascript:void(0)" class="app-badge" onclick="alert('Disponible pronto en App Store')">
                         <img src="{{ asset('assets/img/badges/app-store.png') }}" alt="Download on App Store" class="h-100">
                     </a>
-                    <a href="#" class="app-badge">
+                    <a href="javascript:void(0)" class="app-badge" onclick="alert('Disponible pronto en Google Play')">
                         <img src="{{ asset('assets/img/badges/google-play.png') }}" alt="Get it on Google Play" class="h-100">
                     </a>
                 </div>
@@ -696,10 +696,10 @@
             <a href="#" class="nav-link-mobile">
                 <span class="material-symbols-outlined">home</span> Inicio
             </a>
-            <a href="#" class="nav-link-mobile">
+            <a href="#categories" class="nav-link-mobile">
                 <span class="material-symbols-outlined">restaurant</span> Restaurantes
             </a>
-            <a href="#" class="nav-link-mobile">
+            <a href="#offers" class="nav-link-mobile">
                 <span class="material-symbols-outlined">percent</span> Ofertas
             </a>
             <hr class="border-slate-100 my-2">
@@ -735,10 +735,11 @@
                     <img src="{{ asset('assets/img/logo.png') }}" alt="Zonix" style="height: 3rem;" class="mb-4">
                     <h3 class="font-black text-navy mb-2">Bienvenido de nuevo</h3>
                     <p class="text-slate-500 mb-4">Ingresa a tu cuenta para pedir</p>
-                    <form>
-                        <input type="email" class="form-control form-control-lg bg-slate-50 border-0 mb-3" placeholder="Correo electrónico">
-                        <input type="password" class="form-control form-control-lg bg-slate-50 border-0 mb-4" placeholder="Contraseña">
-                        <button type="button" class="btn btn-zonix-primary w-100 py-3 font-bold rounded-pill">Iniciar Sesión</button>
+                    <form method="POST" action="{{ route('login') }}">
+                        @csrf
+                        <input type="email" name="email" class="form-control form-control-lg bg-slate-50 border-0 mb-3" placeholder="Correo electrónico" required>
+                        <input type="password" name="password" class="form-control form-control-lg bg-slate-50 border-0 mb-4" placeholder="Contraseña" required>
+                        <button type="submit" class="btn btn-zonix-primary w-100 py-3 font-bold rounded-pill">Iniciar Sesión</button>
                     </form>
                     <p class="text-xs text-slate-400 mt-4">¿No tienes cuenta? <a href="#" class="text-primary-zonix font-bold" data-bs-toggle="modal" data-bs-target="#registerModal">Regístrate</a></p>
                 </div>
@@ -757,11 +758,13 @@
                     <img src="{{ asset('assets/img/logo.png') }}" alt="Zonix" style="height: 3rem;" class="mb-4">
                     <h3 class="font-black text-navy mb-2">Crea tu cuenta</h3>
                     <p class="text-slate-500 mb-4">Empieza a disfrutar Zonix EATS</p>
-                    <form>
-                        <input type="text" class="form-control form-control-lg bg-slate-50 border-0 mb-3" placeholder="Nombre completo">
-                        <input type="email" class="form-control form-control-lg bg-slate-50 border-0 mb-3" placeholder="Correo electrónico">
-                        <input type="password" class="form-control form-control-lg bg-slate-50 border-0 mb-4" placeholder="Crear contraseña">
-                        <button type="button" class="btn btn-zonix-primary w-100 py-3 font-bold rounded-pill">Crear Cuenta</button>
+                    <form method="POST" action="{{ route('register') }}">
+                        @csrf
+                        <input type="text" name="name" class="form-control form-control-lg bg-slate-50 border-0 mb-3" placeholder="Nombre completo" required>
+                        <input type="email" name="email" class="form-control form-control-lg bg-slate-50 border-0 mb-3" placeholder="Correo electrónico" required>
+                        <input type="password" name="password" class="form-control form-control-lg bg-slate-50 border-0 mb-3" placeholder="Crear contraseña" required>
+                        <input type="password" name="password_confirmation" class="form-control form-control-lg bg-slate-50 border-0 mb-4" placeholder="Confirmar contraseña" required>
+                        <button type="submit" class="btn btn-zonix-primary w-100 py-3 font-bold rounded-pill">Crear Cuenta</button>
                     </form>
                     <p class="text-xs text-slate-400 mt-4">¿Ya tienes cuenta? <a href="#" class="text-primary-zonix font-bold" data-bs-toggle="modal" data-bs-target="#loginModal">Inicia Sesión</a></p>
                 </div>
