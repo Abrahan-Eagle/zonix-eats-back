@@ -52,9 +52,11 @@ body {
   font-family: var(--font-display);
   background-color: var(--zonix-bg-light);
   color: var(--slate-900);
-  -webkit-font-smoothing: antialiased; /* Critical for Font Weight matching */
+  -webkit-font-smoothing: antialiased; 
   overflow-x: hidden;
   line-height: 1.5;
+  margin: 0;
+  padding: 0;
 }
 
 a {
@@ -416,23 +418,23 @@ h6 {
     background-color: var(--zonix-navy);
     display: flex;
     flex-direction: column;
-    min-height: 600px;
 }
 @media (min-width: 1024px) {
     .hero-wrapper {
         flex-direction: row;
-        height: 85vh; /* Pixel-perfect match for lg:h-[85vh] */
+        height: 85vh;
+        min-height: 650px;
         max-height: 1080px;
     }
 }
 .hero-left {
     position: relative;
     z-index: 10;
-    width: 100%;
+    flex: 1;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 4rem 1.5rem; /* px-6 (24px) base */
+    padding: 4rem 1.5rem; 
 }
 @media (min-width: 640px) {
     .hero-left {
@@ -450,13 +452,13 @@ h6 {
 
 .hero-right {
     position: relative;
-    width: 100%;
-    min-height: 16rem;
+    flex: 1;
+    min-height: 25rem; /* Mobile height */
     background-color: var(--zonix-bg-dark);
+    overflow: hidden;
 }
 @media (min-width: 1024px) {
     .hero-right {
-        width: 50%;
         height: 100%;
     }
 }
@@ -1331,13 +1333,31 @@ footer img[alt="Zonix EATS"] {
 }
 
 
-/* SMOOTH SCROLLING */
-html, body {
-    height: 100%;
+html {
     scroll-behavior: smooth;
-    overflow-x: hidden !important; /* Force no horizontal scroll */
+    scroll-padding-top: 100px;
+    height: 100%;
+}
+
+body {
+    min-height: 100%;
+}
+
+/* Flex wrapper to push footer down and handle screenshots cleanly */
+#content-wrapper {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
     width: 100%;
-    scroll-padding-top: 100px; /* Offset for sticky navbar */
+}
+
+#content-wrapper > * {
+    flex-shrink: 0;
+}
+
+#content-wrapper > footer {
+    margin-top: auto;
 }
 
 

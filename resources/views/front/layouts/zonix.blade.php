@@ -29,13 +29,13 @@
     <link rel="icon" type="image/png" href="{{ asset('assets/img/logo.png') }}">
     
     <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ asset('vendor/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
     
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    <link href="{{ asset('vendor/google-fonts/plus-jakarta-sans.css') }}" rel="stylesheet">
+    <link href="{{ asset('vendor/material-symbols/material-symbols-outlined.css') }}" rel="stylesheet">
     <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.css') }}">
     
     <!-- Custom Semantic CSS -->
     <link href="{{ asset('css/zonix.css') }}" rel="stylesheet">
@@ -46,10 +46,12 @@
     </script>
 </head>
 <body>
-    @yield('content')
+    <div id="content-wrapper">
+        @yield('content')
+    </div>
 
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ asset('vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ asset('js/zonix.js') }}"></script>
 </body>
 </html>

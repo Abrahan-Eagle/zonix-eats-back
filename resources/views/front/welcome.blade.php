@@ -79,14 +79,12 @@
                 </p>
 
                 <div class="d-flex flex-wrap gap-3">
-                <div class="d-flex flex-wrap gap-3">
                     <a href="javascript:void(0)" class="app-badge" onclick="alert('Disponible pronto en App Store')">
                         <img src="{{ asset('assets/img/badges/app-store.png') }}" alt="Download on App Store" class="h-100">
                     </a>
                     <a href="javascript:void(0)" class="app-badge" onclick="alert('Disponible pronto en Google Play')">
                         <img src="{{ asset('assets/img/badges/google-play.png') }}" alt="Get it on Google Play" class="h-100">
                     </a>
-                </div>
                 </div>
             </div>
             
@@ -428,7 +426,6 @@
              <img src="{{ asset('assets/img/driver/driver-bg.jpg') }}" class="w-100 h-100 object-fit-cover" alt="Driver">
              <div class="driver-overlay-gradient position-absolute top-0 start-0 w-100 h-100"></div>
         </div>
-        </div>
         <div class="container-zonix position-relative z-1 py-5">
             <div class="" style="max-width: 42rem;">
                 <!-- Fixed Heading size: text-4xl (mobile) -> text-md-5xl (tablet) -> text-lg-6xl (desktop) -->
@@ -452,8 +449,6 @@
                 </div>
             </div>
         </div>
-    </section>
-
     </section>
 
     <!-- Testimonials -->
@@ -620,18 +615,16 @@
     </button>
 
     <!-- Footer -->
-    <footer class="bg-navy border-top border-white border-opacity-10 position-relative" style="padding-top: 5rem; padding-bottom: 3rem; z-index: 1;">
+    <footer class="bg-navy border-top border-white border-opacity-10" style="padding-top: 5rem; padding-bottom: 3rem;">
         <div class="container-zonix">
             <div class="row g-5 mb-5 text-white">
                 <!-- Brand Col -->
                 <div class="col-lg-4">
                     <div class="mb-4">
-                    <div class="mb-4">
                         <div class="d-flex align-items-center gap-1">
                             <img src="{{ asset('assets/img/logo.png') }}" alt="Zonix EATS" style="height: 4rem; filter: none !important;">
                             <span class="text-white fs-3 font-black tracking-tighter leading-none">Zonix<span class="text-primary-zonix">EATS</span></span>
                         </div>
-                    </div>
                     </div>
                     <p class="text-slate-400 mb-4 bg-transparent border-0 p-0">
                         La plataforma tecnológica que conecta a usuarios, restaurantes y repartidores para transformar la experiencia gastronómica.
