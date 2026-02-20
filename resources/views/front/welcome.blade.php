@@ -93,8 +93,11 @@
         <div class="hero-right">
             <!-- Desktop Image -->
             <div class="position-absolute top-0 start-0 w-100 h-100 d-none d-lg-block rounded-4rem-bl overflow-hidden">
-                <img src="{{ asset('assets/img/hero/desktop-pizza.jpg') }}" 
-                     alt="Pizza" class="w-100 h-100 object-fit-cover">
+                <picture>
+                    <source srcset="{{ asset('assets/img/hero/desktop-pizza.webp') }}" type="image/webp">
+                    <img src="{{ asset('assets/img/hero/desktop-pizza.jpg') }}" 
+                         alt="Pizza" class="w-100 h-100 object-fit-cover" width="1920" height="1080">
+                </picture>
                 <div class="hero-overlay-desktop"></div>
                 
                 <!-- Stats Card -->
@@ -116,8 +119,11 @@
             
             <!-- Mobile Image -->
             <div class="position-absolute top-0 start-0 w-100 h-100 d-lg-none">
-                 <img src="{{ asset('assets/img/hero/mobile-pizza.jpg') }}" 
-                     alt="Pizza" class="w-100 h-100 object-fit-cover">
+                 <picture>
+                    <source srcset="{{ asset('assets/img/hero/mobile-pizza.webp') }}" type="image/webp">
+                    <img src="{{ asset('assets/img/hero/mobile-pizza.jpg') }}" 
+                         alt="Pizza" class="w-100 h-100 object-fit-cover" width="800" height="1200">
+                 </picture>
                  <div class="hero-overlay-mobile"></div>
             </div>
         </div>
@@ -233,32 +239,32 @@
             
             <div class="scroll-snap-x hide-scrollbar" id="categoriesContainer">
                 <a href="#" class="category-item snap-start">
-                    <div class="category-ring"><img src="{{ asset('assets/img/categories/burger.jpg') }}" alt="Burger"></div>
+                    <div class="category-ring"><img src="{{ asset('assets/img/categories/burger.jpg') }}" alt="Burger" loading="lazy" width="80" height="80"></div>
                     <span class="font-bold text-navy text-sm">Hamburguesas</span>
                 </a>
                 <a href="#" class="category-item snap-start">
-                    <div class="category-ring"><img src="{{ asset('assets/img/categories/sushi.jpg') }}" alt="Sushi"></div>
+                    <div class="category-ring"><img src="{{ asset('assets/img/categories/sushi.jpg') }}" alt="Sushi" loading="lazy" width="80" height="80"></div>
                     <span class="font-bold text-navy text-sm">Sushi</span>
                 </a>
                 <a href="#" class="category-item snap-start">
-                    <div class="category-ring"><img src="{{ asset('assets/img/categories/mexicana.jpg') }}" alt="Mexicana"></div>
+                    <div class="category-ring"><img src="{{ asset('assets/img/categories/mexicana.jpg') }}" alt="Mexicana" loading="lazy" width="80" height="80"></div>
                     <span class="font-bold text-navy text-sm">Mexicana</span>
                 </a>
                 <a href="#" class="category-item snap-start">
-                    <div class="category-ring"><img src="{{ asset('assets/img/categories/pizza.jpg') }}" alt="Pizza"></div>
+                    <div class="category-ring"><img src="{{ asset('assets/img/categories/pizza.jpg') }}" alt="Pizza" loading="lazy" width="80" height="80"></div>
                     <span class="font-bold text-navy text-sm">Pizza</span>
                 </a>
                 <!-- Adding more items for scrolling effect -->
                  <a href="#" class="category-item snap-start">
-                        <div class="category-ring"><img src="{{ asset('assets/img/categories/bebidas.jpg') }}" alt="Bebidas"></div>
+                        <div class="category-ring"><img src="{{ asset('assets/img/categories/bebidas.jpg') }}" alt="Bebidas" loading="lazy" width="80" height="80"></div>
                         <span class="font-bold text-navy text-sm">Bebidas</span>
                 </a>
                 <a href="#" class="category-item snap-start">
-                        <div class="category-ring"><img src="{{ asset('assets/img/categories/saludable.jpg') }}" alt="Saludable"></div>
+                        <div class="category-ring"><img src="{{ asset('assets/img/categories/saludable.jpg') }}" alt="Saludable" loading="lazy" width="80" height="80"></div>
                         <span class="font-bold text-navy text-sm">Saludable</span>
                 </a>
                 <a href="#" class="category-item snap-start">
-                        <div class="category-ring"><img src="{{ asset('assets/img/categories/postres.jpg') }}" alt="Postres"></div>
+                        <div class="category-ring"><img src="{{ asset('assets/img/categories/postres.jpg') }}" alt="Postres" loading="lazy" width="80" height="80"></div>
                         <span class="font-bold text-navy text-sm">Postres</span>
                 </a>
             </div>
@@ -280,7 +286,7 @@
                 <div class="col-sm-6 col-lg-zonix-3">
                     <div class="card-promo">
                         <div class="card-promo-img-wrapper">
-                            <img src="{{ asset('assets/img/promos/burger-king.jpg') }}" alt="Burger">
+                            <img src="{{ asset('assets/img/promos/burger-king.jpg') }}" alt="Burger" loading="lazy" width="400" height="250">
                             <span class="position-absolute top-0 start-0 m-3 badge bg-primary-zonix rounded-pill">50% OFF</span>
                             <div class="position-absolute bottom-0 end-0 m-3 px-2 py-1 bg-white rounded shadow-sm d-flex align-items-center gap-1 small font-bold"><span class="material-symbols-outlined text-warning" style="font-size: 14px;">star</span> 4.8</div>
                         </div>
@@ -295,7 +301,7 @@
                 <div class="col-sm-6 col-lg-zonix-3">
                     <div class="card-promo">
                         <div class="card-promo-img-wrapper">
-                            <img src="{{ asset('assets/img/promos/tacos.jpg') }}" alt="Tacos">
+                            <img src="{{ asset('assets/img/promos/tacos.jpg') }}" alt="Tacos" loading="lazy" width="400" height="250">
                             <span class="position-absolute top-0 start-0 m-3 badge bg-yellow text-navy rounded-pill">2x1 HOY</span>
                             <div class="position-absolute bottom-0 end-0 m-3 px-2 py-1 bg-white rounded shadow-sm d-flex align-items-center gap-1 small font-bold"><span class="material-symbols-outlined text-warning" style="font-size: 14px;">star</span> 4.5</div>
                         </div>
@@ -310,7 +316,7 @@
                 <div class="col-sm-6 col-lg-zonix-3">
                     <div class="card-promo">
                         <div class="card-promo-img-wrapper">
-                            <img src="{{ asset('assets/img/promos/dunkin.jpg') }}" alt="Dunkin">
+                            <img src="{{ asset('assets/img/promos/dunkin.jpg') }}" alt="Dunkin" loading="lazy" width="400" height="250">
                             <span class="position-absolute top-0 start-0 m-3 badge bg-primary-zonix text-white rounded-pill">NUEVO</span>
                             <div class="position-absolute bottom-0 end-0 m-3 px-2 py-1 bg-white rounded shadow-sm d-flex align-items-center gap-1 small font-bold"><span class="material-symbols-outlined text-warning" style="font-size: 14px;">star</span> 4.9</div>
                         </div>
@@ -325,7 +331,7 @@
                 <div class="col-sm-6 col-lg-zonix-3">
                     <div class="card-promo">
                         <div class="card-promo-img-wrapper">
-                            <img src="{{ asset('assets/img/promos/dominos.jpg') }}" alt="Dominos">
+                            <img src="{{ asset('assets/img/promos/dominos.jpg') }}" alt="Dominos" loading="lazy" width="400" height="250">
                             <span class="position-absolute top-0 start-0 m-3 badge bg-primary-zonix text-white rounded-pill">30% OFF</span>
                             <div class="position-absolute bottom-0 end-0 m-3 px-2 py-1 bg-white rounded shadow-sm d-flex align-items-center gap-1 small font-bold"><span class="material-symbols-outlined text-warning" style="font-size: 14px;">star</span> 4.7</div>
                         </div>

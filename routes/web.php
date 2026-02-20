@@ -71,6 +71,7 @@ Route::get('/clear', function() {
 // ============================================
 
 Route::get('/', [IndexController::class, 'index'])->name('front.home');
+Route::get('/sitemap.xml', [\App\Http\Controllers\Web\Front\SitemapController::class, 'index'])->name('sitemap');
 
 // Páginas legales (pendientes de reimplementación)
 // Route::get('/politica-privacidad', ...)->name('pages.privacy');

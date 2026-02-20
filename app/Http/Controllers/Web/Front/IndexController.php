@@ -13,6 +13,7 @@ class IndexController extends Controller
      */
     public function index()
     {
+        \App\Helpers\SeoHelper::setTitle('Tu comida favorita en minutos');
         return view('front.welcome');
     }
 }

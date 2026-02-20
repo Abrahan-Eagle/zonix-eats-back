@@ -3,16 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zonix EATS - Delivery de Comida en Venezuela</title>
-    <meta name="description" content="Pide comida a domicilio de tus restaurantes favoritos en Caracas, Maracaibo, Valencia y más. Los mejores precios y delivery rápido con Zonix EATS.">
-    <meta name="keywords" content="delivery, comida, venezuela, zonix, hamburguesas, pizza, sushi, caracas, maracaibo">
-    
+    @php
+        $seo = \App\Helpers\SeoHelper::meta();
+    @endphp
+    <title>{{ $seo['title'] }}</title>
+    <meta name="description" content="{{ $seo['description'] }}">
+    <meta name="keywords" content="{{ $seo['keywords'] }}">
+    <link rel="canonical" href="{{ $seo['url'] }}">
+
     <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://zonixeats.com/">
-    <meta property="og:title" content="Zonix EATS - Tu comida favorita en minutos">
-    <meta property="og:description" content="Pide comida a domicilio de los mejores restaurantes de tu zona. Entregas rápidas, ofertas exclusivas y la mejor variedad gastronómica.">
-    <meta property="og:image" content="{{ asset('assets/img/hero/desktop-pizza.jpg') }}">
+    <meta property="og:type" content="{{ $seo['type'] }}">
+    <meta property="og:url" content="{{ $seo['url'] }}">
+    <meta property="og:title" content="{{ $seo['title'] }}">
+    <meta property="og:description" content="{{ $seo['description'] }}">
+    <meta property="og:image" content="{{ $seo['image'] }}">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{{ $seo['url'] }}">
+    <meta property="twitter:title" content="{{ $seo['title'] }}">
+    <meta property="twitter:description" content="{{ $seo['description'] }}">
+    <meta property="twitter:image" content="{{ $seo['image'] }}">
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="{{ asset('assets/img/logo.png') }}">
@@ -28,6 +39,11 @@
     
     <!-- Custom Semantic CSS -->
     <link href="{{ asset('css/zonix.css') }}" rel="stylesheet">
+
+    <!-- Schema.org JSON-LD -->
+    <script type="application/ld+json">
+        {!! \App\Helpers\SeoHelper::jsonLd() !!}
+    </script>
 </head>
 <body>
     @yield('content')
