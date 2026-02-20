@@ -1262,7 +1262,7 @@ footer img[alt="Zonix EATS"] {
     backdrop-filter: blur(8px) !important;
     -webkit-backdrop-filter: blur(8px) !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-    position: fixed;
+    position: sticky;
     top: 0;
     width: 100%;
     z-index: 1030;
@@ -1436,3 +1436,21 @@ html, body {
 
 /* Prevent desktop drag/overflow */
 
+
+/* --- UI FIXES & UPDATES --- */
+
+/* Navbar Z-Index Fix */
+.navbar-zonix {
+  z-index: 1030 !important;
+}
+
+/* Social Icons SVG Styling */
+.social-icon-btn svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+  transition: transform 0.3s;
+}
+.social-icon-btn:hover svg {
+  transform: scale(1.1);
+}

@@ -73,10 +73,11 @@ Route::get('/clear', function() {
 Route::get('/', [IndexController::class, 'index'])->name('front.home');
 Route::get('/sitemap.xml', [\App\Http\Controllers\Web\Front\SitemapController::class, 'index'])->name('sitemap');
 
-// Páginas legales (pendientes de reimplementación)
-// Route::get('/politica-privacidad', ...)->name('pages.privacy');
-// Route::get('/terminos-condiciones', ...)->name('pages.terms');
-// Route::get('/eliminar-cuenta', ...)->name('pages.delete-account');
+// Páginas legales
+Route::get('/terminos-condiciones', [\App\Http\Controllers\Web\Front\LegalController::class, 'terms'])->name('pages.terms');
+Route::get('/politica-privacidad', [\App\Http\Controllers\Web\Front\LegalController::class, 'privacy'])->name('pages.privacy');
+Route::get('/politica-cookies', [\App\Http\Controllers\Web\Front\LegalController::class, 'cookies'])->name('pages.cookies');
+Route::get('/seguridad', [\App\Http\Controllers\Web\Front\LegalController::class, 'security'])->name('pages.security');
 
 // ============================================
 // RUTAS PROTEGIDAS (requieren autenticación web)

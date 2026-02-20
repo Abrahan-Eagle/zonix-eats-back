@@ -66,12 +66,12 @@
                     🚀 Entregas en 15 minutos
                 </span>
                 <h1 class="text-hero-zonix font-black leading-none tracking-tight text-white mb-4 reveal">
-                    Tu comida favorita. <br>
-                    Entregas en minutos. <br>
-                    <span class="text-primary-zonix">Sin complicaciones.</span>
+                    El Marketplace de comida <br>
+                    <span class="text-primary-zonix">más grande</span> <br>
+                    en tu bolsillo.
                 </h1>
                 <p class="text-slate-300 text-lg text-sm-xl mb-5 leading-relaxed font-medium reveal reveal-delay-100" style="margin-bottom: 2.5rem !important;">
-                    Pide comida de tus restaurantes favoritos en Venezuela. Entregas en 15 min, ofertas exclusivas y rastreo en vivo.
+                    Descarga la App y accede a miles de restaurantes, ofertas exclusivas y entregas rápidas. Todo en un solo lugar.
                 </p>
 
                 <div class="d-flex flex-wrap gap-3">
@@ -407,7 +407,7 @@
     </section>
 
     <!-- GEO / Definition Section -->
-    <section class="py-5 bg-light border-top border-bottom border-slate-100">
+    <section id="about" class="py-5 bg-light border-top border-bottom border-slate-100">
         <div class="container-zonix text-center" style="max-width: 800px;">
             <span class="text-primary-zonix font-bold tracking-wider text-uppercase text-sm d-block mb-3 reveal">Sobre Nosotros</span>
             <h2 class="text-3xl font-black text-navy mb-4 reveal">¿Qué es Zonix Eats?</h2>
@@ -633,38 +633,48 @@
                         La plataforma tecnológica que conecta a usuarios, restaurantes y repartidores para transformar la experiencia gastronómica.
                     </p>
                     <div class="d-flex gap-3">
-                        <a href="#" class="social-icon-btn"><span class="material-symbols-outlined fs-5">public</span></a> <!-- Simulated social icon -->
-                        <a href="#" class="social-icon-btn"><span class="material-symbols-outlined fs-5">photo_camera</span></a>
-                        <a href="#" class="social-icon-btn"><span class="material-symbols-outlined fs-5">alternate_email</span></a>
+                        <!-- Facebook -->
+                        <a href="https://facebook.com/zonixeats" target="_blank" class="social-icon-btn" aria-label="Facebook">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z"/></svg>
+                        </a>
+                        <!-- Instagram -->
+                        <a href="https://instagram.com/zonixeats" target="_blank" class="social-icon-btn" aria-label="Instagram">
+                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                        </a>
+                        <!-- TikTok -->
+                        <a href="https://tiktok.com/@zonixeats" target="_blank" class="social-icon-btn" aria-label="TikTok">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
+                        </a>
                     </div>
                 </div>
 
                 <!-- Links Cols -->
                 <div class="col-6 col-lg-2">
                     <h5 class="font-bold mb-3 text-white">Zonix</h5>
-                    <a href="#" class="footer-link">Sobre Nosotros</a>
-                    <a href="#" class="footer-link">Carreras</a>
-                    <a href="#" class="footer-link">Blog</a>
-                    <a href="#" class="footer-link">Prensa</a>
+                    <a href="#about" class="footer-link">Sobre Nosotros</a>
+                    <a href="javascript:void(0)" onclick="alert('Sección de Carreras próximamente')" class="footer-link">Carreras</a>
+                    <a href="javascript:void(0)" onclick="alert('Blog próximamente')" class="footer-link">Blog</a>
+                    <a href="javascript:void(0)" onclick="alert('Kit de Prensa próximamente')" class="footer-link">Prensa</a>
                 </div>
 
                 <div class="col-6 col-lg-2">
                     <h5 class="font-bold mb-3 text-white">Legal</h5>
-                    <a href="#" class="footer-link">Términos y Condiciones</a>
-                    <a href="#" class="footer-link">Privacidad</a>
-                    <a href="#" class="footer-link">Cookies</a>
-                    <a href="#" class="footer-link">Seguridad</a>
+                    <a href="{{ route('pages.terms') }}" class="footer-link">Términos y Condiciones</a>
+                    <a href="{{ route('pages.privacy') }}" class="footer-link">Privacidad</a>
+                    <a href="{{ route('pages.cookies') }}" class="footer-link">Cookies</a>
+                    <a href="{{ route('pages.security') }}" class="footer-link">Seguridad</a>
                 </div>
 
                 <div class="col-lg-4">
                     <h5 class="font-bold mb-3 text-white">Ciudades en Venezuela</h5>
                     <div class="row g-2">
-                        <div class="col-6"><a href="#" class="footer-link">Caracas</a></div>
-                        <div class="col-6"><a href="#" class="footer-link">Maracaibo</a></div>
-                        <div class="col-6"><a href="#" class="footer-link">Valencia</a></div>
-                        <div class="col-6"><a href="#" class="footer-link">Barquisimeto</a></div>
-                        <div class="col-6"><a href="#" class="footer-link">Maracay</a></div>
-                        <div class="col-6"><a href="#" class="footer-link">Lechería</a></div>
+                        <!-- Linking to FAQ about cities -->
+                        <div class="col-6"><a href="#faq3" class="footer-link" onclick="document.getElementById('faq3').classList.add('show')">Caracas</a></div>
+                        <div class="col-6"><a href="#faq3" class="footer-link" onclick="document.getElementById('faq3').classList.add('show')">Maracaibo</a></div>
+                        <div class="col-6"><a href="#faq3" class="footer-link" onclick="document.getElementById('faq3').classList.add('show')">Valencia</a></div>
+                        <div class="col-6"><a href="#faq3" class="footer-link" onclick="document.getElementById('faq3').classList.add('show')">Barquisimeto</a></div>
+                        <div class="col-6"><a href="#faq3" class="footer-link" onclick="document.getElementById('faq3').classList.add('show')">Maracay</a></div>
+                        <div class="col-6"><a href="#faq3" class="footer-link" onclick="document.getElementById('faq3').classList.add('show')">Lechería</a></div>
                     </div>
                 </div>
             </div>
