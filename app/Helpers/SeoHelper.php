@@ -78,4 +78,85 @@ class SeoHelper
 
         return json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
     }
+
+    public static function generateAppSchema()
+    {
+        $schema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'SoftwareApplication',
+            'name' => 'Zonix EATS',
+            'applicationCategory' => 'FoodDeliveryApplication',
+            'operatingSystem' => 'Android, iOS',
+            'offers' => [
+                '@type' => 'Offer',
+                'price' => '0',
+                'priceCurrency' => 'USD'
+            ],
+            'aggregateRating' => [
+                '@type' => 'AggregateRating',
+                'ratingValue' => '4.8',
+                'ratingCount' => '1250'
+            ]
+        ];
+        return json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+    }
+
+    public static function generateOrganizationSchema()
+    {
+        $schema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'Organization',
+            'name' => 'Zonix EATS',
+            'url' => url('/'),
+            'logo' => asset('assets/img/logo.png'),
+            'sameAs' => [
+                'https://www.facebook.com/zonixeats',
+                'https://www.instagram.com/zonixeats',
+                'https://twitter.com/zonixeats'
+            ],
+            'contactPoint' => [
+                '@type' => 'ContactPoint',
+                'telephone' => '+58-412-1234567',
+                'contactType' => 'customer service',
+                'areaServed' => 'VE',
+                'availableLanguage' => 'es'
+            ]
+        ];
+        return json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+    }
+
+    public static function generateFaqSchema()
+    {
+        $schema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'FAQPage',
+            'mainEntity' => [
+                [
+                    '@type' => 'Question',
+                    'name' => '¿Cuánto tarda en llegar mi pedido con Zonix Eats?',
+                    'acceptedAnswer' => [
+                        '@type' => 'Answer',
+                        'text' => 'El tiempo promedio de entrega en Zonix Eats es de 15 a 30 minutos, gracias a nuestra tecnología de despacho inteligente y flota de repartidores locales.'
+                    ]
+                ],
+                [
+                    '@type' => 'Question',
+                    'name' => '¿Qué métodos de pago acepta Zonix Eats?',
+                    'acceptedAnswer' => [
+                        '@type' => 'Answer',
+                        'text' => 'Aceptamos pagos en Bolívares (Pago Móvil, Transferencia), Dólares (Efectivo, Zelle), PayPal y Tarjetas de Crédito/Débito internacionales.'
+                    ]
+                ],
+                [
+                    '@type' => 'Question',
+                    'name' => '¿En qué ciudades de Venezuela opera Zonix Eats?',
+                    'acceptedAnswer' => [
+                        '@type' => 'Answer',
+                        'text' => 'Actualmente operamos en Caracas, Maracaibo, Valencia, Barquisimeto y Lechería, expandiéndonos próximamente a más ciudades del país.'
+                    ]
+                ]
+            ]
+        ];
+        return json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+    }
 }

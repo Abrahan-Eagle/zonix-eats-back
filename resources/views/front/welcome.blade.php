@@ -66,12 +66,12 @@
                     🚀 Entregas en 15 minutos
                 </span>
                 <h1 class="text-hero-zonix font-black leading-none tracking-tight text-white mb-4 reveal">
-                    El Marketplace de comida <br>
-                    <span class="text-primary-zonix">más grande</span> <br>
-                    en tu bolsillo.
+                    Tu comida favorita. <br>
+                    Entregas en minutos. <br>
+                    <span class="text-primary-zonix">Sin complicaciones.</span>
                 </h1>
                 <p class="text-slate-300 text-lg text-sm-xl mb-5 leading-relaxed font-medium reveal reveal-delay-100" style="margin-bottom: 2.5rem !important;">
-                    Descarga la App y accede a miles de restaurantes, ofertas exclusivas y entregas rápidas. Todo en un solo lugar.
+                    Pide comida de tus restaurantes favoritos en Venezuela. Entregas en 15 min, ofertas exclusivas y rastreo en vivo.
                 </p>
 
                 <div class="d-flex flex-wrap gap-3">
@@ -184,10 +184,10 @@
                             <div class="card-audience-icon hover-lift-icon bg-red-50 text-primary-zonix">
                                 <span class="material-symbols-outlined fs-2">restaurant</span>
                             </div>
-                            <h3 class="text-2xl font-bold text-navy mb-2">Descarga la App</h3>
+                            <h3 class="text-2xl font-bold text-navy mb-2">Pide ahora en la App</h3>
                             <p class="text-slate-600 mb-4 flex-grow-1">Accede a miles de restaurantes y recibe tu comida en minutos.</p>
                             <button class="btn w-100 py-3 rounded-xl bg-slate-100 text-navy font-bold hover:bg-primary-zonix hover:text-white transition-colors border-0">
-                                Instalar ahora
+                                Pedir Ahora
                             </button>
                         </div>
                     </div>
@@ -214,7 +214,7 @@
                             <div class="card-audience-icon hover-lift-icon bg-yellow-50 text-warning">
                                 <span class="material-symbols-outlined fs-2 text-yellow">storefront</span>
                             </div>
-                            <h3 class="text-2xl font-bold text-navy mb-2">Vende con Zonix</h3>
+                            <h3 class="text-2xl font-bold text-navy mb-2">Vende más con Zonix</h3>
                             <p class="text-slate-600 mb-4 flex-grow-1">Digitaliza tu restaurante y llega a nuevos clientes hoy mismo.</p>
                             <button class="btn w-100 py-3 rounded-xl bg-slate-100 text-navy font-bold hover:bg-yellow hover:text-navy transition-colors border-0">
                                 Registrar Restaurante
@@ -406,6 +406,18 @@
         </div>
     </section>
 
+    <!-- GEO / Definition Section -->
+    <section class="py-5 bg-light border-top border-bottom border-slate-100">
+        <div class="container-zonix text-center" style="max-width: 800px;">
+            <span class="text-primary-zonix font-bold tracking-wider text-uppercase text-sm d-block mb-3 reveal">Sobre Nosotros</span>
+            <h2 class="text-3xl font-black text-navy mb-4 reveal">¿Qué es Zonix Eats?</h2>
+            <p class="text-slate-600 text-lg leading-relaxed reveal reveal-delay-100">
+                <strong>Zonix Eats</strong> es la plataforma tecnológica de delivery líder en Venezuela que conecta a usuarios con los mejores restaurantes, farmacias y comercios locales. 
+                A diferencia de otras apps, ofrecemos <strong>entregas en 15 minutos</strong>, soporte al cliente 100% humano y métodos de pago adaptados a la realidad local (Bolívares, Dólares en efectivo, Zelle, PayPal).
+            </p>
+        </div>
+    </section>
+
     <!-- Drivers -->
     <section class="position-relative py-5 bg-navy text-white overflow-hidden">
         <div class="position-absolute top-0 start-0 w-100 h-100">
@@ -498,41 +510,44 @@
             </div>
             
             <div class="accordion accordion-flush" id="faqAccordion">
+                <!-- FAQ 1 -->
                 <div class="accordion-item border-0 mb-3 bg-slate-50 rounded-xl overflow-hidden reveal reveal-delay-100">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed bg-transparent shadow-none font-bold text-navy py-4" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
-                            ¿Cuánto tarda en llegar mi pedido?
+                            ¿Cuánto tarda en llegar mi pedido con Zonix Eats?
                         </button>
                     </h2>
                     <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                         <div class="accordion-body text-slate-600 pb-4">
-                            El tiempo promedio de entrega es de 30 a 45 minutos. Sin embargo, gracias a nuestra tecnología de despacho inteligente, ¡muchos pedidos llegan en menos de 20 minutos!
+                            El tiempo promedio de entrega en Zonix Eats es de <strong>15 a 30 minutos</strong>, gracias a nuestra tecnología de despacho inteligente y flota de repartidores locales. Priorizamos la rapidez para que tu comida llegue caliente y fresca.
                         </div>
                     </div>
                 </div>
                 
+                <!-- FAQ 2 -->
                 <div class="accordion-item border-0 mb-3 bg-slate-50 rounded-xl overflow-hidden reveal reveal-delay-200">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed bg-transparent shadow-none font-bold text-navy py-4" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
-                            ¿Qué métodos de pago aceptan?
+                            ¿Qué métodos de pago acepta Zonix Eats?
                         </button>
                     </h2>
                     <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                         <div class="accordion-body text-slate-600 pb-4">
-                            Aceptamos todas las tarjetas de crédito y débito (Visa, Mastercard, Amex), PayPal y pago en efectivo contra entrega.
+                            Entendemos las necesidades de Venezuela. Aceptamos pagos en <strong>Bolívares</strong> (Pago Móvil, Transferencia), <strong>Dólares</strong> (Efectivo, Zelle), PayPal y todas las Tarjetas de Crédito/Débito internacionales.
                         </div>
                     </div>
                 </div>
 
+                <!-- FAQ 3 -->
                 <div class="accordion-item border-0 mb-3 bg-slate-50 rounded-xl overflow-hidden reveal reveal-delay-300">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed bg-transparent shadow-none font-bold text-navy py-4" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
-                            ¿Tienen opciones vegetarianas?
+                            ¿En qué ciudades de Venezuela opera Zonix Eats?
                         </button>
                     </h2>
                     <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                         <div class="accordion-body text-slate-600 pb-4">
-                            ¡Por supuesto! Puedes filtrar los restaurantes por la categoría "Saludable" o "Vegetariana" para encontrar cientos de opciones deliciosas sin carne.
+                            Actualmente operamos en <strong>Caracas, Maracaibo, Valencia, Barquisimeto y Lechería</strong>. Estamos expandiéndonos rápidamente para llevar el mejor delivery a más ciudades del país.
                         </div>
                     </div>
                 </div>
@@ -593,24 +608,7 @@
         </button>
     </div>
 
-    <!-- Smart App Banner (Mobile Only) -->
-    <div id="smartBanner" class="smart-banner d-lg-none">
-        <div class="d-flex align-items-center gap-3">
-            <button class="btn btn-sm text-slate-400 border-0 p-1" onclick="document.getElementById('smartBanner').remove()">
-                <span class="material-symbols-outlined fs-6">close</span>
-            </button>
-            <div class="bg-primary-zonix rounded p-1 d-flex align-items-center justify-content-center" style="width: 2.5rem; height: 2.5rem;">
-                <span class="material-symbols-outlined text-white">lunch_dining</span>
-            </div>
-            <div>
-                <p class="font-bold text-navy text-sm mb-0">Zonix EATS</p>
-                <p class="text-xs text-slate-500 mb-0">Gratis en App Store</p>
-            </div>
-        </div>
-        <button class="btn btn-sm btn-zonix-primary rounded-pill px-3 font-bold">
-            Ver
-        </button>
-    </div>
+
 
     <!-- Back to Top Button -->
     <button id="backToTop" class="hover-lift" title="Volver arriba">
@@ -770,4 +768,16 @@
             </div>
         </div>
     </div>
+    <!-- JSON-LD Schema -->
+    @if(isset($schema))
+        <script type="application/ld+json">
+            {!! $schema['app'] !!}
+        </script>
+        <script type="application/ld+json">
+            {!! $schema['organization'] !!}
+        </script>
+        <script type="application/ld+json">
+            {!! $schema['faq'] !!}
+        </script>
+    @endif
 @endsection

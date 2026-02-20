@@ -13,7 +13,15 @@ class IndexController extends Controller
      */
     public function index()
     {
-        \App\Helpers\SeoHelper::setTitle('Tu comida favorita en minutos');
-        return view('front.welcome');
+        \App\Helpers\SeoHelper::setTitle('Delivery de Comida en Venezuela | Restaurantes, Farmacias y Más');
+        \App\Helpers\SeoHelper::setDescription('Pide comida de tus restaurantes favoritos en Venezuela. Entregas en 15 min, ofertas exclusivas y rastreo en vivo. ¡Descarga la App Zonix Eats y disfruta!');
+
+        $schema = [
+            'app' => \App\Helpers\SeoHelper::generateAppSchema(),
+            'organization' => \App\Helpers\SeoHelper::generateOrganizationSchema(),
+            'faq' => \App\Helpers\SeoHelper::generateFaqSchema()
+        ];
+        
+        return view('front.welcome', compact('schema'));
     }
 }
