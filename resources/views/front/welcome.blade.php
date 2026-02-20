@@ -46,7 +46,11 @@
 
             <!-- Actions -->
             <div class="d-flex align-items-center gap-3">
-                <button class="btn btn-ghost font-bold text-navy d-none d-lg-block" data-bs-toggle="modal" data-bs-target="#loginModal">Iniciar Sesión</button>
+                @auth
+                    <a href="{{ route('dashboard') }}" class="btn btn-ghost font-bold text-navy d-none d-lg-block">Dashboard</a>
+                @else
+                    <button class="btn btn-ghost font-bold text-navy d-none d-lg-block" data-bs-toggle="modal" data-bs-target="#loginModal">Iniciar Sesión</button>
+                @endauth
                 <button class="btn btn-zonix-primary rounded-pill px-4 hover-scale d-none d-lg-block" data-bs-toggle="modal" data-bs-target="#registerModal">
                     Descarga la App
                 </button>
@@ -712,13 +716,19 @@
             <a href="#offers" class="nav-link-mobile">
                 <span class="material-symbols-outlined">percent</span> Ofertas
             </a>
-            <hr class="border-slate-100 my-2">
-             <a href="#" class="nav-link-mobile" data-bs-toggle="modal" data-bs-target="#loginModal">
-                <span class="material-symbols-outlined">person</span> Iniciar Sesión
-            </a>
-             <a href="#" class="nav-link-mobile text-primary-zonix font-bold" data-bs-toggle="modal" data-bs-target="#registerModal">
-                <span class="material-symbols-outlined">how_to_reg</span> Registrarse
-            </a>
+             <hr class="border-slate-100 my-2">
+            @auth
+                 <a href="{{ route('dashboard') }}" class="nav-link-mobile text-primary-zonix font-bold">
+                    <span class="material-symbols-outlined">dashboard</span> Dashboard
+                </a>
+            @else
+                 <a href="#" class="nav-link-mobile" data-bs-toggle="modal" data-bs-target="#loginModal">
+                    <span class="material-symbols-outlined">person</span> Iniciar Sesión
+                </a>
+                 <a href="#" class="nav-link-mobile text-primary-zonix font-bold" data-bs-toggle="modal" data-bs-target="#registerModal">
+                    <span class="material-symbols-outlined">how_to_reg</span> Registrarse
+                </a>
+            @endauth
         </div>
         
         <div class="mt-auto bg-slate-50 p-4 rounded-xl">
