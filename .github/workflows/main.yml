@@ -82,4 +82,4 @@ jobs:
       # Paso 11: Verificar variables de entorno (opcional)
       - name: Test .env variables
         run: |
-          curl https://zonix-eat.uniblockweb.com/api/env-test
+          curl https://eats.aiblockweb.com/api/env-test
