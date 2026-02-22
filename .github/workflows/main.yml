@@ -1,54 +1,103 @@
-name: 🚀 Despliegue Automático Completo
-
+name: Deploy to Production (corralx.com)
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    branches:
+      - main
 
 jobs:
-  deploy:
-    name: 🎉 Desplegar Todo el Proyecto
+  FTP-Deploy-Action:
+    name: FTP-Deploy-Action (Production)
     runs-on: ubuntu-latest
 
     steps:
-      # Paso 1: Configurar Node.js (si es necesario)
-      - name: ⚙️ Configurar Node.js 20
-        uses: actions/setup-node@v2
+      # Paso 1: Instalar Node.js 20
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v3
         with:
           node-version: '20'
 
-      # Paso 2: Obtener código fuente
-      - name: 🚚 Clonar repositorio
-        uses: actions/checkout@v4
+      # Paso 2: Clonar el repositorio
+      - name: Checkout repository
+        uses: actions/checkout@v3
         with:
           fetch-depth: 2
 
-      # Paso 3: Construir assets (si es necesario)
-      - name: 🔨 Construir proyecto
-        run: npm install && npm run prod
+      # Paso 3: Instalar dependencias de Node.js y compilar activos
+      - name: Build assets
+        run: npm install && npm run production
 
-      # Paso 4: Configurar PHP (opcional, solo para proyectos PHP)
-      - name: 🐘 Configurar PHP 8.2
+      # Paso 4: Instalar PHP y Composer
+      - name: Install PHP and Composer
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
-          tools: composer
+          php-version: '8.2' # Ajusta a la versión de PHP usada en tu proyecto Laravel
+          tools: 'composer'
 
-      # Paso 5: Instalar dependencias PHP (opcional)
-      - name: 📦 Instalar dependencias
-        run: composer install --optimize-autoloader
+      # Paso 5: Configurar el archivo .env desde los secretos (PRODUCCIÓN)
+      - name: Setup environment file (PRODUCTION)
+        run: |
+          echo "Setting up .env from secrets for PRODUCTION environment..."
+          echo "${{ secrets.ENV_CONTENT }}" > .env
+          # Asegurar que APP_DEBUG sea false en producción
+          sed -i 's/APP_DEBUG=.*/APP_DEBUG=false/' .env
+          # Cambiar APP_URL a eats.aiblockweb.com
+          sed -i 's|APP_URL=.*|APP_URL=https://eats.aiblockweb.com|' .env
+          cat .env # Para depurar y verificar el contenido del .env
 
-      # Paso 6: Desplegar archivos via FTP
-      - name: 📂 Desplegar todos los archivos
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      # Paso 6: Instalar dependencias PHP (incluyendo dev para seeders)
+      - name: Install PHP dependencies
+        run: composer install --optimize-autoloader --no-interaction
+
+      # Paso 7: Limpiar cachés (NO cachear para evitar rutas absolutas del runner)
+      - name: Clear Laravel caches
+        run: |
+          php artisan config:clear
+          php artisan cache:clear
+          php artisan route:clear
+          php artisan view:clear
+          # NO cachear configuraciones aquí - se hará en el servidor después del despliegue
+
+      # Paso 8: Eliminar archivos de caché que contienen rutas absolutas
+      - name: Remove cached config files
+        run: |
+          echo "Removing cached config files with absolute paths..."
+          rm -f bootstrap/cache/config.php
+          rm -f bootstrap/cache/routes-v7.php
+          rm -f bootstrap/cache/services.php
+          
+      # Paso 9: Crear directorios necesarios antes del despliegue
+      - name: Create required directories
+        run: |
+          echo "Creating required directories..."
+          mkdir -p storage/logs
+          mkdir -p storage/framework/cache
+          mkdir -p storage/framework/sessions
+          mkdir -p storage/framework/views
+          mkdir -p bootstrap/cache
+
+      # Paso 10: Desplegar archivos por FTP (PRODUCCIÓN)
+      - name: FTP-Deploy-Action (Production)
+        uses: SamKirkland/FTP-Deploy-Action@4.3.3
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-  
 
-      # Paso 7: Verificar despliegue (Opcional)
-      - name: Verify build
+      # Paso 11: Configurar permisos de directorios (optimizado para servidor compartido)
+      - name: Set directory permissions
         run: |
-          echo "Despliegue enviado a transferencia."
-          ls -la public/
+          echo "Setting up directory permissions for shared hosting..."
+          chmod -R 755 storage bootstrap/cache
+          chmod 600 .env
+
+      # Paso 12: Crear enlace simbólico de storage (si es necesario)
+      - name: Create storage link
+        run: |
+          echo "Creating storage link..."
+          php artisan storage:link || echo "Storage link already exists or not needed"
+
+      # Paso 13: Verificar el despliegue (PRODUCCIÓN)
+      - name: Verify deployment (Production)
+        run: |
+          echo "Verifying deployment to eats.aiblockweb.com..."
+          curl -f https://eats.aiblockweb.com/api/env-test || echo "API endpoint not accessible"
