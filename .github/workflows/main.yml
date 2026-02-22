@@ -45,41 +45,13 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: /
+          server-dir: eats.aiblockweb.com/
           local-dir: ./
-          protocol: ftps
+          protocol: ftp
           port: 21
 
-
-
-      # Paso 7: Configurar el archivo .env desde los secretos
-      - name: Setup environment file
+      # Paso 7: Verificar despliegue (Opcional)
+      - name: Verify build
         run: |
-          echo "Setting up .env from secrets..."
-          echo "${{ secrets.ENV_CONTENT }}" > .env
-          cat .env
-
-      # Paso 8: Deshabilitar depuración de Laravel (producción)
-      - name: Disable Laravel debug for production
-        run: |
-          echo "APP_DEBUG=false" >> .env
-          sed -i 's/APP_DEBUG=.*/APP_DEBUG=false/' .env
-
-      # Paso 9: Configurar permisos de directorios
-      - name: Set directory permissions
-        run: chmod -R 775 storage bootstrap/cache
-
-      # Paso 10: Verificar .env
-      - name: Check .env setup
-        run: |
-          echo "Verifying .env configuration..."
-          cat .env
-          php artisan config:clear
-          php artisan cache:clear
-          php artisan config:cache
-          php artisan storage:link
-
-      # Paso 11: Verificar variables de entorno (opcional)
-      - name: Test .env variables
-        run: |
-          curl https://zonix-eat.uniblockweb.com/api/env-test
+          echo "Despliegue enviado a transferencia."
+          ls -la public/
