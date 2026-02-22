@@ -37,20 +37,26 @@ return new class extends Migration
         }
 
         if (Schema::hasColumn('carts', 'user_id')) {
-            Schema::table('carts', function (Blueprint $table) {
-                // Primero intentamos borrar la FK. Si falla (por ejemplo porque se llama diferente o no existe), lo ignoramos.
-                try {
+            // Intentar borrar la clave foránea en un bloque independiente
+            try {
+                Schema::table('carts', function (Blueprint $table) {
                     $table->dropForeign(['user_id']);
-                } catch (\Exception $e) {
-                    // Ignorar si no existe
-                }
+                });
+            } catch (\Exception $e) {
+                // Ignorar si no existe
+            }
 
-                try {
+            // Intentar borrar el índice único en un bloque independiente
+            try {
+                Schema::table('carts', function (Blueprint $table) {
                     $table->dropUnique(['user_id']);
-                } catch (\Exception $e) {
-                    // Ignorar si no existe
-                }
+                });
+            } catch (\Exception $e) {
+                // Ignorar si no existe
+            }
 
+            // Finalmente borrar la columna
+            Schema::table('carts', function (Blueprint $table) {
                 $table->dropColumn('user_id');
             });
         }
