@@ -38,8 +38,19 @@ return new class extends Migration
 
         if (Schema::hasColumn('carts', 'user_id')) {
             Schema::table('carts', function (Blueprint $table) {
-                $table->dropForeign(['user_id']);
-                $table->dropUnique(['user_id']);
+                // Primero intentamos borrar la FK. Si falla (por ejemplo porque se llama diferente o no existe), lo ignoramos.
+                try {
+                    $table->dropForeign(['user_id']);
+                } catch (\Exception $e) {
+                    // Ignorar si no existe
+                }
+
+                try {
+                    $table->dropUnique(['user_id']);
+                } catch (\Exception $e) {
+                    // Ignorar si no existe
+                }
+
                 $table->dropColumn('user_id');
             });
         }
