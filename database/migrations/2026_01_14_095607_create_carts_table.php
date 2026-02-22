@@ -13,12 +13,12 @@ return new class extends Migration
     {
         Schema::create('carts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('profile_id')->constrained()->onDelete('cascade');
             $table->text('notes')->nullable();
             $table->timestamps();
 
-            // Índice único para asegurar un carrito por usuario
-            $table->unique('user_id');
+            // Índice único para asegurar un carrito por perfil
+            $table->unique('profile_id');
         });
     }
 
