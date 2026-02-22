@@ -45,7 +45,10 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-
+          server-dir: /
+          local-dir: ./
+          protocol: ftps
+          port: 21
 
 
 
@@ -66,13 +69,17 @@ jobs:
       - name: Set directory permissions
         run: chmod -R 775 storage bootstrap/cache
 
-      # Paso 10: Verificar configuración (Opcional)
-      - name: Verify build
+      # Paso 10: Verificar .env
+      - name: Check .env setup
         run: |
-          echo "Assets built and ready for transfer."
-          ls -la public/
+          echo "Verifying .env configuration..."
+          cat .env
+          php artisan config:clear
+          php artisan cache:clear
+          php artisan config:cache
+          php artisan storage:link
 
       # Paso 11: Verificar variables de entorno (opcional)
       - name: Test .env variables
         run: |
-          curl https://eats.aiblockweb.com/api/env-test
+          curl https://zonix-eat.uniblockweb.com/api/env-test
