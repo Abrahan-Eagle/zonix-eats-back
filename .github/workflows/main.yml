@@ -46,7 +46,7 @@ jobs:
 
       # Paso 6: Instalar dependencias PHP (incluyendo dev para seeders)
       - name: Install PHP dependencies
-        run: composer install --optimize-autoloader --no-interaction
+        run: composer install --optimize-autoloader --no-interaction --no-scripts
 
       # Paso 7: Limpiar cachés (NO cachear para evitar rutas absolutas del runner)
       - name: Clear Laravel caches
