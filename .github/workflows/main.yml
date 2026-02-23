@@ -82,6 +82,7 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          git-files: false
 
       # Paso 11: Configurar permisos de directorios (optimizado para servidor compartido)
       - name: Set directory permissions
