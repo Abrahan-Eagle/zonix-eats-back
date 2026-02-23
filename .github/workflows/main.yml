@@ -51,10 +51,10 @@ jobs:
       # Paso 7: Limpiar cachés (NO cachear para evitar rutas absolutas del runner)
       - name: Clear Laravel caches
         run: |
-          php artisan config:clear
-          php artisan cache:clear
-          php artisan route:clear
-          php artisan view:clear
+          php artisan config:clear || true
+          php artisan cache:clear || true
+          php artisan route:clear || true
+          php artisan view:clear || true
           # NO cachear configuraciones aquí - se hará en el servidor después del despliegue
 
       # Paso 8: Eliminar archivos de caché que contienen rutas absolutas
