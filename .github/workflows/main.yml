@@ -1,4 +1,4 @@
-name: Deploy to Production (Zonix-Eats)
+name: Deploy to Production (Zonix-EatsX)
 on:
   push:
     branches:
