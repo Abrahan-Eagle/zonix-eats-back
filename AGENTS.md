@@ -62,40 +62,40 @@ php artisan view:cache
 
 Use estas skills para patrones detallados bajo demanda:
 
-| Skill                             | Descripción                         | Ruta                                                        |
-| --------------------------------- | ----------------------------------- | ----------------------------------------------------------- |
-| `laravel-specialist`              | Patrones Laravel, Eloquent, Sanctum | [SKILL.md](skills/laravel-specialist/SKILL.md)              |
-| `api-design-principles`           | Diseño de API REST, convenciones    | [SKILL.md](skills/api-design-principles/SKILL.md)           |
-| `architecture-patterns`           | Patrones arquitectónicos, SOLID     | [SKILL.md](skills/architecture-patterns/SKILL.md)           |
-| `clean-code-principles`           | Código limpio, legibilidad          | [SKILL.md](skills/clean-code-principles/SKILL.md)           |
-| `code-review-excellence`          | Revisión de código, estándares      | [SKILL.md](skills/code-review-excellence/SKILL.md)          |
-| `error-handling-patterns`         | Manejo de errores, excepciones      | [SKILL.md](skills/error-handling-patterns/SKILL.md)         |
-| `security`                        | Seguridad web, vulnerabilidades     | [SKILL.md](skills/security/SKILL.md)                        |
-| `security-requirement-extraction` | Requisitos de seguridad             | [SKILL.md](skills/security-requirement-extraction/SKILL.md) |
-| `mysql-best-practices`            | MySQL, queries, índices             | [SKILL.md](skills/mysql-best-practices/SKILL.md)            |
-| `systematic-debugging`            | Debugging metódico                  | [SKILL.md](skills/systematic-debugging/SKILL.md)            |
-| `test-driven-development`         | TDD workflow                        | [SKILL.md](skills/test-driven-development/SKILL.md)         |
-| `e2e-testing-patterns`            | Testing end-to-end                  | [SKILL.md](skills/e2e-testing-patterns/SKILL.md)            |
-| `webapp-testing`                  | Testing de aplicaciones web         | [SKILL.md](skills/webapp-testing/SKILL.md)                  |
-| `software-architecture`           | Arquitectura de software            | [SKILL.md](skills/software-architecture/SKILL.md)           |
-| `code-review-playbook`            | Playbook de code review             | [SKILL.md](skills/code-review-playbook/SKILL.md)            |
-| `github-code-review`              | Code review en GitHub               | [SKILL.md](skills/github-code-review/SKILL.md)              |
-| `stripe-integration`              | Integración de pagos Stripe         | [SKILL.md](skills/stripe-integration/SKILL.md)              |
-| `sql-optimization-patterns`       | Optimización SQL, EXPLAIN, índices  | [SKILL.md](skills/sql-optimization-patterns/SKILL.md)       |
-| `frontend-design`                 | Diseño frontend (Bootstrap views)   | [SKILL.md](skills/frontend-design/SKILL.md)                 |
-| `git-commit`                      | Conventional commits, git workflow  | [SKILL.md](skills/git-commit/SKILL.md)                      |
-| `github-actions-templates`        | CI/CD con GitHub Actions            | [SKILL.md](skills/github-actions-templates/SKILL.md)        |
-| `skill-creator`                   | Crear nuevas skills                 | [SKILL.md](skills/skill-creator/SKILL.md)                   |
+| Skill                             | Descripción                         | Ruta                                                                                                               |
+| --------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `laravel-specialist`              | Patrones Laravel, Eloquent, Sanctum | [.agents/skills/laravel-specialist/SKILL.md](.agents/skills/laravel-specialist/SKILL.md)                           |
+| `api-design-principles`           | Diseño de API REST, convenciones    | [.agents/skills/api-design-principles/SKILL.md](.agents/skills/api-design-principles/SKILL.md)                     |
+| `architecture-patterns`           | Patrones arquitectónicos, SOLID     | [.agents/skills/architecture-patterns/SKILL.md](.agents/skills/architecture-patterns/SKILL.md)                     |
+| `clean-code-principles`           | Código limpio, legibilidad          | [.agents/skills/clean-code-principles/SKILL.md](.agents/skills/clean-code-principles/SKILL.md)                     |
+| `code-review-excellence`          | Revisión de código, estándares      | [.agents/skills/code-review-excellence/SKILL.md](.agents/skills/code-review-excellence/SKILL.md)                   |
+| `error-handling-patterns`         | Manejo de errores, excepciones      | [.agents/skills/error-handling-patterns/SKILL.md](.agents/skills/error-handling-patterns/SKILL.md)                 |
+| `security`                        | Seguridad web, vulnerabilidades     | [.agents/skills/security/SKILL.md](.agents/skills/security/SKILL.md)                                               |
+| `security-requirement-extraction` | Requisitos de seguridad             | [.agents/skills/security-requirement-extraction/SKILL.md](.agents/skills/security-requirement-extraction/SKILL.md) |
+| `mysql-best-practices`            | MySQL, queries, índices             | [.agents/skills/mysql-best-practices/SKILL.md](.agents/skills/mysql-best-practices/SKILL.md)                       |
+| `systematic-debugging`            | Debugging metódico                  | [.agents/skills/systematic-debugging/SKILL.md](.agents/skills/systematic-debugging/SKILL.md)                       |
+| `test-driven-development`         | TDD workflow                        | [.agents/skills/test-driven-development/SKILL.md](.agents/skills/test-driven-development/SKILL.md)                 |
+| `e2e-testing-patterns`            | Testing end-to-end                  | [.agents/skills/e2e-testing-patterns/SKILL.md](.agents/skills/e2e-testing-patterns/SKILL.md)                       |
+| `webapp-testing`                  | Testing de aplicaciones web         | [.agents/skills/webapp-testing/SKILL.md](.agents/skills/webapp-testing/SKILL.md)                                   |
+| `software-architecture`           | Arquitectura de software            | [.agents/skills/software-architecture/SKILL.md](.agents/skills/software-architecture/SKILL.md)                     |
+| `code-review-playbook`            | Playbook de code review             | [.agents/skills/code-review-playbook/SKILL.md](.agents/skills/code-review-playbook/SKILL.md)                       |
+| `github-code-review`              | Code review en GitHub               | [.agents/skills/github-code-review/SKILL.md](.agents/skills/github-code-review/SKILL.md)                           |
+| `stripe-integration`              | Integración de pagos Stripe         | [.agents/skills/stripe-integration/SKILL.md](.agents/skills/stripe-integration/SKILL.md)                           |
+| `sql-optimization-patterns`       | Optimización SQL, EXPLAIN, índices  | [.agents/skills/sql-optimization-patterns/SKILL.md](.agents/skills/sql-optimization-patterns/SKILL.md)             |
+| `frontend-design`                 | Diseño frontend (Bootstrap views)   | [.agents/skills/frontend-design/SKILL.md](.agents/skills/frontend-design/SKILL.md)                                 |
+| `git-commit`                      | Conventional commits, git workflow  | [.agents/skills/git-commit/SKILL.md](.agents/skills/git-commit/SKILL.md)                                           |
+| `github-actions-templates`        | CI/CD con GitHub Actions            | [.agents/skills/github-actions-templates/SKILL.md](.agents/skills/github-actions-templates/SKILL.md)               |
+| `skill-creator`                   | Crear nuevas skills                 | [.agents/skills/skill-creator/SKILL.md](.agents/skills/skill-creator/SKILL.md)                                     |
 
 ### Custom Skills
 
-| Skill                   | Descripción                            | Ruta                                              |
-| ----------------------- | -------------------------------------- | ------------------------------------------------- |
-| `zonix-payments`        | Modelo de pagos y comisiones Zonix     | [zonix-payments.md](skills/zonix-payments.md)     |
-| `zonix-order-lifecycle` | Estados de orden, transiciones, cancel | [SKILL.md](skills/zonix-order-lifecycle/SKILL.md) |
-| `zonix-delivery-system` | Haversine, OSRM, zonas, tracking       | [SKILL.md](skills/zonix-delivery-system/SKILL.md) |
-| `zonix-realtime-events` | Pusher, FCM, broadcasting, canales     | [SKILL.md](skills/zonix-realtime-events/SKILL.md) |
-| `zonix-api-patterns`    | Response format, roles, middleware     | [SKILL.md](skills/zonix-api-patterns/SKILL.md)    |
+| Skill                   | Descripción                            | Ruta                                                                                           |
+| ----------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `zonix-payments`        | Modelo de pagos y comisiones Zonix     | [.agents/skills/zonix-payments.md](.agents/skills/zonix-payments.md)                           |
+| `zonix-order-lifecycle` | Estados de orden, transiciones, cancel | [.agents/skills/zonix-order-lifecycle/SKILL.md](.agents/skills/zonix-order-lifecycle/SKILL.md) |
+| `zonix-delivery-system` | Haversine, OSRM, zonas, tracking       | [.agents/skills/zonix-delivery-system/SKILL.md](.agents/skills/zonix-delivery-system/SKILL.md) |
+| `zonix-realtime-events` | Pusher, FCM, broadcasting, canales     | [.agents/skills/zonix-realtime-events/SKILL.md](.agents/skills/zonix-realtime-events/SKILL.md) |
+| `zonix-api-patterns`    | Response format, roles, middleware     | [.agents/skills/zonix-api-patterns/SKILL.md](.agents/skills/zonix-api-patterns/SKILL.md)       |
 
 ---
 
