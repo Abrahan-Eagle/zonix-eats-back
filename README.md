@@ -6,18 +6,19 @@ Backend de la aplicación Zonix Eats desarrollado en Laravel 10. Proporciona una
 
 ## 📊 Estado del Proyecto (Actualizado: 12 Feb 2026)
 
-| Métrica | Valor |
-|---------|-------|
-| **Versión** | 1.0.0 |
-| **Laravel** | 10.x / PHP 8.1+ |
-| **Endpoints** | 233+ rutas REST |
-| **Controladores** | 54 |
-| **Modelos** | 35 |
-| **Migraciones** | 51 |
-| **Tests** | 206+ pasaron ✅, 0 fallaron |
-| **Seguridad** | Sanctum + RBAC + Rate Limiting + Upload validation |
+| Métrica           | Valor                                              |
+| ----------------- | -------------------------------------------------- |
+| **Versión**       | 1.0.0                                              |
+| **Laravel**       | 10.x / PHP 8.1+                                    |
+| **Endpoints**     | 233+ rutas REST                                    |
+| **Controladores** | 54                                                 |
+| **Modelos**       | 35                                                 |
+| **Migraciones**   | 51                                                 |
+| **Tests**         | 206+ pasaron ✅, 0 fallaron                        |
+| **Seguridad**     | Sanctum + RBAC + Rate Limiting + Upload validation |
 
 ### Cambios Recientes (Feb 2026)
+
 - ✅ Validación `max:5120` (5MB) en todas las subidas de archivos
 - ✅ Tokens Sanctum con expiración 24h (configurable vía `SANCTUM_TOKEN_EXPIRATION`)
 - ✅ `APP_DEBUG=false` en CI/CD de producción
@@ -42,17 +43,20 @@ El carrito solo puede tener productos de UN SOLO comercio. Si el usuario intenta
 Imagina que tienes un carrito de compras. Tienes dos opciones:
 
 **OPCIÓN A: Permitir múltiples comercios (Multi-Commerce)**
+
 ```
 Tu carrito puede tener:
 - Producto A del Comercio "Pizza Hut" ($10)
 - Producto B del Comercio "McDonald's" ($8)
 - Producto C del Comercio "Pizza Hut" ($5)
 ```
+
 ✅ **Ventaja:** El usuario puede comprar de varios comercios a la vez  
 ❌ **Desventaja:** Complica el proceso de pago (cada comercio tiene su propio proceso)  
 ❌ **Desventaja:** Complica el envío (cada comercio envía por separado)
 
 **OPCIÓN B: Solo un comercio por carrito (Uni-Commerce)**
+
 ```
 Tu carrito solo puede tener:
 - Producto A del Comercio "Pizza Hut" ($10)
@@ -62,28 +66,33 @@ Tu carrito solo puede tener:
 Si intentas agregar un producto de "McDonald's":
 → El sistema te pregunta: "¿Deseas limpiar el carrito y agregar este producto?"
 ```
+
 ✅ **Ventaja:** Proceso de pago más simple  
 ✅ **Ventaja:** Un solo proceso de envío  
 ✅ **Ventaja:** Mejor experiencia de usuario (más simple)
 
 **Explicación:**
 Actualmente el carrito puede tener productos de diferentes comercios. Por ejemplo:
+
 - Producto A del Comercio 1
-- Producto B del Comercio 2  
+- Producto B del Comercio 2
 - Producto C del Comercio 1
 
 **Opciones:**
+
 - **Opción A:** Permitir múltiples comercios (como Amazon, donde puedes comprar de diferentes vendedores)
 - **Opción B:** Solo un comercio por carrito (como Uber Eats, donde eliges un restaurante y solo productos de ese restaurante)
 
 **Decisión según mejores prácticas:**
 ✅ **OPCIÓN B: Solo un comercio por carrito** (para MVP)
+
 - **Razón:** Simplifica el proceso de checkout
 - **Razón:** Cada comercio tiene su propio proceso de pago y envío
 - **Razón:** Mejor experiencia de usuario (más simple)
 - **Implementación:** Al agregar producto de diferente comercio, limpiar carrito anterior o mostrar advertencia
 
 **Lógica de Implementación:**
+
 ```php
 // Al agregar producto al carrito
 if ($cart->items()->exists()) {
@@ -102,16 +111,19 @@ if ($cart->items()->exists()) {
 
 **Explicación:**
 Cuando el usuario agrega un producto al carrito con precio $10, pero al crear la orden el precio cambió a $12:
+
 - **Opción A:** Validar que el precio no cambió y rechazar si cambió
 - **Opción B:** Aceptar el nuevo precio y notificar al usuario
 
 **Decisión según mejores prácticas:**
 ✅ **OPCIÓN A: Validar precio y recalcular** (para MVP)
+
 - **Razón:** Protege al usuario de cambios de precio inesperados
 - **Razón:** Evita problemas de confianza
 - **Razón:** Mejor práctica en ecommerce (Amazon, MercadoLibre lo hacen)
 
 **Implementación:**
+
 ```php
 // Al crear orden, recalcular total desde productos actuales
 $calculatedTotal = 0;
@@ -135,16 +147,19 @@ if (abs($calculatedTotal - $validated['total']) > 0.01) {
 #### 3. **Stock: ¿Implementar gestión de stock o solo validar available?**
 
 **Explicación:**
+
 - **Opción A:** Solo validar `available = true/false` (producto disponible o no)
 - **Opción B:** Implementar gestión de stock con cantidades (tiene 10 unidades, se venden 2, quedan 8)
 
 **Decisión según mejores prácticas:**
 ✅ **OPCIÓN A: Solo validar `available` para MVP** (agregar stock después)
+
 - **Razón:** Más simple para MVP
 - **Razón:** Funciona para productos que no requieren control de cantidad exacta
 - **Razón:** Se puede agregar stock después sin romper funcionalidad actual
 
 **Implementación MVP:**
+
 ```php
 // Validar solo available
 if (!$product->available) {
@@ -153,6 +168,7 @@ if (!$product->available) {
 ```
 
 **Futuro (Post-MVP):**
+
 - Agregar campo `stock_quantity` a Product
 - Descontar stock al crear orden
 - Restaurar stock al cancelar orden
@@ -163,16 +179,19 @@ if (!$product->available) {
 #### 4. **Delivery: ¿Mantener rol delivery o eliminarlo para MVP?**
 
 **Explicación:**
+
 - **Opción A:** Mantener rol delivery (repartidores propios)
 - **Opción B:** Eliminar rol delivery (usar couriers externos o el comercio maneja su propio delivery)
 
 **Decisión según mejores prácticas:**
 ✅ **OPCIÓN A: Mantener rol delivery para MVP** (pero simplificado)
+
 - **Razón:** Permite control del proceso de entrega
 - **Razón:** Mejor experiencia para comercios pequeños
 - **Razón:** Se puede integrar con couriers externos después
 
 **Implementación MVP:**
+
 - Mantener rol `delivery`
 - Simplificar: solo aceptar órdenes y marcar como entregado
 - Eliminar tracking en tiempo real (agregar después)
@@ -188,12 +207,14 @@ if (!$product->available) {
 
 **Ejemplo:**
 Cuando un usuario crea una orden, el sistema puede:
+
 - **Con eventos:** Notificar inmediatamente al comercio (sin recargar página)
 - **Sin eventos:** El comercio debe recargar la página para ver nuevas órdenes
 
 **Decisión:** ✅ **SÍ - Eventos en tiempo real** (para MVP)
 
 **Implementación:**
+
 - ✅ **Firebase Cloud Messaging (FCM)** - Para notificaciones push a dispositivos móviles
 - ✅ **Pusher** - Para broadcasting en tiempo real (web)
 - ✅ Tabla `notifications` en BD - Para almacenar notificaciones
@@ -201,6 +222,7 @@ Cuando un usuario crea una orden, el sistema puede:
 - ✅ `notification_preferences` en profiles - Para preferencias del usuario
 
 **Eventos activados:**
+
 - `OrderCreated` → Notifica cuando se crea orden
 - `OrderStatusChanged` → Notifica cuando cambia estado
 - `PaymentValidated` → Notifica cuando se valida pago
@@ -214,32 +236,35 @@ Cuando un usuario crea una orden, el sistema puede:
 **¿Qué significa esto?**
 
 **Datos Completos del Perfil:**
+
 ```json
 {
-  "firstName": "Juan",
-  "lastName": "Pérez",
-  "middleName": "Carlos",           // Opcional
-  "secondLastName": "González",     // Opcional
-  "date_of_birth": "1990-01-01",    // Opcional
-  "maritalStatus": "single",         // Opcional
-  "sex": "M",                        // Opcional
-  "phone": "+1234567890",           // Requerido
-  "address": "Calle Principal 123", // Requerido si delivery
-  "photo_users": "url_foto.jpg"     // Opcional
+    "firstName": "Juan",
+    "lastName": "Pérez",
+    "middleName": "Carlos", // Opcional
+    "secondLastName": "González", // Opcional
+    "date_of_birth": "1990-01-01", // Opcional
+    "maritalStatus": "single", // Opcional
+    "sex": "M", // Opcional
+    "phone": "+1234567890", // Requerido
+    "address": "Calle Principal 123", // Requerido si delivery
+    "photo_users": "url_foto.jpg" // Opcional
 }
 ```
 
 **Datos Mínimos para Crear Orden:**
+
 ```json
 {
-  "firstName": "Juan",              // ✅ Requerido
-  "lastName": "Pérez",             // ✅ Requerido
-  "phone": "+1234567890",           // ✅ Requerido (para contacto)
-  "address": "Calle Principal 123"  // ✅ Requerido SOLO si delivery_type = 'delivery'
+    "firstName": "Juan", // ✅ Requerido
+    "lastName": "Pérez", // ✅ Requerido
+    "phone": "+1234567890", // ✅ Requerido (para contacto)
+    "address": "Calle Principal 123" // ✅ Requerido SOLO si delivery_type = 'delivery'
 }
 ```
 
 **OPCIÓN A: Requerir perfil completo**
+
 ```
 Usuario intenta crear orden:
 → Sistema verifica: ¿Tiene todos los datos?
@@ -248,11 +273,13 @@ Usuario intenta crear orden:
 → Usuario debe ir a perfil y completar TODO
 → Luego puede crear orden
 ```
+
 ❌ **Desventaja:** Bloquea primera compra  
 ❌ **Desventaja:** Menor conversión (más fricción)  
 ❌ **Desventaja:** Usuario puede abandonar
 
 **OPCIÓN B: Permitir datos mínimos (completar después)**
+
 ```
 Usuario intenta crear orden:
 → Sistema verifica: ¿Tiene datos mínimos? (firstName, lastName, phone, address si delivery)
@@ -260,17 +287,20 @@ Usuario intenta crear orden:
 → Si falta algún dato mínimo → Rechaza y pide completar
 → Datos opcionales (date_of_birth, etc.) se pueden completar después
 ```
+
 ✅ **Ventaja:** No bloquea primera compra  
 ✅ **Ventaja:** Mejor conversión (menos fricción)  
 ✅ **Ventaja:** Usuario puede completar datos después
 
 **Decisión según mejores prácticas:**
 ✅ **OPCIÓN: Datos mínimos para crear orden, completar después**
+
 - **Razón:** No bloquear primera compra
 - **Razón:** Mejor conversión (menos fricción)
 - **Razón:** Completar datos durante el proceso de checkout
 
 **Datos Mínimos Requeridos para Orden:**
+
 ```php
 // Mínimos para crear orden
 - firstName (required)
@@ -280,12 +310,14 @@ Usuario intenta crear orden:
 ```
 
 **Datos Opcionales (completar después):**
+
 - date_of_birth
 - maritalStatus
 - sex
 - photo_users
 
 **Implementación:**
+
 ```php
 // Validar datos mínimos para orden
 $requiredFields = ['firstName', 'lastName', 'phone'];
@@ -304,97 +336,113 @@ foreach ($requiredFields as $field) {
 
 ### 📋 RESUMEN DE DECISIONES MVP
 
-| Decisión | Opción Elegida | Razón |
-|----------|----------------|-------|
-| Carrito Multi-Commerce | Solo un comercio por carrito | Simplifica checkout y UX |
-| Validación de Precio | Validar y recalcular | Protege al usuario |
-| Stock | AMBAS opciones (available Y stock_quantity) | Validar siempre available, si tiene stock_quantity validar cantidad |
-| Delivery | Sistema completo (propio, empresas, independientes) + Asignación autónoma con expansión de área | Flexibilidad total |
-| Eventos | Firebase + Pusher (NO WebSocket) | Ya implementado |
-| Perfiles | Datos mínimos (USERS) vs completos (COMMERCE, DELIVERY) | Por rol |
+| Decisión               | Opción Elegida                                                                                  | Razón                                                               |
+| ---------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Carrito Multi-Commerce | Solo un comercio por carrito                                                                    | Simplifica checkout y UX                                            |
+| Validación de Precio   | Validar y recalcular                                                                            | Protege al usuario                                                  |
+| Stock                  | AMBAS opciones (available Y stock_quantity)                                                     | Validar siempre available, si tiene stock_quantity validar cantidad |
+| Delivery               | Sistema completo (propio, empresas, independientes) + Asignación autónoma con expansión de área | Flexibilidad total                                                  |
+| Eventos                | Firebase + Pusher (NO WebSocket)                                                                | Ya implementado                                                     |
+| Perfiles               | Datos mínimos (USERS) vs completos (COMMERCE, DELIVERY)                                         | Por rol                                                             |
 
 ---
 
 ### 📋 DATOS REQUERIDOS POR ACCIÓN Y ROL
 
-#### 👤 ROL: USERS (Comprador/Cliente)
+#### 👤 ROL: USERS (Standard: **Buyer**)
+
+| Nivel | Código en BD | Nombre Estándar | Alias aceptados            |
+| ----- | ------------ | --------------- | -------------------------- |
+| 0     | `users`      | **Buyer**       | Comprador, Cliente         |
+| 1     | `commerce`   | **Commerce**    | Comercio, Restaurante      |
+| 2     | `delivery`   | **Delivery**    | Delivery Agent, Repartidor |
+| 3     | `admin`      | **Admin**       | Administrador              |
 
 **Autenticación:**
+
 - **Registro:** name, email, password, password_confirmation
 - **Login:** email, password
 - **Google OAuth:** data.sub, data.email, data.name
 
 **Perfil - Datos Mínimos para Crear Orden:**
+
 - **firstName** (required) - Nombre
 - **lastName** (required) - Apellido
 - **phone** (required) - Teléfono (para contacto)
 - **photo_users** (required) - Foto de perfil (necesaria para que delivery pueda hacer la entrega)
 
 **Direcciones - Sistema de 2 Direcciones:**
+
 1. **Dirección Predeterminada (Casa):**
-   - Dirección principal del usuario (casa)
-   - Se guarda en tabla `addresses` con `is_default = true` (si existe campo)
-   - Campos: `street`, `house_number`, `postal_code`, `latitude`, `longitude`, `city_id`
-   - Ubicación: GPS + inputs y selects para mayor precisión
+    - Dirección principal del usuario (casa)
+    - Se guarda en tabla `addresses` con `is_default = true` (si existe campo)
+    - Campos: `street`, `house_number`, `postal_code`, `latitude`, `longitude`, `city_id`
+    - Ubicación: GPS + inputs y selects para mayor precisión
 
 2. **Dirección de Entrega (Pedido Actual):**
-   - Dirección donde se está haciendo el pedido actual
-   - Puede ser diferente a la dirección predeterminada
-   - Se puede guardar temporalmente o como nueva dirección
-   - Campos: `street`, `house_number`, `postal_code`, `latitude`, `longitude`, `city_id`
-   - Ubicación: GPS + inputs y selects para mayor precisión
+    - Dirección donde se está haciendo el pedido actual
+    - Puede ser diferente a la dirección predeterminada
+    - Se puede guardar temporalmente o como nueva dirección
+    - Campos: `street`, `house_number`, `postal_code`, `latitude`, `longitude`, `city_id`
+    - Ubicación: GPS + inputs y selects para mayor precisión
 
 **Perfil - Datos Opcionales:**
+
 - `middleName` - Segundo nombre
 - `secondLastName` - Segundo apellido
 - `date_of_birth` - Fecha de nacimiento
 - `maritalStatus` - Estado civil (married, divorced, single, widowed)
 - `sex` - Sexo (F, M, O)
 - `addresses[]` - Múltiples direcciones guardadas (tabla `addresses`)
-  - `street`, `house_number`, `postal_code`, `latitude`, `longitude`, `city_id`, `is_default`
+    - `street`, `house_number`, `postal_code`, `latitude`, `longitude`, `city_id`, `is_default`
 - `phones[]` - Múltiples teléfonos (tabla `phones`)
-  - `number`, `operator_code_id`, `is_primary`, `status`, `approved`
+    - `number`, `operator_code_id`, `is_primary`, `status`, `approved`
 - `documents[]` - Documentos (tabla `documents`)
-  - `type` (ci, passport, rif, neighborhood_association), `number_ci`, `front_image`, `issued_at`, `expires_at`, `approved`, `status`
+    - `type` (ci, passport, rif, neighborhood_association), `number_ci`, `front_image`, `issued_at`, `expires_at`, `approved`, `status`
 - `user_locations[]` - Historial de ubicaciones (tabla `user_locations`)
-  - `latitude`, `longitude`, `accuracy`, `altitude`, `speed`, `heading`, `address`
+    - `latitude`, `longitude`, `accuracy`, `altitude`, `speed`, `heading`, `address`
 - `fcm_device_token` - Token para notificaciones push
 - `notification_preferences` - Preferencias de notificaciones (json)
 
 **Total:** 4 campos mínimos (firstName, lastName, phone, photo_users) + 2 direcciones (predeterminada + entrega) + campos opcionales
 
 **Direcciones:**
+
 - **Crear:** street, house_number, postal_code, latitude, longitude, city_id, is_default (opcional)
 - **Actualizar:** Cualquier campo opcional
 - **Nota:** La tabla `addresses` usa estructura con `street`, `house_number`, `postal_code`, `latitude`, `longitude`, `city_id`, no `name`, `address_line_1`, `city`, `state`, `country`
 - **Dirección del establecimiento (comercio):** Crear con `commerce_id` y sin `profile_id` (role commerce); migraciones: `role`, `commerce_id`, `profile_id` nullable.
 
 **Carrito:**
+
 - **Agregar:** product_id, quantity (min:1, max:100)
 - **Actualizar cantidad:** product_id, quantity
 - **Notas:** notes (opcional, max:500)
 
 **Órdenes:**
+
 - **Crear:** commerce_id, products[], delivery_type, delivery_address (si delivery), total, notes (opcional)
 - **Cancelar:** reason (required, max:500)
 - **Subir comprobante:** payment_proof (file), payment_method, reference_number
 
 **Reviews/Calificaciones:**
+
 - **Crear:** reviewable_type (commerce, delivery_agent), reviewable_id, rating (1-5), comentario (opcional)
 - **Obligatorio:** Después de cada orden entregada (`delivered`), el cliente DEBE calificar:
-  - Comercio (obligatorio)
-  - Delivery (obligatorio si hubo delivery)
+    - Comercio (obligatorio)
+    - Delivery (obligatorio si hubo delivery)
 - **Separado:** Comercio y Delivery se califican por separado (son 2 servicios independientes)
 - **No editable:** Una vez creada la reseña, NO se puede editar ni eliminar
 - **Implementación:**
-  - Bloquear acceso a nuevas órdenes hasta que califique la orden anterior
-  - Notificación: "Por favor, califica tu experiencia para continuar comprando"
+    - Bloquear acceso a nuevas órdenes hasta que califique la orden anterior
+    - Notificación: "Por favor, califica tu experiencia para continuar comprando"
 
 ---
 
 #### 🏪 ROL: COMMERCE (Vendedor/Tienda)
 
 **Perfil - Datos Completos Requeridos:**
+
 - **firstName** (required) - Nombre del dueño/representante
 - **lastName** (required) - Apellido del dueño/representante
 - **phone** (required) - Teléfono de contacto
@@ -406,6 +454,7 @@ foreach ($requiredFields as $field) {
 **Datos Opcionales (13+ campos):**
 
 **Del Perfil (Profile):**
+
 1. `middleName` - Segundo nombre
 2. `secondLastName` - Segundo apellido
 3. `photo_users` - Foto de perfil del dueño/representante
@@ -413,46 +462,34 @@ foreach ($requiredFields as $field) {
 5. `maritalStatus` - Estado civil (married, divorced, single, widowed)
 6. `sex` - Sexo (F, M, O)
 
-**Del Comercio (Commerce):**
-7. `commerce.image` - Imagen del comercio/logo
-8. `commerce.phone` - Teléfono del comercio (adicional al del perfil)
-9. `commerce.address` - Dirección del comercio (adicional al del perfil)
-10. `commerce.open` - Si está abierto (boolean, default: false)
-11. `commerce.schedule` - Horario de atención (json)
+**Del Comercio (Commerce):** 7. `commerce.image` - Imagen del comercio/logo 8. `commerce.phone` - Teléfono del comercio (adicional al del perfil) 9. `commerce.address` - Dirección del comercio (adicional al del perfil) 10. `commerce.open` - Si está abierto (boolean, default: false) 11. `commerce.schedule` - Horario de atención (json)
 
-**Relaciones (Múltiples registros):**
-12. `addresses[]` - Múltiples direcciones (tabla `addresses`)
-    - `street`, `house_number`, `postal_code`, `latitude`, `longitude`, `city_id`, `status`
-13. `phones[]` - Múltiples teléfonos (tabla `phones`)
-    - `number`, `operator_code_id`, `is_primary`, `status`, `approved`
-14. `documents[]` - Documentos (tabla `documents`)
-    - `type` (ci, passport, rif, neighborhood_association)
-    - `number_ci`, `RECEIPT_N`, `sky`
-    - `rif_url`, `taxDomicile`, `commune_register`, `community_rif`
-    - `front_image`, `issued_at`, `expires_at`, `approved`, `status`
+**Relaciones (Múltiples registros):** 12. `addresses[]` - Múltiples direcciones (tabla `addresses`) - `street`, `house_number`, `postal_code`, `latitude`, `longitude`, `city_id`, `status` 13. `phones[]` - Múltiples teléfonos (tabla `phones`) - `number`, `operator_code_id`, `is_primary`, `status`, `approved` 14. `documents[]` - Documentos (tabla `documents`) - `type` (ci, passport, rif, neighborhood_association) - `number_ci`, `RECEIPT_N`, `sky` - `rif_url`, `taxDomicile`, `commune_register`, `community_rif` - `front_image`, `issued_at`, `expires_at`, `approved`, `status`
 
-**Sistema:**
-15. `fcm_device_token` - Token para notificaciones push
-16. `notification_preferences` - Preferencias de notificaciones (json)
+**Sistema:** 15. `fcm_device_token` - Token para notificaciones push 16. `notification_preferences` - Preferencias de notificaciones (json)
 
 **Total:** 7 campos requeridos + 16 campos opcionales + múltiples direcciones/teléfonos/documentos
 
 **Productos:**
+
 - **Crear:** name, description, price, available (required), stock_quantity (opcional), image (opcional), category_id (opcional)
-  - `available` = true/false (siempre requerido)
-  - `stock_quantity` = número o null (opcional, si es null solo usa available)
+    - `available` = true/false (siempre requerido)
+    - `stock_quantity` = número o null (opcional, si es null solo usa available)
 - **Actualizar:** Cualquier campo opcional
 - **Eliminar:** Solo validar que pertenece al commerce
 
 **Órdenes:**
+
 - **Validar pago:** is_valid (boolean), rejection_reason (si is_valid=false)
 - **Actualizar estado:** status (paid, processing, shipped, cancelled)
 
 **Delivery:**
+
 - **Configurar delivery propio:** El comercio puede tener sus propios repartidores
 - **Usar delivery de la plataforma:** Puede buscar empresas de delivery o motorizados independientes
 
 **Dashboard:**
+
 - Ningún dato requerido (usa usuario autenticado)
 
 ---
@@ -462,6 +499,7 @@ foreach ($requiredFields as $field) {
 **4.1. DELIVERY COMPANY (Empresa de Delivery)**
 
 **Perfil - Datos Completos Requeridos:**
+
 - **firstName** (required) - Nombre del representante
 - **lastName** (required) - Apellido del representante
 - **phone** (required) - Teléfono
@@ -475,6 +513,7 @@ foreach ($requiredFields as $field) {
 **Datos Opcionales:**
 
 **Del Perfil (Profile):**
+
 - `middleName` - Segundo nombre
 - `secondLastName` - Segundo apellido
 - `date_of_birth` - Fecha de nacimiento
@@ -482,6 +521,7 @@ foreach ($requiredFields as $field) {
 - `sex` - Sexo
 
 **De la Empresa de Delivery (Delivery Company):**
+
 - `delivery_company.image` - Logo de la empresa de delivery
 - `delivery_company.phone` - Teléfono adicional de la empresa
 - `delivery_company.address` - Dirección adicional de la empresa
@@ -489,23 +529,26 @@ foreach ($requiredFields as $field) {
 - `delivery_company.schedule` - Horario de atención (json)
 
 **Relaciones (Múltiples registros):**
+
 - `addresses[]` - Múltiples direcciones (tabla `addresses`)
-  - `street`, `house_number`, `postal_code`, `latitude`, `longitude`, `city_id`, `is_default`
+    - `street`, `house_number`, `postal_code`, `latitude`, `longitude`, `city_id`, `is_default`
 - `phones[]` - Múltiples teléfonos (tabla `phones`)
-  - `number`, `operator_code_id`, `is_primary`, `status`, `approved`
+    - `number`, `operator_code_id`, `is_primary`, `status`, `approved`
 - `documents[]` - Documentos (tabla `documents`)
-  - `type` (ci, passport, rif, neighborhood_association)
-  - `number_ci`, `RECEIPT_N`, `sky`
-  - `rif_url`, `taxDomicile`, `commune_register`, `community_rif`
-  - `front_image`, `issued_at`, `expires_at`, `approved`, `status`
+    - `type` (ci, passport, rif, neighborhood_association)
+    - `number_ci`, `RECEIPT_N`, `sky`
+    - `rif_url`, `taxDomicile`, `commune_register`, `community_rif`
+    - `front_image`, `issued_at`, `expires_at`, `approved`, `status`
 
 **Sistema:**
+
 - `fcm_device_token` - Token para notificaciones push
 - `notification_preferences` - Preferencias de notificaciones (json)
 
 **4.2. DELIVERY AGENT (Motorizado - Puede ser de empresa o independiente)**
 
 **Perfil - Datos Completos Requeridos:**
+
 - **firstName** (required) - Nombre
 - **lastName** (required) - Apellido
 - **phone** (required) - Teléfono
@@ -515,12 +558,15 @@ foreach ($requiredFields as $field) {
 - **license_number** (required) - Número de licencia de conducir
 
 **Si pertenece a empresa:**
+
 - **delivery_agent.company_id** (required) - ID de la empresa
 
 **Si es independiente:**
+
 - **delivery_agent.company_id** = null - No pertenece a ninguna empresa
 
 **Datos Opcionales:**
+
 - `middleName`, `secondLastName`, `photo_users`
 - `date_of_birth`, `maritalStatus`, `sex`
 - `delivery_agent.phone` - Teléfono adicional
@@ -532,6 +578,7 @@ foreach ($requiredFields as $field) {
 - `fcm_device_token`, `notification_preferences`
 
 **Órdenes:**
+
 - **Ver disponibles:** GET /api/delivery/orders/available
 - **Aceptar:** POST /api/delivery/orders/{id}/accept
 - **Ver asignadas:** GET /api/delivery/orders
@@ -545,10 +592,12 @@ foreach ($requiredFields as $field) {
 #### 👨‍💼 ROL: ADMIN (Administrador)
 
 **Usuarios:**
+
 - **Cambiar rol:** role (users, commerce, delivery, admin)
 - **Suspender/Activar:** status (active, suspended)
 
 **Comercios:**
+
 - **Aprobar/Suspender:** open (boolean)
 
 ---
@@ -558,20 +607,23 @@ foreach ($requiredFields as $field) {
 #### Flujo de Búsqueda de Comercios por Geolocalización
 
 **1. Usuario busca comercios/productos:**
+
 - **Ubicación base:** Dirección predeterminada del usuario (casa) con `is_default = true`
-  - Usa coordenadas: `latitude`, `longitude` de la dirección predeterminada
+    - Usa coordenadas: `latitude`, `longitude` de la dirección predeterminada
 - **Rango inicial:** 1-1.5 km desde la ubicación del usuario
 - **Resultados:** Lista de comercios abiertos (`open = true`) dentro del rango
 - **Productos:** Muestra productos disponibles (`available = true`) de los comercios encontrados
 
 **2. Expansión automática si no hay comercios abiertos:**
+
 - **Si no encuentra comercios abiertos en 1-1.5 km:**
-  - Expansión automática a 2 km adicionales (total 4-5 km)
+    - Expansión automática a 2 km adicionales (total 4-5 km)
 - **Si aún no encuentra:**
-  - Continuar expandiendo hasta encontrar comercios abiertos
+    - Continuar expandiendo hasta encontrar comercios abiertos
 - **Expansión manual:** Usuario puede ampliar el rango manualmente si desea buscar más lejos
 
 **3. Cálculo de distancia:**
+
 - **Método:** Haversine o similar para calcular distancia entre coordenadas GPS
 - **Ubicación usuario:** `latitude`, `longitude` de dirección predeterminada
 - **Ubicación comercio:** `latitude`, `longitude` del comercio (o dirección del comercio)
@@ -579,6 +631,7 @@ foreach ($requiredFields as $field) {
 - **Ordenamiento:** Comercios más cercanos primero
 
 **Endpoints relacionados:**
+
 - `GET /api/buyer/search/restaurants` - Búsqueda de comercios por geolocalización
 - `GET /api/buyer/search/products` - Búsqueda de productos con filtro por distancia
 
@@ -587,92 +640,96 @@ foreach ($requiredFields as $field) {
 #### Flujo Completo: Crear Orden y Procesarla
 
 1. **Usuario busca comercios por geolocalización**
-   - Sistema busca comercios a 1-1.5 km de su dirección predeterminada
-   - Si no hay abiertos, expande automáticamente a 4-5 km
-   - Usuario puede expandir manualmente el rango
+    - Sistema busca comercios a 1-1.5 km de su dirección predeterminada
+    - Si no hay abiertos, expande automáticamente a 4-5 km
+    - Usuario puede expandir manualmente el rango
 
 2. **Usuario agrega productos al carrito**
-   - Validar producto disponible (`available = true`)
-   - Validar stock suficiente (si tiene `stock_quantity`)
-   - Validar commerce activo (`open = true`)
-   - Validar mismo commerce (si ya hay productos) - limpia carrito si es diferente
+    - Validar producto disponible (`available = true`)
+    - Validar stock suficiente (si tiene `stock_quantity`)
+    - Validar commerce activo (`open = true`)
+    - Validar mismo commerce (si ya hay productos) - limpia carrito si es diferente
 
 3. **Usuario crea orden**
-   - Validar profile con datos mínimos (firstName, lastName, phone, **photo_users** (required), address si delivery)
-   - Validar todos los productos disponibles
-   - Validar todos los productos del mismo commerce
-   - Recalcular total y validar
-   - Descontar stock automáticamente (si tiene `stock_quantity`)
-   - Crear orden en transacción
-   - Limpiar carrito
+    - Validar profile con datos mínimos (firstName, lastName, phone, **photo_users** (required), address si delivery)
+    - Validar todos los productos disponibles
+    - Validar todos los productos del mismo commerce
+    - Recalcular total y validar
+    - Descontar stock automáticamente (si tiene `stock_quantity`)
+    - Crear orden en transacción
+    - Limpiar carrito
 
-3. **Usuario sube comprobante**
-   - Subir archivo
-   - Guardar información de pago
-   - Estado sigue `pending_payment`
+4. **Usuario sube comprobante**
+    - Subir archivo
+    - Guardar información de pago
+    - Estado sigue `pending_payment`
 
-4. **Comercio valida pago**
-   - Si válido: `pending_payment` → `paid`
-   - Si inválido: `pending_payment` → `cancelled`
+5. **Comercio valida pago**
+    - Si válido: `pending_payment` → `paid`
+    - Si inválido: `pending_payment` → `cancelled`
 
-5. **Comercio procesa orden**
-   - `paid` → `processing` (inicia preparación/empaque)
+6. **Comercio procesa orden**
+    - `paid` → `processing` (inicia preparación/empaque)
 
-6. **Comercio marca como enviado**
-   - `processing` → `shipped` (listo para delivery)
+7. **Comercio marca como enviado**
+    - `processing` → `shipped` (listo para delivery)
 
-7. **Sistema busca delivery disponible (Asignación Autónoma con Expansión)**
-   - **Criterios de búsqueda (en orden):**
-     1. Delivery con `working = true`
-     2. Delivery disponible (no tiene órdenes activas en estado `shipped` o `delivered`)
-     3. **Cercanía inicial:** 1-1.5 km del comercio Y del usuario
-     4. Si no encuentra, **expansión automática** a 2 km adicionales (total 4-5 km)
-     5. Continuar expandiendo hasta encontrar delivery disponible
-   - **Cálculo de distancia:** Haversine entre:
-     - Coordenadas del delivery (current_latitude, current_longitude)
-     - Coordenadas del comercio
-     - Coordenadas del usuario (dirección de entrega)
-   - **Ordenamiento:** Delivery más cercano primero
-   - **Solicitud:** Sistema envía solicitud al delivery más cercano disponible
-   - **Aceptación:** Delivery acepta o rechaza la solicitud
-   - **Si rechaza:** Sistema busca el siguiente delivery disponible en el área expandida
-   - **Si no encuentra en área expandida:** Continúa expandiendo el área de búsqueda hasta encontrar un delivery disponible
-   - **Si después de expandir mucho no encuentra:** Orden se mantiene en estado `shipped` esperando delivery disponible
-   - **Notificación al cliente:** "Buscando delivery disponible. Te notificaremos cuando sea asignado."
-   - **Notificación al comercio:** "Orden lista para envío. Buscando delivery disponible."
-   - **No se cancela:** La orden NO se cancela, solo espera hasta que haya un delivery disponible
-   - **Si no encuentra en área máxima:** Esperar a que un delivery esté disponible
+8. **Sistema busca delivery disponible (Asignación Autónoma con Expansión)**
+    - **Criterios de búsqueda (en orden):**
+        1. Delivery con `working = true`
+        2. Delivery disponible (no tiene órdenes activas en estado `shipped` o `delivered`)
+        3. **Cercanía inicial:** 1-1.5 km del comercio Y del usuario
+        4. Si no encuentra, **expansión automática** a 2 km adicionales (total 4-5 km)
+        5. Continuar expandiendo hasta encontrar delivery disponible
+    - **Cálculo de distancia:** Haversine entre:
+        - Coordenadas del delivery (current_latitude, current_longitude)
+        - Coordenadas del comercio
+        - Coordenadas del usuario (dirección de entrega)
+    - **Ordenamiento:** Delivery más cercano primero
+    - **Solicitud:** Sistema envía solicitud al delivery más cercano disponible
+    - **Aceptación:** Delivery acepta o rechaza la solicitud
+    - **Si rechaza:** Sistema busca el siguiente delivery disponible en el área expandida
+    - **Si no encuentra en área expandida:** Continúa expandiendo el área de búsqueda hasta encontrar un delivery disponible
+    - **Si después de expandir mucho no encuentra:** Orden se mantiene en estado `shipped` esperando delivery disponible
+    - **Notificación al cliente:** "Buscando delivery disponible. Te notificaremos cuando sea asignado."
+    - **Notificación al comercio:** "Orden lista para envío. Buscando delivery disponible."
+    - **No se cancela:** La orden NO se cancela, solo espera hasta que haya un delivery disponible
+    - **Si no encuentra en área máxima:** Esperar a que un delivery esté disponible
 
-8. **Delivery acepta orden**
-   - Crear OrderDelivery
-   - Estado sigue `shipped` (no cambia al aceptar)
-   - Marcar delivery como no disponible temporalmente
+9. **Delivery acepta orden**
+    - Crear OrderDelivery
+    - Estado sigue `shipped` (no cambia al aceptar)
+    - Marcar delivery como no disponible temporalmente
 
-9. **Delivery marca como entregado**
-   - `shipped` → `delivered`
-   - Marcar delivery como disponible (`working = true`)
-   - Restaurar disponibilidad del delivery
+10. **Delivery marca como entregado**
+    - `shipped` → `delivered`
+    - Marcar delivery como disponible (`working = true`)
+    - Restaurar disponibilidad del delivery
 
 ---
 
 ### ✅ VALIDACIONES GLOBALES
 
 **Autenticación:**
+
 - Token Sanctum válido
 - Token no expirado
 - Usuario activo (no suspendido)
 
 **Autorización:**
+
 - Usuario tiene el role correcto
 - Usuario puede acceder al recurso (propietario o admin)
 
 **Datos:**
+
 - Campos requeridos presentes
 - Tipos de datos correctos
 - Formatos válidos (email, fecha, etc.)
 - Rangos válidos (min, max)
 
 **Negocio:**
+
 - Estados válidos según transiciones
 - Recursos existen y están disponibles
 - Reglas de negocio cumplidas
@@ -689,6 +746,7 @@ foreach ($requiredFields as $field) {
 - `cancelled` - Cancelado
 
 **Transiciones Válidas:**
+
 ```
 pending_payment → paid (validación de pago)
                 → cancelled (cancelación)
@@ -705,6 +763,7 @@ shipped → delivered (delivery entrega)
 **Reglas de Cancelación:**
 
 **Comprador:**
+
 - Solo puede cancelar en `pending_payment`
 - **Límite de tiempo:** 5 minutos después de crear la orden O hasta que el comercio valide el pago
 - Si el comercio ya validó el pago (`status = 'paid'`), no se puede cancelar
@@ -712,24 +771,27 @@ shipped → delivered (delivery entrega)
 - **Penalización:** Si cancela múltiples órdenes sin pagar, puede ser penalizado (suspensión temporal)
 
 **Comercio:**
+
 - Puede cancelar en `paid` o `processing`
 - **Casos permitidos:**
-  - Producto agotado o no disponible
-  - Problema con el pago (comprobante inválido o sospechoso)
-  - Cliente no responde o no está disponible
-  - Problema logístico (no puede preparar/enviar)
-  - Orden duplicada o error del sistema
+    - Producto agotado o no disponible
+    - Problema con el pago (comprobante inválido o sospechoso)
+    - Cliente no responde o no está disponible
+    - Problema logístico (no puede preparar/enviar)
+    - Orden duplicada o error del sistema
 - **Penalizaciones:**
-  - Si cancela más de X órdenes en un período (ej: 5 cancelaciones en 30 días), puede ser suspendido temporalmente
-  - Si cancela después de `paid`, se cobra comisión como penalización (no se resta de factura mensual)
-  - Sistema trackea `commerce.cancellation_count` y `commerce.last_cancellation_date`
+    - Si cancela más de X órdenes en un período (ej: 5 cancelaciones en 30 días), puede ser suspendido temporalmente
+    - Si cancela después de `paid`, se cobra comisión como penalización (no se resta de factura mensual)
+    - Sistema trackea `commerce.cancellation_count` y `commerce.last_cancellation_date`
 - **Notificación:** Debe justificar la cancelación con razón obligatoria
 
 **Admin:**
+
 - Puede cancelar en cualquier estado
 - Sin penalizaciones (tiene control total)
 
 **Reembolsos:**
+
 - ❌ **NO hay reembolso automático** (se maneja manualmente)
 - Si la orden se cancela en `pending_payment`, no se procesa el pago
 - Si la orden se cancela en `paid` o `processing`, el reembolso se gestiona manualmente por el admin/comercio
@@ -743,21 +805,25 @@ shipped → delivered (delivery entrega)
 **✅ RECOMENDACIÓN: Modelo Híbrido (Base Fija + Por Distancia)**
 
 **Cálculo:**
+
 ```
 Costo Delivery = Costo Base + (Distancia en km × Precio por km)
 ```
 
 **Ejemplo:**
+
 - **Costo Base:** $2.00 (cubierto en primeros 1-2 km)
 - **Precio por km adicional:** $0.50/km (después de 2 km)
 - **Ejemplo 1:** 1.5 km → $2.00 (solo base)
 - **Ejemplo 2:** 5 km → $2.00 + (3 km × $0.50) = $3.50
 
 **Configuración:**
+
 - Admin configura: `delivery_base_cost` y `delivery_cost_per_km`
 - Flexible: Se puede ajustar por zona, comercio o tipo de vehículo
 
 **Alternativas consideradas:**
+
 - ❌ Solo fijo: No refleja distancia real
 - ❌ Solo por distancia: Puede ser muy barato para entregas cercanas
 - ✅ **Híbrido (RECOMENDADO):** Balance entre justicia y simplicidad
@@ -769,6 +835,7 @@ Costo Delivery = Costo Base + (Distancia en km × Precio por km)
 **✅ DECISIÓN: El Cliente Paga el Delivery (Confirmado)**
 
 **Justificación:**
+
 - ✅ Estándar en e-commerce de delivery (Rappi, Uber Eats, etc.)
 - ✅ Cliente decide si quiere delivery o recoger
 - ✅ Transparente: Cliente ve el costo antes de pedir
@@ -776,6 +843,7 @@ Costo Delivery = Costo Base + (Distancia en km × Precio por km)
 - ✅ Modelo más justo: Quien usa el servicio lo paga
 
 **Implementación:**
+
 - El cliente ve el costo de delivery antes de confirmar orden
 - Se agrega al total de la orden
 - El comercio no paga nada de delivery
@@ -788,6 +856,7 @@ Costo Delivery = Costo Base + (Distancia en km × Precio por km)
 **✅ DECISIÓN: Membresía Mensual (Base) + Comisión % sobre Ventas del Mes (Extra)**
 
 **Modelo Híbrido:**
+
 - **Comercio paga:** Membresía mensual fija (ej: $50/mes, $100/mes según plan) **Y** comisión porcentual sobre ventas del mes
 - **Ventaja:** Ingresos fijos (membresía) + ingreso variable basado en performance (comisión)
 - **Beneficio para comercio:** Acceso a la plataforma garantizado durante el mes
@@ -795,18 +864,21 @@ Costo Delivery = Costo Base + (Distancia en km × Precio por km)
 **Estructura de Pagos:**
 
 **1. Membresía Mensual (Obligatoria):**
+
 - **Campo en BD:** `commerce.membership_type` (basic, premium, enterprise), `membership_expires_at`
 - **Pago:** Fijo mensual, independiente de ventas
 - **Beneficio:** Acceso a la plataforma, sin límite de órdenes
 - **Si no paga membresía:** Suspendido hasta pagar
 
 **2. Comisión sobre Ventas del Mes (Adicional):**
+
 - **Campo en BD:** `commerce.commission_percentage` (configurable por admin, ej: 5%, 10%, 15%)
 - **Cálculo por orden:** `comisión_orden = (subtotal_orden - delivery_fee) × commission_percentage / 100`
 - **Cálculo mensual:** `comisión_mes = Suma de todas las comisiones de órdenes del mes`
 - **Liquidación:** Al final del mes, se genera factura con total de comisiones acumuladas
 
 **Ejemplo:**
+
 ```
 Comercio con membresía $100/mes + 10% comisión
 
@@ -818,12 +890,14 @@ Mes: Enero
 ```
 
 **Configuración:**
+
 - Admin configura `membership_type` y `membership_monthly_fee` por plan
 - Admin configura `commission_percentage` por comercio o globalmente
 - Sistema calcula comisiones automáticamente en cada orden
 - Sistema genera reporte mensual de comisiones
 
 **Implementación:**
+
 ```php
 // Al crear orden (calcular comisión)
 $subtotal = $order->total - $order->delivery_fee;
@@ -838,7 +912,7 @@ $totalCommission = Order::where('commerce_id', $commerceId)
     ->whereMonth('created_at', $month)
     ->whereYear('created_at', $year)
     ->sum('commission_amount');
-    
+
 // Generar factura: membresía + comisiones
 $invoice = [
     'membership_fee' => $commerce->membership_monthly_fee,
@@ -848,6 +922,7 @@ $invoice = [
 ```
 
 **Campos en BD necesarios:**
+
 - `commerces.membership_type` (enum: basic, premium, enterprise)
 - `commerces.membership_monthly_fee` (decimal, precio mensual)
 - `commerces.membership_expires_at` (timestamp)
@@ -871,6 +946,7 @@ $invoice = [
 **✅ DECISIÓN: Todos los métodos disponibles**
 
 **Métodos soportados:**
+
 - 💵 **Efectivo** (al recibir)
 - 🏦 **Transferencia bancaria** (Zelle, Pago Móvil, ACH)
 - 💳 **Tarjeta de crédito/débito** (Visa, Mastercard, Amex)
@@ -878,6 +954,7 @@ $invoice = [
 - 💻 **Pagos digitales** (PayPal, Stripe, etc.)
 
 **Implementación:**
+
 - Tabla `payment_methods` con todos los métodos disponibles
 - Comercio puede configurar qué métodos acepta
 - Cliente elige método al crear orden
@@ -890,12 +967,14 @@ $invoice = [
 **✅ DECISIÓN: El Comercio Recibe Directamente**
 
 **Flujo:**
+
 - Cliente paga → Comercio recibe directamente
 - Comercio coloca sus datos bancarios en su perfil
 - La plataforma NO intermedia el pago (excepto comisión si aplica)
 - Comercio gestiona su propio flujo de caja
 
 **Datos del Comercio:**
+
 - `commerce.bank_account` (opcional, para transferencias)
 - `commerce.payment_info` (JSON con información de métodos de pago)
 
@@ -906,6 +985,7 @@ $invoice = [
 **✅ DECISIÓN: Tiempo Real (Para Fluidez)**
 
 **Flujo:**
+
 1. **Cliente crea orden** → Estado: `pending_payment`
 2. **Cliente sube comprobante** (transferencia, captura de pantalla, etc.)
 3. **Comercio valida pago** → Si válido: `paid`, si inválido: `cancelled`
@@ -914,30 +994,35 @@ $invoice = [
 **Objetivo:** Fluidez en transacciones entre usuario, comercio y delivery
 
 **Validación:**
+
 - Comercio valida comprobante manualmente
 - Sistema puede enviar notificaciones automáticas cuando se sube comprobante
 
 **Tiempos Límite y Timeouts:**
 
 **1. Cliente sube comprobante:**
+
 - **Tiempo límite:** 5 minutos después de crear la orden
 - **Si no sube:** Sistema envía notificación recordando que debe subir comprobante
 - **Si pasa 5 minutos sin subir:** Orden se cancela automáticamente (como si nunca pagó)
 - **Notificación:** "Debes subir el comprobante de pago. Si no se sube en 5 minutos, la orden se cancelará automáticamente."
 
 **2. Comercio valida pago:**
+
 - **Tiempo límite:** 5 minutos después de que cliente sube comprobante
 - **Si no valida:** Sistema envía notificación recordando que debe validar
 - **Si pasa 5 minutos sin validar:** Orden se cancela automáticamente
 - **Notificación:** "Debes validar el pago de esta orden. Si no se valida en 5 minutos, la orden se cancelará automáticamente."
 
 **3. Cliente no paga (nunca sube comprobante):**
+
 - **Tiempo límite:** 5 minutos después de crear la orden
 - **Si no sube comprobante:** Orden se cancela automáticamente
 - **Penalización:** Si el cliente crea múltiples órdenes sin pagar, puede ser penalizado (suspensión temporal)
 - **Razón:** El comercio no va a preparar el producto (ej: hamburguesa) si no hay pago confirmado
 
 **Implementación:**
+
 - Job/Queue que verifica órdenes en `pending_payment` cada minuto
 - Si `created_at + 5 minutos < now()` y no hay comprobante → Cancelar automáticamente
 - Si `payment_proof_uploaded_at + 5 minutos < now()` y no está validado → Cancelar automáticamente
@@ -951,6 +1036,7 @@ $invoice = [
 **Explicación de las 3 opciones:**
 
 **Opción A: Delivery recibe 100% del delivery_fee**
+
 - Cliente paga: `$10 productos + $3 delivery = $13 total`
 - Comercio recibe: `$10 productos` (después de comisión)
 - Delivery recibe: `$3` (100% del delivery_fee)
@@ -958,6 +1044,7 @@ $invoice = [
 - **Desventaja:** Comercio no gana nada del delivery
 
 **Opción B: Comercio retiene un porcentaje del delivery_fee**
+
 - Cliente paga: `$10 productos + $3 delivery = $13 total`
 - Comercio recibe: `$10 productos + $0.50 (retiene 15% del delivery) = $10.50`
 - Delivery recibe: `$2.50` (85% del delivery_fee)
@@ -965,6 +1052,7 @@ $invoice = [
 - **Desventaja:** Delivery recibe menos
 
 **Opción C: Comercio puede negociar con delivery (flexible)**
+
 - Comercio puede pagar más o menos del delivery_fee según acuerdo
 - Ejemplo: Delivery cobra $3, pero comercio le paga $4 (bonificación) o $2.50 (descuento)
 - **Ventaja:** Máxima flexibilidad
@@ -973,24 +1061,28 @@ $invoice = [
 **✅ RECOMENDACIÓN: Opción A (Delivery recibe 100% del delivery_fee)**
 
 **Justificación:**
+
 - ✅ Más simple y transparente
 - ✅ Estándar en apps de delivery (Uber Eats, Rappi)
 - ✅ El delivery asume el costo de transporte, merece el 100%
 - ✅ El comercio ya tiene su ganancia en los productos
 
 **Flujo:**
+
 1. Cliente paga al comercio (orden total + delivery fee)
 2. Comercio recibe pago
 3. Comercio paga al delivery: **100% del delivery_fee** (el mismo monto que pagó el cliente)
 4. Plataforma puede gestionar el pago automáticamente (opcional)
 
 **Cálculo:**
+
 - **Si cliente eligió delivery:** El total incluye `delivery_fee`
 - **Cliente paga:** `subtotal_productos + delivery_fee`
 - **Comercio recibe:** `subtotal_productos` (después de comisión si aplica)
 - **Delivery recibe:** `delivery_fee` (100% del monto que pagó el cliente)
 
 **Ejemplo:**
+
 ```
 Cliente pide: $20 productos + $3 delivery = $23 total
 Cliente paga: $23
@@ -999,6 +1091,7 @@ Delivery recibe: $3 (100% del delivery_fee)
 ```
 
 **Implementación:**
+
 - Campo en orden: `delivery_fee` (cantidad que paga el cliente por delivery)
 - Campo en orden: `delivery_payment_amount` (cantidad que recibe el delivery = delivery_fee)
 - Tabla `delivery_payments` (opcional, para trackear pagos a delivery)
@@ -1013,6 +1106,7 @@ Delivery recibe: $3 (100% del delivery_fee)
 **❌ DECISIÓN: NO hay tarifa de servicio adicional para el cliente**
 
 **Explicación:**
+
 - Ya existe comisión/membresía para el comercio
 - El delivery tiene su costo separado
 - No se cobra tarifa adicional al cliente
@@ -1035,12 +1129,14 @@ Delivery recibe: $3 (100% del delivery_fee)
 **✅ DECISIÓN: Máximo 60 minutos de distancia estimada**
 
 **Implementación:**
+
 - **Cálculo:** Usar tiempo estimado de viaje (Google Maps API o similar)
 - **Validación:** Antes de crear orden, verificar que tiempo estimado ≤ 60 minutos
 - **Expansión automática:** Continúa hasta encontrar delivery, pero no excede 60 min de viaje
 - **Campo:** `estimated_delivery_time` (en minutos)
 
 **Lógica:**
+
 ```
 Si tiempo_estimado_delivery > 60 minutos:
     → Mostrar mensaje: "La distancia de entrega excede 60 minutos. Por favor, elige recoger o selecciona un comercio más cercano."
@@ -1057,6 +1153,7 @@ Si tiempo_estimado_delivery ≤ 60 minutos:
 **Implementación sugerida:**
 
 **Tabla `disputes` o `tickets`:**
+
 - `order_id` (FK)
 - `reported_by` (user_id, commerce_id, delivery_id)
 - `reported_against` (user_id, commerce_id, delivery_id)
@@ -1067,16 +1164,19 @@ Si tiempo_estimado_delivery ≤ 60 minutos:
 - `resolved_at` (timestamp)
 
 **Flujo:**
+
 1. **Usuario/Comercio/Delivery crea queja** → Estado: `pending`
 2. **Admin revisa queja** → Estado: `in_review`
 3. **Admin resuelve** → Estado: `resolved` o `closed`
 4. **Notificaciones:** Todas las partes reciben actualizaciones vía Firebase + Pusher
 
 **Chat de Orden (Ya implementado):**
+
 - Usuario, comercio y delivery pueden chatear en tiempo real dentro de la orden
 - Útil para resolver problemas antes de escalar a queja formal
 
 **Endpoints sugeridos:**
+
 - `POST /api/buyer/disputes` - Crear queja
 - `GET /api/buyer/disputes` - Ver mis quejas
 - `GET /api/admin/disputes` - Admin: Ver todas las quejas
@@ -1089,28 +1189,33 @@ Si tiempo_estimado_delivery ≤ 60 minutos:
 **✅ DECISIÓN: Promociones/Descuentos Manuales (Comercio y Admin pueden crear)**
 
 **Quién crea:**
+
 - **Comercio:** Puede crear promociones para sus productos/comercio
 - **Admin:** Puede crear promociones globales o para cualquier comercio
 - **Ambos:** Tienen capacidad de crear promociones
 
 **Tipos de promociones:**
+
 - **Descuento porcentual:** Ej: "20% de descuento en todos los productos"
 - **Descuento fijo:** Ej: "$5 de descuento en pedidos mayores a $30"
 - **Envío gratis:** Ej: "Envío gratis en pedidos mayores a $50"
 - **Producto gratis:** Ej: "Compra 2, lleva 3"
 
 **Cómo se aplican:**
+
 - **Código promocional:** Cliente ingresa código (ej: "DESCUENTO20") al checkout
 - **Automático:** Se aplica automáticamente si cumple condiciones (ej: "Envío gratis si pedido > $50")
 - **Ambos:** Puede ser código O automático según tipo de promoción
 
 **Implementación:**
+
 - Tabla `promotions` con campos: `code` (nullable), `type` (percentage, fixed, free_shipping), `value`, `min_order_amount`, `max_uses`, `expires_at`
 - Campo `promotion_code` en orden (opcional, si usa código)
 - Campo `discount_amount` en orden (descuento aplicado)
 - Validación: Verificar que código es válido, no expirado, y no exceda `max_uses`
 
 **Ejemplo:**
+
 ```
 Promoción: "DESCUENTO10" - 10% de descuento, mínimo $20
 Cliente ingresa código → Sistema aplica 10% al subtotal
@@ -1133,11 +1238,13 @@ Si subtotal < $20 → Error: "Pedido mínimo no alcanzado"
 **✅ DECISIÓN: Penalización por Cancelación (No se resta de factura mensual)**
 
 **Reglas:**
+
 - **Si comercio cancela después de `paid`:** Se cobra comisión como penalización (no se resta, es adicional)
 - **Si cliente cancela:** NO se cobra comisión al comercio (cliente no pagó, no hay venta)
 - **Si se cancela en `pending_payment`:** NO se cobra comisión (no hubo pago validado)
 
 **Ejemplo:**
+
 ```
 Comercio cancela orden en `paid`:
 - Orden: $100 productos
@@ -1147,6 +1254,7 @@ Comercio cancela orden en `paid`:
 ```
 
 **Implementación:**
+
 - Campo `orders.cancellation_penalty` (decimal, comisión adicional si cancela después de paid)
 - Campo `orders.cancelled_by` (user_id, commerce_id, admin_id)
 - Campo `orders.cancellation_reason` (texto obligatorio)
@@ -1169,17 +1277,19 @@ Comercio cancela orden en `paid`:
 **✅ DECISIÓN: Continuar Buscando Hasta Encontrar (No Cancelar)**
 
 **Flujo:**
+
 1. Sistema busca delivery en área inicial (1-1.5 km)
 2. Si no encuentra, expande automáticamente (4-5 km)
 3. Si aún no encuentra, continúa expandiendo hasta encontrar delivery disponible
 4. **NO se cancela la orden:** Se mantiene en estado `shipped` esperando delivery
 5. **Notificaciones:**
-   - Cliente: "Buscando delivery disponible. Te notificaremos cuando sea asignado."
-   - Comercio: "Orden lista para envío. Buscando delivery disponible."
+    - Cliente: "Buscando delivery disponible. Te notificaremos cuando sea asignado."
+    - Comercio: "Orden lista para envío. Buscando delivery disponible."
 6. **Cuando encuentra delivery:** Se envía solicitud automáticamente
 7. **Si delivery acepta:** Se crea OrderDelivery y continúa el flujo normal
 
 **Implementación:**
+
 - Job/Queue que busca delivery cada X minutos si orden está en `shipped` sin delivery asignado
 - Expandir área de búsqueda progresivamente hasta encontrar
 - Notificar a cliente y comercio del estado de búsqueda
@@ -1191,12 +1301,14 @@ Comercio cancela orden en `paid`:
 **✅ DECISIÓN: Comercios Definen Horarios, Ellos Marcan si Están Abiertos**
 
 **Implementación:**
+
 - Campo `commerce.schedule` (JSON con horarios por día de la semana)
 - Campo `commerce.open` (boolean - el comercio marca manualmente si está abierto/cerrado)
 - **Búsqueda:** Solo muestra comercios con `open = true`
 - **Comercio controla:** Puede abrir/cerrar manualmente independientemente de su horario programado
 
 **Ejemplo de schedule:**
+
 ```json
 {
   "monday": {"open": "09:00", "close": "21:00"},
@@ -1215,6 +1327,7 @@ Comercio cancela orden en `paid`:
 **✅ DECISIÓN: 24/7 (Según Disponibilidad del Delivery)**
 
 **Implementación:**
+
 - Campo `delivery_agent.working` (boolean) - El delivery marca si está en servicio
 - **No hay horarios fijos:** El delivery trabaja cuando quiere (gig economy)
 - **Búsqueda:** Solo encuentra delivery con `working = true`
@@ -1223,6 +1336,7 @@ Comercio cancela orden en `paid`:
 **Nota:** Similar a Uber Eats/Rappi - el delivery trabaja cuando está disponible
 
 **Penalizaciones por Rechazo de Órdenes:**
+
 - **Ideal:** Si el delivery no está trabajando, debe bajar el switch `working = false`
 - **Si rechaza múltiples órdenes:** Debe justificar el porqué
 - **Penalización:** Si rechaza más de 3-5 órdenes seguidas sin justificación válida, puede ser suspendido temporalmente
@@ -1233,33 +1347,33 @@ Comercio cancela orden en `paid`:
 
 ### 📊 RESUMEN DEL MODELO DE NEGOCIO
 
-| Aspecto | Decisión | Detalles |
-|---------|----------|----------|
-| **Costo Delivery** | Híbrido (Base + Distancia) | Base $2.00 + $0.50/km (configurable) |
-| **Quién paga delivery** | Cliente | Se agrega al total de la orden (confirmado) |
-| **Delivery recibe** | 100% del delivery_fee | El mismo monto que pagó el cliente |
-| **Comisión plataforma** | Membresía mensual (base) + Comisión % sobre ventas del mes (extra) | Membresía fija + % de ventas mensuales |
-| **Mínimo pedido** | No hay mínimo | Pueden pedir cualquier cantidad |
-| **Métodos de pago** | Todos (efectivo, transferencia, tarjeta, pago móvil, digitales) | Cliente elige UN método por orden |
-| **Quién recibe pago** | Comercio directamente | Plataforma NO intermedia |
-| **Manejo pagos** | Tiempo real | Validación manual de comprobante |
-| **Pago a delivery** | Del comercio | 100% del delivery_fee después de recibir pago |
-| **Tarifa servicio** | No hay | Solo subtotal + delivery |
-| **Propinas** | No permitidas | Solo pago fijo a delivery |
-| **Límite distancia** | Máximo 60 minutos | Tiempo estimado de viaje |
-| **Tiempos límite** | 5 minutos | Cliente sube comprobante, comercio valida pago |
-| **Timeout automático** | Cancelación automática | Si no sube/valida en 5 minutos |
-| **Cancelación comercio** | Puede cancelar en paid/processing | Con justificación, penalizaciones si excede límite |
-| **Penalizaciones** | Por cancelaciones/rechazos excesivos | Suspensión temporal (3-5 rechazos/cancelaciones) |
-| **Comisión en cancelaciones** | Penalización si comercio cancela después de paid | No se resta, es adicional |
-| **Delivery rechaza** | Debe justificar, penalización si excede 3-5 | Ideal: bajar switch working si no está disponible |
-| **Delivery no encontrado** | Continúa buscando hasta encontrar | No cancela, espera delivery disponible |
-| **Quejas/disputas** | Sistema de tickets con admin | Tabla `disputes` + chat de orden |
-| **Promociones/Descuentos** | Manual (comercio y admin) | Código promocional o automático |
-| **Fidelización** | Por ahora no | Post-MVP |
-| **Rating/Reviews** | Obligatorio después de orden | Comercio y delivery separados, no editables |
-| **Horarios comercio** | Comercio define + marca `open` | Control manual |
-| **Horarios delivery** | 24/7 según disponibilidad | Campo `working` |
+| Aspecto                       | Decisión                                                           | Detalles                                           |
+| ----------------------------- | ------------------------------------------------------------------ | -------------------------------------------------- |
+| **Costo Delivery**            | Híbrido (Base + Distancia)                                         | Base $2.00 + $0.50/km (configurable)               |
+| **Quién paga delivery**       | Cliente                                                            | Se agrega al total de la orden (confirmado)        |
+| **Delivery recibe**           | 100% del delivery_fee                                              | El mismo monto que pagó el cliente                 |
+| **Comisión plataforma**       | Membresía mensual (base) + Comisión % sobre ventas del mes (extra) | Membresía fija + % de ventas mensuales             |
+| **Mínimo pedido**             | No hay mínimo                                                      | Pueden pedir cualquier cantidad                    |
+| **Métodos de pago**           | Todos (efectivo, transferencia, tarjeta, pago móvil, digitales)    | Cliente elige UN método por orden                  |
+| **Quién recibe pago**         | Comercio directamente                                              | Plataforma NO intermedia                           |
+| **Manejo pagos**              | Tiempo real                                                        | Validación manual de comprobante                   |
+| **Pago a delivery**           | Del comercio                                                       | 100% del delivery_fee después de recibir pago      |
+| **Tarifa servicio**           | No hay                                                             | Solo subtotal + delivery                           |
+| **Propinas**                  | No permitidas                                                      | Solo pago fijo a delivery                          |
+| **Límite distancia**          | Máximo 60 minutos                                                  | Tiempo estimado de viaje                           |
+| **Tiempos límite**            | 5 minutos                                                          | Cliente sube comprobante, comercio valida pago     |
+| **Timeout automático**        | Cancelación automática                                             | Si no sube/valida en 5 minutos                     |
+| **Cancelación comercio**      | Puede cancelar en paid/processing                                  | Con justificación, penalizaciones si excede límite |
+| **Penalizaciones**            | Por cancelaciones/rechazos excesivos                               | Suspensión temporal (3-5 rechazos/cancelaciones)   |
+| **Comisión en cancelaciones** | Penalización si comercio cancela después de paid                   | No se resta, es adicional                          |
+| **Delivery rechaza**          | Debe justificar, penalización si excede 3-5                        | Ideal: bajar switch working si no está disponible  |
+| **Delivery no encontrado**    | Continúa buscando hasta encontrar                                  | No cancela, espera delivery disponible             |
+| **Quejas/disputas**           | Sistema de tickets con admin                                       | Tabla `disputes` + chat de orden                   |
+| **Promociones/Descuentos**    | Manual (comercio y admin)                                          | Código promocional o automático                    |
+| **Fidelización**              | Por ahora no                                                       | Post-MVP                                           |
+| **Rating/Reviews**            | Obligatorio después de orden                                       | Comercio y delivery separados, no editables        |
+| **Horarios comercio**         | Comercio define + marca `open`                                     | Control manual                                     |
+| **Horarios delivery**         | 24/7 según disponibilidad                                          | Campo `working`                                    |
 
 ---
 
@@ -1269,22 +1383,26 @@ Comercio cancela orden en `paid`:
 
 **Explicación:**
 Actualmente el carrito puede tener productos de diferentes comercios. Por ejemplo:
+
 - Producto A del Comercio 1
 - Producto B del Comercio 2
 - Producto C del Comercio 1
 
 **Opciones:**
+
 - **Opción A:** Permitir múltiples comercios (como Amazon, donde puedes comprar de diferentes vendedores)
 - **Opción B:** Solo un comercio por carrito (como Uber Eats, donde eliges un restaurante y solo productos de ese restaurante)
 
 **Decisión según mejores prácticas:**
 ✅ **OPCIÓN B: Solo un comercio por carrito** (para MVP)
+
 - **Razón:** Simplifica el proceso de checkout
 - **Razón:** Cada comercio tiene su propio proceso de pago y envío
 - **Razón:** Mejor experiencia de usuario (más simple)
 - **Implementación:** Al agregar producto de diferente comercio, limpiar carrito anterior o mostrar advertencia
 
 **Lógica:**
+
 ```php
 // Al agregar producto al carrito
 if ($cart->items()->exists()) {
@@ -1303,16 +1421,19 @@ if ($cart->items()->exists()) {
 
 **Explicación:**
 Cuando el usuario agrega un producto al carrito con precio $10, pero al crear la orden el precio cambió a $12:
+
 - **Opción A:** Validar que el precio no cambió y rechazar si cambió
 - **Opción B:** Aceptar el nuevo precio y notificar al usuario
 
 **Decisión según mejores prácticas:**
 ✅ **OPCIÓN A: Validar precio y recalcular** (para MVP)
+
 - **Razón:** Protege al usuario de cambios de precio inesperados
 - **Razón:** Evita problemas de confianza
 - **Razón:** Mejor práctica en ecommerce (Amazon, MercadoLibre lo hacen)
 
 **Implementación:**
+
 ```php
 // Al crear orden, recalcular total desde productos actuales
 $calculatedTotal = 0;
@@ -1336,16 +1457,19 @@ if (abs($calculatedTotal - $validated['total']) > 0.01) {
 #### 3. **Stock: ¿Implementar gestión de stock o solo validar available?**
 
 **Explicación:**
+
 - **Opción A:** Solo validar `available = true/false` (producto disponible o no)
 - **Opción B:** Implementar gestión de stock con cantidades (tiene 10 unidades, se venden 2, quedan 8)
 
 **Decisión según mejores prácticas:**
 ✅ **OPCIÓN A: Solo validar `available` para MVP** (agregar stock después)
+
 - **Razón:** Más simple para MVP
 - **Razón:** Funciona para productos que no requieren control de cantidad exacta
 - **Razón:** Se puede agregar stock después sin romper funcionalidad actual
 
 **Implementación MVP:**
+
 ```php
 // Validar solo available
 if (!$product->available) {
@@ -1354,6 +1478,7 @@ if (!$product->available) {
 ```
 
 **Futuro (Post-MVP):**
+
 - Agregar campo `stock_quantity` a Product
 - Descontar stock al crear orden
 - Restaurar stock al cancelar orden
@@ -1364,16 +1489,19 @@ if (!$product->available) {
 #### 4. **Delivery: ¿Mantener rol delivery o eliminarlo para MVP?**
 
 **Explicación:**
+
 - **Opción A:** Mantener rol delivery (repartidores propios)
 - **Opción B:** Eliminar rol delivery (usar couriers externos o el comercio maneja su propio delivery)
 
 **Decisión según mejores prácticas:**
 ✅ **OPCIÓN A: Mantener rol delivery para MVP** (pero simplificado)
+
 - **Razón:** Permite control del proceso de entrega
 - **Razón:** Mejor experiencia para comercios pequeños
 - **Razón:** Se puede integrar con couriers externos después
 
 **Implementación MVP:**
+
 - Mantener rol `delivery`
 - Simplificar: solo aceptar órdenes y marcar como entregado
 - Eliminar tracking en tiempo real (agregar después)
@@ -1389,12 +1517,14 @@ if (!$product->available) {
 
 **Ejemplo:**
 Cuando un usuario crea una orden, el sistema puede:
+
 - **Con eventos:** Notificar inmediatamente al comercio (sin recargar página)
 - **Sin eventos:** El comercio debe recargar la página para ver nuevas órdenes
 
 **Decisión:** ✅ **SÍ - Eventos en tiempo real** (para MVP)
 
 **Implementación:**
+
 - ✅ **Firebase Cloud Messaging (FCM)** - Para notificaciones push a dispositivos móviles
 - ✅ **Pusher** - Para broadcasting en tiempo real (web)
 - ✅ Tabla `notifications` en BD - Para almacenar notificaciones
@@ -1402,6 +1532,7 @@ Cuando un usuario crea una orden, el sistema puede:
 - ✅ `notification_preferences` en profiles - Para preferencias del usuario
 
 **Eventos activados:**
+
 - `OrderCreated` → Notifica cuando se crea orden
 - `OrderStatusChanged` → Notifica cuando cambia estado
 - `PaymentValidated` → Notifica cuando se valida pago
@@ -1414,34 +1545,38 @@ Cuando un usuario crea una orden, el sistema puede:
 
 **Explicación:**
 **Datos Completos:**
+
 ```json
 {
-  "firstName": "Juan",
-  "lastName": "Pérez",
-  "date_of_birth": "1990-01-01",
-  "maritalStatus": "single",
-  "sex": "M",
-  "phone": "+1234567890",
-  "address": "Calle Principal 123"
+    "firstName": "Juan",
+    "lastName": "Pérez",
+    "date_of_birth": "1990-01-01",
+    "maritalStatus": "single",
+    "sex": "M",
+    "phone": "+1234567890",
+    "address": "Calle Principal 123"
 }
 ```
 
 **Datos Mínimos:**
+
 ```json
 {
-  "firstName": "Juan",
-  "lastName": "Pérez",
-  "phone": "+1234567890"
+    "firstName": "Juan",
+    "lastName": "Pérez",
+    "phone": "+1234567890"
 }
 ```
 
 **Decisión según mejores prácticas:**
 ✅ **OPCIÓN: Datos mínimos para crear orden, completar después**
+
 - **Razón:** No bloquear primera compra
 - **Razón:** Mejor conversión (menos fricción)
 - **Razón:** Completar datos durante el proceso de checkout
 
 **Datos Mínimos Requeridos para Orden:**
+
 ```php
 // Mínimos para crear orden
 - firstName (required)
@@ -1451,12 +1586,14 @@ Cuando un usuario crea una orden, el sistema puede:
 ```
 
 **Datos Opcionales (completar después):**
+
 - date_of_birth
 - maritalStatus
 - sex
 - photo_users
 
 **Implementación:**
+
 ```php
 // Validar datos mínimos para orden
 $requiredFields = ['firstName', 'lastName', 'phone'];
@@ -1475,14 +1612,14 @@ foreach ($requiredFields as $field) {
 
 ### 📋 RESUMEN DE DECISIONES MVP
 
-| Decisión | Opción Elegida | Razón |
-|----------|----------------|-------|
-| Carrito Multi-Commerce | Solo un comercio por carrito | Simplifica checkout y UX |
-| Validación de Precio | Validar y recalcular | Protege al usuario |
-| Stock | AMBAS opciones (available Y stock_quantity) | Validar siempre available, si tiene stock_quantity validar cantidad |
-| Delivery | Sistema completo (propio, empresas, independientes) + Asignación autónoma con expansión de área | Flexibilidad total |
-| Eventos | Firebase + Pusher (NO WebSocket) | Ya implementado |
-| Perfiles | Datos mínimos (USERS) vs completos (COMMERCE, DELIVERY) | Por rol |
+| Decisión               | Opción Elegida                                                                                  | Razón                                                               |
+| ---------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Carrito Multi-Commerce | Solo un comercio por carrito                                                                    | Simplifica checkout y UX                                            |
+| Validación de Precio   | Validar y recalcular                                                                            | Protege al usuario                                                  |
+| Stock                  | AMBAS opciones (available Y stock_quantity)                                                     | Validar siempre available, si tiene stock_quantity validar cantidad |
+| Delivery               | Sistema completo (propio, empresas, independientes) + Asignación autónoma con expansión de área | Flexibilidad total                                                  |
+| Eventos                | Firebase + Pusher (NO WebSocket)                                                                | Ya implementado                                                     |
+| Perfiles               | Datos mínimos (USERS) vs completos (COMMERCE, DELIVERY)                                         | Por rol                                                             |
 
 ---
 
@@ -1499,17 +1636,20 @@ El MVP (Minimum Viable Product) incluye las funcionalidades **mínimas y crític
 #### 👤 ROL: USERS (Comprador) - MVP
 
 **Autenticación y Perfil:**
+
 - ✅ Login/Registro (email y Google OAuth)
 - ✅ Gestión de perfil básico
 - ✅ Gestión de direcciones de envío
 
 **Catálogo y Búsqueda:**
+
 - ✅ Ver productos disponibles
 - ✅ Ver tiendas/vendedores
 - ✅ Búsqueda básica de productos
 - ✅ Filtros por categoría
 
 **Carrito y Compras:**
+
 - ✅ Agregar productos al carrito
 - ✅ Modificar cantidad en carrito
 - ✅ Eliminar productos del carrito
@@ -1518,15 +1658,18 @@ El MVP (Minimum Viable Product) incluye las funcionalidades **mínimas y crític
 - ✅ Detalles de orden
 
 **Pagos:**
+
 - ✅ Métodos de pago básicos (transferencia, efectivo)
 - ✅ Subir comprobante de pago
 - ✅ Ver estado de pago
 
 **Soporte:**
+
 - ✅ Chat básico con vendedor (por orden)
 - ✅ Ver notificaciones
 
 **Excluido del MVP:**
+
 - ❌ Wishlist (agregar después)
 - ❌ Comparación de productos
 - ❌ Devoluciones (agregar después)
@@ -1539,12 +1682,14 @@ El MVP (Minimum Viable Product) incluye las funcionalidades **mínimas y crític
 #### 🏪 ROL: COMMERCE (Vendedor) - MVP
 
 **Dashboard:**
+
 - ✅ Vista general de órdenes pendientes
 - ✅ Ingresos del día/mes
 - ✅ Total de productos
 - ✅ Últimas órdenes
 
 **Productos:**
+
 - ✅ Crear producto
 - ✅ Editar producto
 - ✅ Eliminar producto
@@ -1553,6 +1698,7 @@ El MVP (Minimum Viable Product) incluye las funcionalidades **mínimas y crític
 - ✅ Gestión básica de categorías
 
 **Órdenes:**
+
 - ✅ Ver todas las órdenes
 - ✅ Ver detalles de orden
 - ✅ Actualizar estado de orden (paid → processing → shipped → delivered)
@@ -1560,11 +1706,13 @@ El MVP (Minimum Viable Product) incluye las funcionalidades **mínimas y crític
 - ✅ Marcar orden como enviada
 
 **Analytics Básicos:**
+
 - ✅ Ingresos totales
 - ✅ Órdenes completadas
 - ✅ Productos más vendidos
 
 **Excluido del MVP:**
+
 - ❌ Gestión de inventario/stock (agregar después)
 - ❌ Variantes de productos (agregar después)
 - ❌ Gestión de shipping (usar básico)
@@ -1577,6 +1725,7 @@ El MVP (Minimum Viable Product) incluye las funcionalidades **mínimas y crític
 #### 🚚 ROL: DELIVERY (Repartidor) - MVP
 
 **Órdenes:**
+
 - ✅ Ver órdenes disponibles para entregar
 - ✅ Aceptar orden
 - ✅ Ver órdenes asignadas
@@ -1584,10 +1733,12 @@ El MVP (Minimum Viable Product) incluye las funcionalidades **mínimas y crític
 - ✅ Marcar como entregado
 
 **Tracking:**
+
 - ✅ Ver ubicación de entrega
 - ✅ Ver detalles de orden
 
 **Excluido del MVP:**
+
 - ❌ Tracking en tiempo real (agregar después)
 - ❌ Integración con couriers externos (agregar después)
 - ❌ Asignación automática (agregar después)
@@ -1599,27 +1750,32 @@ El MVP (Minimum Viable Product) incluye las funcionalidades **mínimas y crític
 #### 👨‍💼 ROL: ADMIN (Administrador) - MVP
 
 **Usuarios:**
+
 - ✅ Listar usuarios
 - ✅ Ver detalles de usuario
 - ✅ Cambiar rol de usuario
 - ✅ Suspender/activar usuarios
 
 **Comercios:**
+
 - ✅ Listar comercios
 - ✅ Ver detalles de comercio
 - ✅ Aprobar/suspender comercios
 
 **Órdenes:**
+
 - ✅ Ver todas las órdenes
 - ✅ Ver detalles de orden
 - ✅ Filtrar por estado
 
 **Reportes Básicos:**
+
 - ✅ Estadísticas generales (usuarios, órdenes, ingresos)
 - ✅ Distribución de usuarios por rol
 - ✅ Health del sistema
 
 **Excluido del MVP:**
+
 - ❌ Gestión de impuestos (agregar después)
 - ❌ Gestión de shipping (agregar después)
 - ❌ Políticas de devolución (agregar después)
@@ -1630,6 +1786,7 @@ El MVP (Minimum Viable Product) incluye las funcionalidades **mínimas y crític
 ### 📋 ESTADOS DE ORDEN - MVP
 
 **Estados Mínimos Necesarios:**
+
 1. `pending_payment` - Pendiente de pago
 2. `paid` - Pago validado
 3. `processing` - En procesamiento/empaque (antes "preparing")
@@ -1638,6 +1795,7 @@ El MVP (Minimum Viable Product) incluye las funcionalidades **mínimas y crític
 6. `cancelled` - Cancelado
 
 **Flujo MVP:**
+
 ```
 pending_payment → paid → processing → shipped → delivered
                 ↓
@@ -1649,6 +1807,7 @@ pending_payment → paid → processing → shipped → delivered
 ### 🗄️ MODELOS Y TABLAS - MVP
 
 #### Modelos Críticos (Mantener):
+
 - ✅ `User` - Usuarios
 - ✅ `Profile` - Perfiles
 - ✅ `Commerce` - Tiendas/Vendedores
@@ -1666,10 +1825,12 @@ pending_payment → paid → processing → shipped → delivered
 - ✅ `ChatMessage` - Mensajes de chat
 
 #### Modelos a Adaptar:
+
 - ⚠️ `DeliveryAgent` → Adaptar a `ShippingProvider` o eliminar si no hay delivery propio
 - ⚠️ `DeliveryCompany` → Evaluar si mantener
 
 #### Modelos a Agregar Después (No MVP):
+
 - ❌ `ProductVariant` - Variantes de productos
 - ❌ `Inventory` - Gestión de inventario
 - ❌ `Wishlist` - Lista de deseos
@@ -1683,16 +1844,19 @@ pending_payment → paid → processing → shipped → delivered
 ### 🔧 SERVICIOS - MVP
 
 #### Servicios Críticos (Mantener):
+
 - ✅ `OrderService` - Gestión de órdenes
 - ✅ `CartService` - Gestión de carrito
 - ✅ `ProductService` - Gestión de productos
 - ✅ `RestaurantService` → Renombrar a `StoreService` o `VendorService`
 
 #### Servicios a Adaptar:
+
 - ⚠️ `DeliveryAssignmentService` → Adaptar o eliminar si no hay delivery propio
 - ⚠️ `TrackingService` → Adaptar para tracking de paquetes
 
 #### Servicios a Agregar Después (No MVP):
+
 - ❌ `InventoryService` - Gestión de inventario
 - ❌ `ShippingService` - Gestión de envíos
 - ❌ `TaxService` - Cálculo de impuestos
@@ -1705,6 +1869,7 @@ pending_payment → paid → processing → shipped → delivered
 #### Endpoints Críticos por Rol:
 
 **USERS (Buyer):**
+
 ```
 POST   /api/auth/login
 POST   /api/auth/register
@@ -1738,6 +1903,7 @@ POST   /api/notifications/{id}/read
 ```
 
 **COMMERCE:**
+
 ```
 GET    /api/commerce/dashboard
 GET    /api/commerce/products
@@ -1754,6 +1920,7 @@ GET    /api/commerce/analytics
 ```
 
 **DELIVERY:**
+
 ```
 GET    /api/delivery/orders/available
 GET    /api/delivery/orders
@@ -1762,6 +1929,7 @@ PUT    /api/delivery/orders/{id}/status
 ```
 
 **ADMIN:**
+
 ```
 GET    /api/admin/users
 GET    /api/admin/users/{id}
@@ -1776,6 +1944,7 @@ GET    /api/admin/statistics
 ### 🚀 PLAN DE IMPLEMENTACIÓN MVP
 
 #### Fase 1: Adaptación y Limpieza (1 semana)
+
 1. ✅ Renombrar `RestaurantController` → `StoreController`
 2. ✅ Cambiar estado `preparing` → `processing`
 3. ✅ Cambiar estado `on_way` → `shipped`
@@ -1784,6 +1953,7 @@ GET    /api/admin/statistics
 6. ✅ Actualizar documentación
 
 #### Fase 2: Funcionalidades Críticas USERS (2 semanas)
+
 1. ✅ Asegurar que carrito funciona correctamente
 2. ✅ Verificar flujo completo de orden
 3. ✅ Implementar gestión de direcciones
@@ -1791,6 +1961,7 @@ GET    /api/admin/statistics
 5. ✅ Chat básico funcional
 
 #### Fase 3: Funcionalidades Críticas COMMERCE (2 semanas)
+
 1. ✅ Dashboard funcional
 2. ✅ CRUD completo de productos
 3. ✅ Gestión de órdenes
@@ -1798,16 +1969,19 @@ GET    /api/admin/statistics
 5. ✅ Analytics básicos
 
 #### Fase 4: Funcionalidades DELIVERY (1 semana)
+
 1. ✅ Aceptar órdenes
 2. ✅ Actualizar estado
 3. ✅ Ver órdenes asignadas
 
 #### Fase 5: Funcionalidades ADMIN (1 semana)
+
 1. ✅ Gestión de usuarios
 2. ✅ Gestión de comercios
 3. ✅ Reportes básicos
 
 #### Fase 6: Testing y Ajustes (1 semana)
+
 1. ✅ Tests de integración
 2. ✅ Pruebas de flujos completos
 3. ✅ Corrección de bugs
@@ -1820,6 +1994,7 @@ GET    /api/admin/statistics
 ### ⚠️ LIMITACIONES DEL MVP
 
 **No incluye (agregar después):**
+
 - ❌ Gestión de inventario/stock
 - ❌ Variantes de productos
 - ❌ Wishlist
@@ -1837,6 +2012,7 @@ GET    /api/admin/statistics
 ### ✅ CRITERIOS DE ÉXITO DEL MVP
 
 **Funcionalidad:**
+
 - ✅ Usuario puede registrarse e iniciar sesión
 - ✅ Usuario puede ver productos y agregar al carrito
 - ✅ Usuario puede crear una orden
@@ -1847,11 +2023,13 @@ GET    /api/admin/statistics
 - ✅ Admin puede gestionar usuarios y comercios
 
 **Performance:**
+
 - ✅ Tiempo de respuesta API < 500ms
 - ✅ Carga de productos < 2 segundos
 - ✅ Creación de orden < 3 segundos
 
 **Calidad:**
+
 - ✅ Tests pasando > 90%
 - ✅ Sin errores críticos
 - ✅ Documentación actualizada
@@ -1861,6 +2039,7 @@ GET    /api/admin/statistics
 ### 📝 CHECKLIST MVP
 
 #### Backend
+
 - [ ] Autenticación completa (login, registro, Google)
 - [ ] CRUD de productos
 - [ ] Carrito funcional
@@ -1876,6 +2055,7 @@ GET    /api/admin/statistics
 - [ ] Tests > 90% cobertura
 
 #### Frontend
+
 - [ ] Pantallas de autenticación
 - [ ] Catálogo de productos
 - [ ] Carrito de compras
@@ -1892,18 +2072,21 @@ GET    /api/admin/statistics
 ### 🎯 PRÓXIMOS PASOS DESPUÉS DEL MVP
 
 **Fase 2 (Post-MVP):**
+
 1. Gestión de inventario
 2. Variantes de productos
 3. Wishlist
 4. Devoluciones básicas
 
 **Fase 3:**
+
 1. Facturación
 2. Impuestos
 3. Shipping avanzado
 4. Tracking en tiempo real
 
 **Fase 4:**
+
 1. Cupones avanzados
 2. Gamificación
 3. Recomendaciones
@@ -1945,31 +2128,38 @@ app/
 ## 🛠️ Stack Tecnológico
 
 ### Framework y Lenguaje
+
 - **Laravel:** 10.x
 - **PHP:** 8.1+
 
 ### Dependencias Principales
 
 **Core:**
+
 - `laravel/framework: ^10.10` - Framework Laravel
 - `laravel/sanctum: ^3.3` - Autenticación API
 
 **Base de Datos:**
+
 - `doctrine/dbal: ^3.10` - Database Abstraction Layer
 
 **Imágenes y Media:**
+
 - `intervention/image: ^3.9` - Procesamiento de imágenes
 - `intervention/image-laravel: ^1.3` - Integración Laravel
 
 **Notificaciones:**
+
 - `kreait/laravel-firebase: ^5.10` - Firebase para push notifications
 - `pusher/pusher-php-server: ^7.2` - Broadcasting
 
 **Utilidades:**
+
 - `simplesoftwareio/simple-qrcode: ^4.2` - Generación de códigos QR
 - `guzzlehttp/guzzle: ^7.2` - Cliente HTTP
 
 **Testing:**
+
 - `phpunit/phpunit: ^10.1` - Framework de testing
 - `fakerphp/faker: ^1.9.1` - Datos de prueba
 
@@ -2048,6 +2238,7 @@ SANCTUM_STATEFUL_DOMAINS=localhost,127.0.0.1,192.168.0.101
 ### Esquema Principal
 
 **Tablas de Usuarios y Perfiles:**
+
 - `users` - Usuarios del sistema
 - `profiles` - Perfiles extendidos de usuario
 - `addresses` - Direcciones de usuarios
@@ -2056,33 +2247,40 @@ SANCTUM_STATEFUL_DOMAINS=localhost,127.0.0.1,192.168.0.101
 - `operator_codes` - Códigos de operadores telefónicos
 
 **Tablas de Comercios y Productos:**
+
 - `commerces` - Comercios/Restaurantes
 - `products` - Productos
 - `categories` - Categorías de productos
 
 **Tablas de Carrito:**
+
 - `carts` - Carritos de compra de usuarios
 - `cart_items` - Items del carrito
 
 **Tablas de Órdenes:**
+
 - `orders` - Órdenes/Pedidos
 - `order_items` - Items de órdenes
 - `order_delivery` - Información de entrega
 
 **Tablas de Delivery:**
+
 - `delivery_companies` - Empresas de delivery
 - `delivery_agents` - Agentes de entrega
 
 **Tablas Sociales:**
+
 - `posts` - Posts sociales
 - `post_likes` - Likes en posts
 - `reviews` - Reseñas/Calificaciones
 
 **Tablas de Pagos:**
+
 - `payment_methods` - Métodos de pago
 - `banks` - Bancos
 
 **Tablas de Sistema:**
+
 - `notifications` - Notificaciones
 - `chat_messages` - Mensajes de chat
 - `promotions` - Promociones
@@ -2147,6 +2345,7 @@ SANCTUM_STATEFUL_DOMAINS=localhost,127.0.0.1,192.168.0.101
 ### Laravel Sanctum
 
 **Configuración:**
+
 - Tokens almacenados en `personal_access_tokens`
 - Tokens con expiración configurable
 - Revocación de tokens en logout
@@ -2155,6 +2354,7 @@ SANCTUM_STATEFUL_DOMAINS=localhost,127.0.0.1,192.168.0.101
 **Endpoints de Autenticación:**
 
 #### Login
+
 ```http
 POST /api/auth/login
 Content-Type: application/json
@@ -2175,6 +2375,7 @@ Response:
 ```
 
 #### Registro
+
 ```http
 POST /api/auth/register
 Content-Type: application/json
@@ -2189,6 +2390,7 @@ Content-Type: application/json
 ```
 
 #### Google OAuth
+
 ```http
 POST /api/auth/google
 Content-Type: application/json
@@ -2204,12 +2406,14 @@ Content-Type: application/json
 ```
 
 #### Logout
+
 ```http
 POST /api/auth/logout
 Authorization: Bearer {token}
 ```
 
 #### Obtener Usuario
+
 ```http
 GET /api/auth/user
 Authorization: Bearer {token}
@@ -2219,66 +2423,67 @@ Authorization: Bearer {token}
 
 ### 🔐 Autenticación
 
-| Método | Endpoint | Descripción | Auth |
-|--------|----------|-------------|------|
-| POST | `/api/auth/login` | Login de usuario | No |
-| POST | `/api/auth/register` | Registro de usuario | No |
-| POST | `/api/auth/google` | Autenticación Google | No |
-| POST | `/api/auth/logout` | Logout de usuario | Sí |
-| GET | `/api/auth/user` | Obtener usuario actual | Sí |
-| PUT | `/api/auth/user` | Actualizar perfil | Sí |
-| PUT | `/api/auth/password` | Cambiar contraseña | Sí |
-| POST | `/api/auth/refresh` | Refrescar token | Sí |
+| Método | Endpoint             | Descripción            | Auth |
+| ------ | -------------------- | ---------------------- | ---- |
+| POST   | `/api/auth/login`    | Login de usuario       | No   |
+| POST   | `/api/auth/register` | Registro de usuario    | No   |
+| POST   | `/api/auth/google`   | Autenticación Google   | No   |
+| POST   | `/api/auth/logout`   | Logout de usuario      | Sí   |
+| GET    | `/api/auth/user`     | Obtener usuario actual | Sí   |
+| PUT    | `/api/auth/user`     | Actualizar perfil      | Sí   |
+| PUT    | `/api/auth/password` | Cambiar contraseña     | Sí   |
+| POST   | `/api/auth/refresh`  | Refrescar token        | Sí   |
 
 ### 🏪 Comercios/Restaurantes
 
-| Método | Endpoint | Descripción | Auth | Rol |
-|--------|----------|-------------|------|-----|
-| GET | `/api/buyer/restaurants` | Listar restaurantes | Sí | users |
-| GET | `/api/buyer/restaurants/{id}` | Detalles de restaurante | Sí | users |
+| Método | Endpoint                      | Descripción             | Auth | Rol   |
+| ------ | ----------------------------- | ----------------------- | ---- | ----- |
+| GET    | `/api/buyer/restaurants`      | Listar restaurantes     | Sí   | users |
+| GET    | `/api/buyer/restaurants/{id}` | Detalles de restaurante | Sí   | users |
 
 ### 🍕 Productos
 
-| Método | Endpoint | Descripción | Auth | Rol |
-|--------|----------|-------------|------|-----|
-| GET | `/api/buyer/products` | Listar productos | Sí | users |
-| GET | `/api/buyer/products/{id}` | Detalles de producto | Sí | users |
-| GET | `/api/commerce/products` | Listar productos del comercio | Sí | commerce |
-| POST | `/api/commerce/products` | Crear producto | Sí | commerce |
-| PUT | `/api/commerce/products/{id}` | Actualizar producto | Sí | commerce |
-| DELETE | `/api/commerce/products/{id}` | Eliminar producto | Sí | commerce |
+| Método | Endpoint                      | Descripción                   | Auth | Rol      |
+| ------ | ----------------------------- | ----------------------------- | ---- | -------- |
+| GET    | `/api/buyer/products`         | Listar productos              | Sí   | users    |
+| GET    | `/api/buyer/products/{id}`    | Detalles de producto          | Sí   | users    |
+| GET    | `/api/commerce/products`      | Listar productos del comercio | Sí   | commerce |
+| POST   | `/api/commerce/products`      | Crear producto                | Sí   | commerce |
+| PUT    | `/api/commerce/products/{id}` | Actualizar producto           | Sí   | commerce |
+| DELETE | `/api/commerce/products/{id}` | Eliminar producto             | Sí   | commerce |
 
 ### 🛒 Carrito
 
-| Método | Endpoint | Descripción | Auth | Rol |
-|--------|----------|-------------|------|-----|
-| GET | `/api/buyer/cart` | Ver carrito | Sí | users |
-| POST | `/api/buyer/cart/add` | Agregar al carrito | Sí | users |
-| PUT | `/api/buyer/cart/update-quantity` | Actualizar cantidad | Sí | users |
-| DELETE | `/api/buyer/cart/{productId}` | Remover del carrito | Sí | users |
-| POST | `/api/buyer/cart/notes` | Agregar notas | Sí | users |
+| Método | Endpoint                          | Descripción         | Auth | Rol   |
+| ------ | --------------------------------- | ------------------- | ---- | ----- |
+| GET    | `/api/buyer/cart`                 | Ver carrito         | Sí   | users |
+| POST   | `/api/buyer/cart/add`             | Agregar al carrito  | Sí   | users |
+| PUT    | `/api/buyer/cart/update-quantity` | Actualizar cantidad | Sí   | users |
+| DELETE | `/api/buyer/cart/{productId}`     | Remover del carrito | Sí   | users |
+| POST   | `/api/buyer/cart/notes`           | Agregar notas       | Sí   | users |
 
 **⚠️ PROBLEMA CRÍTICO:** `CartService` actualmente usa Session de PHP, lo cual no funciona en arquitectura stateless. **Requiere migración a base de datos.**
 
 ### 📦 Órdenes
 
-| Método | Endpoint | Descripción | Auth | Rol |
-|--------|----------|-------------|------|-----|
-| GET | `/api/buyer/orders` | Listar órdenes del usuario | Sí | users |
-| POST | `/api/buyer/orders` | Crear nueva orden | Sí | users |
-| GET | `/api/buyer/orders/{id}` | Detalles de orden | Sí | - |
-| POST | `/api/buyer/orders/{id}/cancel` | Cancelar orden | Sí | users |
-| POST | `/api/buyer/orders/{id}/payment-proof` | Subir comprobante | Sí | users |
-| GET | `/api/commerce/orders` | Órdenes del comercio | Sí | commerce |
-| GET | `/api/commerce/orders/{id}` | Detalles de orden | Sí | commerce |
-| PUT | `/api/commerce/orders/{id}/status` | Actualizar estado | Sí | commerce |
-| POST | `/api/commerce/orders/{id}/validate-payment` | Validar pago | Sí | commerce |
-| GET | `/api/delivery/orders` | Órdenes disponibles | Sí | delivery |
-| POST | `/api/delivery/orders/{id}/accept` | Aceptar orden | Sí | delivery |
+| Método | Endpoint                                     | Descripción                | Auth | Rol      |
+| ------ | -------------------------------------------- | -------------------------- | ---- | -------- |
+| GET    | `/api/buyer/orders`                          | Listar órdenes del usuario | Sí   | users    |
+| POST   | `/api/buyer/orders`                          | Crear nueva orden          | Sí   | users    |
+| GET    | `/api/buyer/orders/{id}`                     | Detalles de orden          | Sí   | -        |
+| POST   | `/api/buyer/orders/{id}/cancel`              | Cancelar orden             | Sí   | users    |
+| POST   | `/api/buyer/orders/{id}/payment-proof`       | Subir comprobante          | Sí   | users    |
+| GET    | `/api/commerce/orders`                       | Órdenes del comercio       | Sí   | commerce |
+| GET    | `/api/commerce/orders/{id}`                  | Detalles de orden          | Sí   | commerce |
+| PUT    | `/api/commerce/orders/{id}/status`           | Actualizar estado          | Sí   | commerce |
+| POST   | `/api/commerce/orders/{id}/validate-payment` | Validar pago               | Sí   | commerce |
+| GET    | `/api/delivery/orders`                       | Órdenes disponibles        | Sí   | delivery |
+| POST   | `/api/delivery/orders/{id}/accept`           | Aceptar orden              | Sí   | delivery |
 
 **Estados de Orden:**
+
 - `pending_payment` - Pendiente de pago
-**Estados Válidos (MVP):**
+  **Estados Válidos (MVP):**
 - `pending_payment` - Pendiente de pago
 - `paid` - Pago validado
 - `processing` - En procesamiento/empaque
@@ -2287,6 +2492,7 @@ Authorization: Bearer {token}
 - `cancelled` - Cancelada
 
 **Estados Deprecated (Ya no usados):**
+
 - ~~`confirmed`~~ - ❌ DEPRECATED: Reemplazado por `paid` directamente
 - ~~`preparing`~~ - ❌ DEPRECATED: Reemplazado por `processing`
 - ~~`on_way`~~ - ❌ DEPRECATED: Reemplazado por `shipped`
@@ -2296,100 +2502,101 @@ Authorization: Bearer {token}
 
 ### ⭐ Reviews
 
-| Método | Endpoint | Descripción | Auth | Rol |
-|--------|----------|-------------|------|-----|
-| GET | `/api/buyer/reviews` | Listar reviews | Sí | users |
-| POST | `/api/buyer/reviews` | Crear review | Sí | users |
-| PUT | `/api/buyer/reviews/{id}` | Actualizar review | Sí | users |
-| DELETE | `/api/buyer/reviews/{id}` | Eliminar review | Sí | users |
+| Método | Endpoint                  | Descripción       | Auth | Rol   |
+| ------ | ------------------------- | ----------------- | ---- | ----- |
+| GET    | `/api/buyer/reviews`      | Listar reviews    | Sí   | users |
+| POST   | `/api/buyer/reviews`      | Crear review      | Sí   | users |
+| PUT    | `/api/buyer/reviews/{id}` | Actualizar review | Sí   | users |
+| DELETE | `/api/buyer/reviews/{id}` | Eliminar review   | Sí   | users |
 
 ### 🔔 Notificaciones
 
-| Método | Endpoint | Descripción | Auth |
-|--------|----------|-------------|------|
-| GET | `/api/notifications` | Listar notificaciones | Sí |
-| POST | `/api/notifications/{id}/read` | Marcar como leída | Sí |
-| DELETE | `/api/notifications/{id}` | Eliminar notificación | Sí |
+| Método | Endpoint                       | Descripción           | Auth |
+| ------ | ------------------------------ | --------------------- | ---- |
+| GET    | `/api/notifications`           | Listar notificaciones | Sí   |
+| POST   | `/api/notifications/{id}/read` | Marcar como leída     | Sí   |
+| DELETE | `/api/notifications/{id}`      | Eliminar notificación | Sí   |
 
 ### 📍 Geolocalización
 
-| Método | Endpoint | Descripción | Auth |
-|--------|----------|-------------|------|
-| POST | `/api/location/update` | Actualizar ubicación | Sí |
-| GET | `/api/location/nearby-places` | Lugares cercanos | Sí |
-| POST | `/api/location/calculate-route` | Calcular ruta | Sí |
-| POST | `/api/location/geocode` | Obtener coordenadas | Sí |
+| Método | Endpoint                        | Descripción          | Auth |
+| ------ | ------------------------------- | -------------------- | ---- |
+| POST   | `/api/location/update`          | Actualizar ubicación | Sí   |
+| GET    | `/api/location/nearby-places`   | Lugares cercanos     | Sí   |
+| POST   | `/api/location/calculate-route` | Calcular ruta        | Sí   |
+| POST   | `/api/location/geocode`         | Obtener coordenadas  | Sí   |
 
 ### 💬 Chat
 
-| Método | Endpoint | Descripción | Auth |
-|--------|----------|-------------|------|
-| GET | `/api/chat/conversations` | Listar conversaciones | Sí |
-| GET | `/api/chat/conversations/{id}/messages` | Mensajes de conversación | Sí |
-| POST | `/api/chat/conversations/{id}/messages` | Enviar mensaje | Sí |
-| POST | `/api/chat/conversations/{id}/read` | Marcar como leído | Sí |
+| Método | Endpoint                                | Descripción              | Auth |
+| ------ | --------------------------------------- | ------------------------ | ---- |
+| GET    | `/api/chat/conversations`               | Listar conversaciones    | Sí   |
+| GET    | `/api/chat/conversations/{id}/messages` | Mensajes de conversación | Sí   |
+| POST   | `/api/chat/conversations/{id}/messages` | Enviar mensaje           | Sí   |
+| POST   | `/api/chat/conversations/{id}/read`     | Marcar como leído        | Sí   |
 
 ### 💳 Pagos
 
-| Método | Endpoint | Descripción | Auth |
-|--------|----------|-------------|------|
-| GET | `/api/payments/methods` | Métodos de pago disponibles | Sí |
-| POST | `/api/payments/methods` | Agregar método de pago | Sí |
-| POST | `/api/payments/process` | Procesar pago | Sí |
-| GET | `/api/payments/history` | Historial de pagos | Sí |
+| Método | Endpoint                | Descripción                 | Auth |
+| ------ | ----------------------- | --------------------------- | ---- |
+| GET    | `/api/payments/methods` | Métodos de pago disponibles | Sí   |
+| POST   | `/api/payments/methods` | Agregar método de pago      | Sí   |
+| POST   | `/api/payments/process` | Procesar pago               | Sí   |
+| GET    | `/api/payments/history` | Historial de pagos          | Sí   |
 
 ### 👥 Perfiles
 
-| Método | Endpoint | Descripción | Auth |
-|--------|----------|-------------|------|
-| GET | `/api/profile` | Obtener perfil | Sí |
-| PUT | `/api/profile` | Actualizar perfil | Sí |
-| GET | `/api/profiles` | Listar perfiles | Sí |
-| POST | `/api/profiles` | Crear perfil | Sí |
-| POST | `/api/profiles/add-commerce` | Añadir comercio a perfil existente (onboarding paso 4); body: profile_id, business_name, business_type, tax_id, address, open, schedule (string), owner_ci | Sí |
-| GET | `/api/profiles/{id}` | Detalles de perfil | Sí |
-| PUT | `/api/profiles/{id}` | Actualizar perfil | Sí |
+| Método | Endpoint                     | Descripción                                                                                                                                                | Auth |
+| ------ | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| GET    | `/api/profile`               | Obtener perfil                                                                                                                                             | Sí   |
+| PUT    | `/api/profile`               | Actualizar perfil                                                                                                                                          | Sí   |
+| GET    | `/api/profiles`              | Listar perfiles                                                                                                                                            | Sí   |
+| POST   | `/api/profiles`              | Crear perfil                                                                                                                                               | Sí   |
+| POST   | `/api/profiles/add-commerce` | Añadir comercio a perfil existente (onboarding paso 4); body: profile_id, business_name, business_type, tax_id, address, open, schedule (string), owner_ci | Sí   |
+| GET    | `/api/profiles/{id}`         | Detalles de perfil                                                                                                                                         | Sí   |
+| PUT    | `/api/profiles/{id}`         | Actualizar perfil                                                                                                                                          | Sí   |
 
 ## 🏪 Roles y Permisos
 
 ### Roles del Sistema (MVP)
 
 **Roles implementados y funcionales:**
+
 - **users** (Level 0): Cliente/Comprador ✅
-  - Ver productos y restaurantes
-  - Agregar al carrito
-  - Realizar pedidos
-  - Ver historial de pedidos
-  - Calificar productos
-  - Chat con restaurante
-  - Notificaciones
-  - Geolocalización
-  - Favoritos
-  - Rutas: `/api/buyer/*`
+    - Ver productos y restaurantes
+    - Agregar al carrito
+    - Realizar pedidos
+    - Ver historial de pedidos
+    - Calificar productos
+    - Chat con restaurante
+    - Notificaciones
+    - Geolocalización
+    - Favoritos
+    - Rutas: `/api/buyer/*`
 
 - **commerce** (Level 1): Comercio/Restaurante ✅
-  - Gestionar productos
-  - Ver pedidos
-  - Actualizar estado de pedidos
-  - Validar pagos
-  - Chat con clientes
-  - Dashboard y reportes
-  - Rutas: `/api/commerce/*`
+    - Gestionar productos
+    - Ver pedidos
+    - Actualizar estado de pedidos
+    - Validar pagos
+    - Chat con clientes
+    - Dashboard y reportes
+    - Rutas: `/api/commerce/*`
 
 - **delivery** (Level 2): Repartidor/Delivery ✅
-  - Ver pedidos asignados
-  - Aceptar/rechazar pedidos
-  - Actualizar ubicación
-  - Marcar como entregado
-  - Historial de entregas
-  - Rutas: `/api/delivery/*`
+    - Ver pedidos asignados
+    - Aceptar/rechazar pedidos
+    - Actualizar ubicación
+    - Marcar como entregado
+    - Historial de entregas
+    - Rutas: `/api/delivery/*`
 
 - **admin** (Level 3): Administrador ✅
-  - Gestión completa del sistema
-  - Usuarios y roles
-  - Reportes globales
-  - Configuración del sistema
-  - Rutas: `/api/admin/*`
+    - Gestión completa del sistema
+    - Usuarios y roles
+    - Reportes globales
+    - Configuración del sistema
+    - Rutas: `/api/admin/*`
 
 **IMPORTANTE:** Solo existen estos 4 roles. Los roles `transport` y `affiliate` fueron eliminados del código.
 
@@ -2414,11 +2621,13 @@ Route::middleware(['auth:sanctum', 'role:delivery'])->group(function () {
 ### Configuración
 
 **Laravel Echo Server:**
+
 - Puerto: 6001
 - Driver: Redis (recomendado) o Pusher
 - Autenticación: Sanctum tokens
 
 **Configuración en `.env`:**
+
 ```env
 BROADCAST_DRIVER=redis
 REDIS_HOST=127.0.0.1
@@ -2455,7 +2664,7 @@ class OrderStatusChanged implements ShouldBroadcast
     {
         return new PrivateChannel('user.' . $this->order->profile->user_id);
     }
-    
+
     public function broadcastWith()
     {
         return [
@@ -2494,11 +2703,13 @@ php artisan test tests/Feature/
 ### Tests Implementados (VERIFICADO)
 
 **Resultado de ejecución:** `php artisan test --testsuite=Feature`
+
 - ✅ **204+ tests pasaron** (todos los tests pasan)
 - ✅ **PusherConfigTest** - Verificación de configuración Pusher/broadcasting
 - ✅ Tests de Analytics, Orders, Delivery, Reviews actualizados
 
 **Feature Tests:**
+
 - `AuthenticationTest.php` - Autenticación
 - `OrderControllerTest.php` - Controlador de órdenes
 - `OrderTest.php` - Modelo de órdenes
@@ -2599,6 +2810,7 @@ REDIS_DB=1
 ```
 
 **Uso:**
+
 ```php
 Cache::put('key', 'value', 3600);
 Cache::get('key');
@@ -2611,6 +2823,7 @@ QUEUE_CONNECTION=redis
 ```
 
 **Ejecutar worker:**
+
 ```bash
 php artisan queue:work
 ```
@@ -2622,6 +2835,7 @@ BROADCAST_DRIVER=redis
 ```
 
 **Iniciar Laravel Echo Server:**
+
 ```bash
 npx laravel-echo-server start
 ```
@@ -2629,11 +2843,13 @@ npx laravel-echo-server start
 ### Storage
 
 **Crear enlace simbólico:**
+
 ```bash
 php artisan storage:link
 ```
 
 **Configuración en `config/filesystems.php`:**
+
 - `public` - Archivos públicos accesibles
 - `local` - Archivos locales privados
 
@@ -2644,6 +2860,7 @@ php artisan storage:link
 **✅ Configurable:** Los orígenes permitidos se leen de la variable de entorno `CORS_ALLOWED_ORIGINS` (lista separada por comas). Si no está definida, se usa `['*']`.
 
 **Configuración (`config/cors.php`):**
+
 ```php
 'allowed_origins' => env('CORS_ALLOWED_ORIGINS')
     ? explode(',', env('CORS_ALLOWED_ORIGINS'))
@@ -2655,6 +2872,7 @@ php artisan storage:link
 ### Rate Limiting
 
 **✅ Implementado** en rutas críticas en `routes/api.php`:
+
 - `throttle:auth` en el grupo de rutas de autenticación (`/api/auth/*`)
 - `throttle:create` en la creación de órdenes (`POST /api/buyer/orders`)
 
@@ -2663,6 +2881,7 @@ Los límites se configuran en `App\Providers\RouteServiceProvider` (rate limiter
 ### Validación de Input
 
 **SIEMPRE usar Form Requests:**
+
 ```php
 // app/Http/Requests/StoreOrderRequest.php
 public function rules()
@@ -2695,23 +2914,24 @@ public function rules()
 ### Optimizaciones Pendientes
 
 - ⚠️ **Agregar índices faltantes:**
-  - `orders.status`
-  - `orders.created_at`
-  - `products.commerce_id`
-  - `products.is_available`
+    - `orders.status`
+    - `orders.created_at`
+    - `products.commerce_id`
+    - `products.is_available`
 
 - ⚠️ **Implementar caching:**
-  - Cachear queries frecuentes
-  - Cachear respuestas de API
-  - Cachear datos de configuración
+    - Cachear queries frecuentes
+    - Cachear respuestas de API
+    - Cachear datos de configuración
 
 - ⚠️ **Agregar paginación:**
-  - Implementar en todos los endpoints de listado
-  - Límite por defecto: 15-20 items
+    - Implementar en todos los endpoints de listado
+    - Límite por defecto: 15-20 items
 
 ### Queries Optimizadas
 
 **Ejemplo con Eager Loading:**
+
 ```php
 Order::with(['commerce', 'orderItems.product', 'orderDelivery'])
     ->where('profile_id', $profileId)
@@ -2731,15 +2951,15 @@ Order::with(['commerce', 'orderItems.product', 'orderDelivery'])
 ### 🟡 Altos
 
 4. **Archivos Duplicados**
-   - ✅ **RESUELTO:** `City copy.php`, `Country copy.php` y `State copy.php` eliminados
+    - ✅ **RESUELTO:** `City copy.php`, `Country copy.php` y `State copy.php` eliminados
 
 5. **Falta Paginación**
-   - Algunos endpoints sin límites
-   - **Solución:** Agregar paginación a todos los listados
+    - Algunos endpoints sin límites
+    - **Solución:** Agregar paginación a todos los listados
 
 6. **Falta Caching**
-   - Queries repetitivos sin cache
-   - **Solución:** Implementar Redis cache
+    - Queries repetitivos sin cache
+    - **Solución:** Implementar Redis cache
 
 ## 🧹 Comandos Útiles
 
@@ -2836,27 +3056,27 @@ php artisan log:clear
 ### 🟡 Próximas Semanas
 
 4. **Agregar Paginación**
-   - Implementar en todos los endpoints de listado
+    - Implementar en todos los endpoints de listado
 
 5. **Agregar Índices a BD**
-   - `orders.status`, `orders.created_at`
-   - `products.commerce_id`, `products.is_available`
+    - `orders.status`, `orders.created_at`
+    - `products.commerce_id`, `products.is_available`
 
 6. **Implementar Caching**
-   - Redis para queries frecuentes
-   - Cachear respuestas de API
+    - Redis para queries frecuentes
+    - Cachear respuestas de API
 
 ### 🟢 Mejoras Futuras
 
 7. **Mejorar Sistema de Roles**
-   - Permisos granulares
-   - Múltiples roles por usuario
+    - Permisos granulares
+    - Múltiples roles por usuario
 
 8. **Implementar Swagger/OpenAPI**
-   - Documentación de API interactiva
+    - Documentación de API interactiva
 
 9. **Eliminar Archivos Duplicados**
-   - `City copy.php`, `State copy.php`
+    - `City copy.php`, `State copy.php`
 
 ## 🗺️ ROADMAP MVP - PLAN DE ACCIÓN PRIORIZADO
 
@@ -2930,12 +3150,14 @@ Este documento contiene un análisis exhaustivo completo del proyecto realizado 
 Cuando se solicite un análisis exhaustivo del proyecto, usar los **prompts completos v2.0** disponibles. El análisis debe seguir esta metodología:
 
 **FASE 1: EXPLORACIÓN INICIAL**
+
 - Mapear estructura completa de directorios y archivos
 - Identificar archivos de configuración clave
 - Leer archivos de documentación principales
 - Identificar stack tecnológico completo y versiones
 
 **FASE 2: ANÁLISIS PROFUNDO POR ÁREA**
+
 - Explorar TODA la estructura del proyecto sin dejar áreas sin revisar
 - Leer y analizar los archivos más importantes de cada módulo
 - Identificar patrones, anti-patrones y code smells
@@ -2944,6 +3166,7 @@ Cuando se solicite un análisis exhaustivo del proyecto, usar los **prompts comp
 - Sugerir mejoras específicas con impacto/esfuerzo/prioridad
 
 **FASE 3: VERIFICACIÓN DE COHERENCIA** ⭐ **CRÍTICO**
+
 - Comparar métricas mencionadas en diferentes documentos
 - Verificar que números y estadísticas coincidan entre README y .cursorrules
 - Identificar discrepancias y corregirlas o documentar razones
@@ -2954,12 +3177,14 @@ Cuando se solicite un análisis exhaustivo del proyecto, usar los **prompts comp
 ### Actualizar Análisis
 
 **Cuándo actualizar:**
+
 - Después de cambios arquitectónicos importantes
 - Después de implementar mejoras críticas identificadas
 - Cada 3-6 meses o cuando se solicite
 - Antes de releases mayores
 
 **Cómo actualizar:**
+
 1. Revisar cambios desde último análisis
 2. Ejecutar análisis exhaustivo siguiendo los prompts completos
 3. Actualizar `ANALISIS_EXHAUSTIVO.md` con nuevos hallazgos
@@ -2979,6 +3204,7 @@ Cuando se solicite un análisis exhaustivo del proyecto, usar los **prompts comp
 ### 📊 Entidades Principales y Relaciones
 
 #### Modelo de Usuarios y Perfiles
+
 ```
 User (users table)
 ├── Profile (profiles table) - 1:1
@@ -2993,6 +3219,7 @@ User (users table)
 ```
 
 #### Modelo de Órdenes
+
 ```
 Order (orders table)
 ├── Profile (buyer) - N:1
@@ -3009,22 +3236,25 @@ Order (orders table)
 #### 1. Flujo de Creación de Orden (Buyer)
 
 **1.1 Agregar Productos al Carrito**
+
 - `CartService::addToCart()` - Agrega productos al carrito del usuario
 - Validación: Producto existe y está disponible
 - Si el producto ya existe, incrementa cantidad
 
 **1.2 Crear Orden desde Carrito**
+
 - `Buyer/OrderController::store()`
 - Validaciones:
-  - Usuario autenticado con role `users`
-  - Profile completo (`status = 'completeData'`)
-  - Productos válidos y disponibles
-  - Commerce existe
+    - Usuario autenticado con role `users`
+    - Profile completo (`status = 'completeData'`)
+    - Productos válidos y disponibles
+    - Commerce existe
 - Estado inicial: `pending_payment`
 - Crea `Order` y `OrderItems` (attach products)
 - Evento: `OrderCreated` (comentado)
 
 **1.3 Subir Comprobante de Pago**
+
 - `Buyer/OrderController::uploadPaymentProof()`
 - Almacena imagen del comprobante
 - Estado permanece: `pending_payment` (hasta validación)
@@ -3032,44 +3262,49 @@ Order (orders table)
 #### 2. Flujo de Validación de Pago (Commerce)
 
 **2.1 Validar Comprobante**
+
 - `Commerce/OrderController::validatePayment()`
 - Validaciones:
-  - Usuario es dueño del commerce
-  - Orden pertenece al commerce
+    - Usuario es dueño del commerce
+    - Orden pertenece al commerce
 - Si válido:
-  - Estado: `pending_payment` → `paid`
-  - `payment_validated_at` = now()
+    - Estado: `pending_payment` → `paid`
+    - `payment_validated_at` = now()
 - Si rechazado:
-  - Estado: `pending_payment` → `cancelled`
-  - `cancellation_reason` = motivo
+    - Estado: `pending_payment` → `cancelled`
+    - `cancellation_reason` = motivo
 - Evento: `PaymentValidated` (comentado)
 
 #### 3. Flujo de Preparación (Commerce)
 
 **3.1 Actualizar Estado de Orden**
+
 - `Commerce/OrderController::updateStatus()`
 - Estados permitidos: `pending_payment`, `paid`, `processing`, `shipped`, `delivered`, `cancelled`
 - Transiciones:
-  - `paid` → `processing` (comercio inicia preparación)
-  - `processing` → `shipped` (listo para entrega)
+    - `paid` → `processing` (comercio inicia preparación)
+    - `processing` → `shipped` (listo para entrega)
 - Evento: `OrderStatusChanged` (comentado)
 
 #### 4. Flujo de Delivery (Delivery Agent)
 
 **4.1 Ver Órdenes Disponibles**
+
 - `Delivery/OrderController::availableOrders()`
 - Filtro: `status = 'paid'` y sin `orderDelivery`
 
 **4.2 Aceptar Orden**
+
 - `Delivery/OrderController::acceptOrder()`
 - Validaciones:
-  - Orden no asignada
-  - Usuario es delivery agent
-  - Estado orden: `shipped` (listo para delivery)
+    - Orden no asignada
+    - Usuario es delivery agent
+    - Estado orden: `shipped` (listo para delivery)
 - Crea `OrderDelivery` con `status = 'assigned'`
 - Estado orden: Permanece `shipped` (no cambia al aceptar)
 
 **4.3 Actualizar Estado de Entrega**
+
 - `Delivery/OrderController::updateOrderStatus()`
 - Estados: `shipped`, `delivered`
 - Transición: `shipped` → `delivered`
@@ -3078,17 +3313,20 @@ Order (orders table)
 #### 5. Flujo de Cancelación
 
 **5.1 Cancelación por Comprador**
+
 - `OrderService::cancelOrder()`
 - Solo si: `status = 'pending_payment'`
 - Estado: `pending_payment` → `cancelled`
 
 **5.2 Cancelación por Comercio**
+
 - `Commerce/OrderController::updateStatus()`
 - Puede cancelar en cualquier estado (validación pendiente)
 
 ### 📋 Estados de Orden
 
 **Estados Implementados (MVP):**
+
 - `pending_payment` - Pendiente de pago (inicial)
 - `paid` - Pago validado
 - `processing` - En procesamiento/empaque (antes "preparing")
@@ -3097,6 +3335,7 @@ Order (orders table)
 - `cancelled` - Cancelada
 
 **Diagrama de Estados:**
+
 ```
 pending_payment
     ├──→ paid (validación de pago)
@@ -3110,12 +3349,14 @@ pending_payment
 ### 🔧 Servicios de Negocio
 
 #### OrderService
+
 - `getUserOrders()` - Lista órdenes del comprador con paginación
 - `createOrder()` - Crea orden con productos
 - `getOrderDetails()` - Detalles de orden específica
 - `cancelOrder()` - Cancela orden pendiente
 
 #### CartService
+
 - `getOrCreateCart()` - Obtiene o crea carrito del usuario
 - `addToCart()` - Agrega producto al carrito
 - `updateQuantity()` - Actualiza cantidad
@@ -3127,6 +3368,7 @@ pending_payment
 **Nota:** Migrado de Session a Base de Datos (tablas `carts` y `cart_items`)
 
 #### DeliveryAssignmentService
+
 - `assignDeliveryToOrder()` - Asigna delivery automáticamente (más cercano)
 - `releaseDeliveryAgent()` - Libera agente al completar entrega
 - `getNearbyAgents()` - Obtiene agentes cercanos
@@ -3137,6 +3379,7 @@ pending_payment
 #### Validaciones Críticas
 
 **Creación de Orden:**
+
 - Usuario debe tener `role = 'users'`
 - Profile debe existir y tener `status = 'completeData'`
 - Productos deben existir y estar disponibles
@@ -3144,43 +3387,51 @@ pending_payment
 - Total debe ser >= 0
 
 **Validación de Pago:**
+
 - Solo el dueño del commerce puede validar
 - Orden debe pertenecer al commerce
 - Solo órdenes en `pending_payment` pueden ser validadas
 
 **Cancelación:**
+
 - Comprador solo puede cancelar en `pending_payment`
 - Comercio puede cancelar en cualquier estado (revisar lógica)
 
 **Asignación de Delivery:**
+
 - Solo órdenes en `paid` y sin `orderDelivery` están disponibles
 - Delivery agent debe estar `working = true` y `status = 'active'`
 
 #### Cálculos de Negocio
 
 **Total de Orden:**
+
 - Suma de `(product.quantity * product.unit_price)` de todos los items
 - Calculado en frontend y validado en backend
 
 **Distancia y Tiempo de Entrega:**
+
 - Usa OSRM (Open Source Routing Machine) para cálculo real
 - Implementado en `DeliveryController::getRoutes()`
 
 ### 🔗 Integraciones Externas
 
 #### OSRM (Open Source Routing Machine)
+
 - Usado para calcular distancia y tiempo de rutas
 - Endpoint: `http://router.project-osrm.org/route/v1/driving/`
 - Implementado en `DeliveryController::getRoutes()`
 - Timeout: 5 segundos con fallback a valores por defecto
 
 #### Firebase
+
 - `FirebaseService` para notificaciones push
 - Integrado con FCM (Firebase Cloud Messaging)
 
 ### 📊 Métricas y Analytics
 
 El sistema calcula:
+
 - Revenue total (solo órdenes `delivered`)
 - Tasa de éxito de delivery
 - Tiempo promedio de preparación
@@ -3190,6 +3441,7 @@ El sistema calcula:
 ### ⚠️ Problemas e Inconsistencias Detectados
 
 #### 1. Estados de Orden Inconsistentes
+
 - README menciona `confirmed` y `ready` que no existen en código
 - `DeliveryAssignmentService` usa `assigned` e `in_transit` no usados
 - Validación en `Commerce/OrderController` permite `paid` pero no `confirmed`
@@ -3197,6 +3449,7 @@ El sistema calcula:
 **Recomendación:** Unificar estados y actualizar documentación.
 
 #### 2. Lógica de Cancelación
+
 - Comercio puede cancelar en cualquier estado sin validación
 - No hay límite de tiempo para cancelar
 - No se maneja reembolso
@@ -3204,6 +3457,7 @@ El sistema calcula:
 **Recomendación:** Agregar reglas de cancelación por estado y tiempo.
 
 #### 3. Asignación Automática de Delivery
+
 - `DeliveryAssignmentService::assignDeliveryToOrder()` no se usa en controladores
 - Los delivery agents aceptan órdenes manualmente
 - No hay sistema de asignación automática activo
@@ -3211,6 +3465,7 @@ El sistema calcula:
 **Recomendación:** Implementar asignación automática o eliminar código no usado.
 
 #### 4. Eventos Comentados
+
 - `OrderCreated` comentado en `Buyer/OrderController`
 - `PaymentValidated` comentado en `Commerce/OrderController`
 - `OrderStatusChanged` comentado en `Commerce/OrderController`
@@ -3220,35 +3475,37 @@ El sistema calcula:
 ### 🚀 Recomendaciones de Mejora
 
 #### Críticas
+
 1. **Unificar Estados de Orden**
-   - Definir estados oficiales
-   - Actualizar validaciones en todos los controladores
-   - Actualizar documentación
+    - Definir estados oficiales
+    - Actualizar validaciones en todos los controladores
+    - Actualizar documentación
 
 2. **Implementar Máquina de Estados**
-   - Validar transiciones de estado
-   - Prevenir transiciones inválidas
-   - Agregar historial de cambios de estado
+    - Validar transiciones de estado
+    - Prevenir transiciones inválidas
+    - Agregar historial de cambios de estado
 
 3. **Activar Eventos de Broadcasting**
-   - Descomentar eventos
-   - Configurar WebSocket correctamente
-   - Notificar cambios en tiempo real
+    - Descomentar eventos
+    - Configurar WebSocket correctamente
+    - Notificar cambios en tiempo real
 
 #### Altas
+
 4. **Mejorar Lógica de Cancelación**
-   - Reglas por estado
-   - Límites de tiempo
-   - Manejo de reembolsos
+    - Reglas por estado
+    - Límites de tiempo
+    - Manejo de reembolsos
 
 5. **Implementar Asignación Automática de Delivery**
-   - Usar `DeliveryAssignmentService` en flujo real
-   - O eliminar código no usado
+    - Usar `DeliveryAssignmentService` en flujo real
+    - O eliminar código no usado
 
 6. **Agregar Validaciones de Negocio**
-   - Stock de productos
-   - Horarios de comercio
-   - Zonas de delivery
+    - Stock de productos
+    - Horarios de comercio
+    - Zonas de delivery
 
 ---
 
@@ -3263,56 +3520,56 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 #### ❌ QUITAR/ADAPTAR (Específico de Delivery de Comida)
 
 1. **RestaurantController** → **StoreController** o **VendorController**
-   - Cambiar nombre: "Restaurantes" → "Tiendas" o "Vendedores"
-   - Mantener funcionalidad pero adaptar terminología
+    - Cambiar nombre: "Restaurantes" → "Tiendas" o "Vendedores"
+    - Mantener funcionalidad pero adaptar terminología
 
 2. **ScheduledOrderController** (Órdenes Programadas)
-   - **Evaluar:** ¿Mantener para ecommerce? (puede ser útil para suscripciones)
-   - **Opcional:** Mantener si hay productos recurrentes
+    - **Evaluar:** ¿Mantener para ecommerce? (puede ser útil para suscripciones)
+    - **Opcional:** Mantener si hay productos recurrentes
 
 3. **OrderTrackingController** con tracking en tiempo real
-   - **Adaptar:** De tracking de delivery agent → tracking de courier/shipping
-   - Mantener funcionalidad pero cambiar fuente de datos
+    - **Adaptar:** De tracking de delivery agent → tracking de courier/shipping
+    - Mantener funcionalidad pero cambiar fuente de datos
 
 4. **ChatController** por orden (típico de comida)
-   - **Evaluar:** ¿Mantener para ecommerce?
-   - **Alternativa:** Chat general de soporte en lugar de por orden
+    - **Evaluar:** ¿Mantener para ecommerce?
+    - **Alternativa:** Chat general de soporte en lugar de por orden
 
 5. **GamificationController** (puntos, badges)
-   - **Evaluar:** Si es específico de comida o genérico
-   - **Mantener:** Si es genérico (puntos por compras)
+    - **Evaluar:** Si es específico de comida o genérico
+    - **Mantener:** Si es genérico (puntos por compras)
 
 6. **LoyaltyController** basado en órdenes de comida
-   - **Adaptar:** Mantener pero cambiar métricas si es necesario
+    - **Adaptar:** Mantener pero cambiar métricas si es necesario
 
 #### ✅ AGREGAR (Ecommerce General)
 
 1. **WishlistController** ⚠️ CRÍTICO
-   - Agregar productos a lista de deseos
-   - Notificaciones de precio/stock
+    - Agregar productos a lista de deseos
+    - Notificaciones de precio/stock
 
 2. **ProductComparisonController** ⚠️ MEDIO
-   - Comparar productos lado a lado
-   - Atributos comparables
+    - Comparar productos lado a lado
+    - Atributos comparables
 
 3. **ReturnRequestController** ⚠️ ALTO
-   - Solicitar devolución de productos
-   - Estado de devolución
-   - RMA (Return Merchandise Authorization)
+    - Solicitar devolución de productos
+    - Estado de devolución
+    - RMA (Return Merchandise Authorization)
 
 4. **InvoiceController** ⚠️ ALTO
-   - Descargar facturas
-   - Historial de facturas
-   - Facturas PDF
+    - Descargar facturas
+    - Historial de facturas
+    - Facturas PDF
 
 5. **SubscriptionController** (si hay productos recurrentes)
-   - Suscripciones a productos
-   - Renovación automática
+    - Suscripciones a productos
+    - Renovación automática
 
 6. **ProductReviewController** mejorado
-   - Fotos en reviews
-   - Verificación de compra
-   - Helpful votes
+    - Fotos en reviews
+    - Verificación de compra
+    - Helpful votes
 
 ---
 
@@ -3321,68 +3578,68 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 #### ❌ QUITAR/ADAPTAR (Específico de Delivery de Comida)
 
 1. **DeliveryRequestController** (Solicitar delivery)
-   - **Quitar:** Si no hay delivery propio
-   - **Adaptar:** A "ShippingRequest" si se gestiona envío propio
+    - **Quitar:** Si no hay delivery propio
+    - **Adaptar:** A "ShippingRequest" si se gestiona envío propio
 
 2. **OrderController::updateStatus()** con estado `preparing`
-   - **Cambiar:** `preparing` → `processing` o `packaging`
-   - Mantener lógica pero adaptar nombres
+    - **Cambiar:** `preparing` → `processing` o `packaging`
+    - Mantener lógica pero adaptar nombres
 
 3. **AnalyticsController** con métricas de comida
-   - **Adaptar:** Métricas de tiempo de preparación → tiempo de procesamiento
-   - Mantener estructura pero cambiar métricas
+    - **Adaptar:** Métricas de tiempo de preparación → tiempo de procesamiento
+    - Mantener estructura pero cambiar métricas
 
 4. **DashboardController** con métricas de restaurante
-   - **Adaptar:** De "restaurante" a "tienda" genérica
-   - Cambiar terminología pero mantener funcionalidad
+    - **Adaptar:** De "restaurante" a "tienda" genérica
+    - Cambiar terminología pero mantener funcionalidad
 
 #### ✅ AGREGAR (Ecommerce General)
 
 1. **InventoryController** ⚠️ CRÍTICO
-   - Gestión de stock
-   - Alertas de stock bajo
-   - Ajustes de inventario
-   - Historial de movimientos
+    - Gestión de stock
+    - Alertas de stock bajo
+    - Ajustes de inventario
+    - Historial de movimientos
 
 2. **ProductVariantController** ⚠️ CRÍTICO
-   - Crear/editar variantes de productos
-   - Stock por variante
-   - Precios por variante
+    - Crear/editar variantes de productos
+    - Stock por variante
+    - Precios por variante
 
 3. **ShippingController** ⚠️ ALTO
-   - Configurar métodos de envío
-   - Zonas de envío
-   - Costos de envío
-   - Tiempos de entrega
+    - Configurar métodos de envío
+    - Zonas de envío
+    - Costos de envío
+    - Tiempos de entrega
 
 4. **TaxController** ⚠️ MEDIO
-   - Configurar tasas de impuestos
-   - Impuestos por región
-   - Exenciones fiscales
+    - Configurar tasas de impuestos
+    - Impuestos por región
+    - Exenciones fiscales
 
 5. **InvoiceController** ⚠️ ALTO
-   - Generar facturas
-   - Configurar datos fiscales
-   - Plantillas de factura
+    - Generar facturas
+    - Configurar datos fiscales
+    - Plantillas de factura
 
 6. **ReturnManagementController** ⚠️ ALTO
-   - Gestionar devoluciones
-   - Aprobar/rechazar devoluciones
-   - Procesar reembolsos
+    - Gestionar devoluciones
+    - Aprobar/rechazar devoluciones
+    - Procesar reembolsos
 
 7. **ProductAttributeController** ⚠️ MEDIO
-   - Gestionar atributos (color, talla, etc.)
-   - Atributos personalizados
+    - Gestionar atributos (color, talla, etc.)
+    - Atributos personalizados
 
 8. **CouponManagementController** mejorado
-   - Cupones por categoría
-   - Cupones por producto
-   - Cupones de envío gratis
+    - Cupones por categoría
+    - Cupones por producto
+    - Cupones de envío gratis
 
 9. **BulkOperationsController** ⚠️ MEDIO
-   - Operaciones masivas de productos
-   - Importar/exportar productos
-   - Actualizaciones masivas
+    - Operaciones masivas de productos
+    - Importar/exportar productos
+    - Actualizaciones masivas
 
 ---
 
@@ -3391,28 +3648,28 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 #### ❌ QUITAR/ADAPTAR (Específico de Delivery de Comida)
 
 1. **DeliveryController** con tracking en tiempo real
-   - **Adaptar:** De "delivery agent" a "courier" o "shipping provider"
-   - Cambiar modelo pero mantener funcionalidad
+    - **Adaptar:** De "delivery agent" a "courier" o "shipping provider"
+    - Cambiar modelo pero mantener funcionalidad
 
 2. **OrderController** con aceptación manual de órdenes
-   - **Evaluar:** ¿Mantener para delivery propio?
-   - **Alternativa:** Integración con couriers externos (FedEx, DHL, etc.)
+    - **Evaluar:** ¿Mantener para delivery propio?
+    - **Alternativa:** Integración con couriers externos (FedEx, DHL, etc.)
 
 3. Tracking de ubicación en tiempo real
-   - **Adaptar:** De tracking de agente → tracking de paquete
-   - Usar tracking numbers de couriers
+    - **Adaptar:** De tracking de agente → tracking de paquete
+    - Usar tracking numbers de couriers
 
 #### ✅ AGREGAR/ADAPTAR (Ecommerce General)
 
 1. **ShippingProviderController** (si hay delivery propio)
-   - Gestionar couriers propios
-   - Asignar envíos
-   - Tracking de envíos
+    - Gestionar couriers propios
+    - Asignar envíos
+    - Tracking de envíos
 
 2. **CourierIntegrationController** (si se integra con couriers externos)
-   - Integración con FedEx, DHL, UPS, etc.
-   - Sincronización de tracking
-   - Etiquetas de envío
+    - Integración con FedEx, DHL, UPS, etc.
+    - Sincronización de tracking
+    - Etiquetas de envío
 
 **Nota:** Si no hay delivery propio, este rol puede **eliminarse** o convertirse en integración con servicios externos.
 
@@ -3423,46 +3680,46 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 #### ❌ QUITAR/ADAPTAR (Específico de Delivery de Comida)
 
 1. **ReportController** con métricas de comida
-   - **Adaptar:** Métricas de restaurantes → métricas de tiendas
-   - Cambiar terminología
+    - **Adaptar:** Métricas de restaurantes → métricas de tiendas
+    - Cambiar terminología
 
 2. Gestión de delivery agents
-   - **Adaptar:** A gestión de shipping providers
-   - O eliminar si se usan couriers externos
+    - **Adaptar:** A gestión de shipping providers
+    - O eliminar si se usan couriers externos
 
 #### ✅ AGREGAR (Ecommerce General)
 
 1. **TaxManagementController** ⚠️ ALTO
-   - Gestionar tasas de impuestos globales
-   - Configuración fiscal
-   - Reglas de impuestos
+    - Gestionar tasas de impuestos globales
+    - Configuración fiscal
+    - Reglas de impuestos
 
 2. **ShippingManagementController** ⚠️ ALTO
-   - Gestionar métodos de envío globales
-   - Zonas de envío
-   - Integraciones con couriers
+    - Gestionar métodos de envío globales
+    - Zonas de envío
+    - Integraciones con couriers
 
 3. **CategoryManagementController** mejorado
-   - Jerarquía de categorías
-   - Atributos por categoría
-   - Filtros por categoría
+    - Jerarquía de categorías
+    - Atributos por categoría
+    - Filtros por categoría
 
 4. **AttributeManagementController** ⚠️ MEDIO
-   - Gestionar atributos globales
-   - Atributos reutilizables
+    - Gestionar atributos globales
+    - Atributos reutilizables
 
 5. **InvoiceTemplateController** ⚠️ MEDIO
-   - Plantillas de factura
-   - Personalización de facturas
+    - Plantillas de factura
+    - Personalización de facturas
 
 6. **ReturnPolicyController** ⚠️ MEDIO
-   - Políticas de devolución
-   - Tiempos de devolución
-   - Condiciones de devolución
+    - Políticas de devolución
+    - Tiempos de devolución
+    - Condiciones de devolución
 
 7. **CommissionController** (si hay marketplace)
-   - Comisiones por venta
-   - Pagos a vendedores
+    - Comisiones por venta
+    - Pagos a vendedores
 
 ---
 
@@ -3471,32 +3728,32 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 #### ❌ QUITAR/ADAPTAR
 
 1. **Posts y PostLikes** (Red Social)
-   - **Evaluar:** ¿Necesario para ecommerce?
-   - **Opcional:** Mantener solo si hay comunidad
+    - **Evaluar:** ¿Necesario para ecommerce?
+    - **Opcional:** Mantener solo si hay comunidad
 
 2. **Chat por Orden**
-   - **Adaptar:** A chat de soporte general
-   - O eliminar si no es necesario
+    - **Adaptar:** A chat de soporte general
+    - O eliminar si no es necesario
 
 3. **Tracking en tiempo real de delivery agents**
-   - **Adaptar:** A tracking de paquetes con couriers
+    - **Adaptar:** A tracking de paquetes con couriers
 
 #### ✅ AGREGAR
 
 1. **Sistema de Notificaciones mejorado**
-   - Notificaciones de stock bajo
-   - Notificaciones de precio
-   - Notificaciones de envío
+    - Notificaciones de stock bajo
+    - Notificaciones de precio
+    - Notificaciones de envío
 
 2. **Sistema de Búsqueda avanzada**
-   - Filtros por atributos
-   - Búsqueda por SKU
-   - Búsqueda por categoría
+    - Filtros por atributos
+    - Búsqueda por SKU
+    - Búsqueda por categoría
 
 3. **Sistema de Recomendaciones**
-   - Productos relacionados
-   - "Clientes que compraron X también compraron Y"
-   - Recomendaciones basadas en historial
+    - Productos relacionados
+    - "Clientes que compraron X también compraron Y"
+    - Recomendaciones basadas en historial
 
 ---
 
@@ -3505,45 +3762,54 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 #### 🔴 CRÍTICO - Implementar Primero
 
 **USERS:**
+
 - WishlistController
 - ReturnRequestController
 - InvoiceController
 
 **COMMERCE:**
+
 - InventoryController
 - ProductVariantController
 - ShippingController
 - ReturnManagementController
 
 **ADMIN:**
+
 - TaxManagementController
 - ShippingManagementController
 
 #### 🟡 ALTO - Implementar Después
 
 **USERS:**
+
 - ProductReviewController mejorado
 
 **COMMERCE:**
+
 - InvoiceController
 - CouponManagementController mejorado
 - ProductAttributeController
 
 **ADMIN:**
+
 - ReturnPolicyController
 - CategoryManagementController mejorado
 
 #### 🟢 MEDIO - Mejoras
 
 **USERS:**
+
 - ProductComparisonController
 - SubscriptionController (si aplica)
 
 **COMMERCE:**
+
 - BulkOperationsController
 - TaxController
 
 **ADMIN:**
+
 - AttributeManagementController
 - InvoiceTemplateController
 
@@ -3552,26 +3818,31 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 ### 🔄 PLAN DE MIGRACIÓN POR ROL
 
 #### Fase 1: Adaptar Terminología (1 semana)
+
 - Cambiar "Restaurant" → "Store"/"Vendor"
 - Cambiar "preparing" → "processing"
 - Adaptar métricas de comida a ecommerce
 
 #### Fase 2: Implementar Críticos USERS (2 semanas)
+
 - Wishlist
 - Devoluciones
 - Facturas
 
 #### Fase 3: Implementar Críticos COMMERCE (3 semanas)
+
 - Inventario
 - Variantes
 - Shipping
 - Devoluciones
 
 #### Fase 4: Implementar ADMIN (1 semana)
+
 - Gestión de impuestos
 - Gestión de shipping
 
 #### Fase 5: Mejoras y Optimizaciones (2 semanas)
+
 - Búsqueda avanzada
 - Recomendaciones
 - Atributos de productos
@@ -3583,42 +3854,54 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 ### ❌ DATOS/FLUJOS A QUITAR (Específicos de Delivery de Comida)
 
 #### 1. Delivery Agents Específicos
+
 **Actual:**
+
 - `DeliveryAgent` con ubicación en tiempo real
 - `OrderDelivery` con asignación de agentes
 - `DeliveryAssignmentService` con cálculo de distancia a agentes
 
 **Recomendación:**
+
 - **Quitar:** Lógica de asignación automática de delivery agents
 - **Mantener:** Estructura de `OrderDelivery` pero adaptarla a shipping genérico
 - **Cambiar:** `DeliveryAgent` → `ShippingProvider` o `CourierService`
 
 #### 2. Flujos de Preparación de Comida
+
 **Actual:**
+
 - Estados `preparing` (específico de restaurantes)
 - Validación de pago con comprobante (típico de comida)
 - Horarios de comercio (`schedule` en Commerce)
 
 **Recomendación:**
+
 - **Quitar:** Estado `preparing` (reemplazar por `processing` genérico)
 - **Adaptar:** Validación de pago a pagos online automáticos
 - **Mantener:** Horarios pero como "horarios de atención" genéricos
 
 #### 3. OSRM para Delivery de Comida
+
 **Actual:**
+
 - Cálculo de distancia en tiempo real para delivery agents
 - Rutas optimizadas para repartidores
 
 **Recomendación:**
+
 - **Mantener:** OSRM pero para cálculo de costos de envío
 - **Adaptar:** De cálculo de ruta de delivery → cálculo de shipping cost
 
 #### 4. Posts Sociales (Red Social)
+
 **Actual:**
+
 - `Post` y `PostLike` (funcionalidad de red social)
 - Favoritos de posts
 
 **Recomendación:**
+
 - **Evaluar:** Si es necesario para ecommerce general
 - **Opcional:** Mantener solo si hay comunidad de productos
 
@@ -3627,11 +3910,14 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 ### ✅ DATOS/FLUJOS A AGREGAR (Ecommerce General)
 
 #### 1. Gestión de Inventario/Stock ⚠️ CRÍTICO
+
 **Actual:**
+
 - Product solo tiene `available` (boolean)
 - No hay control de cantidad
 
 **Agregar:**
+
 ```php
 // En Product model
 'stock_quantity' => 'integer',        // Cantidad disponible
@@ -3642,16 +3928,20 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 ```
 
 **Lógica:**
+
 - Validar stock al agregar al carrito
 - Descontar stock al crear orden
 - Restaurar stock al cancelar orden
 - Alertas de stock bajo
 
 #### 2. Variantes de Productos ⚠️ CRÍTICO
+
 **Actual:**
+
 - Product es simple, sin variantes
 
 **Agregar:**
+
 ```php
 // Nueva tabla: product_variants
 - product_id
@@ -3663,15 +3953,19 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 ```
 
 **Lógica:**
+
 - Product puede tener múltiples variantes
 - Carrito con variantes específicas
 - Stock por variante
 
 #### 3. Wishlist de Productos ⚠️ ALTO
+
 **Actual:**
+
 - Solo favoritos de posts (red social)
 
 **Agregar:**
+
 ```php
 // Nueva tabla: wishlists
 - user_id
@@ -3680,15 +3974,19 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 ```
 
 **Lógica:**
+
 - Agregar/quitar productos de wishlist
 - Notificar cuando producto vuelve a stock
 - Notificar cuando producto baja de precio
 
 #### 4. Gestión de Devoluciones/Reembolsos ⚠️ ALTO
+
 **Actual:**
+
 - Existe ruta `/refund` pero no revisada completamente
 
 **Agregar:**
+
 ```php
 // Nueva tabla: returns
 - order_id
@@ -3700,16 +3998,20 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 ```
 
 **Lógica:**
+
 - Solicitud de devolución por usuario
 - Aprobación/rechazo por comercio
 - Reembolso automático o manual
 - Restaurar stock al aprobar devolución
 
 #### 5. Facturación ⚠️ ALTO
+
 **Actual:**
+
 - No hay sistema de facturación
 
 **Agregar:**
+
 ```php
 // Nueva tabla: invoices
 - order_id
@@ -3725,16 +4027,20 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 ```
 
 **Lógica:**
+
 - Generar factura automática al pagar
 - PDF descargable
 - Numeración secuencial
 - Datos fiscales del comercio
 
 #### 6. Impuestos ⚠️ MEDIO
+
 **Actual:**
+
 - No hay cálculo de impuestos
 
 **Agregar:**
+
 ```php
 // Nueva tabla: tax_rates
 - name
@@ -3746,15 +4052,19 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 ```
 
 **Lógica:**
+
 - Calcular impuestos según ubicación
 - Aplicar diferentes tasas por región
 - Mostrar impuestos desglosados
 
 #### 7. Gestión de Envíos (Shipping) ⚠️ ALTO
+
 **Actual:**
+
 - `OrderDelivery` muy específico de delivery agents
 
 **Agregar:**
+
 ```php
 // Adaptar OrderDelivery o crear Shipping
 - order_id
@@ -3768,16 +4078,20 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 ```
 
 **Lógica:**
+
 - Múltiples métodos de envío
 - Cálculo de costo según peso/volumen/distancia
 - Tracking de envíos
 - Integración con couriers
 
 #### 8. Atributos de Productos ⚠️ MEDIO
+
 **Actual:**
+
 - Product sin atributos estructurados
 
 **Agregar:**
+
 ```php
 // Nueva tabla: product_attributes
 - product_id
@@ -3786,12 +4100,15 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 ```
 
 **Lógica:**
+
 - Filtros por atributos
 - Búsqueda avanzada
 - Comparación de productos
 
 #### 9. Historial de Búsquedas ⚠️ BAJO
+
 **Agregar:**
+
 ```php
 // Nueva tabla: search_history
 - user_id
@@ -3801,22 +4118,28 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 ```
 
 **Lógica:**
+
 - Guardar búsquedas del usuario
 - Sugerencias basadas en historial
 - Analytics de búsquedas
 
 #### 10. Recomendaciones de Productos ⚠️ BAJO
+
 **Agregar:**
+
 - Productos relacionados
 - "Clientes que compraron X también compraron Y"
 - Recomendaciones basadas en historial
 - Productos vistos recientemente
 
 #### 11. Cupones Mejorados (Ya existe pero mejorar)
+
 **Actual:**
+
 - `Coupon` existe pero puede mejorarse
 
 **Mejorar:**
+
 - Cupones por categoría
 - Cupones por producto específico
 - Cupones de envío gratis
@@ -3824,26 +4147,35 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 - Límite de uso por usuario
 
 #### 12. Múltiples Direcciones de Envío ⚠️ MEDIO
+
 **Actual:**
+
 - `Address` existe pero no está claro si se usa para envío
 
 **Mejorar:**
+
 - Marcar dirección como "default"
 - Direcciones de facturación separadas
 - Guardar múltiples direcciones por usuario
 
 #### 13. Carrito Persistente (Ya implementado ✅)
+
 **Actual:**
+
 - Carrito en base de datos (migrado de Session)
 
 **Mantener:**
+
 - ✅ Ya está implementado correctamente
 
 #### 14. Reviews Mejorados (Ya existe pero mejorar)
+
 **Actual:**
+
 - `Review` existe con rating y comentario
 
 **Mejorar:**
+
 - Fotos en reviews
 - Verificación de compra (solo compradores pueden review)
 - Helpful votes en reviews
@@ -3854,22 +4186,26 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 ### 📋 RESUMEN: PRIORIDADES PARA ECOMMERCE
 
 #### 🔴 CRÍTICO (Implementar primero)
+
 1. ✅ **Gestión de Inventario/Stock** - Sin esto no es ecommerce viable
 2. ✅ **Variantes de Productos** - Necesario para productos con opciones
 3. ✅ **Facturación** - Requisito legal en muchos países
 4. ✅ **Gestión de Devoluciones** - Necesario para confianza del cliente
 
 #### 🟡 ALTO (Implementar después)
+
 5. ✅ **Wishlist de Productos** - Mejora experiencia de usuario
 6. ✅ **Gestión de Envíos (Shipping)** - Adaptar OrderDelivery actual
 7. ✅ **Impuestos** - Necesario para ventas internacionales
 
 #### 🟢 MEDIO (Mejoras)
+
 8. ✅ **Atributos de Productos** - Para búsqueda avanzada
 9. ✅ **Múltiples Direcciones** - Mejora UX
 10. ✅ **Cupones Mejorados** - Ya existe, solo mejorar
 
 #### 🔵 BAJO (Opcional)
+
 11. ✅ **Historial de Búsquedas** - Nice to have
 12. ✅ **Recomendaciones** - Mejora conversión
 13. ✅ **Reviews Mejorados** - Ya existe, solo mejorar
@@ -3879,23 +4215,27 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 ### 🔄 PLAN DE MIGRACIÓN
 
 #### Fase 1: Quitar/Adaptar (1-2 semanas)
+
 1. Adaptar `DeliveryAgent` → `ShippingProvider` (opcional, mantener si hay delivery propio)
 2. Cambiar estado `preparing` → `processing`
 3. Adaptar `OrderDelivery` para shipping genérico
 4. Evaluar si mantener Posts sociales
 
 #### Fase 2: Agregar Críticos (3-4 semanas)
+
 1. Implementar gestión de stock
 2. Implementar variantes de productos
 3. Implementar facturación
 4. Implementar devoluciones
 
 #### Fase 3: Agregar Altos (2-3 semanas)
+
 1. Wishlist de productos
 2. Shipping mejorado
 3. Impuestos
 
 #### Fase 4: Mejoras (1-2 semanas)
+
 1. Atributos de productos
 2. Múltiples direcciones
 3. Cupones mejorados
@@ -3909,43 +4249,44 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 **Problemas Críticos Corregidos:**
 
 1. ✅ **Buyer/OrderController::store()** - Completamente refactorizado
-   - ✅ Validación de stock/disponibilidad de productos
-   - ✅ Transacciones DB en creación de orden
-   - ✅ Eliminado código de testing mezclado con producción
-   - ✅ Eliminado código de debug (logs innecesarios)
-   - ✅ Validación de precio recalculado (protege contra manipulación)
-   - ✅ Validación de datos mínimos de perfil (firstName, lastName, phone, address si delivery)
-   - ✅ Validación de commerce activo
-   - ✅ Validación de mismo commerce para todos los productos
-   - ✅ Limpieza automática de carrito al crear orden
-   - ✅ Eventos activados (OrderCreated)
+    - ✅ Validación de stock/disponibilidad de productos
+    - ✅ Transacciones DB en creación de orden
+    - ✅ Eliminado código de testing mezclado con producción
+    - ✅ Eliminado código de debug (logs innecesarios)
+    - ✅ Validación de precio recalculado (protege contra manipulación)
+    - ✅ Validación de datos mínimos de perfil (firstName, lastName, phone, address si delivery)
+    - ✅ Validación de commerce activo
+    - ✅ Validación de mismo commerce para todos los productos
+    - ✅ Limpieza automática de carrito al crear orden
+    - ✅ Eventos activados (OrderCreated)
 
 2. ✅ **CartService** - Validaciones mejoradas
-   - ✅ Validación de mismo commerce (limpia carrito si es diferente)
-   - ✅ Validación de producto disponible (`available = true`)
-   - ✅ Validación de commerce activo (`open = true`)
-   - ✅ Validación de cantidad máxima (1-100)
-   - ✅ Limpieza automática de productos no disponibles en `formatCartResponse()`
+    - ✅ Validación de mismo commerce (limpia carrito si es diferente)
+    - ✅ Validación de producto disponible (`available = true`)
+    - ✅ Validación de commerce activo (`open = true`)
+    - ✅ Validación de cantidad máxima (1-100)
+    - ✅ Limpieza automática de productos no disponibles en `formatCartResponse()`
 
 3. ✅ **Estados de Orden Unificados**
-   - ✅ `preparing` → `processing` (en todos los controladores)
-   - ✅ `on_way` → `shipped` (en todos los controladores)
-   - ✅ Transiciones validadas en `Commerce/OrderController::updateStatus()`
-   - ✅ Estados actualizados en: AnalyticsController, CommerceAnalyticsController, DashboardController, DeliveryController, PaymentController, LocationController, AdminOrderController
+    - ✅ `preparing` → `processing` (en todos los controladores)
+    - ✅ `on_way` → `shipped` (en todos los controladores)
+    - ✅ Transiciones validadas en `Commerce/OrderController::updateStatus()`
+    - ✅ Estados actualizados en: AnalyticsController, CommerceAnalyticsController, DashboardController, DeliveryController, PaymentController, LocationController, AdminOrderController
 
 4. ✅ **Eventos Activados**
-   - ✅ `OrderCreated` - Se emite al crear orden
-   - ✅ `OrderStatusChanged` - Se emite al cambiar estado
-   - ✅ `PaymentValidated` - Se emite al validar/rechazar pago
+    - ✅ `OrderCreated` - Se emite al crear orden
+    - ✅ `OrderStatusChanged` - Se emite al cambiar estado
+    - ✅ `PaymentValidated` - Se emite al validar/rechazar pago
 
 5. ✅ **Validaciones de Negocio Implementadas**
-   - ✅ Carrito solo permite productos del mismo commerce
-   - ✅ Precio se recalcula y valida (no confía en frontend)
-   - ✅ Solo se valida `available` (stock completo para post-MVP)
-   - ✅ Datos mínimos de perfil requeridos para crear orden
-   - ✅ Cancelación solo permitida en `pending_payment` (comprador)
+    - ✅ Carrito solo permite productos del mismo commerce
+    - ✅ Precio se recalcula y valida (no confía en frontend)
+    - ✅ Solo se valida `available` (stock completo para post-MVP)
+    - ✅ Datos mínimos de perfil requeridos para crear orden
+    - ✅ Cancelación solo permitida en `pending_payment` (comprador)
 
 **Archivos Modificados:**
+
 - `app/Http/Controllers/Buyer/OrderController.php`
 - `app/Services/CartService.php`
 - `app/Services/OrderService.php`
@@ -3964,6 +4305,7 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 ## ✅ Correcciones Recientes (Enero 2025)
 
 ### Errores Críticos Corregidos:
+
 - ✅ **AnalyticsController:** Valores hardcoded reemplazados por cálculos reales (average_preparation_time, order_acceptance_rate)
 - ✅ **AnalyticsController:** Método `getDeliveryTimes()` completamente implementado con distribución
 - ✅ **DeliveryController:** Integración OSRM para cálculo real de distancia y tiempo de rutas
@@ -3973,9 +4315,11 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 - ✅ **Tests:** Tests de Analytics, Order, Delivery, Review y broadcasting actualizados y pasando
 
 ### Roles del Sistema:
+
 Solo existen **4 roles válidos**:
+
 - **users** (Level 0): Cliente/Comprador
-- **commerce** (Level 1): Comercio/Restaurante  
+- **commerce** (Level 1): Comercio/Restaurante
 - **delivery** (Level 2): Repartidor/Delivery
 - **admin** (Level 3): Administrador
 
