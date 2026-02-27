@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Address;
+use App\Models\BusinessType;
 
 class Commerce extends Model
 {
@@ -12,6 +14,7 @@ class Commerce extends Model
     protected $fillable = [
         'profile_id',
         'is_primary',
+        'business_type_id',
         'business_name',
         'business_type',
         'tax_id',
@@ -110,5 +113,22 @@ class Commerce extends Model
     public function categories()
     {
         return $this->hasManyThrough(Category::class, Product::class);
+    }
+
+    /**
+     * Dirección(es) del establecimiento (tabla addresses, role = commerce)
+     */
+    public function addresses()
+    {
+        return $this->hasMany(Address::class, 'commerce_id')
+            ->where('role', 'commerce');
+    }
+
+    /**
+     * Tipo de negocio (tabla business_types)
+     */
+    public function businessTypeRelation()
+    {
+        return $this->belongsTo(BusinessType::class, 'business_type_id');
     }
 }

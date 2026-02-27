@@ -114,6 +114,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/restaurants', [App\Http\Controllers\Buyer\SearchController::class, 'searchRestaurants']);
         Route::get('/products', [App\Http\Controllers\Buyer\SearchController::class, 'searchProducts']);
         Route::get('/categories', [App\Http\Controllers\Buyer\SearchController::class, 'getCategories']);
+        Route::get('/business-types', function () {
+            return response()->json([
+                'success' => true,
+                'data' => \App\Models\BusinessType::select('id', 'name', 'icon', 'description')->orderBy('name')->get(),
+            ]);
+        });
         Route::get('/suggestions', [App\Http\Controllers\Buyer\SearchController::class, 'getSearchSuggestions']);
     });
 

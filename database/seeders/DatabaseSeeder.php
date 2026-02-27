@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             StatesSeeder::class,
             CitiesSeeder::class,
             CategorySeeder::class,
+            BusinessTypeSeeder::class,
             
             // Seeders de usuarios y perfiles
             UserSeeder::class,
