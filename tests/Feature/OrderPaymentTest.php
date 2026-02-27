@@ -148,6 +148,7 @@ class OrderPaymentTest extends TestCase
             'profile_id' => $this->user->profile->id,
             'commerce_id' => $this->commerce->id,
             'status' => 'pending_payment',
+            'approved_for_payment' => true,
         ]);
 
         $file = UploadedFile::fake()->image('payment_proof.jpg');
@@ -204,6 +205,7 @@ class OrderPaymentTest extends TestCase
             'commerce_id' => $commerce->id,
             'status' => 'pending_payment',
             'payment_proof' => 'payment_proofs/test.jpg',
+            'approved_for_payment' => true,
         ]);
 
         $validationData = [
@@ -235,6 +237,7 @@ class OrderPaymentTest extends TestCase
             'commerce_id' => $commerce->id,
             'status' => 'pending_payment',
             'payment_proof' => 'payment_proofs/test.jpg',
+            'approved_for_payment' => true,
         ]);
 
         $validationData = [

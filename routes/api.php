@@ -320,6 +320,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/orders', [CommerceOrderController::class, 'index']);
         Route::put('/orders/{id}/status', [CommerceOrderController::class, 'updateStatus']);
         Route::post('/orders/{id}/validate-payment', [CommerceOrderController::class, 'validatePayment']);
+        Route::post('/orders/{id}/approve-for-payment', [CommerceOrderController::class, 'approveForPayment']);
         Route::post('/delivery/request', [DeliveryRequestController::class, 'store']);
         Route::post('commerce/orders/{id}/validar-comprobante', [\App\Http\Controllers\Commerce\OrderController::class, 'validarComprobante']);
         Route::put('promotions/{id}/toggle', [\App\Http\Controllers\Commerce\CommercePromotionController::class, 'toggle']);
