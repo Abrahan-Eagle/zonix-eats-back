@@ -191,7 +191,14 @@ class MultiRoleSimulationTest extends TestCase
             'total' => $total
         ]);
 
-        // 1.6 Buyer sube comprobante de pago
+        // 1.6 Commerce aprueba la orden para pago
+        Sanctum::actingAs($this->commerceUser);
+        $approveResponse = $this->postJson("/api/commerce/orders/{$orderId}/approve-for-payment");
+        $approveResponse->assertStatus(200)
+            ->assertJson(['success' => true]);
+
+        // 1.7 Buyer sube comprobante de pago
+        Sanctum::actingAs($this->buyer);
         $paymentProof = UploadedFile::fake()->image('payment_proof.jpg');
         $paymentResponse = $this->postJson("/api/buyer/orders/{$orderId}/payment-proof", [
             'payment_proof' => $paymentProof,

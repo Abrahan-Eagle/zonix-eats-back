@@ -88,7 +88,7 @@ class OrderController extends Controller
             }
 
             $request->validate([
-                'status' => 'required|in:pending_payment,paid,processing,shipped,delivered,cancelled'
+                'status' => 'required|in:paid,processing,shipped,delivered,cancelled'
             ]);
 
             // Validar transiciones de estado
@@ -156,6 +156,22 @@ class OrderController extends Controller
                 ], 403);
             }
 
+            // Solo se puede validar pago si la orden está pendiente de pago
+            if ($order->status !== 'pending_payment') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solo se puede validar el pago de órdenes pendientes de pago'
+                ], 400);
+            }
+
+            // Requiere que el comercio haya aprobado previamente la orden para pago
+            if (!$order->approved_for_payment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Debes aprobar la orden para pago antes de validar el comprobante'
+                ], 400);
+            }
+
             if ($validated['is_valid']) {
                 $order->update([
                     'status' => 'paid',
@@ -204,5 +220,68 @@ class OrderController extends Controller
     public function validarComprobante(Request $request, $id)
     {
         return $this->validatePayment($request, $id);
+    }
+
+    /**
+     * Aprobar una orden para que el comprador pueda proceder al pago.
+     *
+     * Reglas:
+     * - Solo el comercio dueño de la orden puede aprobar.
+     * - La orden debe estar en estado pending_payment.
+     * - No debe tener comprobante de pago aún.
+     */
+    public function approveForPayment($id)
+    {
+        try {
+            $order = Order::findOrFail($id);
+            $user = Auth::user()->load('profile.commerces');
+            $profile = $user->profile;
+
+            if (!$profile || !$profile->commerces()->where('id', $order->commerce_id)->exists()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autorizado para aprobar esta orden'
+                ], 403);
+            }
+
+            if ($order->status !== 'pending_payment') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solo se pueden aprobar órdenes pendientes de pago'
+                ], 400);
+            }
+
+            if ($order->approved_for_payment) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'La orden ya estaba aprobada para pago'
+                ]);
+            }
+
+            if ($order->payment_proof) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La orden ya tiene comprobante de pago, no se puede cambiar la aprobación'
+                ], 400);
+            }
+
+            $order->update([
+                'approved_for_payment' => true,
+            ]);
+
+            event(new OrderStatusChanged($order));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Orden aprobada para pago',
+                'order' => $order
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error al aprobar orden para pago: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al aprobar orden para pago: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

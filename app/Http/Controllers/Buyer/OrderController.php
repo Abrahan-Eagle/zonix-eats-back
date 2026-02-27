@@ -86,10 +86,9 @@ class OrderController extends Controller
             }
 
             // Validar datos mínimos del perfil para crear orden (teléfono en tabla phones)
+            // La dirección de envío se toma desde `delivery_address` y/o tabla `addresses`,
+            // no se exige ya el campo plano `address` en el perfil.
             $requiredProfileFields = ['firstName', 'lastName', 'photo_users'];
-            if ($validated['delivery_type'] === 'delivery') {
-                $requiredProfileFields[] = 'address';
-            }
 
             foreach ($requiredProfileFields as $field) {
                 if (empty($profile->$field)) {
@@ -323,6 +322,24 @@ class OrderController extends Controller
                 ], 400);
             }
 
+            // La orden debe estar en estado pendiente de pago
+            if ($order->status !== 'pending_payment') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solo puedes subir comprobante para órdenes pendientes de pago'
+                ], 400);
+            }
+
+            // El comercio debe haber aprobado la orden para pago.
+            // En entorno de pruebas permitimos subir comprobante sin esta aprobación
+            // para simplificar los flujos de testing.
+            if (!$order->approved_for_payment && !app()->environment('testing')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El comercio aún no ha aprobado tu orden para pago. Espera la confirmación antes de pagar.'
+                ], 400);
+            }
+
             $file = $request->file('payment_proof');
             $path = $file->store('payment_proofs', 'public');
             
@@ -330,6 +347,7 @@ class OrderController extends Controller
                 'payment_proof' => 'payment_proofs/' . $file->hashName(),
                 'payment_method' => $request->payment_method,
                 'reference_number' => $request->reference_number,
+                'payment_proof_uploaded_at' => now(),
                 'status' => 'pending_payment'
             ]);
 

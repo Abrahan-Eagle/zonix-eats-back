@@ -14,6 +14,7 @@ class Order extends Model
         'commerce_id',
         'delivery_type',
         'status',
+        'approved_for_payment',
         'total',
         'delivery_fee',
         'delivery_payment_amount',
@@ -39,6 +40,7 @@ class Order extends Model
         'commission_amount' => 'decimal:2',
         'cancellation_penalty' => 'decimal:2',
         'estimated_delivery_time' => 'integer',
+        'approved_for_payment' => 'boolean',
         'payment_validated_at' => 'datetime',
         'payment_proof_uploaded_at' => 'datetime'
     ];

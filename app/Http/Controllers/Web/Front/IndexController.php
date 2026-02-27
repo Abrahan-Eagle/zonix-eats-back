@@ -13,8 +13,11 @@ class IndexController extends Controller
      */
     public function index()
     {
-        \App\Helpers\SeoHelper::setTitle('Delivery de Comida en Venezuela | Restaurantes, Farmacias y Más');
-        \App\Helpers\SeoHelper::setDescription('Pide comida de tus restaurantes favoritos en Venezuela. Entregas en 15 min, ofertas exclusivas y rastreo en vivo. ¡Descarga la App Zonix Eats y disfruta!');
+        \App\Helpers\SeoHelper::setTitle('Tu comida favorita en minutos');
+        \App\Helpers\SeoHelper::setDescription(
+            'Pide comida a domicilio de tus restaurantes favoritos en Caracas, Maracaibo, Valencia y más. ' .
+            'Los mejores precios y delivery rápido con Zonix EATS.'
+        );
 
         $schema = [
             'app' => \App\Helpers\SeoHelper::generateAppSchema(),
