@@ -65,8 +65,8 @@ class UserController extends Controller
         // Obtener actividad del usuario (órdenes, logins, etc.)
         $activity = [
             'orders' => $user->orders()->orderBy('created_at', 'desc')->limit(10)->get(),
-            'recent_logins' => [], // TODO: Implementar si hay tabla de logins
-            'profile_updates' => [], // TODO: Implementar si hay auditoría
+            'recent_logins' => $user->tokens()->orderBy('last_used_at', 'desc')->limit(5)->get(['id', 'name', 'last_used_at', 'created_at']),
+            'profile_updates' => $user->profile ? [$user->profile->only(['updated_at'])] : [],
         ];
         
         return response()->json($activity);

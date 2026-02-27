@@ -9,6 +9,7 @@ use App\Models\Profile;
 use App\Services\FirebaseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\BlockedUser;
 use Illuminate\Support\Facades\Log;
 
 class ChatController extends Controller
@@ -419,14 +420,12 @@ class ChatController extends Controller
                 'user_id' => 'required|exists:users,id',
             ]);
 
-            // TODO: Implementar sistema de bloqueo si es necesario
-            // Por ahora solo retornamos éxito
-            Log::info('User blocked', [
+            BlockedUser::firstOrCreate([
                 'blocker_id' => Auth::id(),
-                'blocked_user_id' => $request->user_id
+                'blocked_id' => $request->user_id,
             ]);
 
-            return response()->json(['blocked' => true]);
+            return response()->json(['success' => true, 'blocked' => true]);
         } catch (\Exception $e) {
             Log::error('Error blocking user: ' . $e->getMessage());
             return response()->json([
@@ -442,13 +441,11 @@ class ChatController extends Controller
     public function unblockUser($userId)
     {
         try {
-            // TODO: Implementar sistema de bloqueo si es necesario
-            Log::info('User unblocked', [
-                'unblocker_id' => Auth::id(),
-                'unblocked_user_id' => $userId
-            ]);
+            BlockedUser::where('blocker_id', Auth::id())
+                ->where('blocked_id', $userId)
+                ->delete();
 
-            return response()->json(['unblocked' => true]);
+            return response()->json(['success' => true, 'unblocked' => true]);
         } catch (\Exception $e) {
             Log::error('Error unblocking user: ' . $e->getMessage());
             return response()->json([
@@ -464,9 +461,11 @@ class ChatController extends Controller
     public function getBlockedUsers()
     {
         try {
-            // TODO: Implementar sistema de bloqueo si es necesario
-            // Por ahora retornamos lista vacía
-            return response()->json([]);
+            $blocked = BlockedUser::where('blocker_id', Auth::id())
+                ->with('blocked')
+                ->get();
+
+            return response()->json(['success' => true, 'data' => $blocked]);
         } catch (\Exception $e) {
             Log::error('Error getting blocked users: ' . $e->getMessage());
             return response()->json([

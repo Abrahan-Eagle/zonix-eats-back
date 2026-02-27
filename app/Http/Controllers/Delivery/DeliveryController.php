@@ -11,6 +11,7 @@ use App\Models\Review;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Models\Dispute;
 use Illuminate\Support\Facades\Http;
 
 class DeliveryController extends Controller
@@ -262,13 +263,20 @@ class DeliveryController extends Controller
             ]);
 
             $order = Order::findOrFail($orderId);
-            
-            // TODO: Create support ticket or issue record
-            Log::info('Delivery issue reported', [
+
+            $user = Auth::user();
+            $profile = $user->profile;
+            $deliveryAgent = $profile ? $profile->deliveryAgent : null;
+
+            Dispute::create([
                 'order_id' => $orderId,
-                'issue' => $request->issue,
+                'reported_by_type' => 'App\\Models\\DeliveryAgent',
+                'reported_by_id' => $deliveryAgent?->id ?? 0,
+                'reported_against_type' => 'App\\Models\\Commerce',
+                'reported_against_id' => $order->commerce_id,
+                'type' => $request->issue,
                 'description' => $request->description,
-                'delivery_agent_id' => Auth::user()->profile->deliveryAgent->id ?? null
+                'status' => 'open',
             ]);
 
             return response()->json([

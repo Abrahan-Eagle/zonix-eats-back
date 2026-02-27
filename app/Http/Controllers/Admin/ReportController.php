@@ -108,11 +108,13 @@ class ReportController extends Controller
 
     public function getSecurityLogs(Request $request)
     {
-        // Por ahora retornar estructura básica
-        // TODO: Implementar tabla de security_logs si es necesario
+        $perPage = $request->get('per_page', 20);
+        $logs = [];
+
         return response()->json([
-            'message' => 'Security logs endpoint',
-            'logs' => []
+            'success' => true,
+            'data' => $logs,
+            'message' => 'Security logs - implementar con paquete de logging dedicado',
         ]);
     }
 
