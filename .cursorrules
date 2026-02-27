@@ -67,6 +67,14 @@ return response()->json([
 - Uploads: max 5MB, solo tipos permitidos
 - SIEMPRE paginar listados
 
+### Skills de dominio recomendadas
+
+- **zonix-api-patterns**: para crear o modificar endpoints, controladores, rutas y middleware (`routes/api.php`, `app/Http/Controllers`, `app/Http/Middleware`).
+- **zonix-order-lifecycle**: para cualquier cambio en órdenes, estados, cancelaciones o reglas de flujo de pedido.
+- **zonix-delivery-system**: para lógica de geolocalización, Haversine, OSRM, zonas de entrega y tracking de delivery.
+- **zonix-realtime-events**: para eventos broadcast, Pusher, FCM, canales y notificaciones en tiempo real.
+- **zonix-payments**: para comisiones, delivery_fee, totales y reglas de negocio de pagos.
+
 ### Tests
 ```bash
 php artisan test                      # Todos (206+)
