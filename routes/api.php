@@ -33,10 +33,12 @@ use App\Http\Controllers\Chat\ChatController;
 // Broadcasting auth route (for Laravel Broadcasting) - requiere autenticación
 Route::post('/broadcasting/auth', [BroadcastingController::class, 'authenticate'])->middleware('auth:sanctum');
 
-// Rutas públicas para órdenes (sin autenticación para tests)
-Route::get('/orders', [BuyerOrderController::class, 'index']);
-Route::post('/orders', [BuyerOrderController::class, 'store'])->middleware('throttle:create');
-Route::get('/buyer/orders/{id}', [\App\Http\Controllers\Buyer\OrderController::class, 'show']);
+// Rutas de órdenes protegidas
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/orders', [BuyerOrderController::class, 'index']);
+    Route::post('/orders', [BuyerOrderController::class, 'store'])->middleware('throttle:create');
+    Route::get('/buyer/orders/{id}', [\App\Http\Controllers\Buyer\OrderController::class, 'show']);
+});
 
 Route::prefix('auth')->middleware('throttle:auth')->group(function () {
     Route::post('/google', [AuthController::class, 'googleUser']);
@@ -309,6 +311,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/reviews/{reviewId}', [\App\Http\Controllers\ReviewController::class, 'update']);
         Route::delete('/reviews/{reviewId}', [\App\Http\Controllers\ReviewController::class, 'destroy']);
         Route::get('/reviews/{reviewableId}/{reviewableType}/can-review', [\App\Http\Controllers\ReviewController::class, 'canReview']);
+
+        // Disputas/Quejas del comprador
+        Route::get('/disputes', [\App\Http\Controllers\Buyer\DisputeController::class, 'index']);
+        Route::post('/disputes', [\App\Http\Controllers\Buyer\DisputeController::class, 'store']);
+        Route::get('/disputes/{id}', [\App\Http\Controllers\Buyer\DisputeController::class, 'show']);
     });
 
     // Commerce
@@ -411,10 +418,21 @@ Route::middleware('auth:sanctum')->group(function () {
         // Reports
         Route::get('/reports', [AdminReportController::class, 'index']);
         
+        // Disputas (admin)
+        Route::get('/disputes', [\App\Http\Controllers\Admin\DisputeController::class, 'index']);
+        Route::get('/disputes/stats', [\App\Http\Controllers\Admin\DisputeController::class, 'stats']);
+        Route::get('/disputes/{id}', [\App\Http\Controllers\Admin\DisputeController::class, 'show']);
+        Route::post('/disputes/{id}/resolve', [\App\Http\Controllers\Admin\DisputeController::class, 'resolve']);
+
         // Orders & Commerces
         Route::get('/commerces', [\App\Http\Controllers\Admin\AdminOrderController::class, 'commerces']);
         Route::get('/orders', [\App\Http\Controllers\Admin\AdminOrderController::class, 'index']);
         Route::patch('/orders/{id}/status', [\App\Http\Controllers\Admin\AdminOrderController::class, 'updateStatus']);
+
+        // Disputas/Quejas (gestión admin)
+        Route::get('/disputes', [\App\Http\Controllers\Admin\DisputeController::class, 'index']);
+        Route::get('/disputes/{id}', [\App\Http\Controllers\Admin\DisputeController::class, 'show']);
+        Route::post('/disputes/{id}/resolve', [\App\Http\Controllers\Admin\DisputeController::class, 'resolve']);
     });
 
     // Payment routes
@@ -475,27 +493,23 @@ Route::middleware('auth:sanctum')->group(function () {
 // Endpoint público para listar bancos activos
 Route::get('/banks', [\App\Http\Controllers\BankController::class, 'index']);
 
-// Ruta pública para pruebas
+// Health check público
 Route::get('/ping', fn() => response()->json(['message' => 'API funcionando']));
 
-// Ruta de prueba para productos sin autenticación
-Route::get('/test/products', function() {
-    $products = \App\Models\Product::where('disponible', true)->get();
-    return response()->json($products);
+// Rutas de prueba protegidas (solo en desarrollo)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/test/products', function () {
+        $products = \App\Models\Product::where('disponible', true)->get();
+        return response()->json($products);
+    });
+    Route::get('/test/auth', function () {
+        $user = Auth::user();
+        return response()->json([
+            'authenticated' => true,
+            'user_id' => $user->id,
+            'user_role' => $user->role,
+            'user_email' => $user->email,
+            'token_valid' => true,
+        ]);
+    });
 });
-
-// Ruta de prueba para verificar autenticación y rol
-Route::get('/test/auth', function() {
-    if (!Auth::check()) {
-        return response()->json(['error' => 'No autenticado'], 401);
-    }
-    
-    $user = Auth::user();
-    return response()->json([
-        'authenticated' => true,
-        'user_id' => $user->id,
-        'user_role' => $user->role,
-        'user_email' => $user->email,
-        'token_valid' => true
-    ]);
-})->middleware('auth:sanctum');

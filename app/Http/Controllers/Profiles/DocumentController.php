@@ -65,26 +65,6 @@ class DocumentController extends Controller
         return response()->json(['message' => 'Document created successfully', 'document' => $document], 201);
     }
 
-    // public function show($id)
-    // {
-
-    //     // Log::info('Valor de $id recibido en show:', ['id' => $id]);
-
-    //     $profile = Profile::where('user_id', $id)->firstOrFail();
-
-    //     $document = Document::with('profile')
-    //         ->where('profile_id', $profile->id)
-    //         // ->where('status', true)
-    //         ->get();
-
-    //     if ($document->isEmpty()) {
-    //         return response()->json(['message' => 'Document not found'], 404);
-    //     }
-
-    //     return response()->json($document);
-    // }
-
-
     public function show($id)
         {
             $profile = Profile::where('user_id', $id)->firstOrFail();
