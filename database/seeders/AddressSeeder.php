@@ -66,16 +66,7 @@ class AddressSeeder extends Seeder
                 ]);
             }
 
-            if ($isCommerce && $zone && rand(0, 1)) {
-                Address::factory()->create([
-                    'profile_id' => $profile->id,
-                    'city_id' => $cityId,
-                    'street' => $zone['street'] . ' - Local',
-                    'latitude' => $zone['lat'],
-                    'longitude' => $zone['lng'],
-                    'is_default' => false,
-                ]);
-            } elseif (!$isCommerce && rand(0, 1)) {
+            if (!$isCommerce && rand(0, 1)) {
                 Address::factory()->create([
                     'profile_id' => $profile->id,
                     'is_default' => false,
@@ -83,6 +74,29 @@ class AddressSeeder extends Seeder
             }
         }
 
-        $this->command->info('AddressSeeder ejecutado: direcciones Carabobo/Valencia (1 dueño = múltiples comercios).');
+        // Crear dirección del establecimiento para CADA comercio (commerce_id + role = commerce)
+        $commerceIndex = 0;
+        foreach ($commerces as $commerce) {
+            $zoneIdx = intdiv($commerceIndex, 5);
+            $zone = $zones[$zoneIdx] ?? $zones[0];
+            $jitter = fake()->randomFloat(4, -0.002, 0.002);
+
+            Address::create([
+                'commerce_id' => $commerce->id,
+                'profile_id' => null,
+                'role' => 'commerce',
+                'city_id' => $cityId,
+                'street' => $zone['street'] . ' - Local ' . ($commerceIndex % 5 + 1),
+                'house_number' => fake()->buildingNumber(),
+                'postal_code' => fake()->postcode(),
+                'latitude' => $zone['lat'] + $jitter,
+                'longitude' => $zone['lng'] + $jitter,
+                'status' => 'completeData',
+                'is_default' => true,
+            ]);
+            $commerceIndex++;
+        }
+
+        $this->command->info("AddressSeeder: direcciones de perfiles + {$commerces->count()} direcciones de comercios con GPS.");
     }
 }

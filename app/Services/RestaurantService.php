@@ -14,7 +14,7 @@ class RestaurantService
      */
     public function getAllRestaurants($perPage = 15)
     {
-        return Commerce::with('profile')->paginate($perPage);
+        return Commerce::with(['profile', 'addresses', 'businessTypeRelation'])->paginate($perPage);
     }
 
     /**
@@ -25,6 +25,6 @@ class RestaurantService
      */
     public function getRestaurantById($id)
     {
-        return Commerce::with(['profile', 'products'])->find($id);
+        return Commerce::with(['profile', 'products.category', 'addresses', 'businessTypeRelation'])->find($id);
     }
 }
