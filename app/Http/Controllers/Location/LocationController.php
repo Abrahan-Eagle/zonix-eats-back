@@ -164,42 +164,61 @@ class LocationController extends Controller
         $radius = $request->get('radius', 5); // 5km por defecto
 
         try {
-            // Buscar comercios cercanos usando Address (que tiene latitude/longitude)
-            // Calcular distancia usando fórmula Haversine
+            $driver = DB::connection()->getDriverName();
             $earthRadius = 6371;
 
-            $nearbyPlaces = Commerce::selectRaw("
-                commerces.*,
-                commerces.business_name,
-                commerces.address,
-                commerces.open,
-                addresses.latitude,
-                addresses.longitude,
-                (
-                    $earthRadius * acos(
-                        cos(radians(?)) * 
-                        cos(radians(addresses.latitude)) * 
-                        cos(radians(addresses.longitude) - radians(?)) + 
-                        sin(radians(?)) * 
-                        sin(radians(addresses.latitude))
-                    )
-                ) AS distance
-            ", [$latitude, $longitude, $latitude])
-            ->leftJoin('addresses', 'addresses.profile_id', '=', 'commerces.profile_id')
-            ->whereNotNull('addresses.latitude')
-            ->whereNotNull('addresses.longitude')
-            ->havingRaw("distance <= ?", [$radius])
-            ->orderBy('distance', 'asc')
-            ->limit(20)
-            ->get()
-            ->map(function ($commerce) {
+            if ($driver === 'mysql') {
+                $nearbyPlaces = Commerce::selectRaw("
+                    commerces.*,
+                    commerces.business_name,
+                    commerces.address,
+                    commerces.open,
+                    addresses.latitude,
+                    addresses.longitude,
+                    (
+                        $earthRadius * acos(
+                            cos(radians(?)) * 
+                            cos(radians(addresses.latitude)) * 
+                            cos(radians(addresses.longitude) - radians(?)) + 
+                            sin(radians(?)) * 
+                            sin(radians(addresses.latitude))
+                        )
+                    ) AS distance
+                ", [$latitude, $longitude, $latitude])
+                    ->leftJoin('addresses', 'addresses.profile_id', '=', 'commerces.profile_id')
+                    ->whereNotNull('addresses.latitude')
+                    ->whereNotNull('addresses.longitude')
+                    ->havingRaw("distance <= ?", [$radius])
+                    ->orderBy('distance', 'asc')
+                    ->limit(20)
+                    ->get();
+            } else {
+                // SQLite (tests): no tiene radians/acos; obtener y calcular distancia en PHP (Haversine)
+                $rows = Commerce::select('commerces.*', 'addresses.latitude', 'addresses.longitude')
+                    ->leftJoin('addresses', 'addresses.profile_id', '=', 'commerces.profile_id')
+                    ->whereNotNull('addresses.latitude')
+                    ->whereNotNull('addresses.longitude')
+                    ->get();
+                $latRad = deg2rad($latitude);
+                $lngRad = deg2rad($longitude);
+                $nearbyPlaces = $rows->map(function ($commerce) use ($latRad, $lngRad, $earthRadius) {
+                    $commerce->distance = $earthRadius * 2 * asin(sqrt(
+                        pow(sin(($latRad - deg2rad((float) $commerce->latitude)) / 2), 2)
+                        + cos($latRad) * cos(deg2rad((float) $commerce->latitude))
+                        * pow(sin(($lngRad - deg2rad((float) $commerce->longitude)) / 2), 2)
+                    ));
+                    return $commerce;
+                })->filter(fn ($c) => $c->distance <= $radius)->sortBy('distance')->take(20)->values();
+            }
+
+            $nearbyPlaces = $nearbyPlaces->map(function ($commerce) {
                 return [
                     'id' => $commerce->id,
                     'name' => $commerce->business_name ?? 'Comercio',
                     'type' => 'restaurant',
                     'latitude' => $commerce->latitude ?? null,
                     'longitude' => $commerce->longitude ?? null,
-                    'distance' => round($commerce->distance ?? 0, 2), // km
+                    'distance' => round($commerce->distance ?? 0, 2),
                     'address' => $commerce->address ?? '',
                     'phone' => $commerce->phone ?? '',
                     'is_open' => $commerce->open ?? false,

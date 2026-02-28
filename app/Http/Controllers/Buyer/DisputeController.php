@@ -58,7 +58,7 @@ class DisputeController extends Controller
     {
         $request->validate([
             'order_id' => 'required|exists:orders,id',
-            'type' => 'required|in:quality,delivery,payment,other',
+            'type' => 'required|in:quality_issue,delivery_problem,payment_issue,other',
             'description' => 'required|string|min:10|max:1000',
         ]);
 
@@ -102,7 +102,7 @@ class DisputeController extends Controller
             'reported_against_id' => $order->commerce_id,
             'type' => $request->type,
             'description' => $request->description,
-            'status' => 'open',
+            'status' => 'pending',
         ]);
 
         return response()->json([

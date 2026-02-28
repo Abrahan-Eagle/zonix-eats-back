@@ -191,31 +191,39 @@ class DeliveryController extends Controller
                 ->where('reviewable_id', $deliveryAgentId)
                 ->count();
 
-            // Calcular average_delivery_time (tiempo promedio desde asignación hasta entrega)
-            $deliveryTimes = Order::whereHas('orderDelivery', function($q) use ($deliveryAgentId) {
+            // Calcular average_delivery_time y on_time_deliveries (compatible MySQL y SQLite)
+            $deliveredOrders = Order::whereHas('orderDelivery', function($q) use ($deliveryAgentId) {
                     $q->where('agent_id', $deliveryAgentId);
                 })
                 ->where('status', 'delivered')
                 ->whereDate('created_at', '>=', now()->subDays(30))
-                ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as avg_minutes')
-                ->value('avg_minutes') ?? 0;
+                ->get(['id', 'created_at', 'updated_at']);
 
-            $averageDeliveryTime = round($deliveryTimes, 1);
+            $driver = \Illuminate\Support\Facades\Schema::getConnection()->getDriverName();
+            if ($driver === 'mysql') {
+                $avgMinutes = Order::whereHas('orderDelivery', function($q) use ($deliveryAgentId) {
+                        $q->where('agent_id', $deliveryAgentId);
+                    })
+                    ->where('status', 'delivered')
+                    ->whereDate('created_at', '>=', now()->subDays(30))
+                    ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as avg_minutes')
+                    ->value('avg_minutes') ?? 0;
+                $onTimeDeliveries = Order::whereHas('orderDelivery', function($q) use ($deliveryAgentId) {
+                        $q->where('agent_id', $deliveryAgentId);
+                    })
+                    ->where('status', 'delivered')
+                    ->whereDate('created_at', '>=', now()->subDays(30))
+                    ->selectRaw('TIMESTAMPDIFF(MINUTE, created_at, updated_at) as delivery_minutes')
+                    ->get()
+                    ->filter(fn($o) => ($o->delivery_minutes ?? 0) <= 45)
+                    ->count();
+            } else {
+                $minutes = $deliveredOrders->map(fn($o) => $o->created_at->diffInMinutes($o->updated_at));
+                $avgMinutes = $minutes->isEmpty() ? 0 : $minutes->avg();
+                $onTimeDeliveries = $minutes->filter(fn($m) => $m <= 45)->count();
+            }
 
-            // Calcular on_time_deliveries y late_deliveries
-            // Asumiendo que una entrega es "a tiempo" si se completa en menos de 45 minutos
-            $onTimeDeliveries = Order::whereHas('orderDelivery', function($q) use ($deliveryAgentId) {
-                    $q->where('agent_id', $deliveryAgentId);
-                })
-                ->where('status', 'delivered')
-                ->whereDate('created_at', '>=', now()->subDays(30))
-                ->selectRaw('TIMESTAMPDIFF(MINUTE, created_at, updated_at) as delivery_minutes')
-                ->get()
-                ->filter(function($order) {
-                    return $order->delivery_minutes <= 45;
-                })
-                ->count();
-
+            $averageDeliveryTime = round($avgMinutes ?? 0, 1);
             $lateDeliveries = $completedDeliveries - $onTimeDeliveries;
 
             // Calcular customer_satisfaction desde ratings
@@ -274,9 +282,9 @@ class DeliveryController extends Controller
                 'reported_by_id' => $deliveryAgent?->id ?? 0,
                 'reported_against_type' => 'App\\Models\\Commerce',
                 'reported_against_id' => $order->commerce_id,
-                'type' => $request->issue,
-                'description' => $request->description,
-                'status' => 'open',
+                'type' => 'other',
+                'description' => $request->issue . ': ' . $request->description,
+                'status' => 'pending',
             ]);
 
             return response()->json([

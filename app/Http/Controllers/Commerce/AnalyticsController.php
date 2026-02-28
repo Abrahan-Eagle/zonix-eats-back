@@ -293,12 +293,11 @@ class AnalyticsController extends Controller
         }
     }
 
-    // Helper methods
+    // Helper methods (compatibles MySQL y SQLite para tests)
     private function getDailyRevenue($commerceId, $startDate = null, $endDate = null)
     {
         $query = Order::where('commerce_id', $commerceId)
             ->where('status', 'delivered');
-        
         if ($startDate) {
             $query->whereDate('created_at', '>=', $startDate);
         }
@@ -306,39 +305,46 @@ class AnalyticsController extends Controller
             $query->whereDate('created_at', '<=', $endDate);
         }
 
-        $dailyData = $query->selectRaw('DATE(created_at) as date, SUM(total) as revenue, COUNT(*) as orders')
-            ->groupBy('date')
-            ->orderBy('date', 'desc')
-            ->limit(30)
-            ->get();
+        $driver = DB::connection()->getDriverName();
+        $dailyData = $driver === 'mysql'
+            ? $query->clone()->selectRaw('DATE(created_at) as date, SUM(total) as revenue, COUNT(*) as orders')
+                ->groupBy('date')->orderBy('date', 'desc')->limit(30)->get()
+            : $query->clone()->selectRaw("date(created_at) as date, SUM(total) as revenue, COUNT(*) as orders")
+                ->groupBy('date')->orderBy('date', 'desc')->limit(30)->get();
 
         return $dailyData->map(function($item) {
             return [
                 'date' => $item->date,
-                'revenue' => round($item->revenue, 2),
-                'orders' => $item->orders,
+                'revenue' => round((float) $item->revenue, 2),
+                'orders' => (int) $item->orders,
             ];
         })->toArray();
     }
 
     private function getMonthlyRevenue($commerceId)
     {
-        $monthlyData = Order::where('commerce_id', $commerceId)
-            ->where('status', 'delivered')
-            ->selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, SUM(total) as revenue, COUNT(*) as orders')
-            ->groupBy('year', 'month')
-            ->orderBy('year', 'desc')
-            ->orderBy('month', 'desc')
-            ->limit(12)
-            ->get();
-
+        $driver = DB::connection()->getDriverName();
         $months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+        if ($driver === 'mysql') {
+            $monthlyData = Order::where('commerce_id', $commerceId)
+                ->where('status', 'delivered')
+                ->selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, SUM(total) as revenue, COUNT(*) as orders')
+                ->groupBy('year', 'month')
+                ->orderBy('year', 'desc')->orderBy('month', 'desc')->limit(12)->get();
+        } else {
+            $monthlyData = Order::where('commerce_id', $commerceId)
+                ->where('status', 'delivered')
+                ->selectRaw("cast(strftime('%Y', created_at) as integer) as year, cast(strftime('%m', created_at) as integer) as month, SUM(total) as revenue, COUNT(*) as orders")
+                ->groupBy('year', 'month')
+                ->orderBy('year', 'desc')->orderBy('month', 'desc')->limit(12)->get();
+        }
 
         return $monthlyData->map(function($item) use ($months) {
             return [
-                'month' => $months[$item->month - 1],
-                'revenue' => round($item->revenue, 2),
-                'orders' => $item->orders,
+                'month' => $months[($item->month ?? 1) - 1],
+                'revenue' => round((float) $item->revenue, 2),
+                'orders' => (int) $item->orders,
             ];
         })->toArray();
     }
@@ -388,45 +394,47 @@ class AnalyticsController extends Controller
 
     private function getOrdersByDay($commerceId)
     {
-        $ordersByDay = Order::where('commerce_id', $commerceId)
-            ->selectRaw('DAYNAME(created_at) as day, COUNT(*) as orders')
-            ->groupBy('day')
-            ->orderByRaw('FIELD(day, "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")')
-            ->get();
-
+        $driver = DB::connection()->getDriverName();
         $dayNames = [
-            'Monday' => 'Lunes',
-            'Tuesday' => 'Martes',
-            'Wednesday' => 'Miércoles',
-            'Thursday' => 'Jueves',
-            'Friday' => 'Viernes',
-            'Saturday' => 'Sábado',
-            'Sunday' => 'Domingo',
+            'Monday' => 'Lunes', 'Tuesday' => 'Martes', 'Wednesday' => 'Miércoles',
+            'Thursday' => 'Jueves', 'Friday' => 'Viernes', 'Saturday' => 'Sábado', 'Sunday' => 'Domingo',
         ];
+        $orderDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+        if ($driver === 'mysql') {
+            $ordersByDay = Order::where('commerce_id', $commerceId)
+                ->selectRaw('DAYNAME(created_at) as day, COUNT(*) as orders')
+                ->groupBy('day')
+                ->orderByRaw('FIELD(day, "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")')
+                ->get();
+        } else {
+            $ordersByDay = Order::where('commerce_id', $commerceId)
+                ->selectRaw("CASE cast(strftime('%w', created_at) as integer) WHEN 0 THEN 'Sunday' WHEN 1 THEN 'Monday' WHEN 2 THEN 'Tuesday' WHEN 3 THEN 'Wednesday' WHEN 4 THEN 'Thursday' WHEN 5 THEN 'Friday' WHEN 6 THEN 'Saturday' END as day, COUNT(*) as orders")
+                ->groupBy('day')
+                ->get();
+            $ordersByDay = $ordersByDay->sortBy(fn($i) => array_search($i->day ?? '', $orderDays))->values();
+        }
 
         return $ordersByDay->map(function($item) use ($dayNames) {
             return [
-                'day' => $dayNames[$item->day] ?? $item->day,
-                'orders' => $item->orders,
+                'day' => $dayNames[$item->day ?? ''] ?? $item->day ?? '',
+                'orders' => (int) $item->orders,
             ];
         })->toArray();
     }
 
     private function getPeakHours($commerceId)
     {
-        $hours = Order::where('commerce_id', $commerceId)
-            ->selectRaw('HOUR(created_at) as hour, COUNT(*) as orders')
-            ->groupBy('hour')
-            ->orderByDesc('orders')
-            ->limit(5)
-            ->get();
+        $driver = DB::connection()->getDriverName();
+        $hours = $driver === 'mysql'
+            ? Order::where('commerce_id', $commerceId)->selectRaw('HOUR(created_at) as hour, COUNT(*) as orders')->groupBy('hour')->orderByDesc('orders')->limit(5)->get()
+            : Order::where('commerce_id', $commerceId)->selectRaw("cast(strftime('%H', created_at) as integer) as hour, COUNT(*) as orders")->groupBy('hour')->orderByDesc('orders')->limit(5)->get();
 
         $total = $hours->sum('orders');
-
         return $hours->map(function($item) use ($total) {
             return [
-                'hour' => str_pad($item->hour, 2, '0', STR_PAD_LEFT) . ':00',
-                'orders' => $item->orders,
+                'hour' => str_pad((string)($item->hour ?? 0), 2, '0', STR_PAD_LEFT) . ':00',
+                'orders' => (int) $item->orders,
                 'percentage' => $total > 0 ? round(($item->orders / $total) * 100, 1) : 0,
             ];
         })->toArray();

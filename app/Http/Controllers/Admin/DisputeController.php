@@ -82,8 +82,8 @@ class DisputeController extends Controller
             'success' => true,
             'data' => [
                 'total' => Dispute::count(),
-                'open' => Dispute::where('status', 'open')->count(),
-                'in_progress' => Dispute::where('status', 'in_progress')->count(),
+                'pending' => Dispute::where('status', 'pending')->count(),
+                'in_review' => Dispute::where('status', 'in_review')->count(),
                 'resolved' => Dispute::where('status', 'resolved')->count(),
                 'closed' => Dispute::where('status', 'closed')->count(),
             ],

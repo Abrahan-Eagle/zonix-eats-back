@@ -760,50 +760,52 @@ class AnalyticsController extends Controller
         }
     }
 
-    // Helper methods
+    // Helper methods (compatibles MySQL y SQLite para tests)
     private function getDailyRevenue($startDate = null, $endDate = null)
     {
         $query = Order::where('status', 'delivered');
-        
         if ($startDate) {
             $query->whereDate('created_at', '>=', $startDate);
         }
         if ($endDate) {
             $query->whereDate('created_at', '<=', $endDate);
         }
-
-        $dailyData = $query->selectRaw('DATE(created_at) as date, SUM(total) as revenue, COUNT(*) as orders')
-            ->groupBy('date')
-            ->orderBy('date', 'desc')
-            ->limit(30)
-            ->get();
+        $driver = DB::connection()->getDriverName();
+        $dailyData = $driver === 'mysql'
+            ? $query->clone()->selectRaw('DATE(created_at) as date, SUM(total) as revenue, COUNT(*) as orders')
+                ->groupBy('date')->orderBy('date', 'desc')->limit(30)->get()
+            : $query->clone()->selectRaw("date(created_at) as date, SUM(total) as revenue, COUNT(*) as orders")
+                ->groupBy('date')->orderBy('date', 'desc')->limit(30)->get();
 
         return $dailyData->map(function($item) {
             return [
                 'date' => $item->date,
-                'revenue' => round($item->revenue, 2),
-                'orders' => $item->orders,
+                'revenue' => round((float) $item->revenue, 2),
+                'orders' => (int) $item->orders,
             ];
         })->toArray();
     }
 
     private function getMonthlyRevenue()
     {
-        $monthlyData = Order::where('status', 'delivered')
-            ->selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, SUM(total) as revenue, COUNT(*) as orders')
-            ->groupBy('year', 'month')
-            ->orderBy('year', 'desc')
-            ->orderBy('month', 'desc')
-            ->limit(12)
-            ->get();
-
+        $driver = DB::connection()->getDriverName();
         $months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-
+        if ($driver === 'mysql') {
+            $monthlyData = Order::where('status', 'delivered')
+                ->selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, SUM(total) as revenue, COUNT(*) as orders')
+                ->groupBy('year', 'month')
+                ->orderBy('year', 'desc')->orderBy('month', 'desc')->limit(12)->get();
+        } else {
+            $monthlyData = Order::where('status', 'delivered')
+                ->selectRaw("cast(strftime('%Y', created_at) as integer) as year, cast(strftime('%m', created_at) as integer) as month, SUM(total) as revenue, COUNT(*) as orders")
+                ->groupBy('year', 'month')
+                ->orderBy('year', 'desc')->orderBy('month', 'desc')->limit(12)->get();
+        }
         return $monthlyData->map(function($item) use ($months) {
             return [
-                'month' => $months[$item->month - 1],
-                'revenue' => round($item->revenue, 2),
-                'orders' => $item->orders,
+                'month' => $months[($item->month ?? 1) - 1],
+                'revenue' => round((float) $item->revenue, 2),
+                'orders' => (int) $item->orders,
             ];
         })->toArray();
     }
@@ -834,18 +836,16 @@ class AnalyticsController extends Controller
 
     private function getPeakHours()
     {
-        $hours = Order::selectRaw('HOUR(created_at) as hour, COUNT(*) as orders')
-            ->groupBy('hour')
-            ->orderByDesc('orders')
-            ->limit(5)
-            ->get();
+        $driver = DB::connection()->getDriverName();
+        $hours = $driver === 'mysql'
+            ? Order::selectRaw('HOUR(created_at) as hour, COUNT(*) as orders')->groupBy('hour')->orderByDesc('orders')->limit(5)->get()
+            : Order::selectRaw("cast(strftime('%H', created_at) as integer) as hour, COUNT(*) as orders")->groupBy('hour')->orderByDesc('orders')->limit(5)->get();
 
         $total = $hours->sum('orders');
-
         return $hours->map(function($item) use ($total) {
             return [
-                'hour' => str_pad($item->hour, 2, '0', STR_PAD_LEFT) . ':00',
-                'orders' => $item->orders,
+                'hour' => str_pad((string)($item->hour ?? 0), 2, '0', STR_PAD_LEFT) . ':00',
+                'orders' => (int) $item->orders,
                 'percentage' => $total > 0 ? round(($item->orders / $total) * 100, 1) : 0,
             ];
         })->toArray();
@@ -858,35 +858,31 @@ class AnalyticsController extends Controller
 
     private function getDeliveryTimes()
     {
-        // Calcular tiempo promedio de delivery (desde creación hasta entrega)
-        $deliveryTimes = Order::where('status', 'delivered')
+        $driver = DB::connection()->getDriverName();
+        $orders = Order::where('status', 'delivered')
             ->whereDate('created_at', '>=', now()->subDays(30))
-            ->selectRaw('TIMESTAMPDIFF(MINUTE, created_at, updated_at) as delivery_time')
-            ->get()
-            ->pluck('delivery_time')
-            ->filter(function($time) {
-                return $time > 0 && $time <= 120; // Filtrar valores anómalos (0 o >120 min)
-            });
-        
-        $average = $deliveryTimes->isNotEmpty() 
-            ? round($deliveryTimes->avg(), 1) 
-            : 0;
-        
-        $fastest = $deliveryTimes->isNotEmpty() 
-            ? round($deliveryTimes->min(), 1) 
-            : 0;
-        
-        $slowest = $deliveryTimes->isNotEmpty() 
-            ? round($deliveryTimes->max(), 1) 
-            : 0;
-        
-        // Distribución por rangos
+            ->get(['created_at', 'updated_at']);
+
+        if ($driver === 'mysql') {
+            $deliveryTimes = Order::where('status', 'delivered')
+                ->whereDate('created_at', '>=', now()->subDays(30))
+                ->selectRaw('TIMESTAMPDIFF(MINUTE, created_at, updated_at) as delivery_time')
+                ->get()->pluck('delivery_time');
+        } else {
+            $deliveryTimes = $orders->map(fn($o) => $o->created_at->diffInMinutes($o->updated_at));
+        }
+        $deliveryTimes = $deliveryTimes->filter(fn($time) => $time > 0 && $time <= 120);
+
+        $average = $deliveryTimes->isNotEmpty() ? round($deliveryTimes->avg(), 1) : 0;
+        $fastest = $deliveryTimes->isNotEmpty() ? round($deliveryTimes->min(), 1) : 0;
+        $slowest = $deliveryTimes->isNotEmpty() ? round($deliveryTimes->max(), 1) : 0;
+
         $distribution = [
-            '0-15' => $deliveryTimes->where('>=', 0)->where('<', 15)->count(),
-            '15-30' => $deliveryTimes->where('>=', 15)->where('<', 30)->count(),
-            '30-45' => $deliveryTimes->where('>=', 30)->where('<', 45)->count(),
-            '45-60' => $deliveryTimes->where('>=', 45)->where('<', 60)->count(),
-            '60+' => $deliveryTimes->where('>=', 60)->count(),
+            '0-15' => $deliveryTimes->filter(fn($t) => $t >= 0 && $t < 15)->count(),
+            '15-30' => $deliveryTimes->filter(fn($t) => $t >= 15 && $t < 30)->count(),
+            '30-45' => $deliveryTimes->filter(fn($t) => $t >= 30 && $t < 45)->count(),
+            '45-60' => $deliveryTimes->filter(fn($t) => $t >= 45 && $t < 60)->count(),
+            '60+' => $deliveryTimes->filter(fn($t) => $t >= 60)->count(),
         ];
         
         return [
