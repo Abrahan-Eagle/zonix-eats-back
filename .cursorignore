@@ -1,0 +1,15 @@
+# Copiar a la raíz del proyecto como .cursorignore
+# cp docs/cursorignore.example .cursorignore
+#
+# Excluye de la indexación de Cursor carpetas pesadas o irrelevantes.
+
+/vendor/
+node_modules/
+/storage/logs/
+/storage/framework/
+/bootstrap/cache/
+/public/build/
+
+
+.env.*
+!.env.example
