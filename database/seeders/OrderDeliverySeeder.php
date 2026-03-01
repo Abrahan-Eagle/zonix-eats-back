@@ -17,6 +17,7 @@ class OrderDeliverySeeder extends Seeder
     {
         $deliveryOrders = Order::where('delivery_type', 'delivery')
             ->whereIn('status', ['paid', 'processing', 'shipped', 'delivered'])
+            ->whereDoesntHave('orderDelivery')
             ->get();
         
         $agents = DeliveryAgent::where('working', true)->get();

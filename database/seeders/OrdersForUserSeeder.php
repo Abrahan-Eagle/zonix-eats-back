@@ -4,21 +4,25 @@ namespace Database\Seeders;
 
 use App\Models\Commerce;
 use App\Models\Order;
+use App\Models\OrderDelivery;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Profile;
 use App\Models\User;
+use App\Models\DeliveryAgent;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Crea órdenes (activas + historial) para el usuario comprador id 1 (demo).
  * Para verlas en la app: inicia sesión con el usuario 1 (ej. ing.pulido.abrahan@gmail.com).
  *
+ * - 1 orden "En camino" (shipped) con delivery_type = delivery y repartidor asignado (OrderDelivery).
+ *   El chat de la orden estará vacío en pruebas porque el repartidor es seed; para chat real prueba con dos dispositivos.
+ *
  * Ejecutar con el resto del seed:
  *   php artisan migrate:fresh --seed
  *
- * O solo órdenes para usuario 1 (requiere User1Seeder + Commerce + Productos):
+ * O solo órdenes para usuario 1 (requiere User1Seeder + Commerce + Productos + DeliveryAgentSeeder):
  *   php artisan db:seed --class=OrdersForUserSeeder
  *
  * Requisitos: usuario 1 con role 'users', perfil y teléfono; al menos un comercio con productos.
@@ -60,23 +64,41 @@ class OrdersForUserSeeder extends Seeder
 
         $this->command->info("Creando órdenes para usuario {$user->id} (perfil {$profile->id}), comercio {$commerce->id}.");
 
-        // 1 orden activa (shipped = "En camino")
-        $this->createOrder($profile->id, $commerce->id, $products, 'shipped', 1, now());
-        // 3 órdenes entregadas (historial) con fechas distintas para ver en la app
-        $this->createOrder($profile->id, $commerce->id, $products, 'delivered', 1, now()->subDays(2));
-        $this->createOrder($profile->id, $commerce->id, $products, 'delivered', 1, now()->subDays(5));
-        $this->createOrder($profile->id, $commerce->id, $products, 'delivered', 1, now()->subDays(8));
-        // 1 cancelada (opcional)
-        $this->createOrder($profile->id, $commerce->id, $products, 'cancelled', 1, now()->subDays(10));
+        // 1 orden activa "En camino" (siempre con reparto y repartidor asignado para probar chat/tracking)
+        $shippedOrder = $this->createOrder($profile->id, $commerce->id, $products, 'shipped', 1, now(), true);
+        if ($shippedOrder) {
+            $agent = DeliveryAgent::where('working', true)->first();
+            if ($agent) {
+                OrderDelivery::create([
+                    'order_id' => $shippedOrder->id,
+                    'agent_id' => $agent->id,
+                    'status' => 'in_transit',
+                    'delivery_fee' => $shippedOrder->delivery_fee ?? 0,
+                ]);
+                $this->command->info("Orden shipped #{$shippedOrder->id}: repartidor asignado (agent_id {$agent->id}). Chat vacío en pruebas (seed).");
+            }
+        }
+
+        // 3 órdenes entregadas (historial)
+        $this->createOrder($profile->id, $commerce->id, $products, 'delivered', 1, now()->subDays(2), null);
+        $this->createOrder($profile->id, $commerce->id, $products, 'delivered', 1, now()->subDays(5), null);
+        $this->createOrder($profile->id, $commerce->id, $products, 'delivered', 1, now()->subDays(8), null);
+        // 1 cancelada
+        $this->createOrder($profile->id, $commerce->id, $products, 'cancelled', 1, now()->subDays(10), null);
 
         $this->command->info('OrdersForUserSeeder: órdenes creadas para tu cuenta. Refresca la vista Órdenes en la app.');
     }
 
-    private function createOrder(int $profileId, int $commerceId, $products, string $status, int $count = 1, ?\DateTimeInterface $createdAt = null): void
+    /**
+     * @param bool|null $forceDelivery True = delivery_type delivery, false = pickup, null = aleatorio
+     * @return Order|null La orden creada (para la primera del loop cuando count=1)
+     */
+    private function createOrder(int $profileId, int $commerceId, $products, string $status, int $count = 1, ?\DateTimeInterface $createdAt = null, ?bool $forceDelivery = null): ?Order
     {
         $createdAt = $createdAt ?? now();
+        $created = null;
         for ($i = 0; $i < $count; $i++) {
-            $deliveryType = ['pickup', 'delivery'][array_rand(['pickup', 'delivery'])];
+            $deliveryType = $forceDelivery === true ? 'delivery' : ($forceDelivery === false ? 'pickup' : ['pickup', 'delivery'][array_rand(['pickup', 'delivery'])]);
             $deliveryFee = $deliveryType === 'delivery' ? round(rand(150, 500) / 100, 2) : 0;
 
             $order = Order::create([
@@ -100,6 +122,7 @@ class OrdersForUserSeeder extends Seeder
             $order->created_at = $createdAt;
             $order->updated_at = $createdAt;
             $order->saveQuietly();
+            $created = $order;
 
             $selected = $products->random(min(3, $products->count()));
             $subtotal = 0;
@@ -117,5 +140,6 @@ class OrdersForUserSeeder extends Seeder
 
             $order->update(['total' => round($subtotal + $deliveryFee, 2)]);
         }
+        return $created;
     }
 }
