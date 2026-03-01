@@ -17,11 +17,11 @@ class DeliveryAgentSeeder extends Seeder
     {
         $companies = DeliveryCompany::all();
         
-        // Crear agentes para empresas
+        // Crear agentes para empresas (rol delivery_agent)
         foreach ($companies as $company) {
             for ($i = 0; $i < 3; $i++) {
                 $profile = Profile::factory()->create();
-                $profile->user->update(['role' => 'delivery']);
+                $profile->user->update(['role' => 'delivery_agent']);
                 
                 DeliveryAgent::factory()->create([
                     'company_id' => $company->id,
@@ -30,13 +30,13 @@ class DeliveryAgentSeeder extends Seeder
             }
         }
         
-        // Crear algunos agentes independientes
+        // Crear algunos agentes independientes (rol delivery - sin compañía)
         for ($i = 0; $i < 5; $i++) {
             $profile = Profile::factory()->create();
             $profile->user->update(['role' => 'delivery']);
             
             DeliveryAgent::factory()->create([
-                'company_id' => null, // Independiente
+                'company_id' => null, // Independiente / autónomo
                 'profile_id' => $profile->id,
             ]);
         }

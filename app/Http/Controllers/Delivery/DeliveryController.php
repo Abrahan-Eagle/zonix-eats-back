@@ -551,7 +551,8 @@ class DeliveryController extends Controller
                 $estimatedTime = 30; // Default (minutos)
                 
                 try {
-                    $osrmUrl = "http://router.project-osrm.org/route/v1/driving/$startLng,$startLat;$endLng,$endLat";
+                    $base = rtrim(config('zonix.osrm_base_url', 'http://router.project-osrm.org'), '/');
+                    $osrmUrl = "{$base}/route/v1/driving/$startLng,$startLat;$endLng,$endLat";
                     $response = Http::timeout(5)->get($osrmUrl, [
                         'overview' => 'false',
                     ]);

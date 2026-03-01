@@ -89,67 +89,77 @@ class TrackingService
 
     /**
      * Obtener información completa de tracking para una orden.
+     * Solo usa coordenadas reales (BD/GPS). No inventa posiciones: si faltan, devuelve null y rutas vacías.
      *
-     * @param array $orderData
+     * @param array $orderData commerce_lat/lon, delivery_lat/lon, customer_lat/lon (pueden ser null)
      * @return array
      */
     public function getOrderTracking($orderData)
     {
-        // Coordenadas simuladas (en producción vendrían de la base de datos)
-        $commerceLocation = [
-            'lat' => $orderData['commerce_lat'] ?? 19.4326,
-            'lng' => $orderData['commerce_lon'] ?? -99.1332,
-        ];
-        
-        $deliveryLocation = [
-            'lat' => $orderData['delivery_lat'] ?? 19.4326,
-            'lng' => $orderData['delivery_lon'] ?? -99.1332,
-        ];
-        
-        $customerLocation = [
-            'lat' => $orderData['customer_lat'] ?? 19.4326,
-            'lng' => $orderData['customer_lon'] ?? -99.1332,
-        ];
+        $commerceLat = $orderData['commerce_lat'] ?? null;
+        $commerceLon = $orderData['commerce_lon'] ?? null;
+        $deliveryLat = $orderData['delivery_lat'] ?? null;
+        $deliveryLon = $orderData['delivery_lon'] ?? null;
+        $customerLat = $orderData['customer_lat'] ?? null;
+        $customerLon = $orderData['customer_lon'] ?? null;
 
-        // Calcular distancias
-        $commerceToDelivery = $this->calculateDistance(
-            $commerceLocation['lat'], $commerceLocation['lng'],
-            $deliveryLocation['lat'], $deliveryLocation['lng']
-        );
-        
-        $deliveryToCustomer = $this->calculateDistance(
-            $deliveryLocation['lat'], $deliveryLocation['lng'],
-            $customerLocation['lat'], $customerLocation['lng']
-        );
+        $commerceLocation = ($commerceLat !== null && $commerceLon !== null)
+            ? ['lat' => (float) $commerceLat, 'lng' => (float) $commerceLon]
+            : null;
+        $deliveryLocation = ($deliveryLat !== null && $deliveryLon !== null)
+            ? ['lat' => (float) $deliveryLat, 'lng' => (float) $deliveryLon]
+            : null;
+        $customerLocation = ($customerLat !== null && $customerLon !== null)
+            ? ['lat' => (float) $customerLat, 'lng' => (float) $customerLon]
+            : null;
 
-        // Calcular tiempos estimados
-        $timeToDelivery = $this->calculateEstimatedTime($commerceToDelivery);
-        $timeToCustomer = $this->calculateEstimatedTime($deliveryToCustomer);
+        $commerceToDelivery = null;
+        $deliveryToCustomer = null;
+        if ($commerceLocation && $deliveryLocation) {
+            $commerceToDelivery = $this->calculateDistance(
+                $commerceLocation['lat'], $commerceLocation['lng'],
+                $deliveryLocation['lat'], $deliveryLocation['lng']
+            );
+        }
+        if ($deliveryLocation && $customerLocation) {
+            $deliveryToCustomer = $this->calculateDistance(
+                $deliveryLocation['lat'], $deliveryLocation['lng'],
+                $customerLocation['lat'], $customerLocation['lng']
+            );
+        }
 
-        // Generar rutas
-        $routeToDelivery = $this->generateRouteCoordinates(
-            $commerceLocation['lat'], $commerceLocation['lng'],
-            $deliveryLocation['lat'], $deliveryLocation['lng']
-        );
-        
-        $routeToCustomer = $this->generateRouteCoordinates(
-            $deliveryLocation['lat'], $deliveryLocation['lng'],
-            $customerLocation['lat'], $customerLocation['lng']
-        );
+        $timeToDelivery = $commerceToDelivery !== null ? $this->calculateEstimatedTime($commerceToDelivery) : null;
+        $timeToCustomer = $deliveryToCustomer !== null ? $this->calculateEstimatedTime($deliveryToCustomer) : null;
+
+        $routeToDelivery = [];
+        $routeToCustomer = [];
+        if ($commerceLocation && $deliveryLocation) {
+            $routeToDelivery = $this->generateRouteCoordinates(
+                $commerceLocation['lat'], $commerceLocation['lng'],
+                $deliveryLocation['lat'], $deliveryLocation['lng']
+            );
+        }
+        if ($deliveryLocation && $customerLocation) {
+            $routeToCustomer = $this->generateRouteCoordinates(
+                $deliveryLocation['lat'], $deliveryLocation['lng'],
+                $customerLocation['lat'], $customerLocation['lng']
+            );
+        }
 
         return [
             'commerce_location' => $commerceLocation,
             'delivery_location' => $deliveryLocation,
             'customer_location' => $customerLocation,
             'distances' => [
-                'commerce_to_delivery' => round($commerceToDelivery, 2),
-                'delivery_to_customer' => round($deliveryToCustomer, 2),
-                'total' => round($commerceToDelivery + $deliveryToCustomer, 2),
+                'commerce_to_delivery' => $commerceToDelivery !== null ? round($commerceToDelivery, 2) : null,
+                'delivery_to_customer' => $deliveryToCustomer !== null ? round($deliveryToCustomer, 2) : null,
+                'total' => ($commerceToDelivery !== null && $deliveryToCustomer !== null)
+                    ? round($commerceToDelivery + $deliveryToCustomer, 2) : null,
             ],
             'estimated_times' => [
                 'to_delivery' => $timeToDelivery,
                 'to_customer' => $timeToCustomer,
-                'total' => $timeToDelivery + $timeToCustomer,
+                'total' => ($timeToDelivery !== null && $timeToCustomer !== null) ? $timeToDelivery + $timeToCustomer : null,
             ],
             'routes' => [
                 'to_delivery' => $routeToDelivery,

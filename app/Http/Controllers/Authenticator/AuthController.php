@@ -195,7 +195,7 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'nullable|string|min:8|confirmed',
-            'role' => 'required|string|in:users,commerce,delivery,admin',
+            'role' => 'required|string|in:users,commerce,delivery_company,delivery_agent,delivery,admin',
             'google_id' => 'nullable|string'
         ]);
 

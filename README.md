@@ -587,13 +587,17 @@ foreach ($requiredFields as $field) {
 
 **✅ NOTA:** La migración `make_company_id_nullable_in_delivery_agents_table.php` ya fue creada para permitir motorizados independientes (`company_id = null`).
 
+**Ubicaciones:**
+- **Cliente (destino de entrega):** 3 opciones al pedir delivery — (1) Ubicación GPS del dispositivo en ese momento, (2) Ubicación de la casa del cliente (dirección por defecto guardada), (3) Elegir una ubicación diferente (otra dirección guardada o elegida por el cliente). Se guardan en la orden `delivery_address`, `delivery_latitude`, `delivery_longitude` y se usan para el mapa y la ruta.
+- **Repartidor:** Ubicación GPS del dispositivo únicamente. La app del repartidor envía `current_latitude` / `current_longitude` (POST /api/delivery/location/update) para que el comercio y la empresa de delivery (o la plataforma) sepan siempre dónde está el vehículo.
+
 ---
 
 #### 👨‍💼 ROL: ADMIN (Administrador)
 
 **Usuarios:**
 
-- **Cambiar rol:** role (users, commerce, delivery, admin)
+- **Cambiar rol:** role (users, commerce, delivery_company, delivery_agent, delivery, admin)
 - **Suspender/Activar:** status (active, suspended)
 
 **Comercios:**
@@ -2583,12 +2587,16 @@ Authorization: Bearer {token}
     - Dashboard y reportes
     - Rutas: `/api/commerce/*`
 
-- **delivery** (Level 2): Repartidor/Delivery ✅
-    - Ver pedidos asignados
-    - Aceptar/rechazar pedidos
-    - Actualizar ubicación
-    - Marcar como entregado
-    - Historial de entregas
+- **delivery_company**: Empresa que administra repartidores ✅
+    - Gestionar agentes (motorizados) de la empresa
+    - (Rutas específicas de empresa según implementación)
+
+- **delivery_agent**: Repartidor vinculado a una empresa ✅
+    - Ver pedidos asignados, aceptar/rechazar, actualizar ubicación, marcar entregado, historial
+    - Rutas: `/api/delivery/*` (junto con `delivery`)
+
+- **delivery**: Repartidor autónomo (sin empresa) ✅
+    - Mismas capacidades que delivery_agent; no depende de ninguna compañía
     - Rutas: `/api/delivery/*`
 
 - **admin** (Level 3): Administrador ✅
@@ -2598,7 +2606,7 @@ Authorization: Bearer {token}
     - Configuración del sistema
     - Rutas: `/api/admin/*`
 
-**IMPORTANTE:** Solo existen estos 4 roles. Los roles `transport` y `affiliate` fueron eliminados del código.
+**IMPORTANTE:** Existen 6 roles: `admin`, `users`, `commerce`, `delivery_company`, `delivery_agent`, `delivery`. La empresa de delivery usa `delivery_company`; los motorizados bajo empresa usan `delivery_agent`; los motorizados autónomos (sin empresa) usan `delivery`. Los roles `transport` y `affiliate` fueron eliminados del código.
 
 ### Middleware de Roles
 
@@ -2608,8 +2616,8 @@ Route::middleware(['auth:sanctum', 'role:commerce'])->group(function () {
     Route::get('/commerce/dashboard', [DashboardController::class, 'index']);
 });
 
-// Verificar rol de delivery
-Route::middleware(['auth:sanctum', 'role:delivery'])->group(function () {
+// Verificar rol de motorizados (delivery_agent o delivery autónomo)
+Route::middleware(['auth:sanctum', 'role:delivery,delivery_agent'])->group(function () {
     Route::get('/delivery/orders', [OrderController::class, 'index']);
 });
 ```
@@ -3511,7 +3519,7 @@ El sistema calcula:
 
 ## 🛒 ADAPTACIÓN PARA ECOMMERCE GENERAL - ANÁLISIS POR ROL
 
-Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery, admin) para identificar qué funcionalidades son específicas de delivery de comida y cuáles son genéricas de ecommerce.
+Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery_company, delivery_agent, delivery, admin) para identificar qué funcionalidades son específicas de delivery de comida y cuáles son genéricas de ecommerce.
 
 ---
 
@@ -4309,21 +4317,23 @@ Este análisis cubre **TODOS los roles** del sistema (users, commerce, delivery,
 - ✅ **AnalyticsController:** Valores hardcoded reemplazados por cálculos reales (average_preparation_time, order_acceptance_rate)
 - ✅ **AnalyticsController:** Método `getDeliveryTimes()` completamente implementado con distribución
 - ✅ **DeliveryController:** Integración OSRM para cálculo real de distancia y tiempo de rutas
-- ✅ **UserController:** Validación de roles actualizada (solo 4 roles válidos: users, commerce, delivery, admin)
+- ✅ **UserController:** Validación de roles actualizada (6 roles válidos: users, commerce, delivery_company, delivery_agent, delivery, admin)
 - ✅ **Limpieza:** Código comentado eliminado de routes/api.php
 - ✅ **Broadcasting/Pusher:** Configuración broadcasting actualizada; **PusherConfigTest** agregado para validar driver Pusher, credenciales (PUSHER_APP_ID, KEY, SECRET, CLUSTER) y opciones de conexión
 - ✅ **Tests:** Tests de Analytics, Order, Delivery, Review y broadcasting actualizados y pasando
 
 ### Roles del Sistema:
 
-Solo existen **4 roles válidos**:
+Existen **6 roles válidos**:
 
-- **users** (Level 0): Cliente/Comprador
-- **commerce** (Level 1): Comercio/Restaurante
-- **delivery** (Level 2): Repartidor/Delivery
-- **admin** (Level 3): Administrador
+- **users**: Cliente/Comprador
+- **commerce**: Comercio/Restaurante
+- **delivery_company**: Empresa que administra repartidores (motorizados)
+- **delivery_agent**: Repartidor vinculado a una empresa (`company_id` no nulo)
+- **delivery**: Repartidor autónomo (sin empresa, `company_id` nulo)
+- **admin**: Administrador
 
-Los roles `transport` y `affiliate` fueron eliminados del código.
+Las rutas `/api/delivery/*` permiten **delivery_agent** y **delivery** (motorizados). Los roles `transport` y `affiliate` fueron eliminados del código.
 
 ## 📞 Soporte
 

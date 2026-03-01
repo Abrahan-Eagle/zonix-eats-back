@@ -40,7 +40,8 @@ class PaymentMethodController extends Controller
                 return $profile->getPrimaryCommerce();
             }
 
-            if ($role === 'delivery' && $profile && $profile->deliveryAgent) {
+            // Motorizados (delivery_agent o delivery autónomo) pagan como su perfil deliveryAgent
+            if (in_array($role, ['delivery', 'delivery_agent'], true) && $profile && $profile->deliveryAgent) {
                 return $profile->deliveryAgent;
             }
         } catch (\Throwable $e) {

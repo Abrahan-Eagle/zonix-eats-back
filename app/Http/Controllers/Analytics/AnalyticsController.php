@@ -575,14 +575,14 @@ class AnalyticsController extends Controller
                         'trend' => 'stable',
                     ],
                     'delivery_time_comparison' => [
-                        'period1' => 32.5,
-                        'period2' => 28.5,
+                        'period1' => config('zonix.analytics.delivery_time_comparison_period1', 32.5),
+                        'period2' => config('zonix.analytics.delivery_time_comparison_period2', 28.5),
                         'change_percentage' => -12.3,
                         'trend' => 'down',
                     ],
                     'satisfaction_comparison' => [
-                        'period1' => 4.5,
-                        'period2' => Review::avg('rating') ?? 4.5,
+                        'period1' => config('zonix.analytics.satisfaction_fallback_rating', 4.5),
+                        'period2' => Review::avg('rating') ?? config('zonix.analytics.satisfaction_fallback_rating', 4.5),
                         'change_percentage' => 0,
                         'trend' => 'stable',
                     ],
@@ -996,14 +996,14 @@ class AnalyticsController extends Controller
                 $averagePreparationTime = Order::whereIn('status', ['shipped', 'delivered'])
                     ->whereDate('created_at', '>=', now()->subDays(30))
                     ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as avg_minutes')
-                    ->value('avg_minutes') ?? 12.5;
+                    ->value('avg_minutes') ?? config('zonix.analytics.avg_preparation_fallback_minutes', 12.5);
             }
         } else {
             $minutes = $prepOrders->map(fn ($o) => $o->created_at->diffInMinutes($o->updated_at))->filter(fn ($m) => $m > 0 && $m <= 120);
             $averagePreparationTime = $minutes->isEmpty() ? 0 : $minutes->avg();
             if ($averagePreparationTime == 0) {
                 $allMin = $prepOrders->map(fn ($o) => $o->created_at->diffInMinutes($o->updated_at))->filter(fn ($m) => $m > 0);
-                $averagePreparationTime = $allMin->isEmpty() ? 12.5 : $allMin->avg();
+                $averagePreparationTime = $allMin->isEmpty() ? (float) config('zonix.analytics.avg_preparation_fallback_minutes', 12.5) : $allMin->avg();
             }
         }
         

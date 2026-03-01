@@ -301,9 +301,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/orders/{orderId}/tracking', [\App\Http\Controllers\Buyer\TrackingController::class, 'getOrderTracking']);
         Route::post('/orders/{orderId}/tracking/location', [\App\Http\Controllers\Buyer\TrackingController::class, 'updateDeliveryLocation']);
         
-        // Rutas de chat
-        Route::get('/orders/{orderId}/messages', [\App\Http\Controllers\ChatController::class, 'getMessages']);
-        Route::post('/orders/{orderId}/messages', [\App\Http\Controllers\ChatController::class, 'sendMessage']);
+        // Rutas de chat (Chat\ChatController persiste en BD y usa content/type)
+        Route::get('/orders/{orderId}/messages', [\App\Http\Controllers\Chat\ChatController::class, 'getMessages']);
+        Route::post('/orders/{orderId}/messages', [\App\Http\Controllers\Chat\ChatController::class, 'sendMessage']);
         
         // Rutas de calificaciones
         Route::post('/reviews', [\App\Http\Controllers\ReviewController::class, 'store']);
@@ -355,8 +355,8 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 
-    // Delivery
-    Route::middleware('role:delivery')->prefix('delivery')->group(function () {
+    // Delivery (motorizados: delivery_agent vinculado a empresa, o delivery autónomo)
+    Route::middleware('role:delivery,delivery_agent')->prefix('delivery')->group(function () {
         Route::get('/orders', [\App\Http\Controllers\Delivery\OrderController::class, 'index']);
         Route::put('/orders/{id}/accept', [\App\Http\Controllers\Delivery\OrderController::class, 'accept']);
         Route::patch('/orders/{id}/status', [\App\Http\Controllers\Delivery\OrderController::class, 'updateStatus']);

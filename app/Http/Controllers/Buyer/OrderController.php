@@ -64,6 +64,8 @@ class OrderController extends Controller
                 'delivery_fee' => 'nullable|numeric|min:0',
                 'notes' => 'nullable|string|max:500',
                 'delivery_address' => 'required_if:delivery_type,delivery|nullable|string|max:500',
+                'delivery_latitude' => 'nullable|numeric|between:-90,90',
+                'delivery_longitude' => 'nullable|numeric|between:-180,180',
             ]);
             $validated['delivery_fee'] = (float) ($validated['delivery_fee'] ?? 0);
 
@@ -187,6 +189,8 @@ class OrderController extends Controller
                     'delivery_fee' => $validated['delivery_fee'],
                     'notes' => $validated['notes'] ?? null,
                     'delivery_address' => $validated['delivery_address'] ?? null,
+                    'delivery_latitude' => isset($validated['delivery_latitude']) ? (float) $validated['delivery_latitude'] : null,
+                    'delivery_longitude' => isset($validated['delivery_longitude']) ? (float) $validated['delivery_longitude'] : null,
                 ]);
 
                 // Crear OrderItems y descontar stock si aplica

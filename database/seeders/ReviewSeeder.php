@@ -43,15 +43,26 @@ class ReviewSeeder extends Seeder
             return;
         }
             
+        $deliveryComments = [
+            '¡Muy rápido y la comida llegó caliente!',
+            'Excelente servicio, muy amable el repartidor.',
+            'Llegó a tiempo, todo en perfecto estado.',
+            'Muy profesional. Recomendado.',
+            'Rápido y cuidadoso con el pedido.',
+        ];
+        $i = 0;
         foreach ($deliveryOrders->take(10) as $order) {
             $orderDelivery = $order->orderDelivery;
             if ($orderDelivery && $orderDelivery->agent) {
-                Review::factory()->forDeliveryAgent()->create([
+                Review::create([
                     'profile_id' => $order->profile_id,
                     'order_id' => $order->id,
                     'reviewable_type' => DeliveryAgent::class,
                     'reviewable_id' => $orderDelivery->agent->id,
+                    'rating' => random_int(4, 5),
+                    'comment' => $deliveryComments[$i % count($deliveryComments)],
                 ]);
+                $i++;
             }
         }
         

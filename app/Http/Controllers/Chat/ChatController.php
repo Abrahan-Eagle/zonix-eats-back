@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\BlockedUser;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class ChatController extends Controller
 {
@@ -181,14 +182,14 @@ class ChatController extends Controller
             // Determinar sender_type basado en el rol del usuario
             $senderType = $this->getSenderType($user, $order, $profileId);
 
-            // Crear mensaje
+            // Crear mensaje (usar input() para leer el JSON; $request->content es el body crudo)
             $message = ChatMessage::create([
                 'order_id' => $order->id,
                 'sender_id' => $profileId,
                 'sender_type' => $senderType,
                 'recipient_type' => 'all', // Por defecto para todos los participantes
-                'content' => $request->content,
-                'type' => $request->type ?? 'text',
+                'content' => $request->input('content'),
+                'type' => $request->input('type', 'text'),
             ]);
 
             $message->load('sender');
@@ -203,8 +204,19 @@ class ChatController extends Controller
             $this->sendPushNotification($order, $message, $profileId);
 
             return response()->json($message, 201);
+        } catch (ValidationException $e) {
+            Log::warning('Chat sendMessage validation failed', [
+                'conversation_id' => $conversationId,
+                'errors' => $e->errors(),
+                'body_parsed' => $request->all(),
+                'content_type' => $request->header('Content-Type'),
+            ]);
+            throw $e;
         } catch (\Exception $e) {
-            Log::error('Error sending message: ' . $e->getMessage());
+            Log::error('Error sending message: ' . $e->getMessage(), [
+                'conversation_id' => $conversationId,
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Error al enviar mensaje'

@@ -45,7 +45,7 @@ public function store(Request $request)
         'latitude' => 'required|numeric',
         'longitude' => 'required|numeric',
         'city_id' => 'required|exists:cities,id',
-        'role' => 'nullable|string|in:users,commerce,delivery,admin',
+        'role' => 'nullable|string|in:users,commerce,delivery_company,delivery_agent,delivery,admin',
     ]);
 
     if ($validator->fails()) {

@@ -95,7 +95,7 @@ class LocationController extends Controller
             
             $response = Http::withHeaders([
                 'User-Agent' => $userAgent,
-            ])->timeout(5)->get('https://nominatim.openstreetmap.org/reverse', [
+            ])->timeout(5)->get(config('zonix.nominatim_reverse_url', 'https://nominatim.openstreetmap.org/reverse'), [
                 'format' => 'json',
                 'lat' => $latitude,
                 'lon' => $longitude,
@@ -274,7 +274,8 @@ class LocationController extends Controller
 
             // OSRM Route Service API
             // Formato: /route/v1/{profile}/{coordinates}?overview=full&geometries=geojson
-            $osrmUrl = "http://router.project-osrm.org/route/v1/$profile/$originLng,$originLat;$destLng,$destLat";
+            $base = rtrim(config('zonix.osrm_base_url', 'http://router.project-osrm.org'), '/');
+            $osrmUrl = "{$base}/route/v1/$profile/$originLng,$originLat;$destLng,$destLat";
             
             $response = Http::timeout(10)->get($osrmUrl, [
                 'overview' => 'full',
@@ -394,7 +395,7 @@ class LocationController extends Controller
             
             $response = Http::withHeaders([
                 'User-Agent' => $userAgent,
-            ])->timeout(10)->get('https://nominatim.openstreetmap.org/search', [
+            ])->timeout(10)->get(config('zonix.nominatim_search_url', 'https://nominatim.openstreetmap.org/search'), [
                 'q' => $address,
                 'format' => 'json',
                 'limit' => 1,

@@ -55,7 +55,7 @@ Existen reglas técnicas que no deben "alucinarse":
 
 1. **NO WebSockets:** Usar exclusivamente Pusher Channels + FCM.
 2. **Canales Privados:** Toda actualización de orden usa canales `private-`.
-3. **Roles:** Solo existen 4 niveles (0-3). Los roles `transport` y `affiliate` están eliminados.
+3. **Roles:** Existen 6 roles: admin, users, commerce, delivery_company, delivery_agent, delivery. delivery_company = empresa de delivery; delivery_agent = motorizado bajo empresa; delivery = motorizado autónomo. Los roles `transport` y `affiliate` están eliminados.
 4. **Deprecaciones:** `profiles.phone` no debe usarse; los teléfonos están en la tabla `phones`.
 
 ---

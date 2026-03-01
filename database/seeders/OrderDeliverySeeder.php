@@ -33,7 +33,7 @@ class OrderDeliverySeeder extends Seeder
             OrderDelivery::factory()->create([
                 'order_id' => $order->id,
                 'agent_id' => $agent->id,
-                'delivery_fee' => $order->delivery_fee ?? 5.00,
+                'delivery_fee' => $order->delivery_fee ?? config('zonix.seeder.default_delivery_fee', 5.00),
                 'status' => collect(['assigned', 'in_transit', 'delivered'])->random(),
             ]);
         }

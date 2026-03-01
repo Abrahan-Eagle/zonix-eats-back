@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Models\Order;
+use App\Models\OrderDelivery;
 use App\Models\DeliveryAgent;
+use App\Models\Review;
 use Illuminate\Support\Facades\Log;
 
 class OrderTrackingController extends Controller
@@ -17,7 +19,7 @@ class OrderTrackingController extends Controller
     public function getOrderStatus($orderId): JsonResponse
     {
         try {
-            $order = Order::with(['commerce', 'deliveryAgent'])
+            $order = Order::with(['commerce', 'orderDelivery.agent.profile', 'items'])
                 ->findOrFail($orderId);
 
             $statusInfo = $this->getStatusInfo($order->status);
@@ -34,20 +36,20 @@ class OrderTrackingController extends Controller
                     'address' => $order->commerce->address ?? 'N/A',
                     'phone' => $order->commerce->phone ?? 'N/A'
                 ],
-                'delivery_agent' => $order->deliveryAgent ? [
-                    'name' => $order->deliveryAgent->name ?? 'Repartidor',
-                    'phone' => $order->deliveryAgent->phone ?? 'N/A',
-                    'vehicle' => $order->deliveryAgent->vehicle_type ?? 'Moto',
+                'delivery_agent' => $order->orderDelivery?->agent ? [
+                    'name' => $order->orderDelivery->agent->profile->firstName ?? 'Repartidor',
+                    'phone' => $order->orderDelivery->agent->phone ?? 'N/A',
+                    'vehicle' => $order->orderDelivery->agent->vehicle_type ?? 'Moto',
                     'current_location' => [
-                        'lat' => $order->deliveryAgent->current_latitude ?? 0,
-                        'lng' => $order->deliveryAgent->current_longitude ?? 0
+                        'lat' => $order->orderDelivery->agent->current_latitude ?? 0,
+                        'lng' => $order->orderDelivery->agent->current_longitude ?? 0
                     ]
                 ] : null,
                 'order_details' => [
                     'total_items' => $order->items->count(),
-                    'total_amount' => $order->total_amount,
+                    'total_amount' => (float) $order->total,
                     'delivery_address' => $order->delivery_address,
-                    'special_instructions' => $order->special_instructions
+                    'special_instructions' => $order->notes ?? ''
                 ],
                 'timeline' => $this->generateTimeline($order)
             ];
@@ -66,32 +68,94 @@ class OrderTrackingController extends Controller
     }
 
     /**
-     * Obtener ubicación del repartidor
+     * Datos completos del repartidor para la vista "Detalle del Repartidor".
+     * Incluye: foto, nombre, rating real, verified, entregas, años, puntualidad, vehículo, reseñas.
      */
     public function getDeliveryAgentLocation($orderId): JsonResponse
     {
         try {
-            $order = Order::with('deliveryAgent')
+            $order = Order::with('orderDelivery.agent.profile')
                 ->findOrFail($orderId);
 
-            if (!$order->deliveryAgent) {
+            $agent = $order->orderDelivery?->agent;
+            if (!$agent) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No hay repartidor asignado aún'
                 ], 404);
             }
 
+            $profile = $agent->profile;
+            $name = trim(($profile->firstName ?? '') . ' ' . ($profile->lastName ?? '')) ?: 'Repartidor';
+
+            // Rating y reseñas desde tabla reviews (reviewable_type = DeliveryAgent)
+            $reviewsQuery = Review::where('reviewable_type', 'App\Models\DeliveryAgent')
+                ->where('reviewable_id', $agent->id);
+            $reviewsCount = $reviewsQuery->count();
+            $avgRating = $reviewsQuery->avg('rating');
+            $rating = $reviewsCount > 0 && $avgRating !== null
+                ? round((float) $avgRating, 1)
+                : ($agent->rating !== null ? (float) $agent->rating : null);
+
+            // Entregas completadas (orden entregada)
+            $deliveriesCount = OrderDelivery::where('agent_id', $agent->id)
+                ->whereHas('order', fn ($q) => $q->where('status', 'delivered'))
+                ->count();
+
+            // Años activo desde creación del agente
+            $yearsActive = $agent->created_at ? (int) $agent->created_at->diffInYears(now()) : 0;
+
+            // Puntualidad: % de entregas sin retraso (por ahora null si no se trackea)
+            $punctualityPercent = null;
+
+            // Verificado: tiene al menos una entrega o tiene rating
+            $verified = $deliveriesCount > 0 || ($rating !== null && $reviewsCount > 0);
+
+            // Últimas reseñas con comentario para "Sobre el repartidor"
+            $reviews = Review::where('reviewable_type', 'App\Models\DeliveryAgent')
+                ->where('reviewable_id', $agent->id)
+                ->whereNotNull('comment')
+                ->where('comment', '!=', '')
+                ->orderByDesc('created_at')
+                ->limit(3)
+                ->get(['rating', 'comment', 'created_at'])
+                ->map(fn ($r) => [
+                    'rating' => (int) $r->rating,
+                    'comment' => $r->comment,
+                    'created_at' => $r->created_at?->toIso8601String(),
+                ])
+                ->values()
+                ->all();
+
             $location = [
-                'agent_id' => $order->deliveryAgent->id,
-                'name' => $order->deliveryAgent->name ?? 'Repartidor',
-                'vehicle' => $order->deliveryAgent->vehicle_type ?? 'Moto',
+                'agent_id' => $agent->id,
+                'name' => $name,
+                'phone' => $agent->phone ?? null,
+                'photo_url' => $profile->photo_users ?? null,
+                'vehicle' => $agent->vehicle_type ?? 'Moto',
+                'license_plate' => $agent->license_number ?? null,
+                'rating' => $rating,
+                'reviews_count' => $reviewsCount,
+                'verified' => $verified,
+                'deliveries_count' => $deliveriesCount,
+                'years_active' => $yearsActive,
+                'punctuality_percent' => $punctualityPercent,
+                'reviews' => $reviews,
                 'current_location' => [
-                    'lat' => $order->deliveryAgent->current_latitude ?? 0,
-                    'lng' => $order->deliveryAgent->current_longitude ?? 0,
-                    'updated_at' => $order->deliveryAgent->location_updated_at ?? now()
+                    'lat' => $agent->current_latitude !== null ? (float) $agent->current_latitude : null,
+                    'lng' => $agent->current_longitude !== null ? (float) $agent->current_longitude : null,
+                    'updated_at' => $agent->last_location_update ?? now()
                 ],
-                'estimated_arrival' => $this->calculateEstimatedArrival($order)
+                'estimated_arrival' => $this->calculateEstimatedArrival($order),
+                'customer_location' => null,
             ];
+
+            if ($order->delivery_latitude !== null && $order->delivery_longitude !== null) {
+                $location['customer_location'] = [
+                    'lat' => (float) $order->delivery_latitude,
+                    'lng' => (float) $order->delivery_longitude,
+                ];
+            }
 
             return response()->json([
                 'success' => true,

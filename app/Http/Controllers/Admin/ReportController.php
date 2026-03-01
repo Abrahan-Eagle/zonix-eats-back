@@ -35,10 +35,15 @@ class ReportController extends Controller
             $q->where('status', 'suspended');
         })->count();
 
-        $userDistribution = User::select('role', DB::raw('count(*) as count'))
+        $roleCounts = User::select('role', DB::raw('count(*) as count'))
             ->groupBy('role')
             ->get()
             ->pluck('count', 'role');
+
+        // Compatibilidad: buyers = users; delivery = suma de delivery_company + delivery_agent + delivery
+        $userDistribution = $roleCounts->toArray();
+        $userDistribution['buyers'] = $roleCounts->get('users', 0);
+        $userDistribution['delivery'] = ($roleCounts->get('delivery_company', 0) + $roleCounts->get('delivery_agent', 0) + $roleCounts->get('delivery', 0));
 
         $totalOrders = Order::count();
         $totalRevenue = Order::where('status', 'delivered')->sum('total');
@@ -204,7 +209,7 @@ class ReportController extends Controller
                 'message' => 'required|string',
                 'type' => 'required|string|in:info,warning,error,success',
                 'target_users' => 'nullable|array',
-                'target_role' => 'nullable|string|in:users,commerce,delivery,admin',
+                'target_role' => 'nullable|string|in:users,commerce,delivery_company,delivery_agent,delivery,admin',
             ]);
 
             $targetUsers = $request->target_users ?? [];

@@ -37,9 +37,9 @@ Broadcast::channel('commerce.{commerceId}', function ($user, $commerceId) {
     return $user->role === 'commerce' && $user->profile?->commerce?->id === (int) $commerceId;
 });
 
-// Canal para repartidor específico
+// Canal para repartidor específico (motorizado: delivery_agent o delivery autónomo)
 Broadcast::channel('delivery.{deliveryAgentId}', function ($user, $deliveryAgentId) {
-    return $user->role === 'delivery' && $user->profile?->deliveryAgent?->id === (int) $deliveryAgentId;
+    return in_array($user->role, ['delivery', 'delivery_agent'], true) && $user->profile?->deliveryAgent?->id === (int) $deliveryAgentId;
 });
 
 // Canal para usuario específico (alias)
@@ -49,7 +49,7 @@ Broadcast::channel('user.{userId}', function ($user, $userId) {
 
 // Canal público para órdenes (solo lectura)
 Broadcast::channel('orders', function ($user) {
-    return $user->role === 'commerce' || $user->role === 'delivery' || $user->role === 'users';
+    return $user->role === 'commerce' || in_array($user->role, ['delivery', 'delivery_agent'], true) || $user->role === 'users';
 });
 
 // Canal de presencia para chat de órdenes

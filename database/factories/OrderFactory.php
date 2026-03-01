@@ -43,6 +43,8 @@ class OrderFactory extends Factory
             'payment_proof_uploaded_at' => $status !== 'pending_payment' ? $this->faker->optional()->dateTimeBetween('-1 week', 'now') : null,
             'cancellation_reason' => $status === 'cancelled' ? $this->faker->sentence() : null,
             'delivery_address' => $deliveryType === 'delivery' ? $this->faker->address() : null,
+            'delivery_latitude' => $deliveryType === 'delivery' ? $this->faker->latitude(10.0, 10.2) : null,
+            'delivery_longitude' => $deliveryType === 'delivery' ? $this->faker->longitude(-68.1, -67.9) : null,
             'notes' => $this->faker->optional(0.3)->sentence(),
         ];
     }

@@ -30,6 +30,8 @@ class Order extends Model
         'payment_proof_uploaded_at',
         'cancellation_reason',
         'delivery_address',
+        'delivery_latitude',
+        'delivery_longitude',
         'notes'
     ];
 
@@ -93,6 +95,22 @@ class Order extends Model
     public function orderDelivery()
     {
         return $this->hasOne(OrderDelivery::class);
+    }
+
+    /**
+     * Repartidor asignado (vía orderDelivery). Para compatibilidad con controladores que usan $order->deliveryAgent.
+     * hasOneThrough: Order -> OrderDelivery (order_id) -> DeliveryAgent (agent_id -> id).
+     */
+    public function deliveryAgent()
+    {
+        return $this->hasOneThrough(
+            DeliveryAgent::class,
+            OrderDelivery::class,
+            'order_id',   // FK en order_delivery hacia orders
+            'agent_id',   // FK en order_delivery hacia delivery_agents
+            'id',         // local key en orders
+            'id'          // local key en delivery_agents
+        );
     }
 
     public function delivery()

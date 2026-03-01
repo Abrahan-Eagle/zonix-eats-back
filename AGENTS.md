@@ -368,16 +368,18 @@ return response()->json([
 
 ## Roles & Authentication
 
-### Roles (4 roles, nada más)
+### Roles (6 roles)
 
-| Rol        | Level | Descripción                                                                |
-| ---------- | ----- | -------------------------------------------------------------------------- |
-| `users`    | 0     | Cliente/Comprador                                                          |
-| `commerce` | 1     | Comercio/Restaurante                                                       |
-| `delivery` | 2     | Repartidor (Company o Agent, puede ser independiente: `company_id = null`) |
-| `admin`    | 3     | Administrador                                                              |
+| Rol                | Descripción |
+| ------------------ | ----------- |
+| `users`            | Cliente/Comprador |
+| `commerce`         | Comercio/Restaurante |
+| `delivery_company` | Empresa que administra repartidores (motorizados) |
+| `delivery_agent`   | Repartidor vinculado a una empresa (`company_id` no nulo) |
+| `delivery`         | Repartidor autónomo (sin empresa, `company_id` nulo) |
+| `admin`            | Administrador |
 
-**IMPORTANTE:** Solo existen estos 4 roles. Los roles `transport` y `affiliate` fueron eliminados.
+**IMPORTANTE:** Rutas `/api/delivery/*` permiten **delivery_agent** y **delivery** (motorizados). Los roles `transport` y `affiliate` fueron eliminados.
 
 ### Laravel Sanctum
 

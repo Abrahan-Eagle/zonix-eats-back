@@ -79,10 +79,20 @@ class OrdersForUserSeeder extends Seeder
             }
         }
 
-        // 3 órdenes entregadas (historial)
-        $this->createOrder($profile->id, $commerce->id, $products, 'delivered', 1, now()->subDays(2), null);
-        $this->createOrder($profile->id, $commerce->id, $products, 'delivered', 1, now()->subDays(5), null);
-        $this->createOrder($profile->id, $commerce->id, $products, 'delivered', 1, now()->subDays(8), null);
+        // 3 órdenes entregadas (historial) con repartidor para que ReviewSeeder pueda crear reseñas
+        $agents = DeliveryAgent::where('working', true)->get();
+        foreach ([2, 5, 8] as $daysAgo) {
+            $deliveredOrder = $this->createOrder($profile->id, $commerce->id, $products, 'delivered', 1, now()->subDays($daysAgo), true);
+            if ($deliveredOrder && $agents->isNotEmpty()) {
+                $agent = $agents->random();
+                OrderDelivery::create([
+                    'order_id' => $deliveredOrder->id,
+                    'agent_id' => $agent->id,
+                    'status' => 'delivered',
+                    'delivery_fee' => $deliveredOrder->delivery_fee ?? 0,
+                ]);
+            }
+        }
         // 1 cancelada
         $this->createOrder($profile->id, $commerce->id, $products, 'cancelled', 1, now()->subDays(10), null);
 
@@ -101,6 +111,9 @@ class OrdersForUserSeeder extends Seeder
             $deliveryType = $forceDelivery === true ? 'delivery' : ($forceDelivery === false ? 'pickup' : ['pickup', 'delivery'][array_rand(['pickup', 'delivery'])]);
             $deliveryFee = $deliveryType === 'delivery' ? round(rand(150, 500) / 100, 2) : 0;
 
+            $deliveryLat = $deliveryType === 'delivery' ? 10.125277 : null;
+            $deliveryLng = $deliveryType === 'delivery' ? -68.051191 : null;
+
             $order = Order::create([
                 'profile_id' => $profileId,
                 'commerce_id' => $commerceId,
@@ -117,6 +130,8 @@ class OrdersForUserSeeder extends Seeder
                 'reference_number' => $status !== 'pending_payment' ? 'REF' . rand(10000, 99999) : null,
                 'payment_validated_at' => in_array($status, ['paid', 'processing', 'shipped', 'delivered']) ? $createdAt : null,
                 'delivery_address' => $deliveryType === 'delivery' ? 'Casa, El Socorro, Valencia' : null,
+                'delivery_latitude' => $deliveryLat,
+                'delivery_longitude' => $deliveryLng,
                 'cancellation_reason' => $status === 'cancelled' ? 'Solicitud del cliente' : null,
             ]);
             $order->created_at = $createdAt;

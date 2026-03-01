@@ -48,6 +48,8 @@ class DatabaseSeeder extends Seeder
             OrderItemSeeder::class,
             OrderDeliverySeeder::class,
             OrdersForUserSeeder::class,
+            DeliveryCaraboboOrder4Seeder::class,
+            FixDemoOrderTrackingSeeder::class,
 
             // Seeders de carrito
             CartSeeder::class,

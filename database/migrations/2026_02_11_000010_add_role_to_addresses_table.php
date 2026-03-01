@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('addresses', function (Blueprint $table) {
             // Campo para identificar a qué rol pertenece esta dirección
-            // (users, commerce, delivery, admin, etc.).
+            // (users, commerce, delivery_company, delivery_agent, delivery, admin).
             $table->string('role', 50)
                 ->nullable()
                 ->after('is_default');

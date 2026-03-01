@@ -27,10 +27,13 @@ class CartSeeder extends Seeder
             if ($profile === null) {
                 continue;
             }
-            Cart::factory()->create([
-                'profile_id' => $profile->id,
-            ]);
-            $created++;
+            $cart = Cart::firstOrCreate(
+                ['profile_id' => $profile->id],
+                ['notes' => null]
+            );
+            if ($cart->wasRecentlyCreated) {
+                $created++;
+            }
         }
         
         if ($created === 0) {

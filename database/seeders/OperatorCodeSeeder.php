@@ -24,11 +24,14 @@ class OperatorCodeSeeder extends Seeder
             ['id' => 5,'name' => '0426', 'code' => 426],
           ];
 
-        // Insertar datos en la tabla country Code
+        // Insertar o actualizar (permite re-ejecutar el seeder sin duplicados)
         foreach ($operatorCodes as $operatorCode) {
-            $varOperatorCode = OperatorCode::create($operatorCode);
-            echo $varOperatorCode . "OperatorCode:";
+            OperatorCode::updateOrCreate(
+                ['id' => $operatorCode['id']],
+                ['name' => $operatorCode['name'], 'code' => $operatorCode['code']]
+            );
         }
+        $this->command->info('OperatorCodeSeeder ejecutado.');
 
     }
 }
