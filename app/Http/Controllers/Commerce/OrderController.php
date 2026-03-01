@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use App\Events\PaymentValidated;
 use App\Events\OrderStatusChanged;
 
@@ -14,10 +15,15 @@ class OrderController extends Controller
   public function index(Request $request)
     {
         try {
-            $user = Auth::user()->load('profile.commerces');
+            /** @var \App\Models\User|null $user */
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json(['error' => 'No autenticado'], 401);
+            }
+            $user->load('profile.commerces');
             $profile = $user->profile;
             $commerce = $profile?->getPrimaryCommerce();
-            
+
             if (!$profile || !$commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
@@ -46,7 +52,7 @@ class OrderController extends Controller
 
             return response()->json($orders);
         } catch (\Exception $e) {
-            \Log::error('Error al listar órdenes de comercio: ' . $e->getMessage());
+            Log::error('Error al listar órdenes de comercio: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error interno al listar órdenes'], 500);
         }
     }
@@ -54,9 +60,14 @@ class OrderController extends Controller
     public function show(Order $order)
     {
         try {
-            $user = Auth::user()->load('profile.commerces');
+            /** @var \App\Models\User|null $user */
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json(['error' => 'No autenticado'], 401);
+            }
+            $user->load('profile.commerces');
             $profile = $user->profile;
-            
+
             if (!$profile || !$profile->commerces()->exists()) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
@@ -67,7 +78,7 @@ class OrderController extends Controller
 
             return response()->json($order->load(['profile.user', 'orderItems.product', 'orderDelivery']));
         } catch (\Exception $e) {
-            \Log::error('Error al mostrar orden de comercio: ' . $e->getMessage());
+            Log::error('Error al mostrar orden de comercio: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error interno al mostrar orden'], 500);
         }
     }
@@ -75,9 +86,14 @@ class OrderController extends Controller
     public function updateStatus(Request $request, Order $order)
     {
         try {
-            $user = Auth::user()->load('profile.commerces');
+            /** @var \App\Models\User|null $user */
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json(['error' => 'No autenticado'], 401);
+            }
+            $user->load('profile.commerces');
             $profile = $user->profile;
-            
+
             if (!$profile || !$profile->commerces()->exists()) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
@@ -121,7 +137,7 @@ class OrderController extends Controller
 
             return response()->json(['success' => true, 'message' => 'Estado de la orden actualizado']);
         } catch (\Exception $e) {
-            \Log::error('Error al actualizar estado de orden de comercio: ' . $e->getMessage());
+            Log::error('Error al actualizar estado de orden de comercio: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error interno al actualizar estado de orden'], 500);
         }
     }
@@ -145,7 +161,12 @@ class OrderController extends Controller
             ]);
 
             $order = Order::findOrFail($id);
-            $user = Auth::user()->load('profile.commerces');
+            /** @var \App\Models\User|null $user */
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json(['error' => 'No autenticado'], 401);
+            }
+            $user->load('profile.commerces');
             $profile = $user->profile;
 
             // Verificar que el usuario es dueño del comercio de la orden
@@ -203,7 +224,7 @@ class OrderController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Error al validar el comprobante: ' . $e->getMessage());
+            Log::error('Error al validar el comprobante: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error al validar el comprobante: ' . $e->getMessage()
@@ -234,7 +255,12 @@ class OrderController extends Controller
     {
         try {
             $order = Order::findOrFail($id);
-            $user = Auth::user()->load('profile.commerces');
+            /** @var \App\Models\User|null $user */
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json(['error' => 'No autenticado'], 401);
+            }
+            $user->load('profile.commerces');
             $profile = $user->profile;
 
             if (!$profile || !$profile->commerces()->where('id', $order->commerce_id)->exists()) {
@@ -277,7 +303,7 @@ class OrderController extends Controller
                 'order' => $order
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error al aprobar orden para pago: ' . $e->getMessage());
+            Log::error('Error al aprobar orden para pago: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error al aprobar orden para pago: ' . $e->getMessage()

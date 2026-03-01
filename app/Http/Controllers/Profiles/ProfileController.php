@@ -137,7 +137,7 @@ class ProfileController extends Controller
 
 
     // Log para depurar la fecha recibida y asegurar que esté en el formato correcto
-    Log::info('Fecha recibida: ' . $validatedData['date_of_birth']);  // Verificar que esté en formato Y-m-d
+    Log::debug('Fecha recibida: ' . $validatedData['date_of_birth']);
 
     // Obtener el nombre del perfil y la fecha de creación
     $created_at = $profile->created_at->format('YmdHis');  // Formato de fecha
@@ -405,7 +405,7 @@ class ProfileController extends Controller
      */
     public function addCommerceToProfile(Request $request)
     {
-        \Illuminate\Support\Facades\Log::info('addCommerceToProfile request', [
+        \Illuminate\Support\Facades\Log::debug('addCommerceToProfile request', [
             'profile_id' => $request->input('profile_id'),
             'business_name' => $request->input('business_name'),
         ]);
@@ -426,7 +426,7 @@ class ProfileController extends Controller
         ]);
 
         if ($validator->fails()) {
-            \Illuminate\Support\Facades\Log::warning('addCommerceToProfile validation failed', [
+            \Illuminate\Support\Facades\Log::debug('addCommerceToProfile validation failed', [
                 'errors' => $validator->errors()->toArray(),
                 'payload' => $request->only(['profile_id', 'business_name', 'tax_id']),
             ]);

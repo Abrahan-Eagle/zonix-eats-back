@@ -15,7 +15,13 @@ class NotificationController extends Controller
     // Listar notificaciones del usuario autenticado
     public function getNotifications()
     {
-        $profile = Auth::user()->load('profile')->profile;
+        /** @var \App\Models\User|null $authUser */
+        $authUser = Auth::user();
+        if (!$authUser) {
+            return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+        }
+        $authUser->load('profile');
+        $profile = $authUser->profile;
         $notifications = Notification::where('profile_id', $profile->id)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -25,7 +31,13 @@ class NotificationController extends Controller
     // Estadísticas de notificaciones (unread count)
     public function getStats()
     {
-        $profile = Auth::user()->load('profile')->profile;
+        /** @var \App\Models\User|null $authUser */
+        $authUser = Auth::user();
+        if (!$authUser) {
+            return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+        }
+        $authUser->load('profile');
+        $profile = $authUser->profile;
         $unreadCount = Notification::where('profile_id', $profile->id)
             ->whereNull('read_at')
             ->count();
@@ -38,7 +50,13 @@ class NotificationController extends Controller
     // Marcar una notificación como leída
     public function markAsRead($notificationId)
     {
-        $profile = Auth::user()->load('profile')->profile;
+        /** @var \App\Models\User|null $authUser */
+        $authUser = Auth::user();
+        if (!$authUser) {
+            return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+        }
+        $authUser->load('profile');
+        $profile = $authUser->profile;
         $notification = Notification::where('id', $notificationId)
             ->where('profile_id', $profile->id)
             ->firstOrFail();
@@ -50,7 +68,13 @@ class NotificationController extends Controller
     // Crear notificación (para pruebas/admin)
     public function store(Request $request)
     {
-        $profile = Auth::user()->load('profile')->profile;
+        /** @var \App\Models\User|null $authUser */
+        $authUser = Auth::user();
+        if (!$authUser) {
+            return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+        }
+        $authUser->load('profile');
+        $profile = $authUser->profile;
         $data = $request->validate([
             'title' => 'required|string|max:255',
             'body' => 'required|string',
@@ -74,7 +98,13 @@ class NotificationController extends Controller
     // Marcar todas las notificaciones como leídas
     public function markAllAsRead()
     {
-        $profile = Auth::user()->load('profile')->profile;
+        /** @var \App\Models\User|null $authUser */
+        $authUser = Auth::user();
+        if (!$authUser) {
+            return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+        }
+        $authUser->load('profile');
+        $profile = $authUser->profile;
         Notification::where('profile_id', $profile->id)
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
@@ -84,7 +114,13 @@ class NotificationController extends Controller
     // Eliminar notificación
     public function delete($notificationId)
     {
-        $profile = Auth::user()->load('profile')->profile;
+        /** @var \App\Models\User|null $authUser */
+        $authUser = Auth::user();
+        if (!$authUser) {
+            return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+        }
+        $authUser->load('profile');
+        $profile = $authUser->profile;
         $notification = Notification::where('id', $notificationId)
             ->where('profile_id', $profile->id)
             ->firstOrFail();
@@ -98,8 +134,14 @@ class NotificationController extends Controller
     public function sendPushNotification(Request $request)
     {
         try {
-            $profile = Auth::user()->load('profile')->profile;
-            
+            /** @var \App\Models\User|null $authUser */
+            $authUser = Auth::user();
+            if (!$authUser) {
+                return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+            }
+            $authUser->load('profile');
+            $profile = $authUser->profile;
+
             $data = $request->validate([
                 'title' => 'required|string|max:255',
                 'message' => 'required|string',
@@ -186,8 +228,14 @@ class NotificationController extends Controller
     public function getNotificationSettings()
     {
         try {
-            $profile = Auth::user()->load('profile')->profile;
-            
+            /** @var \App\Models\User|null $authUser */
+            $authUser = Auth::user();
+            if (!$authUser) {
+                return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+            }
+            $authUser->load('profile');
+            $profile = $authUser->profile;
+
             // Valores por defecto
             $defaultSettings = [
                 'push_notifications' => true,
@@ -232,8 +280,14 @@ class NotificationController extends Controller
     public function updateNotificationSettings(Request $request)
     {
         try {
-            $profile = Auth::user()->load('profile')->profile;
-            
+            /** @var \App\Models\User|null $authUser */
+            $authUser = Auth::user();
+            if (!$authUser) {
+                return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+            }
+            $authUser->load('profile');
+            $profile = $authUser->profile;
+
             $data = $request->validate([
                 'push_notifications' => 'nullable|boolean',
                 'email_notifications' => 'nullable|boolean',

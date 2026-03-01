@@ -135,17 +135,23 @@ class AuthController extends Controller
     public function getUser(Request $request)
     {
         $user = $request->user();
+        $user->load('profile');
+        $data = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'google_id' => $user->google_id,
+            'completed_onboarding' => $user->completed_onboarding,
+            'created_at' => $user->created_at->toISOString(),
+        ];
+        // Phones, documents y addresses están ligados al perfil (profile_id), no a users
+        if ($user->profile) {
+            $data['profile_id'] = $user->profile->id;
+        }
         return response()->json([
             'success' => true,
-            'data' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role,
-                'google_id' => $user->google_id,
-                'completed_onboarding' => $user->completed_onboarding,
-                'created_at' => $user->created_at->toISOString(),
-            ]
+            'data' => $data,
         ]);
     }
 

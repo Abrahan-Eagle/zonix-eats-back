@@ -13,7 +13,12 @@ class DashboardController extends Controller
     public function index()
     {
         try {
-            $user = Auth::user()->load('profile.commerces');
+            /** @var \App\Models\User|null $user */
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json(['error' => 'No autenticado'], 401);
+            }
+            $user->load('profile.commerces');
             $profile = $user->profile;
             $commerce = $profile?->getPrimaryCommerce();
             

@@ -82,7 +82,7 @@ class ReviewService
                                ->first();
         
         if ($existingReview) {
-            Log::error('ReviewService::createReview - Review duplicado encontrado', [
+            Log::debug('ReviewService::createReview - Review duplicado (esperado)', [
                 'profile_id' => $profile->id,
                 'reviewable_type' => $reviewData['reviewable_type'],
                 'reviewable_id' => $reviewData['reviewable_id']

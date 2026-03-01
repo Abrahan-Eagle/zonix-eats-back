@@ -625,7 +625,7 @@ class ChatController extends Controller
      */
     private function sendPushNotification(Order $order, ChatMessage $message, $senderId)
     {
-        Log::info('🚀 INICIO sendPushNotification', [
+        Log::debug('sendPushNotification inicio', [
             'order_id' => $order->id,
             'message_id' => $message->id,
             'sender_id' => $senderId
@@ -635,7 +635,7 @@ class ChatController extends Controller
             // Obtener el receptor (el otro participante)
             $receiver = $this->getReceiverForOrder($order, $senderId);
             
-            Log::info('🔍 Debug sendPushNotification', [
+            Log::debug('sendPushNotification debug', [
                 'sender_id' => $senderId,
                 'receiver' => $receiver ? $receiver->id : 'null',
                 'has_fcm_token' => $receiver && $receiver->fcm_device_token ? 'YES' : 'NO',
@@ -643,7 +643,7 @@ class ChatController extends Controller
             ]);
             
             if (!$receiver || !$receiver->fcm_device_token) {
-                Log::info('⚠️ Receptor sin device token, no se envía push', [
+                Log::debug('Receptor sin device token, no se envía push', [
                     'receiver_id' => $receiver ? $receiver->id : 'null',
                     'has_token' => $receiver && $receiver->fcm_device_token ? 'YES' : 'NO'
                 ]);
@@ -684,11 +684,11 @@ class ChatController extends Controller
                 ]
             );
             
-            Log::info('🔥 RESULTADO FirebaseService->sendToDevice', [
+            Log::debug('FirebaseService->sendToDevice result', [
                 'result' => $result ? 'SUCCESS' : 'FAILED'
             ]);
 
-            Log::info('📬 Notificación push enviada', [
+            Log::debug('Notificación push enviada', [
                 'receiver_id' => $receiver->id,
                 'sender_name' => $senderName,
                 'order_id' => $order->id

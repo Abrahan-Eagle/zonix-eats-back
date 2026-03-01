@@ -18,10 +18,15 @@ class AnalyticsController extends Controller
     public function getOverview()
     {
         try {
-            $user = Auth::user()->load('profile.commerces');
+            /** @var \App\Models\User|null $user */
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json(['error' => 'No autenticado'], 401);
+            }
+            $user->load('profile.commerces');
             $profile = $user->profile;
             $commerce = $profile?->getPrimaryCommerce();
-            
+
             if (!$profile || !$commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
@@ -104,10 +109,15 @@ class AnalyticsController extends Controller
     public function getRevenue(Request $request)
     {
         try {
-            $user = Auth::user()->load('profile.commerces');
+            /** @var \App\Models\User|null $user */
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json(['error' => 'No autenticado'], 401);
+            }
+            $user->load('profile.commerces');
             $profile = $user->profile;
             $commerce = $profile?->getPrimaryCommerce();
-            
+
             if (!$profile || !$commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
@@ -143,10 +153,15 @@ class AnalyticsController extends Controller
     public function getOrders(Request $request)
     {
         try {
-            $user = Auth::user()->load('profile.commerces');
+            /** @var \App\Models\User|null $user */
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json(['error' => 'No autenticado'], 401);
+            }
+            $user->load('profile.commerces');
             $profile = $user->profile;
             $commerce = $profile?->getPrimaryCommerce();
-            
+
             if (!$profile || !$commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
@@ -178,10 +193,15 @@ class AnalyticsController extends Controller
     public function getProducts()
     {
         try {
-            $user = Auth::user()->load('profile.commerces');
+            /** @var \App\Models\User|null $user */
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json(['error' => 'No autenticado'], 401);
+            }
+            $user->load('profile.commerces');
             $profile = $user->profile;
             $commerce = $profile?->getPrimaryCommerce();
-            
+
             if (!$profile || !$commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
@@ -211,10 +231,15 @@ class AnalyticsController extends Controller
     public function getCustomers()
     {
         try {
-            $user = Auth::user()->load('profile.commerces');
+            /** @var \App\Models\User|null $user */
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json(['error' => 'No autenticado'], 401);
+            }
+            $user->load('profile.commerces');
             $profile = $user->profile;
             $commerce = $profile?->getPrimaryCommerce();
-            
+
             if (!$profile || !$commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
@@ -244,10 +269,15 @@ class AnalyticsController extends Controller
     public function getPerformance()
     {
         try {
-            $user = Auth::user()->load('profile.commerces');
+            /** @var \App\Models\User|null $user */
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json(['error' => 'No autenticado'], 401);
+            }
+            $user->load('profile.commerces');
             $profile = $user->profile;
             $commerce = $profile?->getPrimaryCommerce();
-            
+
             if (!$profile || !$commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }

@@ -255,7 +255,7 @@ class ChatController extends Controller
     {
         // Aquí se implementaría el envío real de notificaciones push
         // Por ahora solo se registra en el log
-        Log::info('Push notification sent', [
+        Log::debug('Push notification sent', [
             'order_id' => $order->id,
             'message_id' => $message->id,
             'recipient_type' => $message->recipient_type

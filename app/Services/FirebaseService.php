@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Factory;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification;
@@ -21,7 +22,7 @@ class FirebaseService
             
             // Si no está configurado, no inicializar Firebase
             if (!$credentialsPath) {
-                \Log::warning('⚠️ FIREBASE_CREDENTIALS no está configurado en .env');
+                Log::warning('⚠️ FIREBASE_CREDENTIALS no está configurado en .env');
                 $this->messaging = null;
                 return;
             }
@@ -35,7 +36,7 @@ class FirebaseService
             
             // Verificar que el archivo existe
             if (!file_exists($credentialsPath)) {
-                \Log::error('❌ Archivo de credenciales de Firebase no encontrado', [
+                Log::error('❌ Archivo de credenciales de Firebase no encontrado', [
                     'path' => $credentialsPath,
                     'env_value' => env('FIREBASE_CREDENTIALS')
                 ]);
@@ -46,12 +47,12 @@ class FirebaseService
             $factory = (new Factory)->withServiceAccount($credentialsPath);
             $this->messaging = $factory->createMessaging();
             
-            \Log::info('✅ Firebase Service inicializado', [
+            Log::info('✅ Firebase Service inicializado', [
                 'credentials_path' => $credentialsPath,
                 'project_id' => $this->getProjectId($credentialsPath)
             ]);
         } catch (\Exception $e) {
-            \Log::error('❌ Error inicializando Firebase', [
+            Log::error('❌ Error inicializando Firebase', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -78,23 +79,22 @@ class FirebaseService
     public function sendToDevice(string $deviceToken, string $title, string $body, array $data = [])
     {
         if (!$this->messaging) {
-            \Log::warning('⚠️ Firebase messaging no disponible');
+            Log::warning('⚠️ Firebase messaging no disponible');
             return false;
         }
 
         try {
             // Crear notificación para mostrar en background/foreground
             $notification = Notification::create($title, $body);
-            
-            // Crear mensaje con notificación y datos adicionales
-            // Enviar notificación + datos para que funcione en foreground y background
-            $message = CloudMessage::withTarget('token', $deviceToken)
+            // API actual: CloudMessage::new()->toToken() (withTarget está deprecado desde 7.16)
+            $message = CloudMessage::new()
+                ->toToken($deviceToken)
                 ->withNotification($notification)
                 ->withData($data);
 
             $this->messaging->send($message);
 
-            \Log::info('✅ Notificación push enviada', [
+            Log::debug('Notificación push enviada', [
                 'title' => $title,
                 'body' => substr($body, 0, 50) . '...',
                 'device_token' => substr($deviceToken, 0, 20) . '...',
@@ -104,7 +104,7 @@ class FirebaseService
 
             return true;
         } catch (\Exception $e) {
-            \Log::error('❌ Error enviando notificación push', [
+            Log::error('❌ Error enviando notificación push', [
                 'error' => $e->getMessage(),
                 'device_token' => substr($deviceToken, 0, 20) . '...',
                 'title' => $title,
@@ -130,7 +130,7 @@ class FirebaseService
             }
         }
 
-        \Log::info("✅ Notificaciones enviadas: {$successCount}/" . count($deviceTokens));
+        Log::info("✅ Notificaciones enviadas: {$successCount}/" . count($deviceTokens));
         return $successCount;
     }
 }

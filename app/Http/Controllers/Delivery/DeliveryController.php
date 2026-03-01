@@ -199,8 +199,8 @@ class DeliveryController extends Controller
                 ->whereDate('created_at', '>=', now()->subDays(30))
                 ->get(['id', 'created_at', 'updated_at']);
 
-            $driver = \Illuminate\Support\Facades\Schema::getConnection()->getDriverName();
-            if ($driver === 'mysql') {
+            $driver = \Illuminate\Support\Facades\DB::connection()->getDriverName();
+            if (strtolower($driver) === 'mysql') {
                 $avgMinutes = Order::whereHas('orderDelivery', function($q) use ($deliveryAgentId) {
                         $q->where('agent_id', $deliveryAgentId);
                     })
@@ -282,9 +282,9 @@ class DeliveryController extends Controller
                 'reported_by_id' => $deliveryAgent?->id ?? 0,
                 'reported_against_type' => 'App\\Models\\Commerce',
                 'reported_against_id' => $order->commerce_id,
-                'type' => 'other',
+                'type' => 'other', // enum: quality_issue|delivery_problem|payment_issue|other
                 'description' => $request->issue . ': ' . $request->description,
-                'status' => 'pending',
+                'status' => 'pending', // enum: pending|in_review|resolved|closed
             ]);
 
             return response()->json([

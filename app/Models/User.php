@@ -109,7 +109,11 @@ class User extends Authenticatable
         return $roles->unique()->values();
     }
 
-    // Relación con Profile
+    /**
+     * Perfil del usuario (relación 1:1). La tabla profiles es la extensión de users:
+     * un user tiene un perfil que representa a la persona (phones, documents, addresses
+     * están ligados al profile_id, no a user_id).
+     */
     public function profile()
     {
         return $this->hasOne(Profile::class);

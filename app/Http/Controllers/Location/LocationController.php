@@ -167,7 +167,7 @@ class LocationController extends Controller
             $driver = DB::connection()->getDriverName();
             $earthRadius = 6371;
 
-            if ($driver === 'mysql') {
+            if (strtolower((string) $driver) === 'mysql') {
                 $nearbyPlaces = Commerce::selectRaw("
                     commerces.*,
                     commerces.business_name,
@@ -490,7 +490,12 @@ class LocationController extends Controller
     public function getDeliveryRoutes()
     {
         try {
-            $user = Auth::user()->load('profile.deliveryAgent');
+            /** @var \App\Models\User|null $user */
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+            }
+            $user->load('profile.deliveryAgent');
             $profile = $user->profile;
 
             // Obtener órdenes asignadas al usuario (si es delivery agent)

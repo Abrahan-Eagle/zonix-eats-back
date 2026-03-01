@@ -29,5 +29,7 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
+        <!-- Solo escribir error+ en log durante tests; evita ruido de INFO/DEBUG -->
+        <env name="LOG_LEVEL" value="error"/>
     </php>
 </phpunit>

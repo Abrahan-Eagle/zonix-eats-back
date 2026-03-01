@@ -436,11 +436,19 @@ class AnalyticsController extends Controller
             
             $ordersToday = Order::whereDate('created_at', today())->count();
             
-            // Calcular tiempo promedio de espera (desde creación hasta entrega)
-            $averageWaitTime = Order::where('status', 'delivered')
-                ->whereDate('created_at', '>=', now()->subDays(7))
-                ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as avg_minutes')
-                ->value('avg_minutes') ?? 0;
+            // Calcular tiempo promedio de espera (compatible MySQL y SQLite)
+            $driver = DB::connection()->getDriverName();
+            if (strtolower((string) $driver) === 'mysql') {
+                $averageWaitTime = Order::where('status', 'delivered')
+                    ->whereDate('created_at', '>=', now()->subDays(7))
+                    ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as avg_minutes')
+                    ->value('avg_minutes') ?? 0;
+            } else {
+                $waitOrders = Order::where('status', 'delivered')
+                    ->whereDate('created_at', '>=', now()->subDays(7))
+                    ->get(['created_at', 'updated_at']);
+                $averageWaitTime = $waitOrders->isEmpty() ? 0 : $waitOrders->map(fn ($o) => $o->created_at->diffInMinutes($o->updated_at))->avg();
+            }
             
             // Calcular uptime del sistema basado en órdenes procesadas vs fallidas
             // (aproximación: si hay órdenes siendo procesadas, el sistema está activo)
@@ -625,11 +633,19 @@ class AnalyticsController extends Controller
                 ? round((($totalRevenue - $estimatedCosts) / $totalRevenue) * 100, 2)
                 : 0;
 
-            // Calcular average_delivery_time (tiempo desde creación hasta entrega)
-            $deliveryTimes = Order::where('status', 'delivered')
-                ->whereDate('created_at', '>=', now()->subDays(30))
-                ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as avg_minutes')
-                ->value('avg_minutes') ?? 0;
+            // Calcular average_delivery_time (compatible MySQL y SQLite)
+            $driver = DB::connection()->getDriverName();
+            if (strtolower((string) $driver) === 'mysql') {
+                $deliveryTimes = Order::where('status', 'delivered')
+                    ->whereDate('created_at', '>=', now()->subDays(30))
+                    ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as avg_minutes')
+                    ->value('avg_minutes') ?? 0;
+            } else {
+                $dtOrders = Order::where('status', 'delivered')
+                    ->whereDate('created_at', '>=', now()->subDays(30))
+                    ->get(['created_at', 'updated_at']);
+                $deliveryTimes = $dtOrders->isEmpty() ? 0 : $dtOrders->map(fn ($o) => $o->created_at->diffInMinutes($o->updated_at))->avg();
+            }
 
             $averageDeliveryTime = round($deliveryTimes, 1);
 
@@ -863,7 +879,7 @@ class AnalyticsController extends Controller
             ->whereDate('created_at', '>=', now()->subDays(30))
             ->get(['created_at', 'updated_at']);
 
-        if ($driver === 'mysql') {
+        if (strtolower((string) $driver) === 'mysql') {
             $deliveryTimes = Order::where('status', 'delivered')
                 ->whereDate('created_at', '>=', now()->subDays(30))
                 ->selectRaw('TIMESTAMPDIFF(MINUTE, created_at, updated_at) as delivery_time')
@@ -965,20 +981,30 @@ class AnalyticsController extends Controller
 
     private function getRestaurantPerformanceMetrics()
     {
-        // Calcular tiempo promedio de preparación (desde creación hasta shipped o delivered)
-        // Filtrar valores anómalos (más de 120 minutos se considera anómalo)
-        $averagePreparationTime = Order::whereIn('status', ['shipped', 'delivered'])
+        $driver = DB::connection()->getDriverName();
+        $prepOrders = Order::whereIn('status', ['shipped', 'delivered'])
             ->whereDate('created_at', '>=', now()->subDays(30))
-            ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as avg_minutes')
-            ->havingRaw('avg_minutes <= 120') // Filtrar valores anómalos
-            ->value('avg_minutes') ?? 0;
-        
-        // Si no hay datos válidos, calcular sin filtro
-        if ($averagePreparationTime == 0) {
+            ->get(['created_at', 'updated_at']);
+
+        if (strtolower((string) $driver) === 'mysql') {
             $averagePreparationTime = Order::whereIn('status', ['shipped', 'delivered'])
                 ->whereDate('created_at', '>=', now()->subDays(30))
                 ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as avg_minutes')
-                ->value('avg_minutes') ?? 12.5;
+                ->havingRaw('avg_minutes <= 120')
+                ->value('avg_minutes') ?? 0;
+            if ($averagePreparationTime == 0) {
+                $averagePreparationTime = Order::whereIn('status', ['shipped', 'delivered'])
+                    ->whereDate('created_at', '>=', now()->subDays(30))
+                    ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, updated_at)) as avg_minutes')
+                    ->value('avg_minutes') ?? 12.5;
+            }
+        } else {
+            $minutes = $prepOrders->map(fn ($o) => $o->created_at->diffInMinutes($o->updated_at))->filter(fn ($m) => $m > 0 && $m <= 120);
+            $averagePreparationTime = $minutes->isEmpty() ? 0 : $minutes->avg();
+            if ($averagePreparationTime == 0) {
+                $allMin = $prepOrders->map(fn ($o) => $o->created_at->diffInMinutes($o->updated_at))->filter(fn ($m) => $m > 0);
+                $averagePreparationTime = $allMin->isEmpty() ? 12.5 : $allMin->avg();
+            }
         }
         
         // Calcular tasa de aceptación de órdenes

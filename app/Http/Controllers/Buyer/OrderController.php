@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use App\Events\OrderCreated;
 
 /**
@@ -216,7 +217,7 @@ class OrderController extends Controller
                 $cartService = app(\App\Services\CartService::class);
                 $cartService->clearCart();
             } catch (\Exception $e) {
-                \Log::warning('No se pudo limpiar el carrito después de crear orden', [
+                Log::warning('No se pudo limpiar el carrito después de crear orden', [
                     'order_id' => $order->id,
                     'error' => $e->getMessage()
                 ]);
@@ -234,14 +235,14 @@ class OrderController extends Controller
                 'data' => $orderWithProducts
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            \Log::error('Error de validación al crear orden', ['errors' => $e->errors()]);
+            Log::debug('Validación al crear orden (datos inválidos)', ['errors' => $e->errors()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Datos inválidos',
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('Error al crear orden', [
+            Log::error('Error al crear orden', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -295,10 +296,17 @@ class OrderController extends Controller
                 'reference_number' => 'required|string|max:100',
             ]);
 
-                $user = Auth::user()->load('profile');
-                $profile = $user->profile;
-            
-            \Log::info('ORDERS EN DB', [\App\Models\Order::all()->toArray()]);
+            /** @var \App\Models\User|null $user */
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+            }
+            $user->load('profile');
+            $profile = $user->profile;
+
+            if (!app()->environment('testing')) {
+                Log::info('ORDERS EN DB', [\App\Models\Order::all()->toArray()]);
+            }
             $order = \App\Models\Order::where('profile_id', $profile->id)->where('id', $id)->first();
             if (!$order) {
                 // Fallback para tests: buscar solo por id
@@ -358,7 +366,7 @@ class OrderController extends Controller
                 'message' => 'Comprobante de pago subido exitosamente'
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error al subir comprobante de pago: ' . $e->getMessage());
+            Log::error('Error al subir comprobante de pago: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error interno al subir comprobante'], 500);
         }
     }
@@ -382,9 +390,14 @@ class OrderController extends Controller
                 'reason' => 'required|string|max:500',
             ]);
 
-                $user = Auth::user()->load('profile');
-                $profile = $user->profile;
-            
+            /** @var \App\Models\User|null $user */
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+            }
+            $user->load('profile');
+            $profile = $user->profile;
+
             $order = \App\Models\Order::where('profile_id', $profile->id)->findOrFail($id);
             
             // Validar que puede cancelar (solo en pending_payment y dentro del tiempo límite)
@@ -426,7 +439,7 @@ class OrderController extends Controller
             // Notification::send($user, new OrderCancelled($order));
             return response()->json(['success' => true, 'message' => 'Orden cancelada exitosamente']);
         } catch (\Exception $e) {
-            \Log::error('Error al cancelar orden: ' . $e->getMessage());
+            Log::error('Error al cancelar orden: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error interno al cancelar orden'], 500);
         }
     }

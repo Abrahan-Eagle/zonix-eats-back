@@ -5,8 +5,9 @@ namespace App\Http\Controllers\Buyer;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class AccountDeletionController extends Controller
@@ -231,7 +232,7 @@ class AccountDeletionController extends Controller
     private function sendConfirmationEmail($email, $confirmationCode)
     {
         // En producción, usar Laravel Mail
-        \Log::info("Email de confirmación enviado a {$email} con código: {$confirmationCode}");
+        Log::debug("Email de confirmación enviado a {$email} con código: {$confirmationCode}");
     }
 
     /**
@@ -242,7 +243,7 @@ class AccountDeletionController extends Controller
         // En producción, esto eliminaría todos los datos del usuario
         // de manera segura y cumpliendo con GDPR
         
-        \Log::info("Cuenta eliminada para usuario: {$user->id}");
+        Log::info("Cuenta eliminada para usuario: {$user->id}");
         
         // Simular eliminación de datos relacionados
         $this->deleteUserData($user->id);
@@ -265,7 +266,7 @@ class AccountDeletionController extends Controller
         // - Actividad
         // - Configuraciones
         
-        \Log::info("Datos eliminados para usuario: {$userId}");
+        Log::info("Datos eliminados para usuario: {$userId}");
     }
 
     // Variable estática para simular el estado de la solicitud de eliminación en memoria de test
