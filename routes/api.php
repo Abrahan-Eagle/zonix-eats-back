@@ -316,6 +316,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/disputes', [\App\Http\Controllers\Buyer\DisputeController::class, 'index']);
         Route::post('/disputes', [\App\Http\Controllers\Buyer\DisputeController::class, 'store']);
         Route::get('/disputes/{id}', [\App\Http\Controllers\Buyer\DisputeController::class, 'show']);
+
+        // Exportar datos personales (GET, respuesta JSON inmediata)
+        Route::get('/export', [\App\Http\Controllers\Buyer\ExportController::class, 'export']);
+        // Eliminar cuenta (DELETE, eliminación inmediata)
+        Route::delete('/account', [\App\Http\Controllers\Buyer\AccountDeletionController::class, 'deleteAccount']);
     });
 
     // Commerce

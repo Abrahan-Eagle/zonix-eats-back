@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Buyer;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -236,37 +237,42 @@ class AccountDeletionController extends Controller
     }
 
     /**
-     * Procesar eliminación de cuenta
+     * DELETE /api/buyer/account - Eliminación inmediata de cuenta (sin flujo de confirmación).
      */
-    private function processAccountDeletion($user)
+    public function deleteAccount()
     {
-        // En producción, esto eliminaría todos los datos del usuario
-        // de manera segura y cumpliendo con GDPR
-        
-        Log::info("Cuenta eliminada para usuario: {$user->id}");
-        
-        // Simular eliminación de datos relacionados
-        $this->deleteUserData($user->id);
-        
-        // Cerrar sesión
-        Auth::logout();
+        try {
+            $user = Auth::user();
+            $this->processAccountDeletion($user);
+            return response()->json([
+                'success' => true,
+                'message' => 'Cuenta eliminada correctamente',
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Error al eliminar cuenta: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar la cuenta',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
-     * Eliminar datos del usuario
+     * Procesar eliminación de cuenta: revocar tokens y borrar usuario (cascada a profile y datos).
      */
-    private function deleteUserData($userId)
+    private function processAccountDeletion($user)
     {
-        // En producción, esto eliminaría:
-        // - Perfil del usuario
-        // - Historial de pedidos
-        // - Reseñas
-        // - Direcciones
-        // - Notificaciones
-        // - Actividad
-        // - Configuraciones
-        
-        Log::info("Datos eliminados para usuario: {$userId}");
+        DB::transaction(function () use ($user) {
+            $userId = $user->id;
+            // Revocar todos los tokens Sanctum (API no usa Auth::logout())
+            $user->tokens()->delete();
+            Log::info("Tokens revocados para usuario: {$userId}");
+
+            // Borrar usuario: cascada elimina profile y datos ligados (addresses, orders, etc.)
+            $user->delete();
+            Log::info("Cuenta y datos eliminados para usuario: {$userId}");
+        });
     }
 
     // Variable estática para simular el estado de la solicitud de eliminación en memoria de test

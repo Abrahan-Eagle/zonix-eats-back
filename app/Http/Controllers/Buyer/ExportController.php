@@ -3,6 +3,10 @@
 namespace App\Http\Controllers\Buyer;
 
 use App\Http\Controllers\Controller;
+use App\Models\Address;
+use App\Models\Order;
+use App\Models\Profile;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -11,6 +15,96 @@ use Illuminate\Support\Str;
 
 class ExportController extends Controller
 {
+    /**
+     * GET /api/buyer/export - Exportar datos personales (JSON inmediato para la app).
+     */
+    public function export(Request $request)
+    {
+        try {
+            /** @var User $user */
+            $user = Auth::user();
+            $user->load('profile');
+            $profile = $user->profile;
+
+            $data = [];
+            try {
+                $data['profile'] = $this->getProfileDataForExport($user, $profile);
+            } catch (\Throwable $e) {
+                $data['profile'] = ['email' => $user->email ?? null, 'error' => $e->getMessage()];
+            }
+            try {
+                $data['orders'] = $this->getOrdersDataForExport($user);
+            } catch (\Throwable $e) {
+                $data['orders'] = [];
+            }
+            try {
+                $data['activity'] = $this->getActivityData($user);
+            } catch (\Throwable $e) {
+                $data['activity'] = [];
+            }
+            try {
+                $data['addresses'] = $this->getAddressesDataForExport($user);
+            } catch (\Throwable $e) {
+                $data['addresses'] = [];
+            }
+
+            return response()->json($data);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al exportar los datos personales',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function getProfileDataForExport($user, $profile)
+    {
+        $p = $profile ? $profile->toArray() : [];
+        $p['email'] = $user->email ?? null;
+        $p['firstName'] = $profile ? $profile->firstName : null;
+        $p['lastName'] = $profile ? $profile->lastName : null;
+        $p['date_of_birth'] = $profile && $profile->date_of_birth ? $profile->date_of_birth->format('Y-m-d') : null;
+        $p['maritalStatus'] = $profile ? $profile->maritalStatus : null;
+        $p['sex'] = $profile ? $profile->sex : null;
+        return $p;
+    }
+
+    private function getOrdersDataForExport($user)
+    {
+        if (!$user->profile) {
+            return [];
+        }
+        return Order::where('profile_id', $user->profile->id)
+            ->orderBy('created_at', 'desc')
+            ->limit(100)
+            ->get()
+            ->map(fn ($o) => [
+                'id' => $o->id,
+                'status' => $o->status,
+                'total' => (float) $o->total,
+                'created_at' => $o->created_at?->toISOString(),
+            ])
+            ->toArray();
+    }
+
+    private function getAddressesDataForExport($user)
+    {
+        if (!$user->profile) {
+            return [];
+        }
+        return Address::where('profile_id', $user->profile->id)
+            ->get()
+            ->map(fn ($a) => [
+                'id' => $a->id,
+                'street' => $a->street,
+                'city' => $a->city ?? null,
+                'postal_code' => $a->postal_code ?? null,
+                'is_default' => (bool) $a->is_default,
+            ])
+            ->toArray();
+    }
+
     /**
      * Solicitar exportación de datos personales
      */
