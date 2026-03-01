@@ -18,7 +18,11 @@
 | **Migraciones**          | 51                                                 |
 | **Tests**                | 206+ pasaron ✅, 0 fallaron                        |
 | **Seguridad**            | Sanctum + RBAC + Rate Limiting + Upload validation |
-| **Última actualización** | 12 Febrero 2026                                    |
+| **Última actualización** | 11 Febrero 2026                                    |
+
+### Cambios recientes (documentar aquí los avances)
+
+- **11 Feb 2026:** Validación de cupón: API espera `code` y `order_amount`; respuestas de error con `message`/`errors`. Seeders: orden "en entrega" con repartidor asignado; `OrderDeliverySeeder` evita duplicar asignaciones. Broadcasting: auth devuelve `shared_secret` para canales privados Pusher.
 
 ---
 
@@ -636,4 +640,4 @@ FORMATO DE SALIDA:
 ---
 
 **Documentación completa de lógica de negocio:** Ver `README.md`
-**Última actualización:** 25 Febrero 2026
+**Última actualización:** 11 Febrero 2026
