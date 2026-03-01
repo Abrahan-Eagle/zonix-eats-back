@@ -362,6 +362,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/orders/{id}/status', [\App\Http\Controllers\Delivery\OrderController::class, 'updateStatus']);
         
         // New delivery endpoints
+        Route::get('/status', [DeliveryController::class, 'getStatus']);
+        Route::patch('/working', [DeliveryController::class, 'updateWorking']);
         Route::get('/available-orders', [DeliveryController::class, 'getAvailableOrders']);
         Route::get('/assigned-orders/{deliveryAgentId}', [DeliveryController::class, 'getAssignedOrders']);
         Route::post('/orders/{orderId}/accept', [DeliveryController::class, 'acceptOrder']);

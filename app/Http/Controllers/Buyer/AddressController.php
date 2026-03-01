@@ -20,25 +20,27 @@ class AddressController extends Controller
         try {
             $profile = auth()->user()->profile;
             
-            $addresses = Address::where('profile_id', $profile->id)
+            $addresses = Address::with('city')
+                ->where('profile_id', $profile->id)
                 ->orderBy('is_default', 'desc')
                 ->orderBy('created_at', 'desc')
                 ->get();
 
             $addressesData = $addresses->map(function ($address) {
+                $cityName = $address->relationLoaded('city') && $address->city ? $address->city->name : null;
                 return [
                     'id' => $address->id,
-                    'name' => $address->name,
-                    'address_line_1' => $address->address_line_1,
-                    'address_line_2' => $address->address_line_2,
-                    'city' => $address->city,
-                    'state' => $address->state,
+                    'name' => $address->street ?? null,
+                    'address_line_1' => $address->street,
+                    'address_line_2' => $address->house_number,
+                    'city' => $cityName,
+                    'state' => null,
                     'postal_code' => $address->postal_code,
-                    'country' => $address->country,
+                    'country' => null,
                     'latitude' => $address->latitude,
                     'longitude' => $address->longitude,
                     'is_default' => $address->is_default,
-                    'delivery_instructions' => $address->delivery_instructions,
+                    'delivery_instructions' => null,
                     'formatted_address' => $this->formatAddress($address)
                 ];
             });
@@ -349,15 +351,14 @@ class AddressController extends Controller
      */
     private function formatAddress(Address $address): string
     {
-        $parts = [
-            $address->address_line_1,
-            $address->address_line_2,
-            $address->city,
-            $address->state,
-            $address->postal_code,
-            $address->country
-        ];
+        $cityName = $address->relationLoaded('city') && $address->city ? $address->city->name : null;
+        $parts = array_filter([
+            $address->street,
+            $address->house_number,
+            $cityName,
+            $address->postal_code
+        ]);
 
-        return implode(', ', array_filter($parts));
+        return implode(', ', $parts);
     }
 } 

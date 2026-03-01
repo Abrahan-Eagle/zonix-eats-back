@@ -125,6 +125,73 @@ class DeliveryController extends Controller
     }
 
     /**
+     * Get current delivery agent status (working) for the authenticated user.
+     */
+    public function getStatus()
+    {
+        try {
+            $deliveryAgent = DeliveryAgent::where('profile_id', Auth::user()->profile->id)->first();
+
+            if (!$deliveryAgent) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Delivery agent not found'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'working' => (bool) $deliveryAgent->working,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error getting delivery status: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error getting delivery status'
+            ], 500);
+        }
+    }
+
+    /**
+     * Update delivery agent working status (available for orders).
+     */
+    public function updateWorking(Request $request)
+    {
+        try {
+            $request->validate([
+                'working' => 'required|boolean',
+            ]);
+
+            $deliveryAgent = DeliveryAgent::where('profile_id', Auth::user()->profile->id)->first();
+
+            if (!$deliveryAgent) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Delivery agent not found'
+                ], 404);
+            }
+
+            $deliveryAgent->update(['working' => $request->boolean('working')]);
+
+            return response()->json([
+                'success' => true,
+                'data' => ['working' => $deliveryAgent->working],
+                'message' => $deliveryAgent->working ? 'Disponible para recibir pedidos' : 'No disponible',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error updating working status: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating working status'
+            ], 500);
+        }
+    }
+
+    /**
      * Update delivery location
      */
     public function updateLocation(Request $request)

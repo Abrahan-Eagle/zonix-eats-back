@@ -55,7 +55,8 @@ class CommerceSeeder extends Seeder
     public function run(): void
     {
         $typeMap = BusinessType::pluck('id', 'name')->toArray();
-        $ownerProfiles = Profile::take(8)->get();
+        // No usar perfil 1 (usuario demo comprador); usar 8 perfiles siguientes como dueños
+        $ownerProfiles = Profile::orderBy('id')->skip(1)->take(8)->get();
         $zones = self::COMMERCE_ZONES;
         $count = 0;
 

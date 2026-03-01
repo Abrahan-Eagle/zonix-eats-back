@@ -27,8 +27,9 @@ class DatabaseSeeder extends Seeder
             CitiesSeeder::class,
             CategorySeeder::class,
             BusinessTypeSeeder::class,
-            
-            // Seeders de usuarios y perfiles
+
+            // Usuario 1 demo (Abrahan) primero; luego el resto de perfiles
+            User1Seeder::class,
             UserSeeder::class,
             
             // Seeders de comercios (AddressSeeder después para nearby-places)
@@ -46,7 +47,8 @@ class DatabaseSeeder extends Seeder
             OrderSeeder::class,
             OrderItemSeeder::class,
             OrderDeliverySeeder::class,
-            
+            OrdersForUserSeeder::class,
+
             // Seeders de carrito
             CartSeeder::class,
             CartItemSeeder::class,
@@ -72,6 +74,7 @@ class DatabaseSeeder extends Seeder
             PostSeeder::class,
             PostLikeSeeder::class,
             NotificationSeeder::class,
+            User1NotificationsSeeder::class,
         ]);
     }
 }

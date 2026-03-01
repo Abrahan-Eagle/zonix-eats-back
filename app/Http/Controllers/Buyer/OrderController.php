@@ -262,9 +262,9 @@ class OrderController extends Controller
     {
         $order = $this->orderService->getOrderDetails($id, Auth::id());
         if (!$order) {
-            return response()->json(['error' => 'Orden no encontrada'], 404);
+            return response()->json(['success' => false, 'message' => 'Orden no encontrada'], 404);
         }
-        return response()->json($order);
+        return response()->json(['success' => true, 'data' => $order]);
     }
 
     /**
@@ -276,9 +276,9 @@ class OrderController extends Controller
     {
         $result = $this->orderService->cancelOrder($id, Auth::id());
         if ($result === true) {
-            return response()->json(['message' => 'Orden cancelada']);
+            return response()->json(['success' => true, 'message' => 'Orden cancelada']);
         }
-        return response()->json(['error' => $result], 400);
+        return response()->json(['success' => false, 'message' => $result], 400);
     }
 
     /**

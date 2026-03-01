@@ -46,7 +46,7 @@ class OrderService
         
         return Order::where('profile_id', $profile->id)
             ->where('id', $orderId)
-            ->with('products')
+            ->with(['products', 'commerce'])
             ->first();
     }
 

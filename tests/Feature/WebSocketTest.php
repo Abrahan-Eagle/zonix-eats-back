@@ -16,6 +16,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Broadcast;
+use Laravel\Sanctum\Sanctum;
 
 class WebSocketTest extends TestCase
 {
@@ -146,7 +147,7 @@ class WebSocketTest extends TestCase
     /** @test */
     public function it_can_access_broadcasting_channels()
     {
-        $this->actingAs($this->user);
+        Sanctum::actingAs($this->user);
 
         // Verificar acceso al canal de usuario
         $response = $this->postJson('/api/broadcasting/auth', [
@@ -165,7 +166,7 @@ class WebSocketTest extends TestCase
             'commerce_id' => $this->commerce->id,
         ]);
 
-        $this->actingAs($this->user);
+        Sanctum::actingAs($this->user);
 
         // Verificar acceso al canal de orden
         $response = $this->postJson('/api/broadcasting/auth', [
@@ -180,7 +181,7 @@ class WebSocketTest extends TestCase
     public function it_denies_access_to_unauthorized_channels()
     {
         $otherUser = User::factory()->create();
-        $this->actingAs($this->user);
+        Sanctum::actingAs($this->user);
 
         // Intentar acceder al canal de otro usuario
         $response = $this->postJson('/api/broadcasting/auth', [
