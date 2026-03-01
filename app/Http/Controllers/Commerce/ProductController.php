@@ -58,18 +58,21 @@ class ProductController extends Controller
             $sortOrder = $request->get('sort_order', 'desc');
             $query->orderBy($sortBy, $sortOrder);
 
-            // Paginación
-            if ($request->has('per_page')) {
-                $perPage = $request->get('per_page', 15);
-                $products = $query->paginate($perPage);
-            } else {
-                $products = $query->get();
-            }
+            // Paginación (por defecto 15 por página)
+            $perPage = min((int) $request->get('per_page', 15), 100);
+            $perPage = $perPage > 0 ? $perPage : 15;
+            $products = $query->paginate($perPage);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Productos obtenidos correctamente',
-                'data' => $products
+                'data' => $products->items(),
+                'pagination' => [
+                    'current_page' => $products->currentPage(),
+                    'per_page' => $products->perPage(),
+                    'total' => $products->total(),
+                    'last_page' => $products->lastPage(),
+                ],
             ], 200);
 
         } catch (Exception $e) {
