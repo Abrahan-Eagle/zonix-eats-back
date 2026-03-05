@@ -201,4 +201,13 @@ public function getCity(Request $request)
     return response()->json($cities);
 }
 
+public function getCityById($id)
+{
+    $city = City::find($id);
+    if (!$city) {
+        return response()->json(['message' => 'City not found'], 404);
+    }
+    return response()->json($city);
+}
+
 }

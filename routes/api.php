@@ -71,9 +71,9 @@ Route::prefix('buyer')->middleware(['auth:sanctum', 'role:users'])->group(functi
 
 // Rutas para usuarios/buyers
 Route::middleware(['auth:sanctum'])->group(function () {
-    
+
     // Rutas existentes...
-    
+
     // Sistema de Pagos Avanzado
     Route::prefix('buyer/payments')->group(function () {
         Route::get('/methods', [App\Http\Controllers\Buyer\PaymentController::class, 'getPaymentMethods']);
@@ -187,19 +187,19 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Historial de Actividad
         Route::get('/activity-history', [App\Http\Controllers\Buyer\ActivityController::class, 'getUserActivityHistory']);
         Route::get('/activity-stats', [App\Http\Controllers\Buyer\ActivityController::class, 'getActivityStats']);
-        
+
         // Exportación de Datos
         Route::post('/export-data', [App\Http\Controllers\Buyer\ExportController::class, 'requestDataExport']);
         Route::get('/export-status/{exportId}', [App\Http\Controllers\Buyer\ExportController::class, 'getExportStatus']);
         Route::get('/download-export/{exportId}', [App\Http\Controllers\Buyer\ExportController::class, 'downloadExport']);
         Route::get('/export-history', [App\Http\Controllers\Buyer\ExportController::class, 'getExportHistory']);
-        
+
         // Configuración de Privacidad
         Route::get('/privacy-settings', [App\Http\Controllers\Buyer\PrivacyController::class, 'getPrivacySettings']);
         Route::put('/privacy-settings', [App\Http\Controllers\Buyer\PrivacyController::class, 'updatePrivacySettings']);
         Route::get('/privacy-policy', [App\Http\Controllers\Buyer\PrivacyController::class, 'getPrivacyPolicy']);
         Route::get('/terms-of-service', [App\Http\Controllers\Buyer\PrivacyController::class, 'getTermsOfService']);
-        
+
         // Eliminación de Cuenta
         Route::post('/request-deletion', [App\Http\Controllers\Buyer\AccountDeletionController::class, 'requestAccountDeletion']);
         Route::post('/confirm-deletion', [App\Http\Controllers\Buyer\AccountDeletionController::class, 'confirmAccountDeletion']);
@@ -271,6 +271,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/get-cities-by-state', [AddressController::class, 'getCity']);
     });
 
+    // Explicit global city bypass or within protected group
+    Route::get('/cities/{id}', [AddressController::class, 'getCityById']);
+
 
     // Users (antes Buyer)
     Route::middleware('role:users')->prefix('buyer')->group(function () {
@@ -286,25 +289,25 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/products/{id}', [\App\Http\Controllers\Buyer\ProductController::class, 'show']);
         Route::get('/products', [\App\Http\Controllers\Buyer\ProductController::class, 'index']);
         Route::post('buyer/orders/{id}/comprobante', [\App\Http\Controllers\Buyer\OrderController::class, 'uploadComprobante']);
-        
+
         // Rutas de órdenes
         Route::post('/orders/{id}/payment-proof', [BuyerOrderController::class, 'uploadPaymentProof']);
         Route::post('/orders/{id}/cancel', [BuyerOrderController::class, 'cancelOrder']);
-        
+
         // Nuevas rutas para búsqueda y favoritos
         Route::get('/posts', [\App\Http\Controllers\Buyer\PostController::class, 'index']);
         Route::get('/posts/{id}', [\App\Http\Controllers\Buyer\PostController::class, 'show']);
         Route::post('/posts/{id}/favorite', [\App\Http\Controllers\Buyer\PostController::class, 'toggleFavorite']);
         Route::get('/favorites', [\App\Http\Controllers\Buyer\PostController::class, 'favorites']);
-        
+
         // Rutas de tracking
         Route::get('/orders/{orderId}/tracking', [\App\Http\Controllers\Buyer\TrackingController::class, 'getOrderTracking']);
         Route::post('/orders/{orderId}/tracking/location', [\App\Http\Controllers\Buyer\TrackingController::class, 'updateDeliveryLocation']);
-        
+
         // Rutas de chat (Chat\ChatController persiste en BD y usa content/type)
         Route::get('/orders/{orderId}/messages', [\App\Http\Controllers\Chat\ChatController::class, 'getMessages']);
         Route::post('/orders/{orderId}/messages', [\App\Http\Controllers\Chat\ChatController::class, 'sendMessage']);
-        
+
         // Rutas de calificaciones
         Route::post('/reviews', [\App\Http\Controllers\ReviewController::class, 'store']);
         Route::get('/reviews/{reviewableId}/{reviewableType}', [\App\Http\Controllers\ReviewController::class, 'index']);
@@ -343,7 +346,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('commerce/orders/{id}/validar-comprobante', [\App\Http\Controllers\Commerce\OrderController::class, 'validarComprobante']);
         Route::put('promotions/{id}/toggle', [\App\Http\Controllers\Commerce\CommercePromotionController::class, 'toggle']);
         Route::apiResource('promotions', \App\Http\Controllers\Commerce\CommercePromotionController::class);
-        
+
         // Analytics routes for commerce
         Route::prefix('analytics')->group(function () {
             Route::get('/overview', [\App\Http\Controllers\Commerce\AnalyticsController::class, 'getOverview']);
@@ -360,7 +363,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/orders', [\App\Http\Controllers\Delivery\OrderController::class, 'index']);
         Route::put('/orders/{id}/accept', [\App\Http\Controllers\Delivery\OrderController::class, 'accept']);
         Route::patch('/orders/{id}/status', [\App\Http\Controllers\Delivery\OrderController::class, 'updateStatus']);
-        
+
         // New delivery endpoints
         Route::get('/status', [DeliveryController::class, 'getStatus']);
         Route::patch('/working', [DeliveryController::class, 'updateWorking']);
@@ -384,16 +387,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/users/{id}/status', [AdminUserController::class, 'updateStatus']);
         Route::delete('/users/{id}', [AdminUserController::class, 'destroy']);
         Route::get('/users/{id}/activity', [AdminUserController::class, 'getUserActivity']);
-        
+
         // Statistics
         Route::get('/statistics', [AdminReportController::class, 'getStatistics']);
-        
+
         // System Health
         Route::get('/system-health', [AdminReportController::class, 'getSystemHealth']);
-        
+
         // Analytics
         Route::get('/analytics', [AdminReportController::class, 'getAnalytics']);
-        
+
         // Analytics routes (for admin and commerce)
         Route::prefix('analytics')->group(function () {
             Route::get('/overview', [\App\Http\Controllers\Analytics\AnalyticsController::class, 'getOverview']);
@@ -411,20 +414,20 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/comparative', [\App\Http\Controllers\Analytics\AnalyticsController::class, 'getComparative']);
             Route::get('/kpi-dashboard', [\App\Http\Controllers\Analytics\AnalyticsController::class, 'getKPIDashboard']);
         });
-        
+
         // Security Logs
         Route::get('/security-logs', [AdminReportController::class, 'getSecurityLogs']);
-        
+
         // System Settings
         Route::get('/settings', [AdminReportController::class, 'getSystemSettings']);
         Route::put('/settings', [AdminReportController::class, 'updateSystemSettings']);
-        
+
         // Notifications
         Route::post('/notifications', [AdminReportController::class, 'sendSystemNotification']);
-        
+
         // Reports
         Route::get('/reports', [AdminReportController::class, 'index']);
-        
+
         // Disputas (admin)
         Route::get('/disputes', [\App\Http\Controllers\Admin\DisputeController::class, 'index']);
         Route::get('/disputes/stats', [\App\Http\Controllers\Admin\DisputeController::class, 'stats']);
@@ -460,10 +463,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{notificationId}/read', [NotificationController::class, 'markAsRead']);
         Route::post('/', [NotificationController::class, 'store']);
         Route::delete('/{notificationId}', [NotificationController::class, 'delete']);
-        
+
         // Push notification
         Route::post('/push', [NotificationController::class, 'sendPushNotification']);
-        
+
         // Notification settings
         Route::get('/settings', [NotificationController::class, 'getNotificationSettings']);
         Route::put('/settings', [NotificationController::class, 'updateNotificationSettings']);

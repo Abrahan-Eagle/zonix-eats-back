@@ -41,6 +41,11 @@ class Profile extends Model
         'notification_preferences' => 'array',
     ];
 
+    /**
+     * Atributos dinámicos (accessors) que deben incluirse en las respuestas JSON.
+     */
+    protected $appends = ['phone'];
+
 
     /**
      * Relación con ubicaciones del usuario
