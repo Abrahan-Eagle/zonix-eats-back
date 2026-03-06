@@ -19,9 +19,9 @@ class State extends Model
         return $this->hasMany(City::class);
     }
 
-    // Un estado pertenece a un país
+    // Un estado pertenece a un país (FK: countries_id)
     public function country()
     {
-        return $this->belongsTo(Country::class);
+        return $this->belongsTo(Country::class, 'countries_id');
     }
 }

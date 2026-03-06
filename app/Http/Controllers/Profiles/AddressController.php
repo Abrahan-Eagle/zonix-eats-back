@@ -100,7 +100,9 @@ public function store(Request $request)
     {
         $profile = Profile::where('user_id', $id)->firstOrFail();
 
-        $addresses = Address::where('profile_id', $profile->id)->get();
+        $addresses = Address::with(['city.state.country'])
+            ->where('profile_id', $profile->id)
+            ->get();
 
         if ($addresses->isEmpty()) {
             return response()->json(['message' => 'Address not found'], 404);
