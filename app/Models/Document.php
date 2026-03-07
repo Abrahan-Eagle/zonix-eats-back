@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Casts\Attribute;
-use Carbon\Carbon;
 
 class Document extends Model
 {
@@ -18,12 +17,8 @@ class Document extends Model
         'profile_id',
         'type',
         'number_ci',
-        'RECEIPT_N',
-        'sky',
-        'rif_url',
+        'rif_number', // RIF completo Venezuela: X-NNNNNNNN-N (V,E,J,G,P + 8 dígitos + dígito verificador)
         'taxDomicile',
-        'commune_register',
-        'community_rif',
         'front_image',
         'issued_at',
         'expires_at',
@@ -42,6 +37,14 @@ class Document extends Model
     ];
 
     /**
+     * Scope: solo documentos activos (status = true).
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', true);
+    }
+
+    /**
      * Relación con el modelo Profile.
      */
     public function profile()
@@ -53,16 +56,6 @@ class Document extends Model
      * Mutador para la ruta de la imagen frontal.
      */
     protected function frontImage(): Attribute
-    {
-        return Attribute::make(
-            get: fn($value) => $value ? url("storage/{$value}") : null,
-        );
-    }
-
-    /**
-     * Mutador para la ruta de la imagen trasera.
-     */
-    protected function backImage(): Attribute
     {
         return Attribute::make(
             get: fn($value) => $value ? url("storage/{$value}") : null,

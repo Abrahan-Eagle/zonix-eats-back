@@ -24,10 +24,12 @@
 | **Migraciones**          | 51                                                 |
 | **Tests**                | 206+ pasaron ✅, 0 fallaron                        |
 | **Seguridad**            | Sanctum + RBAC + Rate Limiting + Upload validation |
-| **Última actualización** | 11 Febrero 2026                                    |
+| **Última actualización** | 6 Marzo 2026                                      |
 
 ### Cambios recientes (documentar aquí los avances)
 
+- **6 Mar 2026:** Módulo Documents: solo tipos `ci` y `rif`; tabla depurada (migración elimina RECEIPT_N, sky, rif_url, commune_register, community_rif; enum type restringido a ci/rif). Campos útiles: number_ci, rif_number (formato Venezuela J-19217553-0), taxDomicile, front_image, approved, status. Estado aprobado: documento verificado o pendiente de verificación (campo `approved`). Tests: DocumentControllerTest.
+- **6 Mar 2026:** Documentado en AGENTS.md: Profile como entidad principal; Users 1:1 con Profile; teléfonos/documentos/direcciones pertenecen al perfil (`profile_id`).
 - **11 Feb 2026:** Validación de cupón: API espera `code` y `order_amount`; respuestas de error con `message`/`errors`. Seeders: orden "en entrega" con repartidor asignado; `OrderDeliverySeeder` evita duplicar asignaciones. Broadcasting: auth devuelve `shared_secret` para canales privados Pusher.
 
 ---
@@ -65,6 +67,14 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 ```
+
+---
+
+## Modelo de datos: Profile como entidad principal
+
+- **Profile** es la tabla/entidad principal para datos de persona (comprador, comercio, delivery): teléfonos, documentos, direcciones pertenecen al **perfil** (`profile_id` en `phones`, `documents`, `addresses`, etc.).
+- **Users** tiene relación **1:1** con **Profile**: un usuario es la cuenta de login; el perfil es el dueño de los datos. Al autenticarse se obtiene el `user`; desde ahí se obtiene el `profile` para listar/crear recursos del perfil.
+- Al diseñar APIs o flujos nuevos, considerar **profile_id** como identificador del “dueño” de los datos. Algunos endpoints legacy siguen usando **user_id** en URL o body (p. ej. `GET /api/phones/{user_id}` hace `Profile::where('user_id', $id)`); es por compatibilidad.
 
 ---
 
@@ -181,4 +191,4 @@ Para no sobrecargar este archivo, el detalle por tema está en [docs/agents/](do
 ---
 
 **Documentación completa de lógica de negocio:** Ver `README.md`
-**Última actualización:** 11 Febrero 2026
+**Última actualización:** 6 Marzo 2026
