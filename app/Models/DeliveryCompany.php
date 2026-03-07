@@ -45,4 +45,12 @@ class DeliveryCompany extends Model
     {
         return $this->hasMany(DeliveryAgent::class, 'company_id');
     }
+
+    /**
+     * Métodos de pago de la empresa (para recibir pagos/comisiones).
+     */
+    public function paymentMethods()
+    {
+        return $this->morphMany(\App\Models\PaymentMethod::class, 'payable');
+    }
 }

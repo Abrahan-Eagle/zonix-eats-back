@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StorePaymentMethodRequest;
+use App\Http\Requests\UpdatePaymentMethodRequest;
 use Illuminate\Http\Request;
 use App\Models\PaymentMethod;
 use App\Models\Bank;
@@ -13,10 +15,12 @@ class PaymentMethodController extends Controller
 {
     /**
      * Determinar la entidad dueña de los métodos de pago según el rol actual.
-     * - users      → User (comprador)
-     * - commerce   → Commerce (vendedor)
-     * - delivery   → DeliveryAgent
-     * - otros      → User por defecto
+     * - users             → User (comprador)
+     * - commerce         → Commerce (vendedor)
+     * - delivery_agent   → DeliveryAgent (repartidor)
+     * - delivery         → DeliveryAgent (repartidor autónomo)
+     * - delivery_company → DeliveryCompany (empresa de repartidores)
+     * - otros            → User por defecto
      */
     protected function getPayableOwner()
     {
@@ -40,9 +44,14 @@ class PaymentMethodController extends Controller
                 return $profile->getPrimaryCommerce();
             }
 
-            // Motorizados (delivery_agent o delivery autónomo) pagan como su perfil deliveryAgent
+            // Motorizados (delivery_agent o delivery autónomo): métodos de pago del repartidor
             if (in_array($role, ['delivery', 'delivery_agent'], true) && $profile && $profile->deliveryAgent) {
                 return $profile->deliveryAgent;
+            }
+
+            // Empresa de delivery: métodos de pago de la empresa
+            if ($role === 'delivery_company' && $profile && $profile->deliveryCompany) {
+                return $profile->deliveryCompany;
             }
         } catch (\Throwable $e) {
             Log::warning('Error determinando payable owner para métodos de pago: ' . $e->getMessage());
@@ -58,8 +67,11 @@ class PaymentMethodController extends Controller
     {
         try {
             $owner = $this->getPayableOwner();
+            if (!$owner || !method_exists($owner, 'paymentMethods')) {
+                return response()->json(['success' => true, 'data' => []]);
+            }
             $methods = $owner->paymentMethods()->with('bank')->active()->get();
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $methods
@@ -76,28 +88,18 @@ class PaymentMethodController extends Controller
     /**
      * Crear nuevo método de pago
      */
-    public function store(Request $request)
+    public function store(StorePaymentMethodRequest $request)
     {
         try {
             $owner = $this->getPayableOwner();
-            
-            $data = $request->validate([
-                'type' => 'required|string|in:card,mobile_payment,cash,paypal,stripe,mercadopago,digital_wallet,bank_transfer,other',
-                'bank_id' => 'nullable|exists:banks,id',
-                'brand' => 'nullable|string',
-                'last4' => 'nullable|string|max:4',
-                'exp_month' => 'nullable|integer|between:1,12',
-                'exp_year' => 'nullable|integer|min:' . (date('Y') - 1),
-                'cardholder_name' => 'nullable|string',
-                'account_number' => 'nullable|string',
-                'phone' => 'nullable|string',
-                'email' => 'nullable|email',
-                'owner_name' => 'nullable|string',
-                'owner_id' => 'nullable|string',
-                'is_default' => 'boolean',
-                'is_active' => 'boolean',
-                'reference_info' => 'nullable|array',
-            ]);
+            if (!$owner || !method_exists($owner, 'paymentMethods')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se pudo determinar el propietario de los métodos de pago (perfil o comercio).'
+                ], 422);
+            }
+
+            $data = $request->validated();
 
             // Validar duplicados
             $exists = $owner->paymentMethods()
@@ -141,29 +143,19 @@ class PaymentMethodController extends Controller
     /**
      * Actualizar método de pago
      */
-    public function update(Request $request, $id)
+    public function update(UpdatePaymentMethodRequest $request, $id)
     {
         try {
             $owner = $this->getPayableOwner();
+            if (!$owner || !method_exists($owner, 'paymentMethods')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se pudo determinar el propietario de los métodos de pago.'
+                ], 422);
+            }
             $method = $owner->paymentMethods()->findOrFail($id);
 
-            $data = $request->validate([
-                'type' => 'sometimes|string|in:card,mobile_payment,cash,paypal,stripe,mercadopago,digital_wallet,bank_transfer,other',
-                'bank_id' => 'nullable|exists:banks,id',
-                'brand' => 'nullable|string',
-                'last4' => 'nullable|string|max:4',
-                'exp_month' => 'nullable|integer|between:1,12',
-                'exp_year' => 'nullable|integer|min:' . (date('Y') - 1),
-                'cardholder_name' => 'nullable|string',
-                'account_number' => 'nullable|string',
-                'phone' => 'nullable|string',
-                'email' => 'nullable|email',
-                'owner_name' => 'nullable|string',
-                'owner_id' => 'nullable|string',
-                'is_default' => 'boolean',
-                'is_active' => 'boolean',
-                'reference_info' => 'nullable|array',
-            ]);
+            $data = $request->validated();
 
             // Si es método por defecto, desactivar otros
             if ($data['is_default'] ?? false) {

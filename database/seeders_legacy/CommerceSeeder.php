@@ -55,10 +55,29 @@ class CommerceSeeder extends Seeder
     public function run(): void
     {
         $typeMap = BusinessType::pluck('id', 'name')->toArray();
-        // No usar perfil 1 (usuario demo comprador); usar 8 perfiles siguientes como dueños
-        $ownerProfiles = Profile::orderBy('id')->skip(1)->take(8)->get();
         $zones = self::COMMERCE_ZONES;
         $count = 0;
+
+        // Usuario 1 (Abrahan): un comercio para que el seeder de métodos de pago y la app muestren la lista
+        $profile1 = Profile::where('user_id', 1)->first();
+        if ($profile1) {
+            $zone = $zones[0];
+            $typeId = $typeMap[$zone['type']] ?? null;
+            Commerce::factory()->create([
+                'profile_id' => $profile1->id,
+                'is_primary' => true,
+                'business_name' => 'Restaurante El Socorro Grill (Demo)',
+                'business_type' => $zone['type'],
+                'business_type_id' => $typeId,
+                'address' => $zone['address'],
+                'open' => true,
+            ]);
+            $profile1->user?->update(['role' => 'commerce']);
+            $count++;
+        }
+
+        // Perfiles 2–9: 8 dueños con varios comercios
+        $ownerProfiles = Profile::orderBy('id')->skip(1)->take(8)->get();
 
         foreach ($ownerProfiles as $zoneIndex => $profile) {
             $profile->user?->update(['role' => 'commerce']);

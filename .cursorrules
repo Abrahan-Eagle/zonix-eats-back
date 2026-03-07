@@ -10,6 +10,12 @@ y reglas de negocio, consulta el archivo `AGENTS.md` en la raíz del proyecto.
 
 Cursor lee `AGENTS.md` automáticamente. Toda la información de desarrollo está centralizada allí.
 
+**Contexto entre sesiones:** Al iniciar o retomar el proyecto, leer `docs/active_context.md` si existe, para tener el estado reciente de la última sesión sin que el usuario tenga que pedirlo.
+
+**Sugerencias proactivas:** La IA debe ofrecer sugerencias de forma habitual: siguiente paso, mejoras posibles, preguntas de clarificación o recordatorios de reglas/docs relevantes.
+
+**Contexto entre herramientas (Cursor, Angravity, Copilot):** Ver [docs/CONTEXTO_IA.md](docs/CONTEXTO_IA.md) para orden de lectura y sincronización.
+
 ---
 
 ## Reglas de Colaboración (Cursor-Específicas)
@@ -22,7 +28,7 @@ Cursor lee `AGENTS.md` automáticamente. Toda la información de desarrollo est�
 4. **NUNCA hacer push/merge a git** sin orden explícita del usuario
 5. **Solo hacer commits locales** cuando se realicen cambios
 6. **El usuario prueba primero** y da la orden cuando está seguro
-7. **Documentar avances:** Después de implementar correcciones o mejoras relevantes, anotar los avances en `README.md` o `AGENTS.md` (entrada breve o sección "Cambios recientes") y actualizar la fecha **Última actualización** en `.cursorrules`, `AGENTS.md` y `README.md`. Si el cambio afecta una skill de dominio, actualizar la skill y su fecha.
+7. **Documentar avances:** Usar la skill **documentar-avances**: al finalizar una tarea relevante, proponer el párrafo para "Cambios recientes" (AGENTS.md/README); el usuario aprueba antes de escribir. Al cerrar una sesión con cambios relevantes, usar la skill **context-updater** para actualizar `docs/active_context.md`. Si el cambio afecta una skill de dominio, actualizar la skill y su fecha.
 
 ### Convención de Respuesta
 

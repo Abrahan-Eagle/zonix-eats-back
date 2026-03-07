@@ -35,10 +35,11 @@ class PaymentMethodFactory extends Factory
         } elseif ($type === 'mobile_payment') {
             $data = array_merge($data, [
                 'phone' => $this->faker->numerify('04#########'),
-                'reference_info' => json_encode([
+                'reference_info' => [
+                    'alias' => 'Pago móvil ' . $this->faker->firstName,
                     'cedula' => $this->faker->numerify('########'),
                     'reference_number' => $this->faker->numerify('##########'),
-                ]),
+                ],
             ]);
         } elseif ($type === 'bank_transfer') {
             $data = array_merge($data, [
