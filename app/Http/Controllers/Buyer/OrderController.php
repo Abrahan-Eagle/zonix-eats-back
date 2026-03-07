@@ -272,6 +272,35 @@ class OrderController extends Controller
     }
 
     /**
+     * Métodos de pago disponibles del comercio de esta orden (para que el comprador elija al subir comprobante).
+     * @param int $id Order ID
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAvailablePaymentMethodsForOrder($id)
+    {
+        $order = $this->orderService->getOrderDetails($id, Auth::id());
+        if (!$order) {
+            return response()->json(['success' => false, 'message' => 'Orden no encontrada'], 404);
+        }
+        $commerce = $order->commerce;
+        if (!$commerce) {
+            return response()->json(['success' => true, 'data' => []]);
+        }
+        $methods = $commerce->paymentMethods()->with('bank')->active()->get();
+        $data = $methods->map(function ($m) {
+            $ref = is_array($m->reference_info) ? $m->reference_info : [];
+            $alias = $ref['alias'] ?? null;
+            $label = $alias ?: ucfirst(str_replace('_', ' ', $m->type));
+            return [
+                'id' => $m->id,
+                'type' => $m->type,
+                'label' => $label,
+            ];
+        })->values();
+        return response()->json(['success' => true, 'data' => $data]);
+    }
+
+    /**
      * Cancela una orden pendiente.
      * @param $id
      * @return \Illuminate\Http\JsonResponse

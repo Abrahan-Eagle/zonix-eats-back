@@ -31,9 +31,10 @@ class PhoneController extends Controller
             return response()->json(['error' => 'Perfil no encontrado'], 404);
         }
 
-        // Obtener todos los teléfonos del perfil
+        // Obtener solo teléfonos activos (no soft-deleted)
         $phones = Phone::with(['profile', 'operatorCode'])
             ->where('profile_id', $profile->id)
+            ->where('status', true)
             ->get();
 
         return response()->json($phones);

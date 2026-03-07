@@ -37,11 +37,12 @@ version: 2.0
 
 **Una sola tabla** sirve para los 3 roles vía relación polimórfica:
 
-| payable_type               | payable_id  | Uso                     |
-| -------------------------- | ----------- | ----------------------- |
-| `App\Models\User`          | user_id     | Comprador paga con esto |
-| `App\Models\Commerce`      | commerce_id | Comercio recibe aquí    |
-| `App\Models\DeliveryAgent` | agent_id    | Delivery recibe aquí    |
+| payable_type                  | payable_id   | Uso                     |
+| ----------------------------- | ------------ | ----------------------- |
+| `App\Models\User`             | user_id      | Comprador paga con esto |
+| `App\Models\Commerce`        | commerce_id  | Comercio recibe aquí    |
+| `App\Models\DeliveryAgent`    | agent_id     | Delivery recibe aquí    |
+| `App\Models\DeliveryCompany`  | company_id   | Empresa delivery recibe aquí |
 
 ### Campos de `payment_methods`:
 
@@ -64,10 +65,12 @@ version: 2.0
 ### Cómo se usa en código:
 
 ```php
-$user->paymentMethods()           // → métodos para PAGAR (comprador)
-$commerce->paymentMethods()       // → métodos para RECIBIR (comercio)
-$deliveryAgent->paymentMethods()  // → métodos para RECIBIR (repartidor)
+$user->paymentMethods()            // → métodos para PAGAR (comprador)
+$commerce->paymentMethods()        // → métodos para RECIBIR (comercio)
+$deliveryAgent->paymentMethods()   // → métodos para RECIBIR (repartidor)
+$deliveryCompany->paymentMethods() // → métodos para RECIBIR (empresa delivery)
 ```
+`PaymentMethodController::getPayableOwner()` resuelve el dueño según rol (Commerce, DeliveryAgent, DeliveryCompany, User). Flujo completo por rol: ver [docs/logica-pagos-por-rol.md](../../docs/logica-pagos-por-rol.md).
 
 ### API:
 
@@ -133,3 +136,4 @@ event(new PaymentValidated($order, $isValid, $profileId));
 - **Eventos broadcast:** `zonix-realtime-events` § 3 (PaymentValidated, OrderStatusChanged)
 - **Campo `profiles.phone` deprecado** — se lee vía accessor desde tabla `phones` (ver `zonix-onboarding` § 5.7)
 - **Delivery fee en UI:** `zonix-ui-design` § 4 (Checkout layout)
+- **Flujo por rol (Commerce, Delivery, DeliveryCompany, comprador):** [docs/logica-pagos-por-rol.md](../../docs/logica-pagos-por-rol.md) — quién configura métodos, quién los usa, diagramas Mermaid.

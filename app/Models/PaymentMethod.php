@@ -38,7 +38,7 @@ class PaymentMethod extends Model
     ];
 
     /**
-     * Relación polimórfica - puede pertenecer a User, Commerce, o DeliveryAgent
+     * Relación polimórfica: User, Commerce, DeliveryAgent o DeliveryCompany
      */
     public function payable()
     {

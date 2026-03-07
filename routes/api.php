@@ -291,6 +291,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('buyer/orders/{id}/comprobante', [\App\Http\Controllers\Buyer\OrderController::class, 'uploadComprobante']);
 
         // Rutas de órdenes
+        Route::get('/orders/{id}/available-payment-methods', [BuyerOrderController::class, 'getAvailablePaymentMethodsForOrder']);
         Route::post('/orders/{id}/payment-proof', [BuyerOrderController::class, 'uploadPaymentProof']);
         Route::post('/orders/{id}/cancel', [BuyerOrderController::class, 'cancelOrder']);
 

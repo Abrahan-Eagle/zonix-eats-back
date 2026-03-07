@@ -15,7 +15,18 @@ class DocumentController extends Controller
 {
     public function index()
     {
-        $documents = Document::with('profile')->active()->get();
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+        $profile = Profile::where('user_id', $user->id)->first();
+        if (!$profile) {
+            return response()->json([], 200);
+        }
+        $documents = Document::with('profile')
+            ->where('profile_id', $profile->id)
+            ->active()
+            ->get();
         return response()->json($documents);
     }
 
@@ -24,14 +35,14 @@ class DocumentController extends Controller
         // Log::info('Datos recibidos:', $request->all());
 // Datos recibidos: {"profile_id":"3","type":"ci","issued_at":"2024-12-21T00:00:00.000","expires_at":"2024-12-21T00:00:00.000","number_ci":"94646464","front_image":{"Illuminate\\Http\\UploadedFile":"/tmp/php9hrbPi"}}
 
-        // Validar que el tipo de documento sea válido
-        if (!in_array($request->type, ['ci', 'passport', 'rif', 'neighborhood_association'])) {
-            return response()->json(['error' => 'Invalid document type'], 400);
+        // Solo se permiten CI y RIF
+        if (!in_array($request->type, ['ci', 'rif'])) {
+            return response()->json(['error' => 'Invalid document type. Only CI and RIF are allowed.'], 400);
         }
 
         $profile = Profile::where('user_id', $request->profile_id)->firstOrFail();
 
-        // Validación para verificar si el documento ya existe
+        // CI y RIF son únicos por perfil (normativa Venezuela: un RIF/identificador por contribuyente).
         $existingDocument = Document::where('profile_id', $profile->id)
             ->where('type', $request->type)
             ->first();
@@ -51,8 +62,8 @@ class DocumentController extends Controller
         // Crear el documento con valores predeterminados
         $document = Document::create(array_merge(
             $request->only([
-                 'type', 'number_ci', 'RECEIPT_N', 'rif_url',
-                'taxDomicile', 'issued_at', 'expires_at', 'sky', 'commune_register', 'community_rif'
+                'type', 'number_ci', 'rif_number', 'taxDomicile',
+                'issued_at', 'expires_at',
             ]),
             $paths,
             [
@@ -66,13 +77,13 @@ class DocumentController extends Controller
     }
 
     public function show($id)
-        {
-            $profile = Profile::where('user_id', $id)->firstOrFail();
+    {
+        $profile = Profile::where('user_id', $id)->firstOrFail();
 
-            $document = Document::with('profile')
-                ->where('profile_id', $profile->id)
-                // ->where('status', true) // Eliminar o descomentar si es necesario
-                ->get();
+        $document = Document::with('profile')
+            ->where('profile_id', $profile->id)
+            ->active()
+            ->get();
 
             if ($document->isEmpty()) {
                 return response()->json(['message' => 'Document not found'], 404);
@@ -86,11 +97,10 @@ class DocumentController extends Controller
     public function update(Request $request, $id)
     {
 
-          // Validar que el tipo de documento sea válido
-        if (!in_array($request->type, ['ci', 'passport', 'rif', 'neighborhood_association'])) {
-            return response()->json(['error' => 'Invalid document type'], 400);
+        // Solo se permiten CI y RIF
+        if (!in_array($request->type, ['ci', 'rif'])) {
+            return response()->json(['error' => 'Invalid document type. Only CI and RIF are allowed.'], 400);
         }
-
 
         $document = Document::find($id);
 
@@ -108,8 +118,8 @@ class DocumentController extends Controller
 
         $document->update(array_merge(
             $request->only([
-                'type', 'number_ci', 'RECEIPT_N', 'rif_url', 'taxDomicile',
-                'issued_at', 'expires_at', 'status', 'sky', 'commune_register', 'community_rif'
+                'type', 'number_ci', 'rif_number', 'taxDomicile',
+                'issued_at', 'expires_at', 'status',
             ]),
             $paths
         ));
@@ -144,35 +154,19 @@ class DocumentController extends Controller
         switch ($type) {
             case 'ci':
                 $rules = array_merge($rules, [
-                    'number_ci' => 'required|integer', // Cambiar 'number' por 'number_ci'
+                    'number_ci' => 'required|integer|digits_between:6,9', // Venezuela: número cédula (solo dígitos, sin V)
                     'front_image' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
                 ]);
                 break;
-            case 'passport':
-                $rules = array_merge($rules, [
-                    'number_ci' => 'required|integer',
-                    'RECEIPT_N' => 'nullable|integer',
-                    'front_image' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
-                ]);
-                break;
-
             case 'rif':
                 $rules = array_merge($rules, [
-                    'sky' => 'nullable|integer',
-                    'RECEIPT_N' => 'nullable|integer',
-                    'rif_url' => 'nullable|string',
+                    'rif_number' => ['required', 'string', 'max:20', 'regex:/^[VEJGP]-?\d{8}-?\d$/'], // Venezuela: X-NNNNNNNN-N (guiones opcionales)
                     'taxDomicile' => 'nullable|string',
                     'front_image' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
                 ]);
                 break;
-
-            case 'neighborhood_association':
-                $rules = array_merge($rules, [
-                    'commune_register' => 'nullable|string',  // Agregar validación para 'commune_register'
-                    'community_rif' => 'nullable|string',    // Agregar validación para 'community_rif'
-                    'taxDomicile' => 'nullable|string',
-                    'front_image' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
-                ]);
+            default:
+                $rules['type'] = 'in:ci,rif';
                 break;
         }
 
