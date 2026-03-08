@@ -3,6 +3,14 @@ description: "Guía de desarrollo Backend (Laravel) para Zonix Eats"
 alwaysApply: true
 ---
 
+## Jarvis (definición)
+
+**Jarvis** = todo el ecosistema de guía para la IA en este proyecto: este archivo (`.cursorrules`), las skills en `.agents/skills/`, y los documentos de referencia (`AGENTS.md`, `docs/*.md`). Cuando el usuario diga **"Jarvis"** se refiere a este conjunto. Mantener coherencia entre todos estos elementos.
+
+**Cumplir este archivo:** Al iniciar una tarea o ante duda sobre cómo proceder, revisar `.cursorrules` para no salirse de las reglas aquí definidas (colaboración, preguntar antes de actuar, usar skills, etc.).
+
+---
+
 ## Instrucciones Completas
 
 Para instrucciones completas del proyecto, arquitectura, convenciones, skills disponibles
@@ -85,6 +93,10 @@ return response()->json([
 - **zonix-delivery-system**: para lógica de geolocalización, Haversine, OSRM, zonas de entrega y tracking de delivery.
 - **zonix-realtime-events**: para eventos broadcast, Pusher, FCM, canales y notificaciones en tiempo real.
 - **zonix-payments**: para comisiones, delivery_fee, totales y reglas de negocio de pagos.
+
+### Planes futuros (documentos a leer cuando se vaya a implementar)
+
+- **Módulo tarifa de delivery:** Si el usuario pide implementar o diseñar el "módulo de tarifa de delivery" (config Admin, cálculo backend, zonas), **leer primero** `docs/PLAN_MODULO_TARIFA_DELIVERY.md` y usarlo como base para proponer y refinar la implementación. No preguntar si existe el plan; consultarlo y seguirlo.
 
 ### Tests
 ```bash

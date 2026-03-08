@@ -185,6 +185,7 @@ Para no sobrecargar este archivo, el detalle por tema está en [docs/agents/](do
 - **Análisis exhaustivo:** Prompts y checklist v2.0. Ver [docs/agents/analysis.md](docs/agents/analysis.md).
 - **Mejoras pendientes:** Paginación, índices BD, refactor God Classes. Ver [docs/agents/pending-improvements.md](docs/agents/pending-improvements.md).
 - **Pagos por rol:** Quién configura métodos de pago, flujo del dinero, diagramas. Ver [docs/logica-pagos-por-rol.md](docs/logica-pagos-por-rol.md).
+- **Plan módulo tarifa delivery:** Diseño futuro (config global base+km, CRUD zonas, cálculo en backend). Cuando se vaya a implementar, usar y refinar [docs/PLAN_MODULO_TARIFA_DELIVERY.md](docs/PLAN_MODULO_TARIFA_DELIVERY.md).
 
 Índice completo: [docs/agents/README.md](docs/agents/README.md).
 

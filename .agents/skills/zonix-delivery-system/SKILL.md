@@ -1,11 +1,13 @@
 ---
 name: zonix-delivery-system
 description: Sistema de delivery de Zonix Eats. Asignación de entregas, cálculo de distancias Haversine, OSRM routing, zonas de entrega, y tracking.
-trigger: Cuando se trabaje con delivery agents, cálculo de distancias, rutas, zonas de entrega, geolocalización, o asignación de pedidos.
+trigger: Cuando se trabaje con delivery agents, cálculo de distancias, rutas, zonas de entrega, geolocalización, asignación de pedidos, o tarifa de delivery.
 scope: app/Http/Controllers/Location/LocationController.php, app/Http/Controllers/Delivery/DeliveryController.php, app/Models/DeliveryZone.php, app/Services/TrackingService.php
 author: Zonix Team
 version: 2.0
 ---
+
+**Módulo tarifa de delivery (futuro):** Si se va a implementar el módulo de tarifa (config Admin, CRUD zonas, cálculo en backend), leer y seguir [docs/PLAN_MODULO_TARIFA_DELIVERY.md](../../../docs/PLAN_MODULO_TARIFA_DELIVERY.md).
 
 # 🛵 Sistema de Delivery - Zonix Eats
 
