@@ -310,4 +310,62 @@ class OrderController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Rechazar (cancelar) una orden en pending_payment.
+     * El comercio rechaza la orden cuando no puede atenderla o no hay acuerdo con el cliente.
+     */
+    public function rejectOrder(Request $request, $id)
+    {
+        try {
+            $validated = $request->validate([
+                'reason' => 'nullable|string|max:500',
+            ]);
+
+            $order = Order::findOrFail($id);
+            /** @var \App\Models\User|null $user */
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json(['error' => 'No autenticado'], 401);
+            }
+            $user->load('profile.commerces');
+            $profile = $user->profile;
+
+            if (!$profile || !$profile->commerces()->where('id', $order->commerce_id)->exists()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autorizado para rechazar esta orden',
+                ], 403);
+            }
+
+            if ($order->status !== 'pending_payment') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solo se puede rechazar una orden en estado pendiente de pago',
+                ], 400);
+            }
+
+            $reason = $validated['reason'] ?? 'Orden rechazada por el comercio';
+            $order->update([
+                'status' => 'cancelled',
+                'cancellation_reason' => $reason,
+            ]);
+
+            event(new OrderStatusChanged($order));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Orden rechazada',
+                'order' => $order->fresh(),
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error al rechazar orden: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al rechazar la orden: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

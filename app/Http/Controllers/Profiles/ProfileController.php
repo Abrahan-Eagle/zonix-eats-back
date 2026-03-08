@@ -122,26 +122,31 @@ class ProfileController extends Controller
     // Buscar el perfil por ID o devolver error 404.
     $profile = Profile::findOrFail($id);
 
-    // Validar los datos recibidos, incluyendo el formato correcto para la fecha.
+    // Validar los datos recibidos (date_of_birth nullable para perfiles sin fecha).
     $validatedData = $request->validate([
         'firstName' => 'required|string|max:255',
         'middleName' => 'nullable|string|max:255',
         'lastName' => 'required|string|max:255',
         'secondLastName' => 'nullable|string|max:255',
         'photo_users' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
-        'date_of_birth' => 'required|date',
+        'date_of_birth' => 'nullable|date',
         'maritalStatus' => 'required|in:married,divorced,single',
         'sex' => 'required|in:F,M',
     ]);
 
+    // Si no se envía date_of_birth, mantener la existente o usar valor por defecto para nombre de imagen
+    if (empty($validatedData['date_of_birth'])) {
+        $validatedData['date_of_birth'] = $profile->date_of_birth
+            ? $profile->date_of_birth->format('Y-m-d')
+            : '2000-01-01';
+    }
 
-
-    // Log para depurar la fecha recibida y asegurar que esté en el formato correcto
+    // Log para depurar la fecha recibida
     Log::debug('Fecha recibida: ' . $validatedData['date_of_birth']);
 
     // Obtener el nombre del perfil y la fecha de creación
-    $created_at = $profile->created_at->format('YmdHis');  // Formato de fecha
-    $date_of_birth = Carbon::parse($validatedData['date_of_birth'])->format('Ymd'); // Formato de fecha de nacimiento (Ymd)
+    $created_at = $profile->created_at->format('YmdHis');
+    $date_of_birth = Carbon::parse($validatedData['date_of_birth'])->format('Ymd');
     $firstName = $validatedData['firstName'];
     $lastName = $validatedData['lastName'];
     $randomDigits = strtoupper(substr(md5(mt_rand()), 0, 7));  // Generar 7 caracteres aleatorios
