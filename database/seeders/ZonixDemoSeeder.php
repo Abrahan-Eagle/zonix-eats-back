@@ -17,6 +17,7 @@ use App\Models\DeliveryAgent;
 use App\Models\DeliveryCompany;
 use App\Models\DeliveryPayment;
 use App\Models\Dispute;
+use App\Models\Document;
 use App\Models\CommerceInvoice;
 use App\Models\Notification;
 use App\Models\OperatorCode;
@@ -114,6 +115,7 @@ class ZonixDemoSeeder extends Seeder
         $this->seedCartItems($commerces);
         $this->seedCommercePaymentMethodsDemo($commerces[0]);
         $this->seedUser1PaymentMethods();
+        $this->seedAllProfilesDocuments($users);
         $this->seedNotifications($users['users'][0]);
         $this->seedUserLocations($users);
         $this->seedPromotions($commerces[0]);
@@ -928,6 +930,63 @@ class ZonixDemoSeeder extends Seeder
         ];
         foreach ($demoMethods as $data) {
             $user->paymentMethods()->create($data);
+        }
+    }
+
+    /** Documentos demo (CI y RIF) para todos los perfiles de todos los roles. */
+    private function seedAllProfilesDocuments(array $users): void
+    {
+        $allProfiles = array_merge(
+            $users['users'],
+            $users['commerce'],
+            $users['delivery_agents'],
+            $users['delivery_company'] ? [$users['delivery_company']] : [],
+            $users['delivery_independent'] ? [$users['delivery_independent']] : [],
+            $users['admin'] ? [$users['admin']] : []
+        );
+
+        $issued = now()->subYears(2);
+        $expiresCi = now()->addYears(8);
+        $expiresRif = now()->addYears(1);
+        $zonas = self::ZONAS;
+
+        foreach ($allProfiles as $i => $profile) {
+            if (Document::where('profile_id', $profile->id)->exists()) {
+                continue;
+            }
+            $base = 19000000 + $profile->id;
+            $numberCi = $base % 100000000;
+            $rifNum = str_pad((string) ($numberCi % 100000000), 8, '0', STR_PAD_LEFT);
+            $letras = ['J', 'V', 'E', 'G', 'P'];
+            $rif = $letras[$i % count($letras)] . '-' . $rifNum . '-' . ($i % 10);
+            $zona = $zonas[$i % count($zonas)];
+            $taxDomicile = $zona['street'] . ', Valencia, Carabobo';
+
+            Document::create([
+                'profile_id' => $profile->id,
+                'type' => 'ci',
+                'number_ci' => $numberCi,
+                'rif_number' => null,
+                'taxDomicile' => null,
+                'front_image' => null,
+                'issued_at' => $issued,
+                'expires_at' => $expiresCi,
+                'approved' => true,
+                'status' => true,
+            ]);
+
+            Document::create([
+                'profile_id' => $profile->id,
+                'type' => 'rif',
+                'number_ci' => null,
+                'rif_number' => $rif,
+                'taxDomicile' => $taxDomicile,
+                'front_image' => null,
+                'issued_at' => $issued,
+                'expires_at' => $expiresRif,
+                'approved' => true,
+                'status' => true,
+            ]);
         }
     }
 
