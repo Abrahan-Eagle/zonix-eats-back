@@ -1,10 +1,12 @@
 ---
 name: zonix-payments
 description: Sistema de pagos híbridos, métodos de pago polimórficos, bancos, y reglas de comisiones para Zonix Eats.
-trigger: Cuando se toque Checkout, Pasarelas, Tasas, Binance, Stripe, payment_methods, o datos bancarios.
+trigger: Cuando se toque Checkout, Pasarelas, Tasas, Binance, Stripe, payment_methods, datos bancarios, o tarifa/costo de delivery.
 scope: app/Services/Payment, app/Models/PaymentMethod.php, app/Models/Bank.php
 version: 2.0
 ---
+
+**Módulo tarifa de delivery (futuro):** Para implementar la configuración de tarifa de delivery por Admin (base + $/km, zonas), leer y seguir [docs/PLAN_MODULO_TARIFA_DELIVERY.md](../../docs/PLAN_MODULO_TARIFA_DELIVERY.md).
 
 # 💸 Sistema de Pagos Zonix (Venezuela/Global)
 
