@@ -18,9 +18,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('profile_id')->constrained()->onDelete('cascade');
             $table->string('name'); // En inglés desde el inicio
-            $table->string('tax_id')->unique(); // En inglés desde el inicio (antes 'ci')
-            $table->string('phone'); // En inglés desde el inicio (antes 'telefono')
-            $table->text('address'); // En inglés desde el inicio (antes 'direccion')
+            $table->string('tax_id')->unique();
+            $table->text('address');
             $table->boolean('active')->default(true); // En inglés desde el inicio (antes 'activo')
             // Campos agregados después
             $table->text('image')->nullable()->comment('Logo de la empresa de delivery');

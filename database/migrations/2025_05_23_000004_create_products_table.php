@@ -27,6 +27,8 @@ return new class extends Migration
             
             // Foreign key para category_id
             $table->foreign('category_id')->references('id')->on('categories')->onDelete('set null');
+            $table->index('available', 'products_available_index');
+            $table->index(['commerce_id', 'available'], 'products_commerce_available_index');
         });
     }
 

@@ -3,178 +3,379 @@
 namespace App\Http\Controllers\Profiles;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StorePhoneRequest;
+use App\Http\Requests\UpdatePhoneRequest;
+use App\Models\Commerce;
+use App\Models\DeliveryCompany;
 use App\Models\OperatorCode;
-use Illuminate\Http\Request;
 use App\Models\Phone;
 use App\Models\Profile;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class PhoneController extends Controller
 {
+    /** Máximo de teléfonos personales activos por perfil. */
+    private const MAX_PERSONAL = 5;
+
+    /** Máximo de teléfonos por comercio (por commerce_id). */
+    private const MAX_PER_COMMERCE = 4;
+
+    /** Máximo de teléfonos por empresa de delivery (por delivery_company_id). */
+    private const MAX_PER_DELIVERY_COMPANY = 4;
+
+    /** Máximo de teléfonos con contexto admin por perfil. */
+    private const MAX_ADMIN = 1;
+
     /**
-     * Display a listing of the phones.
+     * Obtener el perfil del usuario autenticado.
      */
-    public function index()
+    private function getAuthProfile(): ?Profile
     {
-        // Obtener el usuario autenticado
         $user = auth()->user();
-        
-        if (!$user) {
-            return response()->json(['error' => 'Usuario no autenticado'], 401);
+        if (! $user) {
+            return null;
         }
 
-        // Buscar el perfil del usuario
-        $profile = Profile::where('user_id', $user->id)->first();
-        
-        if (!$profile) {
-            return response()->json(['error' => 'Perfil no encontrado'], 404);
-        }
-
-        // Obtener solo teléfonos activos (no soft-deleted)
-        $phones = Phone::with(['profile', 'operatorCode'])
-            ->where('profile_id', $profile->id)
-            ->where('status', true)
-            ->get();
-
-        return response()->json($phones);
+        return Profile::where('user_id', $user->id)->first();
     }
 
     /**
-     * Get operator codes for dropdown
+     * Listar teléfonos del usuario autenticado.
+     * Query: context (personal|commerce|delivery_company|admin), commerce_id, delivery_company_id.
      */
-    public function getOperatorCodes()
+    public function index(Request $request): JsonResponse
+    {
+        $profile = $this->getAuthProfile();
+        if (! $profile) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Perfil no encontrado',
+            ], 404);
+        }
+
+        $query = Phone::with(['profile', 'operatorCode', 'commerce', 'deliveryCompany'])
+            ->where('profile_id', $profile->id)
+            ->where('status', true);
+
+        if ($request->filled('context')) {
+            $query->where('context', $request->input('context'));
+        }
+        if ($request->filled('commerce_id')) {
+            $query->where('commerce_id', (int) $request->input('commerce_id'));
+        }
+        if ($request->filled('delivery_company_id')) {
+            $query->where('delivery_company_id', (int) $request->input('delivery_company_id'));
+        }
+
+        $phones = $query->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $phones,
+        ]);
+    }
+
+    /**
+     * Códigos de operador para dropdown (público para usuarios autenticados).
+     */
+    public function getOperatorCodes(): JsonResponse
     {
         $operatorCodes = OperatorCode::all();
-        return response()->json($operatorCodes);
+
+        return response()->json([
+            'success' => true,
+            'data' => $operatorCodes,
+        ]);
     }
 
-    public function store(Request $request)
+    /**
+     * Crear teléfono en el perfil del usuario autenticado.
+     * context obligatorio; commerce_id/delivery_company_id según contexto. Se valida propiedad del comercio/empresa.
+     */
+    public function store(StorePhoneRequest $request): JsonResponse
     {
-        $number = preg_replace('/\D/', '', (string) ($request->input('number', '') ?? ''));
-        $payload = array_merge($request->all(), ['number' => $number]);
-
-        $validator = Validator::make($payload, [
-            'profile_id' => 'required|exists:profiles,id',
-            'operator_code_id' => 'required|exists:operator_codes,id',
-            'number' => 'required|string|size:7',
-            'is_primary' => 'boolean',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 400);
+        $profile = $this->getAuthProfile();
+        if (! $profile) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Perfil no encontrado',
+            ], 404);
         }
 
-        $exists = Phone::where('number', $number)->exists();
+        $context = $request->validated()['context'] ?? Phone::CONTEXT_PERSONAL;
+        $commerceId = $request->validated()['commerce_id'] ?? null;
+        $deliveryCompanyId = $request->validated()['delivery_company_id'] ?? null;
+
+        if (in_array($context, [Phone::CONTEXT_PERSONAL, Phone::CONTEXT_ADMIN], true)) {
+            $commerceId = null;
+            $deliveryCompanyId = null;
+        }
+
+        if ($context === Phone::CONTEXT_COMMERCE && $commerceId) {
+            $owned = Commerce::where('id', $commerceId)->where('profile_id', $profile->id)->exists();
+            if (! $owned) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permiso para agregar teléfonos a este comercio.',
+                ], 403);
+            }
+            $count = Phone::where('profile_id', $profile->id)
+                ->where('context', Phone::CONTEXT_COMMERCE)
+                ->where('commerce_id', $commerceId)
+                ->where('status', true)
+                ->count();
+            if ($count >= self::MAX_PER_COMMERCE) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Has alcanzado el máximo de ' . self::MAX_PER_COMMERCE . ' teléfonos para este comercio.',
+                ], 422);
+            }
+        }
+
+        if ($context === Phone::CONTEXT_DELIVERY_COMPANY && $deliveryCompanyId) {
+            $owned = DeliveryCompany::where('id', $deliveryCompanyId)->where('profile_id', $profile->id)->exists();
+            if (! $owned) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permiso para agregar teléfonos a esta empresa.',
+                ], 403);
+            }
+            $count = Phone::where('profile_id', $profile->id)
+                ->where('context', Phone::CONTEXT_DELIVERY_COMPANY)
+                ->where('delivery_company_id', $deliveryCompanyId)
+                ->where('status', true)
+                ->count();
+            if ($count >= self::MAX_PER_DELIVERY_COMPANY) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Has alcanzado el máximo de ' . self::MAX_PER_DELIVERY_COMPANY . ' teléfonos para esta empresa.',
+                ], 422);
+            }
+        }
+
+        if ($context === Phone::CONTEXT_PERSONAL) {
+            $count = Phone::where('profile_id', $profile->id)
+                ->where('context', Phone::CONTEXT_PERSONAL)
+                ->where('status', true)
+                ->count();
+            if ($count >= self::MAX_PERSONAL) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Has alcanzado el máximo de ' . self::MAX_PERSONAL . ' teléfonos personales.',
+                ], 422);
+            }
+        }
+
+        if ($context === Phone::CONTEXT_ADMIN) {
+            $count = Phone::where('profile_id', $profile->id)
+                ->where('context', Phone::CONTEXT_ADMIN)
+                ->where('status', true)
+                ->count();
+            if ($count >= self::MAX_ADMIN) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solo puedes tener un teléfono de contacto admin.',
+                ], 422);
+            }
+        }
+
+        $number = $request->validated()['number'];
+        $operatorCodeId = (int) $request->validated()['operator_code_id'];
+
+        $exists = Phone::where('operator_code_id', $operatorCodeId)
+            ->where('number', $number)
+            ->where('status', true)
+            ->exists();
         if ($exists) {
-            return response()->json(['error' => ['number' => ['El número ya está registrado.']]], 400);
-        }
-
-        $profile = Profile::findOrFail($request->profile_id);
-
-        if ($request->is_primary) {
-            Phone::where('profile_id', $profile->id)
-                ->where('is_primary', true)
-                ->update(['is_primary' => false]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Este número ya está registrado.',
+                'errors' => ['number' => ['El número con ese operador ya está en uso.']],
+            ], 422);
         }
 
         $phone = Phone::create([
             'profile_id' => $profile->id,
-            'operator_code_id' => $request->operator_code_id,
+            'context' => $context,
+            'commerce_id' => $commerceId,
+            'delivery_company_id' => $deliveryCompanyId,
+            'operator_code_id' => $operatorCodeId,
             'number' => $number,
-            'is_primary' => $request->is_primary ?? false,
+            'is_primary' => $request->boolean('is_primary'),
         ]);
 
-        return response()->json(['message' => 'Phone created successfully', 'phone' => $phone], 201);
+        $phone->load(['profile', 'operatorCode', 'commerce', 'deliveryCompany']);
+
+        return response()->json([
+            'success' => true,
+            'data' => $phone,
+            'message' => 'Teléfono creado correctamente',
+        ], 201);
     }
 
-    public function show(Request $request, $id)
-        {
-            Log::info('Datos recibidos:', $request->all());
+    /**
+     * Listar teléfonos por user_id. Solo el mismo usuario o admin pueden ver.
+     */
+    public function phonesByUserId(int $userId): JsonResponse
+    {
+        $authUser = auth()->user();
+        if (! $authUser) {
+            return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+        }
+        if ($authUser->id !== $userId && $authUser->role !== 'admin') {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
 
-            $profile = Profile::where('user_id', $id)->firstOrFail();
+        $profile = Profile::where('user_id', $userId)->first();
+        if (! $profile) {
+            return response()->json([
+                'success' => true,
+                'data' => [],
+            ]);
+        }
 
-            $phone = Phone::with(['profile', 'operatorCode'])
-                ->where('profile_id', $profile->id)
-                ->where('status', true)
-                ->get();
+        $phones = Phone::with(['profile', 'operatorCode', 'commerce', 'deliveryCompany'])
+            ->where('profile_id', $profile->id)
+            ->where('status', true)
+            ->get();
 
-            if (!$phone) {
-                return response()->json(['message' => 'Phone not found'], 404);
+        return response()->json([
+            'success' => true,
+            'data' => $phones,
+        ]);
+    }
+
+    /**
+     * Mostrar un teléfono por id. Solo si pertenece al perfil del usuario autenticado.
+     */
+    public function show(int $id): JsonResponse
+    {
+        $profile = $this->getAuthProfile();
+        if (! $profile) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Perfil no encontrado',
+            ], 404);
+        }
+
+        $phone = Phone::with(['profile', 'operatorCode', 'commerce', 'deliveryCompany'])
+            ->where('id', $id)
+            ->where('profile_id', $profile->id)
+            ->first();
+
+        if (! $phone) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Teléfono no encontrado',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $phone,
+        ]);
+    }
+
+    /**
+     * Actualizar teléfono. Solo si pertenece al perfil del usuario autenticado.
+     */
+    public function update(UpdatePhoneRequest $request, int $id): JsonResponse
+    {
+        $profile = $this->getAuthProfile();
+        if (! $profile) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Perfil no encontrado',
+            ], 404);
+        }
+
+        $phone = Phone::where('id', $id)->where('profile_id', $profile->id)->first();
+        if (! $phone) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Teléfono no encontrado',
+            ], 404);
+        }
+
+        $data = $request->validated();
+
+        if (isset($data['context']) && in_array($data['context'], [Phone::CONTEXT_PERSONAL, Phone::CONTEXT_ADMIN], true)) {
+            $data['commerce_id'] = null;
+            $data['delivery_company_id'] = null;
+        }
+        if (isset($data['commerce_id']) && $data['context'] === Phone::CONTEXT_COMMERCE) {
+            $owned = Commerce::where('id', $data['commerce_id'])->where('profile_id', $profile->id)->exists();
+            if (! $owned) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permiso para asignar este comercio.',
+                ], 403);
             }
-
-            return response()->json($phone);
+        }
+        if (isset($data['delivery_company_id']) && $data['context'] === Phone::CONTEXT_DELIVERY_COMPANY) {
+            $owned = DeliveryCompany::where('id', $data['delivery_company_id'])->where('profile_id', $profile->id)->exists();
+            if (! $owned) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permiso para asignar esta empresa.',
+                ], 403);
+            }
         }
 
-
-    /**
-     * Update the specified phone in storage.
-     */
-    public function update(Request $request, $id)
-    {
-        $phone = Phone::find($id);
-
-        if (!$phone) {
-            return response()->json(['message' => 'Phone not found'], 404);
+        if (isset($data['number']) && isset($data['operator_code_id'])) {
+            $exists = Phone::where('operator_code_id', (int) $data['operator_code_id'])
+                ->where('number', $data['number'])
+                ->where('status', true)
+                ->where('id', '!=', $id)
+                ->exists();
+            if ($exists) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Este número ya está registrado.',
+                    'errors' => ['number' => ['El número con ese operador ya está en uso.']],
+                ], 422);
+            }
         }
 
-        $validator = Validator::make($request->all(), [
-            'operator_code_id' => 'sometimes|exists:operator_codes,id',
-            'number' => 'sometimes|string|min:7|max:15|unique:phones,number,' . $id,
-            'is_primary' => 'sometimes|boolean',
-            'status' => 'sometimes|boolean',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 400);
-        }
-
-        // Si se marca como principal, desmarcar otros teléfonos principales del mismo perfil
-        if ($request->has('is_primary') && $request->is_primary) {
-            Phone::where('profile_id', $phone->profile_id)
-                ->where('id', '!=', $phone->id)
-                ->update(['is_primary' => false]);
-        }
-
-        // Actualizar los campos permitidos
-        if ($request->has('operator_code_id')) {
-            $phone->operator_code_id = $request->operator_code_id;
-        }
-        
-        if ($request->has('number')) {
-            $phone->number = $request->number;
-        }
-        
-        if ($request->has('is_primary')) {
-            $phone->is_primary = $request->is_primary;
-        }
-        
-        if ($request->has('status')) {
-            $phone->status = $request->status;
-        }
-
+        $phone->fill($data);
         $phone->save();
+        $phone->load(['profile', 'operatorCode', 'commerce', 'deliveryCompany']);
 
-        // Cargar las relaciones para la respuesta
-        $phone->load(['profile', 'operatorCode']);
-
-        return response()->json(['message' => 'Phone updated successfully', 'phone' => $phone]);
+        return response()->json([
+            'success' => true,
+            'data' => $phone,
+            'message' => 'Teléfono actualizado correctamente',
+        ]);
     }
 
     /**
-     * Remove the specified phone from storage.
+     * Desactivar teléfono (soft delete). Solo si pertenece al perfil del usuario autenticado.
      */
-    public function destroy($id)
+    public function destroy(int $id): JsonResponse
     {
-        $phone = Phone::find($id);
+        $profile = $this->getAuthProfile();
+        if (! $profile) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Perfil no encontrado',
+            ], 404);
+        }
 
-        if (!$phone) {
-            return response()->json(['message' => 'Phone not found'], 404);
+        $phone = Phone::where('id', $id)->where('profile_id', $profile->id)->first();
+        if (! $phone) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Teléfono no encontrado',
+            ], 404);
         }
 
         $phone->status = false;
         $phone->save();
 
-        return response()->json(['message' => 'Phone deleted successfully']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Teléfono eliminado correctamente',
+        ]);
     }
 }

@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('promotions', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('commerce_id')->nullable()->constrained('commerces')->nullOnDelete();
             $table->string('title');
             $table->text('description');
             $table->enum('discount_type', ['percentage', 'fixed']);

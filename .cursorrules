@@ -100,6 +100,12 @@ return response()->json([
 - Uploads: max 5MB, solo tipos permitidos
 - SIEMPRE paginar listados
 
+### Migraciones (norma obligatoria)
+- **NUNCA** crear migraciones tipo `add_*_to_*`, `change_*`, etc. para tablas que ya existen.
+- **Tabla nueva** → única migración `create_*_table`.
+- **Tabla existente que hay que actualizar** → **editar la migración create** de esa tabla (añadir/quitar columnas ahí). No crear una migración aparte "add" ni "change".
+- Resumen: o creas la tabla (create) o actualizas la create; nada de add/change sueltos.
+
 ### Skills de dominio recomendadas
 
 - **zonix-api-patterns**: para crear o modificar endpoints, controladores, rutas y middleware (`routes/api.php`, `app/Http/Controllers`, `app/Http/Middleware`).

@@ -43,22 +43,51 @@ use Illuminate\Support\Facades\Hash;
 
 /**
  * Seeder único para demo Zonix Eats.
- * Simula el flujo completo con datos reales de Carabobo/Valencia:
- * El Socorro, Los Chorritos, Bella Florida, Mayorista (La Isabelica).
+ * Geolocalización exacta: Venezuela, Carabobo, Valencia.
+ * Sectores: El Socorro, Los Chorritos, Mayorista (La Isabelica), Bella Florida, San Diego, Santa Rosa.
  *
- * Usuarios: 5 compradores (users) | 10 comercios | 1 empresa delivery | 2 repartidores empresa | 1 repartidor independiente | 1 admin.
- * Ejecutar: php artisan migrate:fresh --seed (DatabaseSeeder llama solo a este seeder).
+ * Usuarios: 5 compradores | 10 comercios | 1 empresa delivery | 2 repartidores empresa | 1 independiente | 1 admin.
+ *
+ * Usuarios fijos (NO se modifican en tabla users): id 1 (Abrahan, role=users), id 6 (Wistremiro, role=commerce).
+ * Tablas conectadas a user 1 y 6 que SÍ se mejoran:
+ * - users: no se tocan (datos fijos).
+ * - profiles (user_id): creados/actualizados en seedUsersAndProfiles.
+ * - phones (profile_id): ensurePhone en seedUsersAndProfiles.
+ * - addresses (profile_id): seedAddresses + ensureUser1AndUser6AddressesAndData (El Socorro exacto).
+ * - documents (profile_id): seedAllProfilesDocuments (CI/RIF).
+ * - carts (profile_id): seedCarts (user 1 tiene carrito).
+ * - cart_items: seedCartItems.
+ * - orders (profile_id): seedOrders (user 1 es comprador); fixDemoOrderTracking actualiza dirección entrega.
+ * - order_items: por orden.
+ * - notifications (profile_id): seedNotifications (user 1).
+ * - user_locations (profile_id): seedUserLocations + ensureUser1AndUser6UserLocations (El Socorro).
+ * - coupons / coupon_usages (profile_id): seedCoupons (user 1), seedCouponUsages.
+ * - reviews (profile_id): seedReviews.
+ * - disputes: seedDisputes (puede involucrar orden de user 1).
+ * - user_payment_methods (user_id=1): seedUser1PaymentMethods.
+ * Solo user 6 (commerce): commerces (profile_id), addresses (commerce_id), products, promotions,
+ * payment_methods (commerce), posts, commerce_invoices; seedCommercePaymentMethodsDemo(commerces[0]).
+ *
+ * CONEXIONES ENTRE ROLES (todos los usuarios según su role quedan conectados entre sí):
+ * - Buyer (users[0]) → Order (profile_id) → Commerce (commerces[0], user 6) → OrderItem → Product.
+ * - Order → OrderDelivery (order_id, agent_id) → DeliveryAgent (company_id → DeliveryCompany, o null independiente).
+ * - DeliveryCompany → Profile (delivery_company). DeliveryAgent → Profile (repartidor empresa o independiente).
+ * - Review: profile_id (buyer) revisa reviewable_type/reviewable_id (Commerce o DeliveryAgent).
+ * - Dispute: order_id, reported_by (buyer profile), reported_against (commerce profile).
+ * - DeliveryPayment: order_id + delivery_agent_id (pago al repartidor).
+ * - Cart/CartItem: profile (buyer) + product (commerce). PostLike: perfiles (buyers + commerce) → Post (commerce).
+ * - Admin: tiene profile, address, documents; en la app se relaciona por permisos (ve órdenes, disputas, etc.), no por FK en este seed.
  */
 class ZonixDemoSeeder extends Seeder
 {
-    /** Coordenadas GPS reales Carabobo/Valencia (sectores) */
+    /** Coordenadas GPS exactas - Valencia, Carabobo, Venezuela (sectores reales para pruebas) */
     private const ZONAS = [
-        ['name' => 'El Socorro', 'street' => 'Av. Principal El Socorro', 'lat' => 10.1820, 'lng' => -68.0080],
-        ['name' => 'Los Chorritos', 'street' => 'Calle Los Chorritos', 'lat' => 10.1750, 'lng' => -67.9980],
-        ['name' => 'Bella Florida', 'street' => 'Bella Florida, Valencia', 'lat' => 10.1920, 'lng' => -68.0120],
-        ['name' => 'Mayorista', 'street' => '1era Av. Este-Oeste, La Isabelica', 'lat' => 10.163461, 'lng' => -67.967541],
-        ['name' => 'San Diego', 'street' => 'Centro Comercial San Diego', 'lat' => 10.2558, 'lng' => -67.9536],
-        ['name' => 'La Honda', 'street' => 'Av. La Honda', 'lat' => 10.2050, 'lng' => -68.0020],
+        ['name' => 'El Socorro', 'street' => 'Av. Principal El Socorro', 'lat' => 10.1146, 'lng' => -68.0401],
+        ['name' => 'Los Chorritos', 'street' => 'Sector Los Chorritos, Valencia', 'lat' => 10.1200, 'lng' => -68.0200],
+        ['name' => 'Mayorista', 'street' => '1ra Av. Este-Oeste, La Isabelica (Mayorista)', 'lat' => 10.163461, 'lng' => -67.967541],
+        ['name' => 'Bella Florida', 'street' => 'Bella Florida (La Florida)', 'lat' => 10.1528, 'lng' => -68.0403],
+        ['name' => 'San Diego', 'street' => 'Av. Principal San Diego, CC San Diego', 'lat' => 10.26057, 'lng' => -67.95363],
+        ['name' => 'Santa Rosa', 'street' => 'Calle 86 Sucre, Santa Rosa', 'lat' => 10.16561, 'lng' => -68.000375],
     ];
 
     /** Imágenes de productos (comida) - Themealdb */
@@ -105,6 +134,7 @@ class ZonixDemoSeeder extends Seeder
         $this->seedReferenceData();
         $users = $this->seedUsersAndProfiles();
         $this->seedAddresses($users);
+        $this->ensureUser1AndUser6AddressesAndData($users);
         $commerces = $this->seedCommerces($users);
         $this->seedProducts($commerces);
         $this->seedProductExtras();
@@ -118,6 +148,7 @@ class ZonixDemoSeeder extends Seeder
         $this->seedAllProfilesDocuments($users);
         $this->seedNotifications($users['users'][0]);
         $this->seedUserLocations($users);
+        $this->ensureUser1AndUser6UserLocations();
         $this->seedPromotions($commerces[0]);
         $this->seedCoupons($users['users'][0]);
         $this->seedCouponUsages();
@@ -149,10 +180,7 @@ class ZonixDemoSeeder extends Seeder
             $this->bankIds[$b['name']] = $bank->id;
         }
 
-        $codes = [['id' => 1, 'name' => '0412', 'code' => '0412'], ['id' => 2, 'name' => '0414', 'code' => '0414']];
-        foreach ($codes as $c) {
-            OperatorCode::updateOrCreate(['id' => $c['id']], $c);
-        }
+        // OperatorCode lo puebla OperatorCodeSeeder (code numérico 412, 414, 424, 416, 426)
         $this->operatorCodeId = 1;
 
         $categories = [
@@ -173,6 +201,7 @@ class ZonixDemoSeeder extends Seeder
             ['name' => 'Pizzería', 'icon' => 'local_pizza', 'description' => 'Pizzerías'],
             ['name' => 'Cafetería', 'icon' => 'coffee', 'description' => 'Cafeterías'],
             ['name' => 'Panadería', 'icon' => 'bakery_dining', 'description' => 'Panaderías'],
+            ['name' => 'Sushi Bar', 'icon' => 'restaurant', 'description' => 'Sushi y comida japonesa'],
         ];
         foreach ($types as $t) {
             $bt = BusinessType::updateOrCreate(['name' => $t['name']], $t);
@@ -232,14 +261,46 @@ class ZonixDemoSeeder extends Seeder
             $out['users'][] = $p;
         }
 
-        // 6-15. Diez comercios (cada uno con su usuario y perfil)
+        // Usuario 6: Wistremiro (commerce, Google) - datos fijos para desarrollo
+        $u6 = User::updateOrCreate(
+            ['id' => 6],
+            [
+                'name' => 'Wistremiro A Pulido B',
+                'email' => 'wistremiropulido@gmail.com',
+                'email_verified_at' => null,
+                'password' => null,
+                'google_id' => '107212919897356810816',
+                'given_name' => 'Wistremiro A',
+                'family_name' => 'Pulido B',
+                'profile_pic' => 'https://lh3.googleusercontent.com/a/ACg8ocKgWH29et0okV9S-wV6quri0609QRDbCoqH_C2OmUKMl_mi5Q=s96-c',
+                'AccessToken' => null,
+                'completed_onboarding' => true,
+                'role' => 'commerce',
+                'light' => '1',
+            ]
+        );
+        $p6 = Profile::updateOrCreate(
+            ['user_id' => 6],
+            [
+                'firstName' => 'Wistremiro A',
+                'lastName' => 'Pulido B',
+                'photo_users' => $u6->profile_pic,
+                'status' => 'completeData',
+                'maritalStatus' => 'single',
+                'sex' => 'M',
+            ]
+        );
+        $this->ensurePhone($p6->id, '6000000', 1);
+        $out['commerce'][] = $p6;
+
+        // 7-15. Nueve comercios más (cada uno con su usuario y perfil)
         $commerceNames = [
             'Restaurante El Socorro Grill', 'Pizzería Los Chorritos', 'Café Bella Florida', 'Panadería El Socorro',
             'Comedor Mayorista Express', 'Sushi San Diego', 'Restaurante La Honda', 'Arepera El Socorro',
             'Parrilla Los Chorritos', 'Cafetería Bella Florida',
         ];
         $commerceTypes = ['Restaurant', 'Pizzería', 'Cafetería', 'Panadería', 'Comida Rápida', 'Sushi Bar', 'Restaurant', 'Comida Rápida', 'Restaurant', 'Cafetería'];
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 1; $i < 10; $i++) {
             $u = User::create([
                 'name' => $commerceNames[$i] . ' (Dueño)',
                 'email' => 'comercio' . ($i + 1) . '@demo.zonix.eats',
@@ -258,7 +319,7 @@ class ZonixDemoSeeder extends Seeder
                 'maritalStatus' => 'single',
                 'sex' => 'M',
             ]);
-            $this->ensurePhone($p->id, (string)(5012345 + $i), 1); // 0412 + 7 dígitos (ej: 0412 5012345)
+            $this->ensurePhone($p->id, (string)(5012345 + $i), 1);
             $out['commerce'][] = $p;
         }
 
@@ -373,19 +434,88 @@ class ZonixDemoSeeder extends Seeder
             $users['delivery_company'] ? [$users['delivery_company']] : [],
             $users['admin'] ? [$users['admin']] : []
         );
-        $zoneIndex = 0;
-        foreach ($allProfiles as $profile) {
-            $zone = self::ZONAS[$zoneIndex % count(self::ZONAS)];
-            $zoneIndex++;
+        $zonas = self::ZONAS;
+        $nZonas = count($zonas);
+        foreach ($allProfiles as $i => $profile) {
+            $zone = $zonas[$i % $nZonas];
+            // Variación mínima para pruebas reales (aprox. ±20 m)
+            $lat = $zone['lat'] + (rand(-20, 20) / 100000.0);
+            $lng = $zone['lng'] + (rand(-20, 20) / 100000.0);
             Address::firstOrCreate(
                 ['profile_id' => $profile->id, 'is_default' => true],
                 [
                     'street' => $zone['street'],
-                    'house_number' => (string) rand(1, 200),
-                    'latitude' => $zone['lat'] + (rand(-30, 30) / 10000.0),
-                    'longitude' => $zone['lng'] + (rand(-30, 30) / 10000.0),
+                    'house_number' => (string) rand(1, 150),
+                    'latitude' => $lat,
+                    'longitude' => $lng,
                     'status' => 'completeData',
                     'city_id' => $this->cityValenciaId,
+                ]
+            );
+        }
+    }
+
+    /**
+     * Mejora explícita de todas las tablas vinculadas a usuarios 1 y 6.
+     * - profiles: ya creados/actualizados en seedUsersAndProfiles (no se tocan users 1 y 6).
+     * - addresses: dirección por defecto en El Socorro (coords exactas) para ambos.
+     * - phones, documents, carts, orders, notifications, etc. se generan en sus seeders.
+     * Tablas conectadas: profiles (user_id), phones (profile_id), addresses (profile_id),
+     * documents (profile_id), carts (profile_id), orders (profile_id), notifications (profile_id),
+     * user_locations (profile_id), coupon/coupon_usages (profile_id), reviews (profile_id);
+     * user 6 además: commerces (profile_id), addresses (commerce_id), products, promotions, payment_methods, posts.
+     */
+    private function ensureUser1AndUser6AddressesAndData(array $users): void
+    {
+        $elSocorro = self::ZONAS[0];
+        $profile1 = Profile::where('user_id', 1)->first();
+        $profile6 = Profile::where('user_id', 6)->first();
+        if ($profile1) {
+            Address::updateOrCreate(
+                ['profile_id' => $profile1->id, 'is_default' => true],
+                [
+                    'street' => $elSocorro['street'],
+                    'house_number' => '1',
+                    'latitude' => $elSocorro['lat'],
+                    'longitude' => $elSocorro['lng'],
+                    'status' => 'completeData',
+                    'city_id' => $this->cityValenciaId,
+                ]
+            );
+        }
+        if ($profile6) {
+            Address::updateOrCreate(
+                ['profile_id' => $profile6->id, 'is_default' => true],
+                [
+                    'street' => $elSocorro['street'],
+                    'house_number' => '6',
+                    'latitude' => $elSocorro['lat'],
+                    'longitude' => $elSocorro['lng'],
+                    'status' => 'completeData',
+                    'city_id' => $this->cityValenciaId,
+                ]
+            );
+        }
+    }
+
+    /** Asegura que usuario 1 y 6 tengan al menos una ubicación reciente en El Socorro (pruebas de geolocalización). */
+    private function ensureUser1AndUser6UserLocations(): void
+    {
+        $elSocorro = self::ZONAS[0];
+        foreach ([1, 6] as $userId) {
+            $profile = Profile::where('user_id', $userId)->first();
+            if (!$profile) {
+                continue;
+            }
+            UserLocation::firstOrCreate(
+                [
+                    'profile_id' => $profile->id,
+                    'latitude' => $elSocorro['lat'],
+                    'longitude' => $elSocorro['lng'],
+                ],
+                [
+                    'address' => $elSocorro['street'] . ', Valencia, Carabobo',
+                    'recorded_at' => now(),
                 ]
             );
         }
@@ -394,14 +524,15 @@ class ZonixDemoSeeder extends Seeder
     private function seedCommerces(array $users): array
     {
         $commerces = [];
+        $zonas = self::ZONAS;
         $types = ['Restaurant', 'Pizzería', 'Cafetería', 'Panadería', 'Comida Rápida', 'Sushi Bar', 'Restaurant', 'Comida Rápida', 'Restaurant', 'Cafetería'];
         $names = [
-            'Restaurante El Socorro Grill', 'Pizzería Los Chorritos', 'Café Bella Florida', 'Panadería El Socorro',
-            'Comedor Mayorista Express', 'Sushi San Diego', 'Restaurante La Honda', 'Arepera El Socorro',
+            'Restaurante El Socorro Grill', 'Pizzería Los Chorritos', 'Café Bella Florida', 'Panadería Mayorista',
+            'Comedor San Diego Express', 'Sushi San Diego', 'Restaurante Santa Rosa', 'Arepera El Socorro',
             'Parrilla Los Chorritos', 'Cafetería Bella Florida',
         ];
         foreach ($users['commerce'] as $i => $profile) {
-            $zone = self::ZONAS[$i % count(self::ZONAS)];
+            $zone = $zonas[$i % count($zonas)];
             $typeName = $types[$i];
             $btId = $this->businessTypeIds[$typeName] ?? null;
             $commerce = Commerce::create([
@@ -410,13 +541,12 @@ class ZonixDemoSeeder extends Seeder
                 'business_name' => $names[$i],
                 'business_type' => $typeName,
                 'business_type_id' => $btId,
-                'address' => $zone['street'] . ', Valencia',
+                'address' => $zone['street'] . ', Valencia, Carabobo',
                 'image' => self::COMMERCE_IMAGES[$i % count(self::COMMERCE_IMAGES)],
                 'open' => true,
                 'tax_id' => 'J-' . (30000000 + $i),
             ]);
             $commerces[] = $commerce;
-            // Dirección del establecimiento (commerce_id, role=commerce)
             Address::create([
                 'commerce_id' => $commerce->id,
                 'profile_id' => null,
@@ -457,15 +587,17 @@ class ZonixDemoSeeder extends Seeder
     private function seedDelivery(array $users): array
     {
         $profileCompany = $users['delivery_company'];
+        $mayorista = self::ZONAS[2]; // Mayorista, La Isabelica - sede empresa
         $company = DeliveryCompany::create([
             'profile_id' => $profileCompany->id,
             'name' => 'Envíos Carabobo C.A.',
             'tax_id' => 'J-12345678',
-            'address' => self::ZONAS[3]['street'] . ', Valencia',
+            'address' => $mayorista['street'] . ', Valencia, Carabobo',
             'image' => 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=400',
             'active' => true,
             'open' => true,
         ]);
+        $santaRosa = self::ZONAS[5]; // Santa Rosa - repartidores operando en zona
         $agents = [];
         foreach ($users['delivery_agents'] as $profile) {
             $agents[] = DeliveryAgent::create([
@@ -476,11 +608,12 @@ class ZonixDemoSeeder extends Seeder
                 'rating' => 4.5,
                 'vehicle_type' => 'motorcycle',
                 'license_number' => 'LIC-' . str_pad((string) $profile->id, 5, '0', STR_PAD_LEFT),
-                'current_latitude' => 10.159739,
-                'current_longitude' => -68.000354,
+                'current_latitude' => $santaRosa['lat'],
+                'current_longitude' => $santaRosa['lng'],
                 'last_location_update' => now(),
             ]);
         }
+        $elSocorro = self::ZONAS[0];
         $pInd = $users['delivery_independent'];
         $agents[] = DeliveryAgent::create([
             'company_id' => null,
@@ -490,8 +623,8 @@ class ZonixDemoSeeder extends Seeder
             'rating' => 4.2,
             'vehicle_type' => 'motorcycle',
             'license_number' => 'LIC-IND-001',
-            'current_latitude' => 10.17,
-            'current_longitude' => -68.00,
+            'current_latitude' => $elSocorro['lat'],
+            'current_longitude' => $elSocorro['lng'],
             'last_location_update' => now(),
         ]);
         return [$company, $agents];
@@ -515,11 +648,13 @@ class ZonixDemoSeeder extends Seeder
         $elSocorro = self::ZONAS[0];
         foreach ($statuses as $i => $cfg) {
             $deliveryFee = $cfg['delivery'] ? 3.50 : 0;
+            $isPaidOrBeyond = in_array($cfg['status'], ['paid', 'processing', 'shipped', 'delivered']);
             $order = Order::create([
                 'profile_id' => $buyerProfile->id,
                 'commerce_id' => $commerce->id,
                 'delivery_type' => $cfg['delivery'] ? 'delivery' : 'pickup',
                 'status' => $cfg['status'],
+                'approved_for_payment' => $isPaidOrBeyond,
                 'total' => 0,
                 'delivery_fee' => $deliveryFee,
                 'delivery_payment_amount' => in_array($cfg['status'], ['shipped', 'delivered']) ? $deliveryFee : null,
@@ -529,8 +664,8 @@ class ZonixDemoSeeder extends Seeder
                 'estimated_delivery_time' => $cfg['delivery'] ? 25 : null,
                 'payment_method' => $cfg['status'] !== 'pending_payment' ? 'cash' : null,
                 'reference_number' => $cfg['status'] !== 'pending_payment' ? 'REF' . rand(10000, 99999) : null,
-                'payment_validated_at' => in_array($cfg['status'], ['paid', 'processing', 'shipped', 'delivered']) ? now() : null,
-                'delivery_address' => $cfg['delivery'] ? 'C. las Torres, El Socorro, Valencia 2001' : null,
+                'payment_validated_at' => $isPaidOrBeyond ? now() : null,
+                'delivery_address' => $cfg['delivery'] ? 'Av. Principal El Socorro, Valencia 2001, Carabobo' : null,
                 'delivery_latitude' => $cfg['delivery'] ? $elSocorro['lat'] : null,
                 'delivery_longitude' => $cfg['delivery'] ? $elSocorro['lng'] : null,
                 'cancellation_reason' => $cfg['status'] === 'cancelled' ? 'Solicitud del cliente' : null,
@@ -637,14 +772,17 @@ class ZonixDemoSeeder extends Seeder
             $users['users'],
             array_slice($users['commerce'], 0, 3)
         );
-        $zone = self::ZONAS[0];
-        foreach ($allProfiles as $profile) {
-            for ($i = 0; $i < rand(1, 2); $i++) {
+        $zonas = self::ZONAS;
+        foreach ($allProfiles as $i => $profile) {
+            $zone = $zonas[$i % count($zonas)];
+            for ($j = 0; $j < rand(1, 2); $j++) {
+                $lat = $zone['lat'] + (rand(-15, 15) / 100000.0);
+                $lng = $zone['lng'] + (rand(-15, 15) / 100000.0);
                 UserLocation::create([
                     'profile_id' => $profile->id,
-                    'latitude' => $zone['lat'] + (rand(-50, 50) / 10000.0),
-                    'longitude' => $zone['lng'] + (rand(-50, 50) / 10000.0),
-                    'address' => $zone['street'] . ', Valencia',
+                    'latitude' => $lat,
+                    'longitude' => $lng,
+                    'address' => $zone['street'] . ', Valencia, Carabobo',
                     'recorded_at' => now()->subHours(rand(0, 48)),
                 ]);
             }
@@ -1012,32 +1150,30 @@ class ZonixDemoSeeder extends Seeder
 
     private function fixDemoOrderTracking(array $orders): void
     {
-        $elSocorroLat = 10.125277;
-        $elSocorroLng = -68.051191;
-        $deliveryLat = 10.159739;
-        $deliveryLng = -68.000354;
+        $elSocorro = self::ZONAS[0];
+        $santaRosa = self::ZONAS[5];
         foreach ($orders as $order) {
             if ($order->delivery_type !== 'delivery') {
                 continue;
             }
             $order->update([
-                'delivery_latitude' => $elSocorroLat,
-                'delivery_longitude' => $elSocorroLng,
+                'delivery_latitude' => $elSocorro['lat'],
+                'delivery_longitude' => $elSocorro['lng'],
             ]);
             $od = OrderDelivery::where('order_id', $order->id)->first();
             if ($od && $od->agent) {
                 $od->agent->update([
-                    'current_latitude' => $deliveryLat,
-                    'current_longitude' => $deliveryLng,
+                    'current_latitude' => $santaRosa['lat'],
+                    'current_longitude' => $santaRosa['lng'],
                     'last_location_update' => now(),
                 ]);
             }
             $addr = Address::where('profile_id', $order->profile_id)->where('is_default', true)->first();
             if ($addr) {
                 $addr->update([
-                    'street' => 'C. las Torres, Valencia 2001, Carabobo',
-                    'latitude' => $elSocorroLat,
-                    'longitude' => $elSocorroLng,
+                    'street' => $elSocorro['street'],
+                    'latitude' => $elSocorro['lat'],
+                    'longitude' => $elSocorro['lng'],
                 ]);
             }
         }

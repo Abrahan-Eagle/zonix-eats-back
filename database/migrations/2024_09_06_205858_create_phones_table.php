@@ -15,12 +15,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('profile_id')->constrained('profiles')->onDelete('cascade');
             $table->foreignId('operator_code_id')->constrained('operator_codes')->onDelete('cascade');
-            $table->string('number', 7); // Número local con longitud fija
+            $table->string('number', 7);
             $table->boolean('is_primary')->default(false);
-            $table->boolean('status')->default(true); // se muestra el correo solo si esta activo
-            $table->boolean('approved')->default(false);// significa si el documento esta aprovado
+            $table->boolean('status')->default(true);
+            $table->boolean('approved')->default(false);
             $table->timestamps();
-
         });
     }
 

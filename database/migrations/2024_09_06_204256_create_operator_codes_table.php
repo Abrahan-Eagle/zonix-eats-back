@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('operator_codes', function (Blueprint $table) {
             $table->id();
-            $table->string('code', 4)->unique(); // Ejemplo: 0412
-            $table->string('name'); // Nombre del operador, por ejemplo: "Movilnet"
+            $table->unsignedSmallInteger('code')->unique(); // 412, 414, 424, 416, 426
+            $table->string('name'); // Nombre del operador para mostrar, ej: "0412"
             $table->timestamps();
         });
     }

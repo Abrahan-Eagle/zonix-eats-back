@@ -21,13 +21,13 @@ return new class extends Migration
             $table->decimal('latitude', 10, 7); // Almacena la latitud con 7 decimales de precisión
             $table->decimal('longitude', 10, 7); // Almacena la longitud con 7 decimales de precisión
             $table->enum('status', ['completeData', 'incompleteData', 'notverified'])->default('notverified');
-            $table->boolean('is_default')->default(false); // Marca dirección predeterminada (casa)
+            $table->boolean('is_default')->default(false);
+            $table->string('role', 50)->nullable();
             $table->timestamps();
 
-            // Claves foráneas
-            $table->unsignedBigInteger('profile_id');
+            $table->unsignedBigInteger('profile_id')->nullable();
             $table->foreign('profile_id')->references('id')->on('profiles')->onDelete('cascade');
-            $table->unsignedBigInteger('city_id');  // Relación con ciudades
+            $table->unsignedBigInteger('city_id');
             $table->foreign('city_id')->references('id')->on('cities')->onDelete('cascade');
         });
     }

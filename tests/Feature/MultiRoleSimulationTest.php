@@ -323,12 +323,10 @@ class MultiRoleSimulationTest extends TestCase
         // ============================================
         Sanctum::actingAs($this->buyer);
 
-        // 4.1 Buyer ve su orden completada
+        // 4.1 Buyer ve su orden completada (la API devuelve { success, data: { status, ... } })
         $buyerOrderResponse = $this->getJson("/api/buyer/orders/{$orderId}");
         $buyerOrderResponse->assertStatus(200)
-            ->assertJson([
-                'status' => 'delivered'
-            ]);
+            ->assertJsonPath('data.status', 'delivered');
 
         // 4.2 Buyer ve todas sus órdenes
         $buyerOrdersResponse = $this->getJson('/api/buyer/orders');

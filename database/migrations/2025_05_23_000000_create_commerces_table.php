@@ -17,11 +17,11 @@ return new class extends Migration
         Schema::create('commerces', function (Blueprint $table) {
             $table->id();
             $table->foreignId('profile_id')->constrained()->onDelete('cascade');
+            $table->boolean('is_primary')->default(true); // Multi-restaurante: principal por perfil
             $table->string('business_name')->nullable();
             $table->string('business_type')->nullable();
             $table->string('tax_id')->nullable()->comment('Número de identificación tributaria (RUC, NIT, etc.) - Required según modelo');
             $table->text('image')->nullable();
-            $table->string('phone')->nullable();
             $table->text('address')->nullable();
             
             $table->boolean('open')->default(false);

@@ -18,7 +18,8 @@ return new class extends Migration
             $table->foreignId('profile_id')->constrained()->onDelete('cascade');
             $table->foreignId('commerce_id')->constrained()->onDelete('cascade');
             $table->enum('delivery_type', ['pickup', 'delivery']);
-            $table->enum('status', ['pending_payment', 'paid', 'processing', 'shipped', 'delivered', 'cancelled']); // Estados actualizados
+            $table->enum('status', ['pending_payment', 'paid', 'processing', 'shipped', 'delivered', 'cancelled']);
+            $table->boolean('approved_for_payment')->default(false);
             $table->decimal('total', 10, 2);
             $table->decimal('delivery_fee', 10, 2)->default(0); // Costo de delivery que paga el cliente
             $table->decimal('delivery_payment_amount', 10, 2)->nullable(); // Cantidad que recibe delivery (100% del delivery_fee)
@@ -33,7 +34,9 @@ return new class extends Migration
             $table->timestamp('payment_validated_at')->nullable(); // Cuándo se validó el pago
             $table->timestamp('payment_proof_uploaded_at')->nullable(); // Cuándo se subió comprobante
             $table->text('cancellation_reason')->nullable(); // Razón de cancelación
-            $table->text('delivery_address')->nullable(); // Dirección de entrega
+            $table->text('delivery_address')->nullable();
+            $table->decimal('delivery_latitude', 10, 7)->nullable();
+            $table->decimal('delivery_longitude', 10, 7)->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
             

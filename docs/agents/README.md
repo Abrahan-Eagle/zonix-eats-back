@@ -15,5 +15,6 @@ La documentación detallada por tema está en este directorio. La IA debe usar e
 | Análisis exhaustivo | [analysis.md](analysis.md) | Prompts y checklist de análisis v2.0 |
 | Mejoras pendientes | [pending-improvements.md](pending-improvements.md) | ALTO / MEDIO |
 | Pagos por rol      | [../logica-pagos-por-rol.md](../logica-pagos-por-rol.md) | Quién configura métodos, flujo dinero, diagramas |
+| Teléfonos          | [../LOGICA_MODULO_PHONE.md](../LOGICA_MODULO_PHONE.md)   | Tablas phones/operator_codes, dueño profile_id, roles |
 
 **Cómo usar:** Leer AGENTS.md (raíz) para el estado actual y las reglas; abrir el archivo de este directorio que corresponda al tema en el que se está trabajando.

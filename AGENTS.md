@@ -28,6 +28,9 @@
 
 ### Cambios recientes (documentar aquí los avances)
 
+- **6 Mar 2026:** Tests: MultiRoleSimulationTest corrige assert (API devuelve `data.status` → assertJsonPath); migración `add_context_and_entity_fks_to_phones_table` en `down()` evita dropForeign/dropIndex en SQLite para que `php artisan test` pase (MySQL sin cambios).
+- **6 Mar 2026:** Norma Migraciones: documentada en `.cursorrules` y AGENTS.md. No crear migraciones add_* ni change_*; tablas existentes se actualizan editando la migración create correspondiente.
+- **6 Mar 2026:** Módulo demo/seed: `operator_codes`: columna `code` como entero (migración create), `name` como string; OperatorCodeSeeder con 412, 414, 424, 416, 426. ZonixDemoSeeder: zonas Valencia/Carabobo (El Socorro, Los Chorritos, Mayorista, etc.), user 6 fijo (Wistremiro/commerce), direcciones y user_locations de users 1 y 6 en El Socorro; docblock con grafo de conexiones entre roles (buyer→orden→commerce→delivery_agent→delivery_company, reviews, disputes). Migraciones consolidadas (edición de creates, eliminación de add/change sobrantes).
 - **6 Mar 2026:** Módulo Documents: solo tipos `ci` y `rif`; tabla depurada (migración elimina RECEIPT_N, sky, rif_url, commune_register, community_rif; enum type restringido a ci/rif). Campos útiles: number_ci, rif_number (formato Venezuela J-19217553-0), taxDomicile, front_image, approved, status. Estado aprobado: documento verificado o pendiente de verificación (campo `approved`). Tests: DocumentControllerTest.
 - **6 Mar 2026:** Documentado en AGENTS.md: Profile como entidad principal; Users 1:1 con Profile; teléfonos/documentos/direcciones pertenecen al perfil (`profile_id`).
 - **11 Feb 2026:** Validación de cupón: API espera `code` y `order_amount`; respuestas de error con `message`/`errors`. Seeders: orden "en entrega" con repartidor asignado; `OrderDeliverySeeder` evita duplicar asignaciones. Broadcasting: auth devuelve `shared_secret` para canales privados Pusher.
@@ -130,7 +133,7 @@ Al realizar estas acciones, SIEMPRE invocar la skill correspondiente PRIMERO:
 | Crear/modificar controladores o rutas | `laravel-specialist`              |
 | Crear/modificar modelos Eloquent      | `laravel-specialist`              |
 | Diseñar nuevos endpoints API          | `api-design-principles`           |
-| Crear migraciones de BD               | `mysql-best-practices`            |
+| Crear migraciones de BD               | `mysql-best-practices` + **norma Migraciones** (ver abajo) |
 | Optimizar queries o agregar índices   | `mysql-best-practices`            |
 | Agregar autenticación o autorización  | `security`                        |
 | Implementar validaciones de seguridad | `security-requirement-extraction` |
@@ -151,6 +154,13 @@ Al realizar estas acciones, SIEMPRE invocar la skill correspondiente PRIMERO:
 | Crear nuevas skills para el proyecto  | `skill-creator`                   |
 | Cerrar sesión con cambios relevantes  | `context-updater` (actualizar docs/active_context.md) |
 | Finalizar tarea y documentar avances | `documentar-avances` (proponer Cambios recientes)     |
+
+### Norma Migraciones (obligatoria)
+
+- **NUNCA** crear migraciones tipo `add_*_to_*`, `change_*_table`, etc. para tablas que ya existen.
+- **Tabla nueva** → una sola migración `create_*_table`.
+- **Tabla existente que hay que actualizar** → **editar la migración create** de esa tabla (añadir o quitar columnas ahí). No crear una migración aparte "add" ni "change".
+- Resumen: o se crea la tabla (create) o se actualiza su create; nada de add/change sueltos.
 
 ---
 
@@ -186,6 +196,7 @@ Para no sobrecargar este archivo, el detalle por tema está en [docs/agents/](do
 - **Mejoras pendientes:** Paginación, índices BD, refactor God Classes. Ver [docs/agents/pending-improvements.md](docs/agents/pending-improvements.md).
 - **Pagos por rol:** Quién configura métodos de pago, flujo del dinero, diagramas. Ver [docs/logica-pagos-por-rol.md](docs/logica-pagos-por-rol.md).
 - **Plan módulo tarifa delivery:** Diseño futuro (config global base+km, CRUD zonas, cálculo en backend). Cuando se vaya a implementar, usar y refinar [docs/PLAN_MODULO_TARIFA_DELIVERY.md](docs/PLAN_MODULO_TARIFA_DELIVERY.md).
+- **Teléfonos:** Tablas `phones` y `operator_codes`, dueño siempre `profile_id`, cómo cada rol obtiene el número. Ver [docs/LOGICA_MODULO_PHONE.md](docs/LOGICA_MODULO_PHONE.md).
 
 Índice completo: [docs/agents/README.md](docs/agents/README.md).
 

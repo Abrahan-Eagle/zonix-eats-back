@@ -139,12 +139,16 @@ class Profile extends Model
     }
 
     /**
-     * Número de teléfono principal (desde tabla phones).
+     * Número de teléfono principal personal (desde tabla phones, context=personal).
      * Compatibilidad: reemplaza el antiguo campo profile.phone.
      */
     public function getPhoneAttribute(): ?string
     {
-        $primary = $this->phones()->where('is_primary', true)->where('status', true)->first();
+        $primary = $this->phones()
+            ->where('context', \App\Models\Phone::CONTEXT_PERSONAL)
+            ->where('is_primary', true)
+            ->where('status', true)
+            ->first();
         return $primary ? $primary->full_number : null;
     }
 

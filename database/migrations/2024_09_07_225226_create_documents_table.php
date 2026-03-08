@@ -13,31 +13,19 @@ return new class extends Migration
     {
         Schema::create('documents', function (Blueprint $table) {
             $table->id();
-            $table->enum('type', ['ci', 'passport', 'rif', 'neighborhood_association'])->nullable();  // Ejemplo: tipo de documento (CI, Pasaporte, etc.)
-
-            $table->integer('number_ci')->nullable(); // Número del documento
-
-            $table->bigInteger('RECEIPT_N')->nullable(); // N° COMPROBANTE
-            $table->bigInteger('sky')->nullable(); // Número del documento
-            $table->string('rif_url')->nullable(); // URL del RIF
-            $table->string('taxDomicile')->nullable(); // domicilio fiscal
-
-            $table->string('commune_register')->nullable(); // registro de la comuna
-            $table->string('community_rif')->nullable(); // RIF DE LA COMUNA
-
-
-            $table->string('front_image')->nullable(); // Ruta de la imagen del frente
-            $table->date('issued_at')->nullable(); // Fecha de emisión
-            $table->date('expires_at')->nullable(); // Fecha de expiración (si aplica)
-
-            $table->boolean('approved')->default(false);// significa si el documento esta aprovado
-            $table->boolean('status')->default(false);//significa que si esta activo o desactivado este documento si esta activo se muestra si no. no se muestra.
+            $table->enum('type', ['ci', 'rif'])->nullable();
+            $table->integer('number_ci')->nullable();
+            $table->string('taxDomicile')->nullable();
+            $table->string('rif_number', 20)->nullable(); // RIF Venezuela: X-NNNNNNNN-N
+            $table->string('front_image')->nullable();
+            $table->date('issued_at')->nullable();
+            $table->date('expires_at')->nullable();
+            $table->boolean('approved')->default(false);
+            $table->boolean('status')->default(false);
             $table->timestamps();
 
-            // Clave foránea que referencia a la tabla profiles
-            $table->unsignedBigInteger('profile_id'); // Relación con profiles
+            $table->unsignedBigInteger('profile_id');
             $table->foreign('profile_id')->references('id')->on('profiles')->onDelete('cascade');
-
         });
     }
 

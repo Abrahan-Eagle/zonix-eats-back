@@ -30,6 +30,9 @@ use App\Http\Controllers\Notification\NotificationController;
 use App\Http\Controllers\Location\LocationController;
 use App\Http\Controllers\Chat\ChatController;
 
+// Códigos de operador (público: onboarding y formularios sin token)
+Route::get('/operator-codes', [PhoneController::class, 'getOperatorCodes']);
+
 // Broadcasting auth route (for Laravel Broadcasting) - requiere autenticación
 Route::post('/broadcasting/auth', [BroadcastingController::class, 'authenticate'])->middleware('auth:sanctum');
 
@@ -147,6 +150,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('phones')->group(function () {
         Route::get('/', [PhoneController::class, 'index']);
         Route::get('/operator-codes', [PhoneController::class, 'getOperatorCodes']);
+        Route::get('/by-user/{userId}', [PhoneController::class, 'phonesByUserId']);
         Route::post('/', [PhoneController::class, 'store']);
         Route::get('/{id}', [PhoneController::class, 'show']);
         Route::put('/{id}', [PhoneController::class, 'update']);

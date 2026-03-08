@@ -25,6 +25,7 @@ return new class extends Migration
             $table->boolean('completed_onboarding')->default(false);
             $table->enum('role', ['admin', 'users', 'commerce', 'delivery_company', 'delivery_agent', 'delivery'])->default('users');
             $table->rememberToken();
+            $table->string('light')->default('1')->nullable();
             $table->timestamps();
             
             // Índices de performance (consolidados desde add_performance_indexes)

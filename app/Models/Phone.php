@@ -9,11 +9,20 @@ class Phone extends Model
 {
     use HasFactory;
 
+    /** Contextos de uso del teléfono (módulo único por rol/entidad). */
+    public const CONTEXT_PERSONAL = 'personal';
+    public const CONTEXT_COMMERCE = 'commerce';
+    public const CONTEXT_DELIVERY_COMPANY = 'delivery_company';
+    public const CONTEXT_ADMIN = 'admin';
+
     /**
      * Los atributos que se pueden asignar masivamente.
      */
     protected $fillable = [
         'profile_id',
+        'context',
+        'commerce_id',
+        'delivery_company_id',
         'operator_code_id',
         'number',
         'is_primary',
@@ -33,6 +42,16 @@ class Phone extends Model
     public function operatorCode()
     {
         return $this->belongsTo(OperatorCode::class, 'operator_code_id');
+    }
+
+    public function commerce()
+    {
+        return $this->belongsTo(Commerce::class);
+    }
+
+    public function deliveryCompany()
+    {
+        return $this->belongsTo(DeliveryCompany::class);
     }
 
     /**
@@ -62,14 +81,22 @@ class Phone extends Model
     {
         parent::boot();
 
-        // Escucha el evento 'creating' y 'updating' para manejar el teléfono principal.
+        // Un solo principal por (profile + context + entidad cuando aplique).
         static::saving(function ($phone) {
-            if ($phone->is_primary) {
-                // Desmarcar otros teléfonos principales del mismo perfil.
-                Phone::where('profile_id', $phone->profile_id)
-                    ->where('id', '!=', $phone->id)
-                    ->update(['is_primary' => false]);
+            if (! $phone->is_primary) {
+                return;
             }
+            $q = Phone::where('profile_id', $phone->profile_id)
+                ->where('context', $phone->context ?? self::CONTEXT_PERSONAL)
+                ->where('id', '!=', $phone->id);
+            if ($phone->context === self::CONTEXT_COMMERCE && $phone->commerce_id) {
+                $q->where('commerce_id', $phone->commerce_id);
+            } elseif ($phone->context === self::CONTEXT_DELIVERY_COMPANY && $phone->delivery_company_id) {
+                $q->where('delivery_company_id', $phone->delivery_company_id);
+            } else {
+                $q->whereNull('commerce_id')->whereNull('delivery_company_id');
+            }
+            $q->update(['is_primary' => false]);
         });
     }
 }

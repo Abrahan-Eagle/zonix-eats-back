@@ -34,11 +34,26 @@ class DeliveryCompany extends Model
     }
 
     /**
-     * Teléfono de la empresa (desde perfil → tabla phones). Una sola fuente de verdad.
+     * Teléfono de la empresa: preferencia por phones con context=delivery_company y delivery_company_id=this;
+     * si no hay, fallback al teléfono principal personal del perfil.
      */
     public function getPhoneAttribute(): ?string
     {
-        return $this->profile?->phone;
+        $companyPhone = \App\Models\Phone::where('profile_id', $this->profile_id)
+            ->where('context', \App\Models\Phone::CONTEXT_DELIVERY_COMPANY)
+            ->where('delivery_company_id', $this->id)
+            ->where('status', true)
+            ->orderByDesc('is_primary')
+            ->first();
+        return $companyPhone?->full_number ?? $this->profile?->phone;
+    }
+
+    /**
+     * Teléfonos de la empresa (context=delivery_company, delivery_company_id=this).
+     */
+    public function phones()
+    {
+        return $this->hasMany(Phone::class);
     }
 
     public function deliveryAgents()

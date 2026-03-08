@@ -52,11 +52,18 @@ class Commerce extends Model
     }
 
     /**
-     * Teléfono del comercio (desde perfil → tabla phones). Una sola fuente de verdad.
+     * Teléfono del comercio: preferencia por phones con context=commerce y commerce_id=this;
+     * si no hay, fallback al teléfono principal personal del perfil.
      */
     public function getPhoneAttribute(): ?string
     {
-        return $this->profile?->phone;
+        $commercePhone = \App\Models\Phone::where('profile_id', $this->profile_id)
+            ->where('context', \App\Models\Phone::CONTEXT_COMMERCE)
+            ->where('commerce_id', $this->id)
+            ->where('status', true)
+            ->orderByDesc('is_primary')
+            ->first();
+        return $commercePhone?->full_number ?? $this->profile?->phone;
     }
 
     /**
@@ -113,6 +120,14 @@ class Commerce extends Model
     public function categories()
     {
         return $this->hasManyThrough(Category::class, Product::class);
+    }
+
+    /**
+     * Teléfonos del comercio (context=commerce, commerce_id=this).
+     */
+    public function phones()
+    {
+        return $this->hasMany(Phone::class);
     }
 
     /**

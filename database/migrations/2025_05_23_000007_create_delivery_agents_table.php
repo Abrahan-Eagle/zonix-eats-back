@@ -26,8 +26,7 @@ return new class extends Migration
             $table->enum('status', ['activo', 'inactivo', 'suspendido'])->default('activo'); // En inglés desde el inicio
             $table->boolean('working')->default(false); // En inglés desde el inicio
             $table->decimal('rating', 3, 2)->nullable();
-            $table->string('vehicle_type', 100)->nullable(); // Nullable desde el inicio
-            $table->string('phone', 20)->nullable(); // Nullable desde el inicio
+            $table->string('vehicle_type', 100)->nullable();
             $table->string('license_number')->nullable();
             // Campos de ubicación
             $table->decimal('current_latitude', 10, 7)->nullable();

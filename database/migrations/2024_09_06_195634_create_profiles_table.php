@@ -26,7 +26,6 @@ return new class extends Migration
             $table->enum('maritalStatus', ['married', 'divorced', 'single', 'widowed'])->default('single');
             $table->enum('sex', ['F', 'M', 'O'])->default('M');
             $table->enum('status', ['completeData', 'incompleteData', 'notverified'])->default('notverified');
-            $table->string('phone')->nullable();
             $table->text('address')->nullable();
             // Campos de notificaciones
             $table->text('fcm_device_token')->nullable();
