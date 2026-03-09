@@ -64,7 +64,17 @@ class ExportController extends Controller
         $p['email'] = $user->email ?? null;
         $p['firstName'] = $profile ? $profile->firstName : null;
         $p['lastName'] = $profile ? $profile->lastName : null;
-        $p['date_of_birth'] = $profile && $profile->date_of_birth ? $profile->date_of_birth->format('Y-m-d') : null;
+        $dob = $profile ? $profile->date_of_birth : null;
+        $p['date_of_birth'] = null;
+        if ($dob !== null) {
+            try {
+                $p['date_of_birth'] = $dob instanceof \Carbon\Carbon
+                    ? $dob->format('Y-m-d')
+                    : (\Carbon\Carbon::parse($dob)->format('Y-m-d'));
+            } catch (\Throwable $e) {
+                $p['date_of_birth'] = is_string($dob) ? $dob : null;
+            }
+        }
         $p['maritalStatus'] = $profile ? $profile->maritalStatus : null;
         $p['sex'] = $profile ? $profile->sex : null;
         return $p;

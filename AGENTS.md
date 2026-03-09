@@ -24,10 +24,11 @@
 | **Migraciones**          | 51                                                 |
 | **Tests**                | 206+ pasaron ✅, 0 fallaron                        |
 | **Seguridad**            | Sanctum + RBAC + Rate Limiting + Upload validation |
-| **Última actualización** | 6 Marzo 2026                                      |
+| **Última actualización** | 9 Marzo 2026                                      |
 
 ### Cambios recientes (documentar aquí los avances)
 
+- **9 Mar 2026:** Módulo Exportar datos: ruta `GET /api/profile/export` (auth:sanctum, cualquier rol) para que commerce y otros roles puedan exportar; ExportController.getProfileDataForExport defensivo con `$profile` null (evita error en usuarios sin perfil buyer); frontend usa esa URL y descarga real (archivo JSON/TXT + Share.shareXFiles para guardar/compartir); formato TXT corregido (ciudad como nombre, activity_type en actividad).
 - **6 Mar 2026:** Tests: MultiRoleSimulationTest corrige assert (API devuelve `data.status` → assertJsonPath); migración `add_context_and_entity_fks_to_phones_table` en `down()` evita dropForeign/dropIndex en SQLite para que `php artisan test` pase (MySQL sin cambios).
 - **6 Mar 2026:** Norma Migraciones: documentada en `.cursorrules` y AGENTS.md. No crear migraciones add_* ni change_*; tablas existentes se actualizan editando la migración create correspondiente.
 - **6 Mar 2026:** Módulo demo/seed: `operator_codes`: columna `code` como entero (migración create), `name` como string; OperatorCodeSeeder con 412, 414, 424, 416, 426. ZonixDemoSeeder: zonas Valencia/Carabobo (El Socorro, Los Chorritos, Mayorista, etc.), user 6 fijo (Wistremiro/commerce), direcciones y user_locations de users 1 y 6 en El Socorro; docblock con grafo de conexiones entre roles (buyer→orden→commerce→delivery_agent→delivery_company, reviews, disputes). Migraciones consolidadas (edición de creates, eliminación de add/change sobrantes).
@@ -203,4 +204,4 @@ Para no sobrecargar este archivo, el detalle por tema está en [docs/agents/](do
 ---
 
 **Documentación completa de lógica de negocio:** Ver `README.md`
-**Última actualización:** 6 Marzo 2026
+**Última actualización:** 9 Marzo 2026

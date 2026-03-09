@@ -126,5 +126,5 @@ php artisan test --filter=NombreTest  # Específico
 
 ---
 
-**Última actualización:** 6 Marzo 2026
+**Última actualización:** 9 Marzo 2026
 **Para instrucciones completas:** Ver `AGENTS.md`

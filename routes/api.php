@@ -241,6 +241,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Perfil del usuario autenticado (sin id en la ruta)
     Route::get('/profile', [ProfileController::class, 'showCurrent']);
     Route::put('/profile', [ProfileController::class, 'update']);
+    // Exportar datos personales (cualquier rol con perfil: users, commerce, delivery, etc.)
+    Route::get('/profile/export', [\App\Http\Controllers\Buyer\ExportController::class, 'export']);
 
      Route::prefix('profiles')->group(function () {
         Route::get('/', [ProfileController::class, 'index']);
