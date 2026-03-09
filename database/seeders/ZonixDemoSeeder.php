@@ -8,6 +8,7 @@ use App\Models\BusinessType;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Category;
+use App\Models\ChatMessage;
 use App\Models\City;
 use App\Models\Commerce;
 use App\Models\Country;
@@ -16,6 +17,7 @@ use App\Models\CouponUsage;
 use App\Models\DeliveryAgent;
 use App\Models\DeliveryCompany;
 use App\Models\DeliveryPayment;
+use App\Models\DeliveryZone;
 use App\Models\Dispute;
 use App\Models\Document;
 use App\Models\CommerceInvoice;
@@ -47,6 +49,8 @@ use Illuminate\Support\Facades\Hash;
  * Sectores: El Socorro, Los Chorritos, Mayorista (La Isabelica), Bella Florida, San Diego, Santa Rosa.
  *
  * Usuarios: 5 compradores | 10 comercios | 1 empresa delivery | 2 repartidores empresa | 1 independiente | 1 admin.
+ * Órdenes: 7 para comprador 1 (pending_payment, paid, processing, shipped, delivered x2, cancelled) + 1 para comprador 2 (delivered).
+ * Notificaciones: comprador (order/promotion/points/support, Hoy/Ayer, leídas/no leídas) y comercio (user 6).
  *
  * Usuarios fijos (NO se modifican en tabla users): id 1 (Abrahan, role=users), id 6 (Wistremiro, role=commerce).
  * Tablas conectadas a user 1 y 6 que SÍ se mejoran:
@@ -77,6 +81,8 @@ use Illuminate\Support\Facades\Hash;
  * - DeliveryPayment: order_id + delivery_agent_id (pago al repartidor).
  * - Cart/CartItem: profile (buyer) + product (commerce). PostLike: perfiles (buyers + commerce) → Post (commerce).
  * - Admin: tiene profile, address, documents; en la app se relaciona por permisos (ve órdenes, disputas, etc.), no por FK en este seed.
+ * - ChatMessage: seedChatMessages (mensajes en órdenes entregadas: cliente, restaurante, repartidor).
+ * - DeliveryZone: seedDeliveryZones (zonas activas Valencia: El Socorro, Los Chorritos).
  */
 class ZonixDemoSeeder extends Seeder
 {
@@ -158,6 +164,8 @@ class ZonixDemoSeeder extends Seeder
         $this->seedCommerceInvoices($commerces);
         $this->seedPosts($commerces);
         $this->seedPostLikes($users);
+        $this->seedDeliveryZones();
+        $this->seedChatMessages();
         $this->fixDemoOrderTracking($orders);
 
         $this->command->info('ZonixDemoSeeder: finalizado.');
@@ -630,6 +638,10 @@ class ZonixDemoSeeder extends Seeder
         return [$company, $agents];
     }
 
+    /**
+     * Órdenes de prueba para evaluar todo el flujo: pending_payment, paid, processing, shipped, delivered, cancelled.
+     * Buyer 1 (Abrahan): 6 órdenes. Buyer 2 (María): 1 orden entregada para listados más ricos.
+     */
     private function seedOrders(array $users, array $commerces, array $agents): array
     {
         $buyerProfile = $users['users'][0];
@@ -639,13 +651,19 @@ class ZonixDemoSeeder extends Seeder
             return [];
         }
         $created = [];
-        $statuses = [
-            ['status' => 'shipped', 'delivery' => true],
-            ['status' => 'delivered', 'delivery' => true],
-            ['status' => 'delivered', 'delivery' => true],
-            ['status' => 'cancelled', 'delivery' => false],
-        ];
         $elSocorro = self::ZONAS[0];
+        $deliveryAddress = 'Av. Principal El Socorro, Valencia 2001, Carabobo';
+
+        // 6 órdenes para Abrahan (user 1): cubrir todos los estados para tests
+        $statuses = [
+            ['status' => 'pending_payment', 'delivery' => true, 'created_at' => now()],
+            ['status' => 'paid', 'delivery' => true, 'created_at' => now()->subHours(2)],
+            ['status' => 'processing', 'delivery' => true, 'created_at' => now()->subHours(1)],
+            ['status' => 'shipped', 'delivery' => true, 'created_at' => now()->subMinutes(30)],
+            ['status' => 'delivered', 'delivery' => true, 'created_at' => now()->subDay()],
+            ['status' => 'delivered', 'delivery' => true, 'created_at' => now()->subDays(2)],
+            ['status' => 'cancelled', 'delivery' => false, 'created_at' => now()->subDays(1)],
+        ];
         foreach ($statuses as $i => $cfg) {
             $deliveryFee = $cfg['delivery'] ? 3.50 : 0;
             $isPaidOrBeyond = in_array($cfg['status'], ['paid', 'processing', 'shipped', 'delivered']);
@@ -663,15 +681,17 @@ class ZonixDemoSeeder extends Seeder
                 'cancelled_by' => $cfg['status'] === 'cancelled' ? 'user_id' : null,
                 'estimated_delivery_time' => $cfg['delivery'] ? 25 : null,
                 'payment_method' => $cfg['status'] !== 'pending_payment' ? 'cash' : null,
-                'reference_number' => $cfg['status'] !== 'pending_payment' ? 'REF' . rand(10000, 99999) : null,
-                'payment_validated_at' => $isPaidOrBeyond ? now() : null,
-                'delivery_address' => $cfg['delivery'] ? 'Av. Principal El Socorro, Valencia 2001, Carabobo' : null,
+                'reference_number' => $cfg['status'] !== 'pending_payment' ? 'REF' . (10000 + $i) : null,
+                'payment_validated_at' => $isPaidOrBeyond ? ($cfg['created_at'] ?? now()) : null,
+                'delivery_address' => $cfg['delivery'] ? $deliveryAddress : null,
                 'delivery_latitude' => $cfg['delivery'] ? $elSocorro['lat'] : null,
                 'delivery_longitude' => $cfg['delivery'] ? $elSocorro['lng'] : null,
                 'cancellation_reason' => $cfg['status'] === 'cancelled' ? 'Solicitud del cliente' : null,
+                'created_at' => $cfg['created_at'] ?? now(),
             ]);
             $total = 0;
-            foreach ($products->take(rand(1, 3)) as $p) {
+            $selected = $products->random(min(3, $products->count()));
+            foreach ($selected as $p) {
                 $qty = rand(1, 2);
                 OrderItem::create([
                     'order_id' => $order->id,
@@ -692,6 +712,47 @@ class ZonixDemoSeeder extends Seeder
             }
             $created[] = $order;
         }
+
+        // 1 orden entregada para segundo comprador (María) - listados admin/commerce más ricos
+        if (isset($users['users'][1])) {
+            $secondBuyer = $users['users'][1];
+            $order = Order::create([
+                'profile_id' => $secondBuyer->id,
+                'commerce_id' => $commerce->id,
+                'delivery_type' => 'delivery',
+                'status' => 'delivered',
+                'approved_for_payment' => true,
+                'total' => 0,
+                'delivery_fee' => 3.50,
+                'delivery_payment_amount' => 3.50,
+                'commission_amount' => 0,
+                'estimated_delivery_time' => 25,
+                'payment_method' => 'cash',
+                'reference_number' => 'REF20001',
+                'payment_validated_at' => now()->subDays(3),
+                'delivery_address' => $deliveryAddress,
+                'delivery_latitude' => $elSocorro['lat'],
+                'delivery_longitude' => $elSocorro['lng'],
+                'created_at' => now()->subDays(3),
+            ]);
+            $total = 0;
+            foreach ($products->take(2) as $p) {
+                $qty = 1;
+                OrderItem::create(['order_id' => $order->id, 'product_id' => $p->id, 'quantity' => $qty, 'unit_price' => $p->price]);
+                $total += $p->price * $qty;
+            }
+            $order->update(['total' => $total]);
+            if (isset($agents[0])) {
+                OrderDelivery::create([
+                    'order_id' => $order->id,
+                    'agent_id' => $agents[0]->id,
+                    'status' => 'delivered',
+                    'delivery_fee' => 3.50,
+                ]);
+            }
+            $created[] = $order;
+        }
+
         return $created;
     }
 
@@ -748,19 +809,24 @@ class ZonixDemoSeeder extends Seeder
         }
     }
 
+    /**
+     * Items en carritos: 3 productos en el primer carrito (Abrahan) para tests de checkout; 2 en el resto.
+     */
     private function seedCartItems(array $commerces): void
     {
         $carts = Cart::with('profile')->get();
         $commerce = $commerces[0];
-        $products = Product::where('commerce_id', $commerce->id)->where('available', true)->take(4)->get();
+        $products = Product::where('commerce_id', $commerce->id)->where('available', true)->take(6)->get();
         if ($products->isEmpty()) {
             return;
         }
-        foreach ($carts as $cart) {
-            foreach ($products->random(min(2, $products->count())) as $product) {
+        foreach ($carts as $idx => $cart) {
+            $howMany = $idx === 0 ? 3 : 2;
+            $selected = $products->random(min($howMany, $products->count()));
+            foreach ($selected as $product) {
                 CartItem::firstOrCreate(
                     ['cart_id' => $cart->id, 'product_id' => $product->id],
-                    ['quantity' => rand(1, 2)]
+                    ['quantity' => $idx === 0 ? 2 : rand(1, 2)]
                 );
             }
         }
@@ -813,36 +879,58 @@ class ZonixDemoSeeder extends Seeder
         }
     }
 
+    /**
+     * Cupones de prueba: ZONIX20 (público), BIENVENIDO (público 10%), DEMO{id} (privado user 1).
+     */
     private function seedCoupons(Profile $user1Profile): void
     {
         $end = now()->addDays(60);
-        Coupon::create([
-            'code' => 'ZONIX20',
-            'title' => '20% descuento',
-            'description' => 'Válido una vez por usuario.',
-            'discount_type' => 'percentage',
-            'discount_value' => 20,
-            'minimum_order' => 15,
-            'usage_limit' => 1,
-            'start_date' => now(),
-            'end_date' => $end,
-            'is_public' => true,
-            'is_active' => true,
-        ]);
-        Coupon::create([
-            'code' => 'DEMO' . $user1Profile->id,
-            'title' => 'Cupón demo usuario 1',
-            'description' => 'Cupón privado para Abrahan.',
-            'discount_type' => 'fixed',
-            'discount_value' => 3,
-            'minimum_order' => 10,
-            'usage_limit' => 5,
-            'start_date' => now(),
-            'end_date' => $end,
-            'is_public' => false,
-            'assigned_to_profile_id' => $user1Profile->id,
-            'is_active' => true,
-        ]);
+        Coupon::firstOrCreate(
+            ['code' => 'ZONIX20'],
+            [
+                'title' => '20% descuento',
+                'description' => 'Válido una vez por usuario.',
+                'discount_type' => 'percentage',
+                'discount_value' => 20,
+                'minimum_order' => 15,
+                'usage_limit' => 1,
+                'start_date' => now(),
+                'end_date' => $end,
+                'is_public' => true,
+                'is_active' => true,
+            ]
+        );
+        Coupon::firstOrCreate(
+            ['code' => 'BIENVENIDO'],
+            [
+                'title' => '10% bienvenida',
+                'description' => 'Descuento para nuevas órdenes mayores a $12.',
+                'discount_type' => 'percentage',
+                'discount_value' => 10,
+                'minimum_order' => 12,
+                'usage_limit' => 100,
+                'start_date' => now(),
+                'end_date' => $end,
+                'is_public' => true,
+                'is_active' => true,
+            ]
+        );
+        Coupon::firstOrCreate(
+            ['code' => 'DEMO' . $user1Profile->id],
+            [
+                'title' => 'Cupón demo usuario 1',
+                'description' => 'Cupón privado para Abrahan.',
+                'discount_type' => 'fixed',
+                'discount_value' => 3,
+                'minimum_order' => 10,
+                'usage_limit' => 5,
+                'start_date' => now(),
+                'end_date' => $end,
+                'is_public' => false,
+                'assigned_to_profile_id' => $user1Profile->id,
+                'is_active' => true,
+            ]
+        );
     }
 
     private function seedCouponUsages(): void
@@ -1128,23 +1216,143 @@ class ZonixDemoSeeder extends Seeder
         }
     }
 
+    /**
+     * Notificaciones de prueba para comprador (user 1) y comercio (user 6).
+     * Tipos alineados con el front: order, promotion, points, support.
+     * Mix Hoy/Ayer (created_at) y leídas/no leídas (read_at) para evaluar pantalla Notificaciones.
+     */
     private function seedNotifications(Profile $profile): void
     {
-        $items = [
-            ['title' => 'Tu pedido está en camino', 'body' => 'Tu pedido #1234 está en camino. Llegará en unos 15 min.', 'type' => 'order_status'],
-            ['title' => 'Pago confirmado', 'body' => 'Tu pago de $25.50 ha sido confirmado.', 'type' => 'payment_confirmation'],
-            ['title' => '¡Oferta especial!', 'body' => '20% de descuento con el código ZONIX20.', 'type' => 'promotion'],
-            ['title' => 'Tu pedido ha sido entregado', 'body' => '¡Disfruta tu comida!', 'type' => 'order_status'],
+        $now = now();
+        $today = $now->copy();
+        $yesterday = $now->copy()->subDay();
+
+        // Comprador (Abrahan): notificaciones variadas para pantalla "Hoy" / "Ayer"
+        $buyerItems = [
+            ['title' => 'Pedido entregado', 'body' => '¡Buen provecho! Tu pedido de Burger King ha llegado a su destino.', 'type' => 'order', 'at' => $today, 'read' => true],
+            ['title' => 'Promoción activa: 30% OFF', 'body' => 'Disfruta de un descuento exclusivo en restaurantes seleccionados solo por hoy.', 'type' => 'promotion', 'at' => $today, 'read' => false],
+            ['title' => 'Nuevos Zonix Points', 'body' => '¡Felicidades! Has ganado 150 puntos por tu última compra. ¡Canjéalos pronto!', 'type' => 'points', 'at' => $today, 'read' => true],
+            ['title' => 'Pedido confirmado', 'body' => 'Pizzería Napoli ha recibido tu pedido y ya está en preparación.', 'type' => 'order', 'at' => $yesterday, 'read' => true],
+            ['title' => 'Consulta resuelta', 'body' => 'Tu solicitud de soporte #8821 ha sido finalizada con éxito.', 'type' => 'support', 'at' => $yesterday, 'read' => true],
+            ['title' => 'Tu pedido está en camino', 'body' => 'Tu pedido está en camino. Llegará en unos 15 min.', 'type' => 'order', 'at' => $today->copy()->subHours(1), 'read' => false],
+            ['title' => '20% en tu próxima orden', 'body' => 'Usa el código ZONIX20 en tu próximo pedido.', 'type' => 'promotion', 'at' => $yesterday, 'read' => true],
         ];
-        foreach ($items as $i => $item) {
+        foreach ($buyerItems as $item) {
             Notification::create([
                 'profile_id' => $profile->id,
                 'title' => $item['title'],
                 'body' => $item['body'],
                 'type' => $item['type'],
-                'read_at' => $i >= 2 ? now()->subDays(1) : null,
-                'data' => ['order_id' => $i % 2 === 0 ? 1000 + $i : null],
+                'read_at' => $item['read'] ? $item['at'] : null,
+                'data' => [],
+                'created_at' => $item['at'],
             ]);
+        }
+
+        // Comercio (user 6): notificaciones de pedidos/pagos para evaluar con rol commerce
+        $commerceProfile = Profile::where('user_id', 6)->first();
+        if ($commerceProfile) {
+            $commerceItems = [
+                ['title' => 'Nuevo pedido recibido', 'body' => 'Pedido #' . (Order::max('id') ?? 1) . ' - Revisa y confirma.', 'type' => 'order', 'at' => $today],
+                ['title' => 'Pago validado', 'body' => 'El pago del pedido ha sido confirmado por el cliente.', 'type' => 'order', 'at' => $today->copy()->subMinutes(30)],
+                ['title' => 'Pedido en preparación', 'body' => 'Recuerda marcar como listo cuando esté preparado.', 'type' => 'order', 'at' => $yesterday],
+            ];
+            foreach ($commerceItems as $item) {
+                Notification::create([
+                    'profile_id' => $commerceProfile->id,
+                    'title' => $item['title'],
+                    'body' => $item['body'],
+                    'type' => $item['type'],
+                    'read_at' => null,
+                    'data' => [],
+                    'created_at' => $item['at'],
+                ]);
+            }
+        }
+    }
+
+    /** Zonas de entrega activas para Valencia (El Socorro, Los Chorritos). */
+    private function seedDeliveryZones(): void
+    {
+        $zones = [
+            [
+                'name' => 'El Socorro',
+                'center_latitude' => self::ZONAS[0]['lat'],
+                'center_longitude' => self::ZONAS[0]['lng'],
+                'radius' => 3.5,
+                'delivery_fee' => 2.00,
+                'delivery_time' => 25,
+                'is_active' => true,
+                'description' => 'Zona El Socorro y alrededores, Valencia.',
+            ],
+            [
+                'name' => 'Los Chorritos',
+                'center_latitude' => self::ZONAS[1]['lat'],
+                'center_longitude' => self::ZONAS[1]['lng'],
+                'radius' => 4.0,
+                'delivery_fee' => 2.50,
+                'delivery_time' => 30,
+                'is_active' => true,
+                'description' => 'Zona Los Chorritos y sectores cercanos, Valencia.',
+            ],
+        ];
+        foreach ($zones as $z) {
+            DeliveryZone::firstOrCreate(
+                ['name' => $z['name']],
+                $z
+            );
+        }
+    }
+
+    /** Mensajes de chat en órdenes entregadas (cliente, restaurante, repartidor). */
+    private function seedChatMessages(): void
+    {
+        $orders = Order::with(['profile', 'commerce', 'orderDelivery.agent'])
+            ->where('status', 'delivered')
+            ->orderBy('id')
+            ->take(2)
+            ->get();
+
+        foreach ($orders as $order) {
+            $buyerProfileId = $order->profile_id;
+            $commerceProfileId = $order->commerce?->profile_id;
+            $od = $order->orderDelivery;
+            $deliveryProfileId = $od && $od->agent ? $od->agent->profile_id : null;
+
+            if (!$commerceProfileId) {
+                continue;
+            }
+
+            $baseTime = $order->created_at ?? now()->subDay();
+
+            $messages = [];
+            $messages[] = ['sender_id' => $buyerProfileId, 'sender_type' => 'customer', 'recipient_type' => 'all', 'content' => 'Hola, ¿a qué hora aproximada llega el pedido?', 'at' => $baseTime->copy()->addMinutes(5)];
+            if ($deliveryProfileId) {
+                $messages[] = ['sender_id' => $deliveryProfileId, 'sender_type' => 'delivery_agent', 'recipient_type' => 'all', 'content' => 'En unos 15-20 minutos estaré llegando.', 'at' => $baseTime->copy()->addMinutes(8)];
+            }
+            $messages[] = ['sender_id' => $commerceProfileId, 'sender_type' => 'restaurant', 'recipient_type' => 'all', 'content' => 'Tu pedido ya salió del local. Cualquier cosa nos avisas.', 'at' => $baseTime->copy()->addMinutes(10)];
+            $messages[] = ['sender_id' => $buyerProfileId, 'sender_type' => 'customer', 'recipient_type' => 'all', 'content' => 'Perfecto, gracias.', 'at' => $baseTime->copy()->addMinutes(12)];
+
+            foreach ($messages as $m) {
+                ChatMessage::firstOrCreate(
+                    [
+                        'order_id' => $order->id,
+                        'sender_id' => $m['sender_id'],
+                        'content' => $m['content'],
+                    ],
+                    [
+                        'order_id' => $order->id,
+                        'sender_id' => $m['sender_id'],
+                        'sender_type' => $m['sender_type'],
+                        'recipient_type' => $m['recipient_type'],
+                        'content' => $m['content'],
+                        'type' => 'text',
+                        'read_at' => $m['at']->copy()->addMinutes(1),
+                        'created_at' => $m['at'],
+                        'updated_at' => $m['at'],
+                    ]
+                );
+            }
         }
     }
 
