@@ -24,6 +24,11 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Para evitar errores de FKs en rollback, eliminar primero la tabla phones si existe.
+        if (Schema::hasTable('phones')) {
+            Schema::drop('phones');
+        }
+
         Schema::dropIfExists('operator_codes');
     }
 };

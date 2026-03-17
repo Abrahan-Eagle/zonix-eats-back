@@ -42,6 +42,17 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Asegurar que no haya FKs desde phones antes de dropear profiles
+        if (Schema::hasTable('phones')) {
+            Schema::table('phones', function (Blueprint $table) {
+                try {
+                    $table->dropForeign(['profile_id']);
+                } catch (\Throwable $e) {
+                    // Si no existe la FK, continuar sin fallar el rollback
+                }
+            });
+        }
+
         Schema::dropIfExists('profiles');
     }
 };

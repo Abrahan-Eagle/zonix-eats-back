@@ -284,13 +284,7 @@ class OrderController extends Controller
                 ]);
             }
 
-            if ($order->payment_proof) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'La orden ya tiene comprobante de pago, no se puede cambiar la aprobación'
-                ], 400);
-            }
-
+            // Permitir aprobar aunque ya haya comprobante (ej. comprador subió primero)
             $order->update([
                 'approved_for_payment' => true,
             ]);

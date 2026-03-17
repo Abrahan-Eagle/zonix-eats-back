@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Events\OrderCreated;
+use App\Events\OrderStatusChanged;
 
 /**
  * Controlador para gestionar las órdenes del comprador.
@@ -166,9 +167,18 @@ class OrderController extends Controller
                 ];
             }
 
-            // Total esperado = subtotal + delivery_fee
+            // Total esperado = subtotal (precios base en BD) + delivery_fee (0 cuando es Recoger)
             $expectedTotal = $calculatedTotal + $validated['delivery_fee'];
-            if (abs($expectedTotal - $validated['total']) > 0.01) {
+            $sentTotal = (float) $validated['total'];
+            $tolerance = 0.05; // redondeo
+            $totalOk = false;
+            if ($validated['delivery_fee'] == 0) {
+                // Recoger: el cliente puede enviar un total mayor por extras/modificadores; aceptar si no es menor al esperado
+                $totalOk = $sentTotal >= $expectedTotal - $tolerance && $sentTotal <= $expectedTotal + 500;
+            } else {
+                $totalOk = abs($expectedTotal - $sentTotal) <= $tolerance;
+            }
+            if (!$totalOk) {
                 return response()->json([
                     'success' => false,
                     'message' => 'El total no coincide. Por favor, revisa tu carrito.',
@@ -176,16 +186,20 @@ class OrderController extends Controller
                     'sent_total' => $validated['total']
                 ], 422);
             }
+            // Usar el total enviado por el cliente cuando hay extras (Recoger); si no, el esperado
+            $orderTotal = ($validated['delivery_fee'] == 0 && $sentTotal > $expectedTotal + $tolerance)
+                ? $sentTotal
+                : $expectedTotal;
 
             // Crear orden en transacción
-            $order = \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $profile, $expectedTotal, $productModels) {
+            $order = \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $profile, $orderTotal, $productModels) {
                 // Crear la orden
                 $order = \App\Models\Order::create([
                     'profile_id' => $profile->id,
                     'commerce_id' => $validated['commerce_id'],
                     'delivery_type' => $validated['delivery_type'],
                     'status' => 'pending_payment',
-                    'total' => $expectedTotal,
+                    'total' => $orderTotal,
                     'delivery_fee' => $validated['delivery_fee'],
                     'notes' => $validated['notes'] ?? null,
                     'delivery_address' => $validated['delivery_address'] ?? null,
@@ -371,13 +385,11 @@ class OrderController extends Controller
                 ], 400);
             }
 
-            // El comercio debe haber aprobado la orden para pago.
-            // En entorno de pruebas permitimos subir comprobante sin esta aprobación
-            // para simplificar los flujos de testing.
-            if (!$order->approved_for_payment && !app()->environment('testing')) {
+            // El comercio debe haber aceptado la orden (aprobar para pago) antes de que el comprador pueda subir el comprobante.
+            if (!$order->approved_for_payment) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'El comercio aún no ha aprobado tu orden para pago. Espera la confirmación antes de pagar.'
+                    'message' => 'El comercio debe aceptar tu pedido antes de que puedas subir el comprobante de pago'
                 ], 400);
             }
 
@@ -392,8 +404,8 @@ class OrderController extends Controller
                 'status' => 'pending_payment'
             ]);
 
-            // Notificación: comprobante subido
-            // Notification::send($user, new PaymentProofUploaded($order));
+            event(new OrderStatusChanged($order->fresh()));
+
             return response()->json([
                 'success' => true,
                 'message' => 'Comprobante de pago subido exitosamente'

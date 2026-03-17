@@ -42,6 +42,17 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Quitar FK desde phones.commerce_id antes de dropear commerces
+        if (Schema::hasTable('phones')) {
+            Schema::table('phones', function (Blueprint $table) {
+                try {
+                    $table->dropForeign(['commerce_id']);
+                } catch (\Throwable $e) {
+                    // Si la FK ya no existe, continuar sin fallar el rollback
+                }
+            });
+        }
+
         Schema::dropIfExists('commerces');
     }
 };
