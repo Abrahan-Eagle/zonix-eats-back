@@ -24,10 +24,11 @@
 | **Migraciones**          | 51                                                 |
 | **Tests**                | 269 pasaron ✅, 0 fallaron                         |
 | **Seguridad**            | Sanctum + RBAC + Rate Limiting + Upload validation |
-| **Última actualización** | 18 Marzo 2026                                      |
+| **Última actualización** | 19 Marzo 2026                                      |
 
 ### Cambios recientes (documentar aquí los avances)
 
+- **19 Mar 2026:** Subida a dev: reorganización de seeders (movidos de `database/seeders/_archive/` a `database/seeders/`), nuevo `NotificationService.php` y listener `OrderNotificationSubscriber`, ajustes en Events (OrderStatusChanged, NotificationCreated), BroadcastingController, rutas y migraciones. `.gitignore`: añadidos `venv_scraper/` y `pendrive_badblocks_result.txt` (proyecto/archivo ajeno); eliminado del repo el archivo local `pendrive_badblocks_result.txt`. Tests 269 OK.
 - **9 Mar 2026:** Módulo Exportar datos: ruta `GET /api/profile/export` (auth:sanctum, cualquier rol) para que commerce y otros roles puedan exportar; ExportController.getProfileDataForExport defensivo con `$profile` null (evita error en usuarios sin perfil buyer); frontend usa esa URL y descarga real (archivo JSON/TXT + Share.shareXFiles para guardar/compartir); formato TXT corregido (ciudad como nombre, activity_type en actividad).
 - **6 Mar 2026:** Tests: MultiRoleSimulationTest corrige assert (API devuelve `data.status` → assertJsonPath); migración `add_context_and_entity_fks_to_phones_table` en `down()` evita dropForeign/dropIndex en SQLite para que `php artisan test` pase (MySQL sin cambios).
 - **6 Mar 2026:** Norma Migraciones: documentada en `.cursorrules` y AGENTS.md. No crear migraciones add_* ni change_*; tablas existentes se actualizan editando la migración create correspondiente.
@@ -208,4 +209,4 @@ Para no sobrecargar este archivo, el detalle por tema está en [docs/agents/](do
 ---
 
 **Documentación completa de lógica de negocio:** Ver `README.md`
-**Última actualización:** 9 Marzo 2026
+**Última actualización:** 19 Marzo 2026
