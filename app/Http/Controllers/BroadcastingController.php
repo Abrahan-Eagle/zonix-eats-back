@@ -16,6 +16,13 @@ class BroadcastingController extends Controller
 {
     public function authenticate(Request $request)
     {
+        if (config('app.debug')) {
+            \Illuminate\Support\Facades\Log::debug('BroadcastingController@authenticate', [
+                'channel' => $request->channel_name,
+                'socket_id' => $request->socket_id,
+                'user_id' => $request->user()?->id ?? 'guest',
+            ]);
+        }
         $result = Broadcast::auth($request);
 
         // Laravel devuelve array con 'auth' en éxito o Response en 403/404

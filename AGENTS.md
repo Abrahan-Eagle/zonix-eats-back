@@ -22,9 +22,9 @@
 | **Controladores**        | 54                                                 |
 | **Modelos**              | 35                                                 |
 | **Migraciones**          | 51                                                 |
-| **Tests**                | 206+ pasaron ✅, 0 fallaron                        |
+| **Tests**                | 269 pasaron ✅, 0 fallaron                         |
 | **Seguridad**            | Sanctum + RBAC + Rate Limiting + Upload validation |
-| **Última actualización** | 9 Marzo 2026                                      |
+| **Última actualización** | 18 Marzo 2026                                      |
 
 ### Cambios recientes (documentar aquí los avances)
 
@@ -34,6 +34,10 @@
 - **6 Mar 2026:** Módulo demo/seed: `operator_codes`: columna `code` como entero (migración create), `name` como string; OperatorCodeSeeder con 412, 414, 424, 416, 426. ZonixDemoSeeder: zonas Valencia/Carabobo (El Socorro, Los Chorritos, Mayorista, etc.), user 6 fijo (Wistremiro/commerce), direcciones y user_locations de users 1 y 6 en El Socorro; docblock con grafo de conexiones entre roles (buyer→orden→commerce→delivery_agent→delivery_company, reviews, disputes). Migraciones consolidadas (edición de creates, eliminación de add/change sobrantes).
 - **6 Mar 2026:** Módulo Documents: solo tipos `ci` y `rif`; tabla depurada (migración elimina RECEIPT_N, sky, rif_url, commune_register, community_rif; enum type restringido a ci/rif). Campos útiles: number_ci, rif_number (formato Venezuela J-19217553-0), taxDomicile, front_image, approved, status. Estado aprobado: documento verificado o pendiente de verificación (campo `approved`). Tests: DocumentControllerTest.
 - **6 Mar 2026:** Documentado en AGENTS.md: Profile como entidad principal; Users 1:1 con Profile; teléfonos/documentos/direcciones pertenecen al perfil (`profile_id`).
+- **Fecha:** 18 Marzo 2026
+- **Resumen:** Refactorización integral de Pusher completada usando Streams para permitir múltiples suscriptores simultáneos. Se solucionó el bug crítico de pérdida de eventos al navegar y se optimizó el backend para eliminar ruido en eventos públicos.
+- **Áreas tocadas:** `OrderStatusChanged.php`, `pusher_service.dart`, `UserProvider.dart`, y 9 pantallas de órdenes/comercio.
+- **Próximos pasos sugeridos:** Monitorear estabilidad de Pusher en redes inestables (edge cases). Verificar si Review/Dispute events necesitan migrar al mismo patrón de Streams.
 - **11 Feb 2026:** Validación de cupón: API espera `code` y `order_amount`; respuestas de error con `message`/`errors`. Seeders: orden "en entrega" con repartidor asignado; `OrderDeliverySeeder` evita duplicar asignaciones. Broadcasting: auth devuelve `shared_secret` para canales privados Pusher.
 
 ---
@@ -57,7 +61,7 @@ php artisan migrate:fresh --seed   # Reset completo
 php artisan serve                  # Puerto 8000
 
 # Tests
-php artisan test                   # Todos (206+ tests)
+php artisan test                   # Todos (269 tests)
 php artisan test --filter=OrderTest  # Tests específicos
 php artisan test --coverage        # Con coverage
 

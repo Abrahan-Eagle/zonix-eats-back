@@ -15,8 +15,9 @@ public/hot
 public_html/storage
 public_html/hot
 
-storage/*.key
-.env
+# storage/*.key
+# storage/app/firebase*.json
+# .env
 Homestead.yaml
 Homestead.json
 /.vagrant
@@ -28,3 +29,7 @@ Homestead.json
 .env.production
 .phpactor.json
 auth.json
+
+# Otro proyecto / utilidades locales (no Zonix Eats)
+venv_scraper/
+pendrive_badblocks_result.txt

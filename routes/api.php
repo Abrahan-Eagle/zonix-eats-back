@@ -18,6 +18,14 @@ use App\Models\Product;
 use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\Buyer\RestaurantController;
 use App\Http\Controllers\Buyer\CartController;
+use Illuminate\Support\Facades\Log;
+
+if (config('app.debug')) {
+    Log::debug('🌐 Incoming API Request: ' . request()->method() . ' ' . request()->fullUrl(), [
+        'ip' => request()->ip(),
+        'agent' => request()->userAgent(),
+    ]);
+}
 use App\Http\Controllers\Buyer\OrderController as BuyerOrderController;
 use App\Http\Controllers\Commerce\DashboardController;
 use App\Http\Controllers\Commerce\DeliveryRequestController;

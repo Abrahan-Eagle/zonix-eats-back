@@ -38,6 +38,14 @@ class NotificationCreated implements ShouldBroadcast
     }
 
     /**
+     * The event's broadcast name.
+     */
+    public function broadcastAs(): string
+    {
+        return 'NotificationCreated';
+    }
+
+    /**
      * Get the data to broadcast.
      *
      * @return array
@@ -45,6 +53,7 @@ class NotificationCreated implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
+
             'id' => $this->notification->id,
             'title' => $this->notification->title,
             'body' => $this->notification->body,

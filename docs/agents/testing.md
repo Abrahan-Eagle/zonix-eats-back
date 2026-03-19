@@ -3,7 +3,7 @@
 ## Comandos
 
 ```bash
-php artisan test                       # Todos (206+ tests)
+php artisan test                       # Todos (269 tests)
 php artisan test --filter=OrderTest   # Específico
 php artisan test --coverage            # Coverage
 ```

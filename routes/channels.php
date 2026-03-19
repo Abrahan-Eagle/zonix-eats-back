@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Broadcast;
 use App\Models\Order;
 use App\Models\User;
 use App\Models\Commerce;
+use Illuminate\Support\Facades\Log;
 
 /*
 |--------------------------------------------------------------------------
@@ -44,6 +45,9 @@ Broadcast::channel('delivery.{deliveryAgentId}', function ($user, $deliveryAgent
 
 // Canal para usuario específico (alias)
 Broadcast::channel('user.{userId}', function ($user, $userId) {
+    if (config('app.debug')) {
+        Log::debug('Broadcasting: Authorizing user channel', ['auth_user_id' => $user->id, 'requested_user_id' => $userId]);
+    }
     return (int) $user->id === (int) $userId;
 });
 

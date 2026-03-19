@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Chat;
 
+use App\Events\NewMessage;
 use App\Http\Controllers\Controller;
 use App\Models\ChatMessage;
 use App\Models\Order;
@@ -197,8 +198,21 @@ class ChatController extends Controller
             // Actualizar timestamp de la orden
             $order->touch();
 
-            // Broadcast del mensaje (si tienes eventos configurados)
-            // broadcast(new MessageSent($message, $order->id))->toOthers();
+            $senderName = $message->sender->full_name ?? $user->name ?? 'Usuario';
+            broadcast(new NewMessage(
+                $order->id,
+                [
+                    'id' => $message->id,
+                    'content' => $message->content,
+                    'type' => $message->type,
+                    'sender_type' => $message->sender_type,
+                    'sender_id' => $message->sender_id,
+                    'created_at' => $message->created_at->toIso8601String(),
+                ],
+                (int) $profileId,
+                $senderName,
+                (string) $user->role,
+            ));
 
             // 🔔 Enviar notificación push al receptor SOLO si la app del receptor está en background/cerrada
             $this->sendPushNotification($order, $message, $profileId);
@@ -576,8 +590,17 @@ class ChatController extends Controller
     public function registerFcmToken(Request $request)
     {
         $request->validate([
-            'device_token' => 'required|string'
+            'device_token' => 'sometimes|string',
+            'fcm_token' => 'sometimes|string',
         ]);
+
+        $deviceToken = $request->input('device_token') ?? $request->input('fcm_token');
+        if ($deviceToken === null || $deviceToken === '') {
+            return response()->json([
+                'message' => 'Se requiere device_token o fcm_token.',
+                'errors' => ['device_token' => ['El token FCM es obligatorio.']],
+            ], 422);
+        }
 
         $user = Auth::user();
         $profile = $user->profile;
@@ -586,7 +609,7 @@ class ChatController extends Controller
         if (!$profile) {
             Log::warning('⚠️ Intento de registrar FCM token sin perfil asociado', [
                 'user_id' => $user?->id,
-                'device_token_preview' => substr($request->device_token, 0, 20) . '...',
+                'device_token_preview' => substr($deviceToken, 0, 20) . '...',
             ]);
 
             // No lanzar 500: simplemente informar al frontend para que pueda reintentar
@@ -597,12 +620,12 @@ class ChatController extends Controller
         }
 
         // Guardar token en el perfil (evitar problemas de fillable)
-        $profile->fcm_device_token = $request->device_token;
+        $profile->fcm_device_token = $deviceToken;
         $profile->save();
 
         Log::info('✅ FCM token registrado', [
             'profile_id' => $profile->id,
-            'token' => substr($request->device_token, 0, 20) . '...'
+            'token' => substr($deviceToken, 0, 20) . '...'
         ]);
 
         return response()->json(['status' => 'token_registered']);
@@ -686,13 +709,13 @@ class ChatController extends Controller
                 $snippet,    // Cuerpo: snippet del mensaje
                 [
                     'order_id' => (string)$order->id,
+                    'type' => 'chat',
                     'message_id' => (string)$message->id,
                     'sender_id' => (string)$senderId,
                     'sender_name' => $senderName,
                     'snippet' => $snippet,
                     'full_message' => (string)$message->content,
-                    'type' => 'chat_message',
-                    'timestamp' => $message->created_at->timestamp,
+                    'timestamp' => (string)$message->created_at->timestamp,
                 ]
             );
             

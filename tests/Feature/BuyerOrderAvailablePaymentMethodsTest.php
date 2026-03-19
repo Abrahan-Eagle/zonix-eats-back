@@ -63,6 +63,8 @@ class BuyerOrderAvailablePaymentMethodsTest extends TestCase
         $commerce->paymentMethods()->create([
             'type' => 'mobile_payment',
             'phone' => '04121234567',
+            'owner_name' => 'Juan Pérez',
+            'owner_id' => 'V-12345678',
             'is_active' => true,
             'is_default' => true,
             'reference_info' => ['alias' => 'Pago móvil - Personal'],
@@ -87,6 +89,8 @@ class BuyerOrderAvailablePaymentMethodsTest extends TestCase
         $this->assertArrayHasKey('id', $first);
         $this->assertArrayHasKey('type', $first);
         $this->assertArrayHasKey('label', $first);
+        $this->assertArrayHasKey('owner_id', $first);
+        $this->assertSame('V-12345678', $first['owner_id']);
         $this->assertContains($first['type'], ['mobile_payment', 'bank_transfer']);
         $labels = array_column($data, 'label');
         $this->assertContains('Pago móvil - Personal', $labels);

@@ -46,11 +46,12 @@ class FirebaseService
             
             $factory = (new Factory)->withServiceAccount($credentialsPath);
             $this->messaging = $factory->createMessaging();
-            
-            Log::info('✅ Firebase Service inicializado', [
-                'credentials_path' => $credentialsPath,
-                'project_id' => $this->getProjectId($credentialsPath)
-            ]);
+
+            if (config('app.debug')) {
+                Log::debug('Firebase Service inicializado', [
+                    'project_id' => $this->getProjectId($credentialsPath),
+                ]);
+            }
         } catch (\Exception $e) {
             Log::error('❌ Error inicializando Firebase', [
                 'error' => $e->getMessage(),
@@ -84,13 +85,17 @@ class FirebaseService
         }
 
         try {
+            // FCM data payload debe tener todos los valores como string
+            $dataStrings = [];
+            foreach ($data as $key => $value) {
+                $dataStrings[$key] = $value === null ? '' : (string) $value;
+            }
             // Crear notificación para mostrar en background/foreground
             $notification = Notification::create($title, $body);
-            // API actual: CloudMessage::new()->toToken() (withTarget está deprecado desde 7.16)
             $message = CloudMessage::new()
                 ->toToken($deviceToken)
                 ->withNotification($notification)
-                ->withData($data);
+                ->withData($dataStrings);
 
             $this->messaging->send($message);
 

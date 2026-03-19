@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -36,13 +37,15 @@ return new class extends Migration
     {
         // Quitar FK desde phones.delivery_company_id antes de dropear delivery_companies
         if (Schema::hasTable('phones')) {
-            Schema::table('phones', function (Blueprint $table) {
-                try {
-                    $table->dropForeign(['delivery_company_id']);
-                } catch (\Throwable $e) {
-                    // Si la FK ya no existe, continuar sin fallar el rollback
-                }
-            });
+             Schema::table('phones', function (Blueprint $table) {
+                 if (DB::getDriverName() !== 'sqlite') {
+                     try {
+                         $table->dropForeign(['delivery_company_id']);
+                     } catch (\Throwable $e) {
+                         // Si la FK ya no existe, continuar sin fallar el rollback
+                     }
+                 }
+             });
         }
 
         Schema::dropIfExists('delivery_companies');

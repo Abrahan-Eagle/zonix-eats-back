@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Buyer;
 
+use App\Events\NewMessage;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -144,6 +145,23 @@ class ChatController extends Controller
                 'created_at' => $message->created_at->format('H:i'),
                 'timestamp' => $message->created_at->toISOString()
             ];
+
+            $user = auth()->user();
+            $senderName = $message->sender->full_name ?? 'Cliente';
+            broadcast(new NewMessage(
+                $order->id,
+                [
+                    'id' => $message->id,
+                    'content' => $message->content,
+                    'type' => $message->type,
+                    'sender_type' => $message->sender_type,
+                    'sender_id' => $message->sender_id,
+                    'created_at' => $message->created_at->toIso8601String(),
+                ],
+                (int) $user->profile->id,
+                $senderName,
+                (string) $user->role,
+            ));
 
             // Aquí se enviaría la notificación push al destinatario
             $this->sendPushNotification($order, $message);

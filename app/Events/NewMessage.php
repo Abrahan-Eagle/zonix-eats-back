@@ -2,62 +2,52 @@
 
 namespace App\Events;
 
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
+/**
+ * Chat en tiempo real: mismo canal privado que OrderStatusChanged (orders.{id} → private-orders.{id} en Pusher).
+ */
 class NewMessage implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $message;
-    public $orderId;
-    public $senderId;
-    public $senderName;
-    public $senderRole;
-
-    /**
-     * Create a new event instance.
-     */
-    public function __construct($message, $orderId, $senderId, $senderName, $senderRole)
-    {
-        $this->message = $message;
-        $this->orderId = $orderId;
-        $this->senderId = $senderId;
-        $this->senderName = $senderName;
-        $this->senderRole = $senderRole;
+    public function __construct(
+        public int $orderId,
+        public array $messagePayload,
+        public int $senderProfileId,
+        public string $senderName,
+        public string $senderRole,
+    ) {
     }
 
     /**
-     * Get the channels the event should broadcast on.
-     *
      * @return array<int, \Illuminate\Broadcasting\Channel>
      */
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('order.' . $this->orderId),
+            new PrivateChannel('orders.'.$this->orderId),
         ];
     }
 
-    /**
-     * Get the data to broadcast.
-     *
-     * @return array
-     */
+    public function broadcastAs(): string
+    {
+        return 'NewMessage';
+    }
+
     public function broadcastWith(): array
     {
         return [
-            'message' => $this->message,
             'order_id' => $this->orderId,
-            'sender_id' => $this->senderId,
+            'message' => $this->messagePayload,
+            'sender_id' => $this->senderProfileId,
             'sender_name' => $this->senderName,
             'sender_role' => $this->senderRole,
-            'timestamp' => now()->toISOString(),
+            'timestamp' => now()->toIso8601String(),
         ];
     }
-} 
+}

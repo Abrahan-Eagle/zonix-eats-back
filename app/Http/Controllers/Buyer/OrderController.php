@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Events\OrderCreated;
 use App\Events\OrderStatusChanged;
+use App\Services\NotificationService;
 
 /**
  * Controlador para gestionar las órdenes del comprador.
@@ -25,13 +26,18 @@ class OrderController extends Controller
      */
     protected $orderService;
 
+    /** @var NotificationService */
+    protected $notificationService;
+
     /**
-     * Inyecta el servicio de órdenes.
+     * Inyecta el servicio de órdenes y notificaciones.
      * @param OrderService $orderService
+     * @param NotificationService $notificationService
      */
-    public function __construct(OrderService $orderService)
+    public function __construct(OrderService $orderService, NotificationService $notificationService)
     {
         $this->orderService = $orderService;
+        $this->notificationService = $notificationService;
     }
 
     /**
@@ -305,10 +311,21 @@ class OrderController extends Controller
             $ref = is_array($m->reference_info) ? $m->reference_info : [];
             $alias = $ref['alias'] ?? null;
             $label = $alias ?: ucfirst(str_replace('_', ' ', $m->type));
+            // Documento del titular (columna owner_id o claves frecuentes en reference_info)
+            $numberCi = $ref['number_ci'] ?? $ref['cedula'] ?? $ref['ci'] ?? $ref['document_ci'] ?? null;
+            $rifNumber = $ref['rif_number'] ?? $ref['rif'] ?? null;
+
             return [
                 'id' => $m->id,
                 'type' => $m->type,
                 'label' => $label,
+                'account_number' => $m->account_number,
+                'phone' => $m->phone,
+                'owner_name' => $m->owner_name,
+                'owner_id' => $m->owner_id,
+                'number_ci' => $numberCi,
+                'rif_number' => $rifNumber,
+                'bank_name' => $m->bank?->name,
             ];
         })->values();
         return response()->json(['success' => true, 'data' => $data]);
@@ -351,9 +368,6 @@ class OrderController extends Controller
             $user->load('profile');
             $profile = $user->profile;
 
-            if (!app()->environment('testing')) {
-                Log::info('ORDERS EN DB', [\App\Models\Order::all()->toArray()]);
-            }
             $order = \App\Models\Order::where('profile_id', $profile->id)->where('id', $id)->first();
             if (!$order) {
                 // Fallback para tests: buscar solo por id
@@ -377,23 +391,15 @@ class OrderController extends Controller
                 ], 400);
             }
 
-            // La orden debe estar en estado pendiente de pago
-            if ($order->status !== 'pending_payment') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Solo puedes subir comprobante para órdenes pendientes de pago'
-                ], 400);
-            }
-
-            // El comercio debe haber aceptado la orden (aprobar para pago) antes de que el comprador pueda subir el comprobante.
-            if (!$order->approved_for_payment) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'El comercio debe aceptar tu pedido antes de que puedas subir el comprobante de pago'
-                ], 400);
-            }
-
-            $file = $request->file('payment_proof');
+             // La orden debe estar en estado pendiente de pago
+             if ($order->status !== 'pending_payment') {
+                 return response()->json([
+                     'success' => false,
+                     'message' => 'Solo puedes subir comprobante para órdenes pendientes de pago'
+                 ], 400);
+             }
+ 
+             $file = $request->file('payment_proof');
             $path = $file->store('payment_proofs', 'public');
             
             $order->update([
@@ -404,7 +410,21 @@ class OrderController extends Controller
                 'status' => 'pending_payment'
             ]);
 
-            event(new OrderStatusChanged($order->fresh()));
+            $order = $order->fresh();
+            event(new OrderStatusChanged($order));
+
+            // Notificar al comercio para que concilie/valide el comprobante (Pusher + push)
+            $commerce = $order->commerce;
+            if ($commerce && $commerce->profile_id) {
+                $orderNumber = $order->order_number ?? (string) $order->id;
+                $this->notificationService->notify(
+                    (int) $commerce->profile_id,
+                    'Comprobante de pago subido',
+                    "Orden #{$orderNumber}: el cliente subió un comprobante. Valida o rechaza el pago.",
+                    'commerce_order',
+                    ['order_id' => (string) $order->id, 'order_number' => $order->order_number ?? (string) $order->id]
+                );
+            }
 
             return response()->json([
                 'success' => true,
@@ -480,8 +500,8 @@ class OrderController extends Controller
                 'cancellation_reason' => $request->reason
             ]);
 
-            // Notificación: orden cancelada
-            // Notification::send($user, new OrderCancelled($order));
+            event(new OrderStatusChanged($order->fresh()));
+
             return response()->json(['success' => true, 'message' => 'Orden cancelada exitosamente']);
         } catch (\Exception $e) {
             Log::error('Error al cancelar orden: ' . $e->getMessage());

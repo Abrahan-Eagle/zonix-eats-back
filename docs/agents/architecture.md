@@ -31,7 +31,7 @@ zonix-eats-back/
 ├── routes/
 │   └── api.php                  # 233+ endpoints REST
 ├── tests/
-│   └── Feature/                 # 206+ tests
+│   └── Feature/                 # 269 tests
 └── config/                      # Configuración
 ```
 

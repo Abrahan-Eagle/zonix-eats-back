@@ -23,13 +23,17 @@ class ChatController extends Controller
 
         $user = Auth::user();
         
-        // Emitir evento de nuevo mensaje
+        // Stub legacy: mismo contrato que Chat\ChatController (canal orders.{id})
+        $profileId = (int) ($user->profile?->id ?? $user->id);
         event(new NewMessage(
-            $validated['message'],
-            $orderId,
-            $user->id,
-            $user->name,
-            $user->role
+            (int) $orderId,
+            [
+                'content' => $validated['message'],
+                'type' => 'text',
+            ],
+            $profileId,
+            $user->name ?? 'Usuario',
+            (string) $user->role,
         ));
 
         return response()->json([

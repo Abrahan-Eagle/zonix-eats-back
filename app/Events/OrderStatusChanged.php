@@ -33,7 +33,6 @@ class OrderStatusChanged implements ShouldBroadcast
     public function broadcastOn(): array
     {
         $channels = [
-            new Channel('orders'),
             new PrivateChannel('orders.' . $this->order->id),
         ];
         if ($this->order->commerce_id) {
