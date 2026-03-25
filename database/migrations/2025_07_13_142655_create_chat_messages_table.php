@@ -15,10 +15,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('order_id')->constrained()->onDelete('cascade');
             $table->foreignId('sender_id')->constrained('profiles')->onDelete('cascade');
-            $table->enum('sender_type', ['customer', 'restaurant', 'delivery_agent']);
-            $table->enum('recipient_type', ['restaurant', 'delivery_agent', 'all']);
+            $table->enum('sender_type', ['customer', 'restaurant', 'delivery_agent', 'system']);
+            $table->enum('recipient_type', ['customer', 'restaurant', 'delivery_agent', 'all']);
             $table->text('content');
-            $table->enum('type', ['text', 'image', 'location'])->default('text');
+            $table->enum('type', ['text', 'image', 'location', 'system'])->default('text');
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
 

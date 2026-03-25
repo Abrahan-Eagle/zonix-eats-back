@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Commerce;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\DeliveryCompany;
+use App\Jobs\AutoAssignDeliveryJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -76,7 +78,7 @@ class OrderController extends Controller
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
 
-            return response()->json($order->load(['profile.user', 'orderItems.product', 'orderDelivery']));
+            return response()->json($order->load(['profile.user', 'orderItems.product', 'orderDelivery', 'orderPayments']));
         } catch (\Exception $e) {
             Log::error('Error al mostrar orden de comercio: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error interno al mostrar orden'], 500);
@@ -132,8 +134,22 @@ class OrderController extends Controller
 
             $order->update(['status' => $request->status]);
 
+            // Si pasa a processing y es delivery, asignar empresa y disparar auto-asignación
+            if ($request->status === 'processing' && $order->delivery_type === 'delivery') {
+                $order->refresh();
+                if (!$order->delivery_company_id) {
+                    $company = DeliveryCompany::where('active', true)->first();
+                    if ($company) {
+                        $order->update(['delivery_company_id' => $company->id]);
+                    }
+                }
+                if ($order->delivery_company_id && !$order->orderDelivery) {
+                    AutoAssignDeliveryJob::dispatch($order->id);
+                }
+            }
+
             // Emitir evento de cambio de estado
-            event(new \App\Events\OrderStatusChanged($order));
+            event(new \App\Events\OrderStatusChanged($order->fresh()));
 
             return response()->json(['success' => true, 'message' => 'Estado de la orden actualizado']);
         } catch (\Exception $e) {
@@ -193,33 +209,58 @@ class OrderController extends Controller
                 ], 400);
             }
 
+            $foodPayment = $order->foodPayment;
+
             if ($validated['is_valid']) {
+                // Marcar pago food como validado en order_payments
+                if ($foodPayment) {
+                    $foodPayment->update([
+                        'validated_at' => now(),
+                        'validated_by' => $profile->id,
+                        'rejected_at' => null,
+                        'rejection_reason' => null,
+                    ]);
+                }
+
+                // Compatibilidad legacy
                 $order->update([
-                    'status' => 'paid',
                     'payment_validated_at' => now(),
-                    'cancellation_reason' => null
+                    'cancellation_reason' => null,
                 ]);
-                
-                $message = 'Pago validado correctamente';
-                
-                // Emitir evento de pago validado
-                event(new PaymentValidated($order, true, $profile->id));
+
+                // Si todos los pagos están validados → paid; si no, sigue pending_payment
+                $order->refresh();
+                $order->load(['foodPayment', 'deliveryPayment']);
+                if ($order->allPaymentsValidated()) {
+                    $order->update(['status' => 'paid']);
+                    $message = 'Todos los pagos validados. Orden lista para preparar.';
+                } else {
+                    $message = 'Pago de comida validado. Pendiente: pago de envío.';
+                }
+
+                event(new PaymentValidated($order->fresh(), true, $profile->id));
             } else {
+                if ($foodPayment) {
+                    $foodPayment->update([
+                        'rejected_at' => now(),
+                        'rejection_reason' => $validated['rejection_reason'] ?? 'Pago rechazado por el comercio',
+                    ]);
+                }
+
                 $order->update([
                     'status' => 'cancelled',
                     'cancellation_reason' => $validated['rejection_reason'] ?? 'Pago rechazado por el comercio',
-                    'payment_validated_at' => null
+                    'payment_validated_at' => null,
                 ]);
                 
                 $message = 'Pago rechazado';
-                
-                // Emitir evento de cambio de estado
                 event(new OrderStatusChanged($order));
             }
 
             return response()->json([
                 'success' => true,
                 'message' => $message,
+                'all_payments_validated' => $order->allPaymentsValidated(),
                 'order' => $order
             ]);
 
@@ -360,6 +401,41 @@ class OrderController extends Controller
                 'success' => false,
                 'message' => 'Error al rechazar la orden: ' . $e->getMessage(),
             ], 500);
+        }
+    }
+
+    /**
+     * GET /api/commerce/orders/{id}/pickup-qr — QR para que el repartidor escanee al recoger.
+     */
+    public function pickupQr($id)
+    {
+        try {
+            $order = Order::findOrFail($id);
+            $user = Auth::user();
+            $profile = $user->profile;
+            if (!$profile || !$profile->commerces()->where('id', $order->commerce_id)->exists()) {
+                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+            }
+            if ($order->status !== 'processing') {
+                return response()->json(['success' => false, 'message' => 'QR solo disponible cuando la orden está en preparación'], 400);
+            }
+
+            if (!$order->pickup_token) {
+                $token = substr(hash_hmac('sha256', "order:{$order->id}:pickup:" . now()->timestamp, config('app.key')), 0, 16);
+                $order->update(['pickup_token' => $token]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'order_id' => $order->id,
+                    'token' => $order->pickup_token,
+                    'qr_payload' => "zonix://pickup/{$order->id}/{$order->pickup_token}",
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error generando QR de recogida: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error interno'], 500);
         }
     }
 }

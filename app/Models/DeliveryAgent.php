@@ -21,7 +21,8 @@ class DeliveryAgent extends Model
         'current_longitude',
         'last_location_update',
         'rejection_count',
-        'last_rejection_date'
+        'last_rejection_date',
+        'payout_percentage',
     ];
 
     protected $appends = ['phone'];
@@ -33,7 +34,8 @@ class DeliveryAgent extends Model
         'current_longitude' => 'decimal:7',
         'last_location_update' => 'datetime',
         'last_rejection_date' => 'datetime',
-        'rejection_count' => 'integer'
+        'rejection_count' => 'integer',
+        'payout_percentage' => 'decimal:2',
     ];
 
     public function company()

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Buyer;
 
 use App\Http\Controllers\Controller;
+use App\Services\DeliveryFeeService;
 use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -38,6 +39,54 @@ class OrderController extends Controller
     {
         $this->orderService = $orderService;
         $this->notificationService = $notificationService;
+    }
+
+    /**
+     * Calcular tarifa de delivery (base + por km) entre comercio y dirección de entrega.
+     * POST /api/buyer/delivery-fee/calculate
+     * Acepta: commerce_id + delivery_latitude + delivery_longitude, O bien los 4 números (commerce_lat/lng, delivery_lat/lng).
+     */
+    public function calculateDeliveryFee(Request $request)
+    {
+        $commerceLat = null;
+        $commerceLng = null;
+
+        if ($request->filled('commerce_id')) {
+            $commerce = \App\Models\Commerce::with('addresses')->find($request->commerce_id);
+            if (!$commerce) {
+                return response()->json(['success' => false, 'message' => 'Comercio no encontrado'], 404);
+            }
+            $addr = $commerce->addresses()->whereNotNull('latitude')->whereNotNull('longitude')->first();
+            $commerceLat = $addr ? (float) $addr->latitude : null;
+            $commerceLng = $addr ? (float) $addr->longitude : null;
+        }
+
+        if ($commerceLat === null || $commerceLng === null) {
+            $request->validate([
+                'commerce_latitude' => 'required|numeric|between:-90,90',
+                'commerce_longitude' => 'required|numeric|between:-180,180',
+            ]);
+            $commerceLat = (float) $request->commerce_latitude;
+            $commerceLng = (float) $request->commerce_longitude;
+        }
+
+        $request->validate([
+            'delivery_latitude' => 'required|numeric|between:-90,90',
+            'delivery_longitude' => 'required|numeric|between:-180,180',
+        ]);
+        $deliveryLat = (float) $request->delivery_latitude;
+        $deliveryLng = (float) $request->delivery_longitude;
+
+        $distanceKm = DeliveryFeeService::distanceKm($commerceLat, $commerceLng, $deliveryLat, $deliveryLng);
+        $fee = DeliveryFeeService::calculate($distanceKm);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'delivery_fee' => $fee,
+                'distance_km' => $distanceKm,
+            ],
+        ]);
     }
 
     /**
@@ -197,12 +246,21 @@ class OrderController extends Controller
                 ? $sentTotal
                 : $expectedTotal;
 
+            // Si es delivery, asignar empresa de delivery al crear la orden
+            $deliveryCompanyId = null;
+            if ($validated['delivery_type'] === 'delivery') {
+                $deliveryCompany = \App\Models\DeliveryCompany::where('active', true)->first();
+                if ($deliveryCompany) {
+                    $deliveryCompanyId = $deliveryCompany->id;
+                }
+            }
+
             // Crear orden en transacción
-            $order = \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $profile, $orderTotal, $productModels) {
-                // Crear la orden
+            $order = \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $profile, $orderTotal, $productModels, $deliveryCompanyId, $commerce) {
                 $order = \App\Models\Order::create([
                     'profile_id' => $profile->id,
                     'commerce_id' => $validated['commerce_id'],
+                    'delivery_company_id' => $deliveryCompanyId,
                     'delivery_type' => $validated['delivery_type'],
                     'status' => 'pending_payment',
                     'total' => $orderTotal,
@@ -213,7 +271,6 @@ class OrderController extends Controller
                     'delivery_longitude' => isset($validated['delivery_longitude']) ? (float) $validated['delivery_longitude'] : null,
                 ]);
 
-                // Crear OrderItems y descontar stock si aplica
                 foreach ($productModels as $item) {
                     \App\Models\OrderItem::create([
                         'order_id' => $order->id,
@@ -222,15 +279,32 @@ class OrderController extends Controller
                         'unit_price' => $item['model']->price
                     ]);
 
-                    // Descontar stock si tiene stock_quantity
                     if ($item['model']->stock_quantity !== null) {
                         $item['model']->decrement('stock_quantity', $item['data']['quantity']);
-                        
-                        // Si el stock llega a 0, marcar como no disponible automáticamente
                         if ($item['model']->stock_quantity <= 0) {
                             $item['model']->update(['available' => false]);
                         }
                     }
+                }
+
+                // Crear registros de pago: siempre food, y delivery si aplica
+                $subtotal = $orderTotal - $validated['delivery_fee'];
+                \App\Models\OrderPayment::create([
+                    'order_id' => $order->id,
+                    'type' => 'food',
+                    'amount' => $subtotal,
+                    'payee_type' => 'commerce',
+                    'payee_id' => $commerce->id,
+                ]);
+
+                if ($validated['delivery_type'] === 'delivery' && $validated['delivery_fee'] > 0 && $deliveryCompanyId) {
+                    \App\Models\OrderPayment::create([
+                        'order_id' => $order->id,
+                        'type' => 'delivery',
+                        'amount' => $validated['delivery_fee'],
+                        'payee_type' => 'delivery_company',
+                        'payee_id' => $deliveryCompanyId,
+                    ]);
                 }
 
                 return $order;
@@ -251,7 +325,7 @@ class OrderController extends Controller
             event(new OrderCreated($order));
 
             // Cargar relaciones para respuesta
-            $orderWithProducts = $order->load(['commerce', 'orderItems.product', 'profile.user']);
+            $orderWithProducts = $order->load(['commerce', 'orderItems.product', 'profile.user', 'orderPayments']);
 
             return response()->json([
                 'success' => true,
@@ -307,14 +381,61 @@ class OrderController extends Controller
             return response()->json(['success' => true, 'data' => []]);
         }
         $methods = $commerce->paymentMethods()->with('bank')->active()->get();
-        $data = $methods->map(function ($m) {
+        $data = $this->formatPaymentMethods($methods);
+        return response()->json(['success' => true, 'data' => $data]);
+    }
+
+    /**
+     * GET /api/buyer/orders/{id}/payment-info — Métodos de pago del comercio Y de la empresa de delivery.
+     * Devuelve { food_methods: [...], delivery_methods: [...], order_payments: [...] }
+     */
+    public function getPaymentInfo($id)
+    {
+        $order = $this->orderService->getOrderDetails($id, Auth::id());
+        if (!$order) {
+            return response()->json(['success' => false, 'message' => 'Orden no encontrada'], 404);
+        }
+
+        $commerce = $order->commerce;
+        $foodMethods = $commerce ? $this->formatPaymentMethods($commerce->paymentMethods()->with('bank')->active()->get()) : [];
+
+        $deliveryMethods = [];
+        if ($order->delivery_type === 'delivery' && $order->delivery_company_id) {
+            $company = $order->deliveryCompany;
+            if ($company) {
+                $deliveryMethods = $this->formatPaymentMethods($company->paymentMethods()->with('bank')->active()->get());
+            }
+        }
+
+        $payments = $order->orderPayments->map(fn ($p) => [
+            'id' => $p->id,
+            'type' => $p->type,
+            'amount' => (float) $p->amount,
+            'payment_method_label' => $p->payment_method_label,
+            'reference_number' => $p->reference_number,
+            'payment_proof' => $p->payment_proof,
+            'payment_proof_uploaded_at' => $p->payment_proof_uploaded_at?->toIso8601String(),
+            'validated_at' => $p->validated_at?->toIso8601String(),
+            'rejected_at' => $p->rejected_at?->toIso8601String(),
+            'rejection_reason' => $p->rejection_reason,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'food_methods' => $foodMethods,
+                'delivery_methods' => $deliveryMethods,
+                'order_payments' => $payments,
+            ],
+        ]);
+    }
+
+    private function formatPaymentMethods($methods): array
+    {
+        return $methods->map(function ($m) {
             $ref = is_array($m->reference_info) ? $m->reference_info : [];
             $alias = $ref['alias'] ?? null;
             $label = $alias ?: ucfirst(str_replace('_', ' ', $m->type));
-            // Documento del titular (columna owner_id o claves frecuentes en reference_info)
-            $numberCi = $ref['number_ci'] ?? $ref['cedula'] ?? $ref['ci'] ?? $ref['document_ci'] ?? null;
-            $rifNumber = $ref['rif_number'] ?? $ref['rif'] ?? null;
-
             return [
                 'id' => $m->id,
                 'type' => $m->type,
@@ -323,12 +444,11 @@ class OrderController extends Controller
                 'phone' => $m->phone,
                 'owner_name' => $m->owner_name,
                 'owner_id' => $m->owner_id,
-                'number_ci' => $numberCi,
-                'rif_number' => $rifNumber,
+                'number_ci' => $ref['number_ci'] ?? $ref['cedula'] ?? $ref['ci'] ?? null,
+                'rif_number' => $ref['rif_number'] ?? $ref['rif'] ?? null,
                 'bank_name' => $m->bank?->name,
             ];
-        })->values();
-        return response()->json(['success' => true, 'data' => $data]);
+        })->values()->toArray();
     }
 
     /**
@@ -358,6 +478,7 @@ class OrderController extends Controller
                 'payment_proof' => 'required|file|mimes:jpg,jpeg,png,pdf|max:5120',
                 'payment_method' => 'required|string|max:100',
                 'reference_number' => 'required|string|max:100',
+                'type' => 'nullable|in:food,delivery',
             ]);
 
             /** @var \App\Models\User|null $user */
@@ -370,65 +491,88 @@ class OrderController extends Controller
 
             $order = \App\Models\Order::where('profile_id', $profile->id)->where('id', $id)->first();
             if (!$order) {
-                // Fallback para tests: buscar solo por id
                 $order = \App\Models\Order::find($id);
-                if ($order && app()->environment('testing')) {
-                    // Permitir en entorno de test si la orden existe
-                } elseif (!$order) {
+                if (!($order && app()->environment('testing'))) {
                     return response()->json(['success' => false, 'message' => 'Orden no encontrada'], 404);
                 }
             }
             if (!$order) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Orden no encontrada o no pertenece al usuario'
-                ], 404);
+                return response()->json(['success' => false, 'message' => 'Orden no encontrada o no pertenece al usuario'], 404);
             }
-            if ($order->status === 'delivered') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No se puede subir comprobante para una orden completada'
-                ], 400);
+            if ($order->status !== 'pending_payment') {
+                return response()->json(['success' => false, 'message' => 'Solo puedes subir comprobante para órdenes pendientes de pago'], 400);
             }
 
-             // La orden debe estar en estado pendiente de pago
-             if ($order->status !== 'pending_payment') {
-                 return response()->json([
-                     'success' => false,
-                     'message' => 'Solo puedes subir comprobante para órdenes pendientes de pago'
-                 ], 400);
-             }
- 
-             $file = $request->file('payment_proof');
-            $path = $file->store('payment_proofs', 'public');
-            
-            $order->update([
-                'payment_proof' => 'payment_proofs/' . $file->hashName(),
-                'payment_method' => $request->payment_method,
+            $paymentType = $request->input('type', 'food');
+            $orderPayment = \App\Models\OrderPayment::where('order_id', $order->id)->where('type', $paymentType)->first();
+            if (!$orderPayment) {
+                // Retrocompatibilidad: crear registro si no existe (órdenes legacy sin order_payments)
+                $amount = $paymentType === 'delivery' ? ($order->delivery_fee ?? 0) : ($order->total - ($order->delivery_fee ?? 0));
+                $orderPayment = \App\Models\OrderPayment::create([
+                    'order_id' => $order->id,
+                    'type' => $paymentType,
+                    'amount' => max(0, $amount),
+                    'payee_type' => $paymentType === 'delivery' ? 'delivery_company' : 'commerce',
+                    'payee_id' => $paymentType === 'delivery' ? $order->delivery_company_id : $order->commerce_id,
+                ]);
+            }
+
+            $file = $request->file('payment_proof');
+            $file->store('payment_proofs', 'public');
+            $proofPath = 'payment_proofs/' . $file->hashName();
+
+            $orderPayment->update([
+                'payment_proof' => $proofPath,
+                'payment_method_label' => $request->payment_method,
                 'reference_number' => $request->reference_number,
                 'payment_proof_uploaded_at' => now(),
-                'status' => 'pending_payment'
+                'rejected_at' => null,
+                'rejection_reason' => null,
             ]);
+
+            // Compatibilidad: actualizar campos legacy en la orden (para el pago food)
+            if ($paymentType === 'food') {
+                $order->update([
+                    'payment_proof' => $proofPath,
+                    'payment_method' => $request->payment_method,
+                    'reference_number' => $request->reference_number,
+                    'payment_proof_uploaded_at' => now(),
+                ]);
+            }
 
             $order = $order->fresh();
             event(new OrderStatusChanged($order));
 
-            // Notificar al comercio para que concilie/valide el comprobante (Pusher + push)
-            $commerce = $order->commerce;
-            if ($commerce && $commerce->profile_id) {
-                $orderNumber = $order->order_number ?? (string) $order->id;
-                $this->notificationService->notify(
-                    (int) $commerce->profile_id,
-                    'Comprobante de pago subido',
-                    "Orden #{$orderNumber}: el cliente subió un comprobante. Valida o rechaza el pago.",
-                    'commerce_order',
-                    ['order_id' => (string) $order->id, 'order_number' => $order->order_number ?? (string) $order->id]
-                );
+            // Notificar al destinatario del pago
+            $orderNumber = $order->order_number ?? (string) $order->id;
+            if ($paymentType === 'food') {
+                $commerce = $order->commerce;
+                if ($commerce && $commerce->profile_id) {
+                    $this->notificationService->notify(
+                        (int) $commerce->profile_id,
+                        'Comprobante de pago subido',
+                        "Orden #{$orderNumber}: el cliente subió comprobante de la comida. Valida o rechaza.",
+                        'commerce_order',
+                        ['order_id' => (string) $order->id]
+                    );
+                }
+            } elseif ($paymentType === 'delivery') {
+                $company = $order->deliveryCompany;
+                if ($company && $company->profile_id) {
+                    $this->notificationService->notify(
+                        (int) $company->profile_id,
+                        'Comprobante de envío subido',
+                        "Orden #{$orderNumber}: el cliente subió comprobante del envío. Valida o rechaza.",
+                        'order',
+                        ['order_id' => (string) $order->id]
+                    );
+                }
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Comprobante de pago subido exitosamente'
+                'message' => 'Comprobante subido exitosamente',
+                'data' => ['type' => $paymentType],
             ]);
         } catch (\Exception $e) {
             Log::error('Error al subir comprobante de pago: ' . $e->getMessage());
@@ -506,6 +650,39 @@ class OrderController extends Controller
         } catch (\Exception $e) {
             Log::error('Error al cancelar orden: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error interno al cancelar orden'], 500);
+        }
+    }
+
+    /**
+     * GET /api/buyer/orders/{id}/delivery-qr — QR para que el repartidor escanee al entregar.
+     */
+    public function deliveryQr($id)
+    {
+        try {
+            $user = Auth::user();
+            $profile = $user->profile;
+            $order = \App\Models\Order::where('profile_id', $profile->id)->findOrFail($id);
+
+            if ($order->status !== 'shipped') {
+                return response()->json(['success' => false, 'message' => 'QR disponible cuando el pedido está en camino'], 400);
+            }
+
+            if (!$order->delivery_token) {
+                $token = substr(hash_hmac('sha256', "order:{$order->id}:delivery:" . now()->timestamp, config('app.key')), 0, 16);
+                $order->update(['delivery_token' => $token]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'order_id' => $order->id,
+                    'token' => $order->delivery_token,
+                    'qr_payload' => "zonix://delivery/{$order->id}/{$order->delivery_token}",
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error generando QR de entrega: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error interno'], 500);
         }
     }
 }

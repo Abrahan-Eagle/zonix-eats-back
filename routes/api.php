@@ -99,6 +99,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/statistics', [App\Http\Controllers\Buyer\PaymentController::class, 'getPaymentStatistics']);
     });
 
+    Route::post('/buyer/delivery-fee/calculate', [BuyerOrderController::class, 'calculateDeliveryFee']);
+
     // Tracking de Pedidos
     Route::prefix('buyer/tracking')->group(function () {
         Route::get('/order/{orderId}', [App\Http\Controllers\Buyer\OrderTrackingController::class, 'getOrderStatus']);
@@ -306,8 +308,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Rutas de órdenes
         Route::get('/orders/{id}/available-payment-methods', [BuyerOrderController::class, 'getAvailablePaymentMethodsForOrder']);
+        Route::get('/orders/{id}/payment-info', [BuyerOrderController::class, 'getPaymentInfo']);
         Route::post('/orders/{id}/payment-proof', [BuyerOrderController::class, 'uploadPaymentProof']);
         Route::post('/orders/{id}/cancel', [BuyerOrderController::class, 'cancelOrder']);
+        Route::get('/orders/{id}/delivery-qr', [BuyerOrderController::class, 'deliveryQr']);
 
         // Nuevas rutas para búsqueda y favoritos
         Route::get('/posts', [\App\Http\Controllers\Buyer\PostController::class, 'index']);
@@ -358,6 +362,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/orders/{id}/validate-payment', [CommerceOrderController::class, 'validatePayment']);
         Route::post('/orders/{id}/approve-for-payment', [CommerceOrderController::class, 'approveForPayment']);
         Route::post('/orders/{id}/reject', [CommerceOrderController::class, 'rejectOrder']);
+        Route::get('/orders/{id}/pickup-qr', [CommerceOrderController::class, 'pickupQr']);
         Route::post('/delivery/request', [DeliveryRequestController::class, 'store']);
         Route::post('commerce/orders/{id}/validar-comprobante', [\App\Http\Controllers\Commerce\OrderController::class, 'validarComprobante']);
         Route::put('promotions/{id}/toggle', [\App\Http\Controllers\Commerce\CommercePromotionController::class, 'toggle']);
@@ -374,18 +379,40 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 
-    // Delivery (motorizados: delivery_agent vinculado a empresa, o delivery autónomo)
-    Route::middleware('role:delivery,delivery_agent')->prefix('delivery')->group(function () {
-        Route::get('/orders', [\App\Http\Controllers\Delivery\OrderController::class, 'index']);
-        Route::put('/orders/{id}/accept', [\App\Http\Controllers\Delivery\OrderController::class, 'accept']);
-        Route::patch('/orders/{id}/status', [\App\Http\Controllers\Delivery\OrderController::class, 'updateStatus']);
+    // Delivery Company (empresa de delivery — pantallas propias)
+    Route::middleware('role:delivery_company')->prefix('delivery-company')->group(function () {
+        Route::get('/dashboard', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'dashboard']);
+        Route::get('/agents', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'agents']);
+        Route::post('/agents', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'storeAgent']);
+        Route::get('/agents/{id}', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'agentDetail']);
+        Route::patch('/agents/{id}', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'updateAgentStatus']);
+        Route::patch('/agents/{id}/payout', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'updateAgentPayout']);
+        Route::patch('/settings', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'updateSettings']);
+        Route::get('/orders', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'orders']);
+        Route::get('/orders/pending', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'pendingOrders']);
+        Route::get('/orders/pending-payment', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'pendingPaymentOrders']);
+        Route::post('/orders/{id}/validate-delivery-payment', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'validateDeliveryPayment']);
+        Route::get('/orders/{id}/available-agents', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'availableAgentsForOrder']);
+        Route::post('/orders/{id}/assign', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'assignOrder']);
+        Route::get('/earnings', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'earnings']);
+    });
 
-        // New delivery endpoints
+    // Delivery (solo motorizados; delivery_company usa /api/delivery-company/*)
+    Route::middleware('role:delivery_agent,delivery')->prefix('delivery')->group(function () {
+        Route::get('/orders', [DeliveryController::class, 'index']);
+        Route::patch('/orders/{id}/status', [DeliveryController::class, 'updateStatus']);
+        Route::get('/orders/{id}', [DeliveryController::class, 'show']);
+
+        Route::get('/me', [DeliveryController::class, 'me']);
         Route::get('/status', [DeliveryController::class, 'getStatus']);
         Route::patch('/working', [DeliveryController::class, 'updateWorking']);
         Route::get('/available-orders', [DeliveryController::class, 'getAvailableOrders']);
         Route::get('/assigned-orders/{deliveryAgentId}', [DeliveryController::class, 'getAssignedOrders']);
         Route::post('/orders/{orderId}/accept', [DeliveryController::class, 'acceptOrder']);
+        Route::post('/orders/{orderId}/reject', [DeliveryController::class, 'rejectOrder']);
+        Route::post('/orders/{orderId}/scan-pickup', [DeliveryController::class, 'scanPickup']);
+        Route::post('/orders/{orderId}/arrived', [DeliveryController::class, 'arrived']);
+        Route::post('/orders/{orderId}/scan-delivery', [DeliveryController::class, 'scanDelivery']);
         Route::post('/location/update', [DeliveryController::class, 'updateLocation']);
         Route::get('/statistics/{deliveryAgentId}', [DeliveryController::class, 'getStatistics']);
         Route::post('/orders/{orderId}/report-issue', [DeliveryController::class, 'reportIssue']);

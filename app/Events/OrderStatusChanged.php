@@ -38,7 +38,18 @@ class OrderStatusChanged implements ShouldBroadcast
         if ($this->order->commerce_id) {
             $channels[] = new PrivateChannel('commerce.' . $this->order->commerce_id);
         }
-        return $channels;
+        $this->order->loadMissing('orderDelivery');
+        if ($this->order->orderDelivery && $this->order->orderDelivery->agent_id) {
+            $channels[] = new PrivateChannel('delivery.' . $this->order->orderDelivery->agent_id);
+            $agent = $this->order->orderDelivery->agent;
+            if ($agent && $agent->company_id) {
+                $channels[] = new PrivateChannel('company.' . $agent->company_id);
+            }
+        }
+        if ($this->order->delivery_company_id) {
+            $channels[] = new PrivateChannel('company.' . $this->order->delivery_company_id);
+        }
+        return array_values(array_unique($channels, SORT_REGULAR));
     }
 
     /**
@@ -50,6 +61,7 @@ class OrderStatusChanged implements ShouldBroadcast
     {
         return [
             'order_id' => $this->order->id,
+            'order_number' => $this->order->order_number,
             'status' => $this->order->status,
             'message' => "Order {$this->order->id} status changed to {$this->order->status}"
         ];

@@ -26,6 +26,7 @@ return new class extends Migration
             $table->text('image')->nullable()->comment('Logo de la empresa de delivery');
             $table->boolean('open')->default(false)->comment('Si la empresa está abierta/disponible');
             $table->json('schedule')->nullable()->comment('Horario de atención de la empresa');
+            $table->decimal('default_payout_percentage', 5, 2)->default(70.00)->comment('Porcentaje por defecto al crear nuevos agentes');
             $table->timestamps();
         });
     }

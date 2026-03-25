@@ -190,7 +190,7 @@ class OrderPaymentTest extends TestCase
         ]);
 
         $response->assertStatus(400)
-                 ->assertJson(['message' => 'No se puede subir comprobante para una orden completada']);
+                 ->assertJson(['message' => 'Solo puedes subir comprobante para órdenes pendientes de pago']);
     }
 
     /** @test */

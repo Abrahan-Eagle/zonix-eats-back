@@ -18,6 +18,13 @@ return [
     |--------------------------------------------------------------------------
     */
     'default_delivery_fee' => (float) (env('ZONIX_DEFAULT_DELIVERY_FEE', 5.00)),
+
+    // Tarifa delivery: base + por km (para cálculo automático)
+    'delivery_fee_base' => (float) (env('ZONIX_DELIVERY_FEE_BASE', 1.50)),
+    'delivery_fee_per_km' => (float) (env('ZONIX_DELIVERY_FEE_PER_KM', 0.50)),
+    'delivery_fee_min' => (float) (env('ZONIX_DELIVERY_FEE_MIN', 2.00)),
+    'delivery_fee_max' => (float) (env('ZONIX_DELIVERY_FEE_MAX', 15.00)),
+
     'default_preparation_time_minutes' => (int) (env('ZONIX_DEFAULT_PREPARATION_TIME_MINUTES', 12)),
 
     // Fallbacks solo cuando en BD no hay coords (ej. comercio sin dirección). Producción: todo viene de GPS/BD.

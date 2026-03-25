@@ -35,6 +35,8 @@ return new class extends Migration
             // Campos de tracking de rechazos
             $table->integer('rejection_count')->default(0);
             $table->timestamp('last_rejection_date')->nullable();
+            // Porcentaje que la empresa paga al agente (0-100). La empresa define cuánto le paga.
+            $table->decimal('payout_percentage', 5, 2)->default(70.00);
             $table->timestamps();
         });
     }

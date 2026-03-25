@@ -38,6 +38,9 @@ return new class extends Migration
             $table->decimal('delivery_latitude', 10, 7)->nullable();
             $table->decimal('delivery_longitude', 10, 7)->nullable();
             $table->text('notes')->nullable();
+            $table->timestamp('agent_accepted_at')->nullable();
+            $table->string('pickup_token', 64)->nullable();
+            $table->string('delivery_token', 64)->nullable();
             $table->timestamps();
             
             // Índices de performance (consolidados desde add_performance_indexes)

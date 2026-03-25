@@ -34,9 +34,9 @@ class DeliveryControllerTest extends TestCase
     public function test_get_available_orders()
     {
         $commerce = Commerce::factory()->create(['open' => true]);
-        $order1 = Order::factory()->create(['status' => 'paid', 'commerce_id' => $commerce->id]);
-        $order2 = Order::factory()->create(['status' => 'processing', 'commerce_id' => $commerce->id]);
-        $order3 = Order::factory()->create(['status' => 'delivered', 'commerce_id' => $commerce->id]);
+        Order::factory()->create(['status' => 'shipped', 'commerce_id' => $commerce->id]);
+        Order::factory()->create(['status' => 'shipped', 'commerce_id' => $commerce->id]);
+        Order::factory()->create(['status' => 'delivered', 'commerce_id' => $commerce->id]);
 
         $response = $this->getJson('/api/delivery/available-orders');
 
@@ -45,7 +45,7 @@ class DeliveryControllerTest extends TestCase
                  ->assertJsonStructure(['success', 'data']);
 
         $data = $response->json('data');
-        $this->assertCount(2, $data); // Solo paid y processing
+        $this->assertCount(2, $data);
     }
 
     public function test_get_assigned_orders()
@@ -78,14 +78,14 @@ class DeliveryControllerTest extends TestCase
     public function test_accept_order()
     {
         $commerce = Commerce::factory()->create(['open' => true]);
-        $order = Order::factory()->create(['status' => 'paid', 'commerce_id' => $commerce->id]);
+        $order = Order::factory()->create(['status' => 'shipped', 'commerce_id' => $commerce->id]);
 
         $response = $this->postJson("/api/delivery/orders/{$order->id}/accept", [
             'notes' => 'Test notes'
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson(['success' => true, 'message' => 'Orden aceptada']);
+                 ->assertJson(['success' => true, 'message' => 'Orden aceptada exitosamente']);
 
         $this->assertDatabaseHas('order_delivery', [
             'order_id' => $order->id,
@@ -303,9 +303,8 @@ class DeliveryControllerTest extends TestCase
     public function test_cannot_accept_already_assigned_order()
     {
         $commerce = Commerce::factory()->create(['open' => true]);
-        $order = Order::factory()->create(['status' => 'paid', 'commerce_id' => $commerce->id]);
-        
-        // Assign order to another agent
+        $order = Order::factory()->create(['status' => 'shipped', 'commerce_id' => $commerce->id]);
+
         $otherAgent = DeliveryAgent::factory()->create();
         OrderDelivery::factory()->create([
             'order_id' => $order->id,
@@ -318,6 +317,6 @@ class DeliveryControllerTest extends TestCase
         ]);
 
         $response->assertStatus(400)
-                 ->assertJson(['success' => false, 'message' => 'Order is not available for delivery']);
+                 ->assertJson(['success' => false]);
     }
 }

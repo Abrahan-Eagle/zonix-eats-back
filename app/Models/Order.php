@@ -12,6 +12,7 @@ class Order extends Model
     protected $fillable = [
         'profile_id',
         'commerce_id',
+        'delivery_company_id',
         'delivery_type',
         'status',
         'approved_for_payment',
@@ -32,7 +33,10 @@ class Order extends Model
         'delivery_address',
         'delivery_latitude',
         'delivery_longitude',
-        'notes'
+        'notes',
+        'agent_accepted_at',
+        'pickup_token',
+        'delivery_token',
     ];
 
     protected $casts = [
@@ -44,7 +48,8 @@ class Order extends Model
         'estimated_delivery_time' => 'integer',
         'approved_for_payment' => 'boolean',
         'payment_validated_at' => 'datetime',
-        'payment_proof_uploaded_at' => 'datetime'
+        'payment_proof_uploaded_at' => 'datetime',
+        'agent_accepted_at' => 'datetime',
     ];
 
     /**
@@ -69,6 +74,14 @@ class Order extends Model
     public function commerce()
     {
         return $this->belongsTo(Commerce::class);
+    }
+
+    /**
+     * Empresa de delivery asignada a la orden (para asignación de repartidor).
+     */
+    public function deliveryCompany()
+    {
+        return $this->belongsTo(DeliveryCompany::class, 'delivery_company_id');
     }
 
     /**
@@ -153,5 +166,44 @@ class Order extends Model
     public function reviews()
     {
         return $this->hasMany(Review::class);
+    }
+
+    public function orderPayments()
+    {
+        return $this->hasMany(OrderPayment::class);
+    }
+
+    public function foodPayment()
+    {
+        return $this->hasOne(OrderPayment::class)->where('type', 'food');
+    }
+
+    public function deliveryPayment()
+    {
+        return $this->hasOne(OrderPayment::class)->where('type', 'delivery');
+    }
+
+    /**
+     * Verifica si todos los pagos requeridos están validados.
+     * Si no hay order_payments (órdenes legacy), se considera validado al validar desde commerce.
+     * Pickup: solo food. Delivery: food + delivery.
+     */
+    public function allPaymentsValidated(): bool
+    {
+        $payments = $this->orderPayments;
+        if ($payments->isEmpty()) {
+            return true; // Legacy: sin order_payments, el commerce valida directamente
+        }
+        $food = $payments->firstWhere('type', 'food');
+        if ($food && !$food->isValidated()) {
+            return false;
+        }
+        if ($this->delivery_type === 'delivery') {
+            $delivery = $payments->firstWhere('type', 'delivery');
+            if ($delivery && !$delivery->isValidated()) {
+                return false;
+            }
+        }
+        return true;
     }
 }

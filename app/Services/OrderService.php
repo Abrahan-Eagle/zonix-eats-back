@@ -24,7 +24,7 @@ class OrderService
         
         return Order::where('profile_id', $profile->id)
             ->orderBy('created_at', 'desc')
-            ->with('commerce', 'products')
+            ->with('commerce', 'products', 'orderPayments')
             ->paginate($perPage);
     }
 
@@ -46,7 +46,7 @@ class OrderService
         
         return Order::where('profile_id', $profile->id)
             ->where('id', $orderId)
-            ->with(['products', 'commerce'])
+            ->with(['products', 'commerce', 'orderPayments'])
             ->first();
     }
 

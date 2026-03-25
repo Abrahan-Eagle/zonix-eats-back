@@ -26,6 +26,7 @@ use App\Models\OperatorCode;
 use App\Models\Order;
 use App\Models\OrderDelivery;
 use App\Models\OrderItem;
+use App\Models\OrderPayment;
 use App\Models\PaymentMethod;
 use App\Models\Phone;
 use App\Models\Post;
@@ -44,45 +45,64 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * Seeder único para demo Zonix Eats.
- * Geolocalización exacta: Venezuela, Carabobo, Valencia.
- * Sectores: El Socorro, Los Chorritos, Mayorista (La Isabelica), Bella Florida, San Diego, Santa Rosa.
+ * Seeder único para demo Zonix Eats — simula el marketplace completo entre roles (misma BD que usarán las apps).
  *
- * Usuarios: 5 compradores | 10 comercios | 1 empresa delivery | 2 repartidores empresa | 1 independiente | 1 admin.
- * Órdenes: 7 para comprador 1 (pending_payment, paid, processing, shipped, delivered x2, cancelled) + 1 para comprador 2 (delivered).
- * Notificaciones: comprador (order/promotion/points/support, Hoy/Ayer, leídas/no leídas) y comercio (user 6).
+ * Objetivo: tras `migrate:fresh --seed` (o `db:seed --class=ZonixDemoSeeder`), cada rol tiene datos coherentes
+ * y relaciones cruzadas (comprador ↔ comercio ↔ reparto empresa ↔ reparto independiente ↔ admin).
  *
- * Usuarios fijos (NO se modifican en tabla users): id 1 (Abrahan, role=users), id 6 (Wistremiro, role=commerce).
- * Tablas conectadas a user 1 y 6 que SÍ se mejoran:
- * - users: no se tocan (datos fijos).
- * - profiles (user_id): creados/actualizados en seedUsersAndProfiles.
- * - phones (profile_id): ensurePhone en seedUsersAndProfiles.
- * - addresses (profile_id): seedAddresses + ensureUser1AndUser6AddressesAndData (El Socorro exacto).
- * - documents (profile_id): seedAllProfilesDocuments (CI/RIF).
- * - carts (profile_id): seedCarts (user 1 tiene carrito).
- * - cart_items: seedCartItems.
- * - orders (profile_id): seedOrders (user 1 es comprador); fixDemoOrderTracking actualiza dirección entrega.
- * - order_items: por orden.
- * - notifications (profile_id): seedNotifications (user 1).
- * - user_locations (profile_id): seedUserLocations + ensureUser1AndUser6UserLocations (El Socorro).
- * - coupons / coupon_usages (profile_id): seedCoupons (user 1), seedCouponUsages.
- * - reviews (profile_id): seedReviews.
- * - disputes: seedDisputes (puede involucrar orden de user 1).
- * - user_payment_methods (user_id=1): seedUser1PaymentMethods.
- * Solo user 6 (commerce): commerces (profile_id), addresses (commerce_id), products, promotions,
- * payment_methods (commerce), posts, commerce_invoices; seedCommercePaymentMethodsDemo(commerces[0]).
+ * Geolocalización: Venezuela, Carabobo, Valencia. Sectores: El Socorro, Los Chorritos, Mayorista, Bella Florida,
+ * San Diego, Santa Rosa.
  *
- * CONEXIONES ENTRE ROLES (todos los usuarios según su role quedan conectados entre sí):
- * - Buyer (users[0]) → Order (profile_id) → Commerce (commerces[0], user 6) → OrderItem → Product.
- * - Order → OrderDelivery (order_id, agent_id) → DeliveryAgent (company_id → DeliveryCompany, o null independiente).
- * - DeliveryCompany → Profile (delivery_company). DeliveryAgent → Profile (repartidor empresa o independiente).
- * - Review: profile_id (buyer) revisa reviewable_type/reviewable_id (Commerce o DeliveryAgent).
- * - Dispute: order_id, reported_by (buyer profile), reported_against (commerce profile).
- * - DeliveryPayment: order_id + delivery_agent_id (pago al repartidor).
- * - Cart/CartItem: profile (buyer) + product (commerce). PostLike: perfiles (buyers + commerce) → Post (commerce).
- * - Admin: tiene profile, address, documents; en la app se relaciona por permisos (ve órdenes, disputas, etc.), no por FK en este seed.
- * - ChatMessage: seedChatMessages (mensajes en órdenes entregadas: cliente, restaurante, repartidor).
- * - DeliveryZone: seedDeliveryZones (zonas activas Valencia: El Socorro, Los Chorritos).
+ * --- Simulación con 4 usuarios reales (Google) ---
+ * Los ids 1, 6, 16 y 17 son usuarios reales para pruebas: login con Google, password null, datos y foto reales.
+ * El resto son usuarios demo (@demo.zonix.eats) con password común "password".
+ *
+ * Rol                | user_id | Email / acceso                              | Acceso
+ * ------------------|---------|-----------------------------------------------|----------------------
+ * Buyer (principal)  | 1       | ing.pulido.abrahan@gmail.com                 | Google (Abrahan)
+ * Buyers demo        | 2–5     | maria.gonzalez@… / carlos… @demo.zonix.eats  | password
+ * Commerce (principal)| 6      | wistremiropulido@gmail.com                   | Google (Wistremiro)
+ * Commerce demo      | 7–15   | comercio*@demo.zonix.eats                   | password
+ * Delivery company   | 16     | towdah.yadah@gmail.com                       | Google (TOWDAH YADAH)
+ * Delivery agent     | 17     | jarvispulido1@gmail.com                      | Google (Jarvis)
+ * Delivery agent     | 18     | repartidor2@demo.zonix.eats                 | password
+ * Delivery independ. | 19     | delivery.independent@demo.zonix.eats        | password
+ * Admin              | 20     | admin@demo.zonix.eats                       | password
+ *
+ * Usuarios reales (no cambiar ids): 1 Abrahan, 6 Wistremiro, 16 TOWDAH YADAH, 17 Jarvis. Resto: demo.
+ *
+ * --- Repartidores y órdenes (índice en array $agents tras seedDelivery) ---
+ * - agents[0]: Jarvis (delivery_agent, company_id = Envíos Carabobo) — asignado a shipped/delivered (con agent_accepted_at + tokens QR).
+ * - agents[1]: Pedro (delivery_agent, misma empresa) — al menos una entrega (historial/ganancias empresa).
+ * - agents[2]: Miguel (delivery, company_id null) — al menos una entrega independiente (reviews/pagos/chat).
+ * Órdenes: buyer 1 cubre estados (pending_payment…cancelled); buyer 2 una delivered; +2 processing sin OrderDelivery
+ * (tab "Disponibles"); reparto repartido entre Jarvis, Pedro y Miguel donde aplica.
+ *
+ * --- Grafo de relaciones (probar cada app con estos vínculos) ---
+ * - Buyer → Order → Commerce (Wistremiro = commerces[0]) → Products / PaymentMethods / Posts.
+ * - Order (processing sin agente) → todos los delivery_agent/delivery ven "Disponibles"; al aceptar → OrderDelivery.
+ * - OrderDelivery → DeliveryAgent → (DeliveryCompany vía company_id | null = independiente).
+ * - Delivery company (user 16): perfil enlazado a DeliveryCompany; API usa primer agente de la empresa para /me
+ *   y lista órdenes de todos los agentes de la empresa — por eso deben existir agentes 17 y 18 en seed.
+ * - Review: buyer → Commerce y buyer → DeliveryAgent en órdenes delivered.
+ * - Dispute: buyer → commerce (orden delivered/cancelled).
+ * - DeliveryPayment: por OrderDelivery (pago al motorizado).
+ * - ChatMessage: órdenes delivered (customer + restaurant + delivery_agent).
+ * - Admin: perfil + documentos; gestión vía APIs admin (usuarios, disputas, etc.).
+ * - Notificaciones: perfiles buyer 1, commerce 6, cada DeliveryAgent, delivery_company 16.
+ *
+ * Tablas tocadas (resumen): profiles, phones, addresses, commerces, products, orders, order_items, order_deliveries,
+ * carts, notifications, reviews, disputes, chat_messages, delivery_zones, coupons, posts, commerce_invoices, etc.
+ *
+ * --- Tablas y campos requeridos por rol (migraciones) ---
+ * User 16 (delivery_company): users (id, email, role, google_id, completed_onboarding), profiles (user_id, firstName,
+ * lastName, status, photo_users, maritalStatus, sex), phones (profile_id, context personal + opcional delivery_company),
+ * addresses (profile_id, city_id, street, latitude, longitude, is_default), delivery_companies (profile_id, name,
+ * tax_id, address, active, image, open, schedule), documents (profile_id, type ci/rif). La empresa debe tener al menos
+ * un delivery_agent (company_id) para que /api/delivery/me resuelva agente.
+ * Delivery agent (17, 18): users, profiles, phones (personal), addresses, delivery_agents (company_id, profile_id,
+ * status, working, rating, vehicle_type, license_number, current_latitude, current_longitude, last_location_update),
+ * documents. Repartidor independiente (19): igual pero delivery_agents.company_id = null.
  */
 class ZonixDemoSeeder extends Seeder
 {
@@ -150,6 +170,7 @@ class ZonixDemoSeeder extends Seeder
         $this->seedCarts($users);
         $this->seedCartItems($commerces);
         $this->seedCommercePaymentMethodsDemo($commerces[0]);
+        $this->seedDeliveryCompanyPaymentMethods();
         $this->seedUser1PaymentMethods();
         $this->seedAllProfilesDocuments($users);
         $this->seedNotifications($users['users'][0]);
@@ -222,18 +243,19 @@ class ZonixDemoSeeder extends Seeder
         $password = Hash::make('password');
         $out = ['users' => [], 'commerce' => [], 'delivery_company' => null, 'delivery_agents' => [], 'delivery_independent' => null, 'admin' => null];
 
-        // 1. Abrahan (user id 1) - comprador
+        // 1. Abrahan — comprador (usuario real Google; mismo patrón que 6, 16, 17: password null)
         $u1 = User::updateOrCreate(
             ['id' => 1],
             [
                 'name' => 'Abrahan Pulido',
                 'email' => 'ing.pulido.abrahan@gmail.com',
-                'email_verified_at' => now(),
-                'password' => $password,
+                'email_verified_at' => null,
+                'password' => null,
                 'google_id' => '111890855875234910207',
                 'given_name' => 'Abrahan',
                 'family_name' => 'Pulido',
                 'profile_pic' => 'https://lh3.googleusercontent.com/a/ACg8ocIuLGJWAUiZXz3X-UKcCtla9yqtb8nK0sTu_33NkIv2O1x5d5-E=s96-c',
+                'AccessToken' => null,
                 'completed_onboarding' => true,
                 'role' => 'users',
                 'light' => '1',
@@ -269,7 +291,7 @@ class ZonixDemoSeeder extends Seeder
             $out['users'][] = $p;
         }
 
-        // Usuario 6: Wistremiro (commerce, Google) - datos fijos para desarrollo
+        // 6. Wistremiro — comercio (usuario real Google)
         $u6 = User::updateOrCreate(
             ['id' => 6],
             [
@@ -331,46 +353,93 @@ class ZonixDemoSeeder extends Seeder
             $out['commerce'][] = $p;
         }
 
-        // 16. Empresa delivery
-        $u = User::create([
-            'name' => 'Envíos Carabobo C.A.',
-            'email' => 'delivery.company@demo.zonix.eats',
-            'email_verified_at' => now(),
-            'password' => $password,
-            'completed_onboarding' => true,
-            'role' => 'delivery_company',
-            'light' => '1',
-        ]);
-        $p = Profile::create([
-            'user_id' => $u->id, 'firstName' => 'Envíos', 'lastName' => 'Carabobo', 'status' => 'completeData',
-            'photo_users' => self::DEFAULT_AVATAR, 'maritalStatus' => 'single', 'sex' => 'M',
-        ]);
-        $this->ensurePhone($p->id, '9123456', 2); // 0414 9123456 (teléfono de la empresa desde perfil)
+        // 16. Empresa delivery — TOWDAH YADAH (usuario real Google)
+        $u16 = User::updateOrCreate(
+            ['id' => 16],
+            [
+                'name' => 'TOWDAH YADAH',
+                'email' => 'towdah.yadah@gmail.com',
+                'email_verified_at' => null,
+                'password' => null,
+                'google_id' => '102585538744854928843',
+                'given_name' => 'TOWDAH',
+                'family_name' => 'YADAH',
+                'profile_pic' => 'https://lh3.googleusercontent.com/a/ACg8ocLQWQonRPYna_OTsFql1mhypE7Jb_5kr5T_CjMGuyN7Qay5Iz0=s96-c',
+                'AccessToken' => null,
+                'completed_onboarding' => true,
+                'role' => 'delivery_company',
+                'light' => '1',
+            ]
+        );
+        $p = Profile::updateOrCreate(
+            ['user_id' => $u16->id],
+            [
+                'firstName' => 'TOWDAH', 'lastName' => 'YADAH', 'status' => 'completeData',
+                'photo_users' => $u16->profile_pic, 'maritalStatus' => 'single', 'sex' => 'M',
+            ]
+        );
+        $this->ensurePhone($p->id, '9123456', 2);
         $out['delivery_company'] = $p;
 
-        // 17-18. Dos repartidores de la empresa
-        foreach (['José Repartidor', 'Pedro Motorizado'] as $idx => $name) {
-            $u = User::create([
-                'name' => $name,
-                'email' => 'repartidor' . ($idx + 1) . '@demo.zonix.eats',
+        // 17. Repartidor empresa — Jarvis (usuario real Google; mismo id que órdenes en demo)
+        $jarvisProfilePic = 'https://lh3.googleusercontent.com/a/ACg8ocJHPs6q_0F17y1oo6e4qeYmaS6-xSajvyyKuV0cArGyv4ga7Q=s96-c';
+        $u17 = User::updateOrCreate(
+            ['id' => 17],
+            [
+                'name' => 'Jarvis Pulido1',
+                'email' => 'jarvispulido1@gmail.com',
+                'email_verified_at' => null,
+                'password' => null,
+                'google_id' => '106793640636932855620',
+                'given_name' => 'Jarvis',
+                'family_name' => 'Pulido1',
+                'profile_pic' => $jarvisProfilePic,
+                'AccessToken' => null,
+                'completed_onboarding' => true,
+                'role' => 'delivery_agent',
+                'light' => '1',
+            ]
+        );
+        $p = Profile::updateOrCreate(
+            ['user_id' => $u17->id],
+            [
+                'firstName' => 'Jarvis',
+                'lastName' => 'Pulido1',
+                'status' => 'completeData',
+                'photo_users' => $jarvisProfilePic,
+                'maritalStatus' => 'single',
+                'sex' => 'M',
+            ]
+        );
+        $this->ensurePhone($p->id, '6161000', 4); // 0416 6161000
+        $out['delivery_agents'][] = $p;
+
+        // 18. Segundo repartidor de la empresa (Pedro)
+        $u18 = User::updateOrCreate(
+            ['id' => 18],
+            [
+                'name' => 'Pedro Motorizado',
+                'email' => 'repartidor2@demo.zonix.eats',
                 'email_verified_at' => now(),
                 'password' => $password,
                 'completed_onboarding' => true,
                 'role' => 'delivery_agent',
                 'light' => '1',
-            ]);
-            $p = Profile::create([
-                'user_id' => $u->id,
-                'firstName' => explode(' ', $name)[0],
-                'lastName' => explode(' ', $name)[1],
+            ]
+        );
+        $p = Profile::updateOrCreate(
+            ['user_id' => $u18->id],
+            [
+                'firstName' => 'Pedro',
+                'lastName' => 'Motorizado',
                 'status' => 'completeData',
-                'photo_users' => 'https://ui-avatars.com/api/?name=' . urlencode(str_replace(' ', '+', $name)) . '&size=200&background=random',
+                'photo_users' => 'https://ui-avatars.com/api/?name=' . urlencode('Pedro+Motorizado') . '&size=200&background=random',
                 'maritalStatus' => 'single',
                 'sex' => 'M',
-            ]);
-            $this->ensurePhone($p->id, ['6161000', '6161001'][$idx], 4); // 0416 6161000 / 0416 6161001
-            $out['delivery_agents'][] = $p;
-        }
+            ]
+        );
+        $this->ensurePhone($p->id, '6161001', 4); // 0416 6161001
+        $out['delivery_agents'][] = $p;
 
         // 19. Repartidor independiente
         $u = User::create([
@@ -425,6 +494,30 @@ class ZonixDemoSeeder extends Seeder
         $number = str_pad(substr(preg_replace('/\D/', '', $number), 0, 7), 7, '0', STR_PAD_LEFT);
         Phone::create([
             'profile_id' => $profileId,
+            'operator_code_id' => $operatorCodeId ?? $this->operatorCodeId,
+            'number' => $number,
+            'is_primary' => true,
+            'status' => true,
+        ]);
+    }
+
+    /**
+     * Teléfono de contacto de la empresa de delivery (context=delivery_company, delivery_company_id).
+     * Requerido para APIs que listan teléfonos por contexto. El perfil ya tiene un teléfono personal en ensurePhone.
+     */
+    private function ensureDeliveryCompanyPhone(DeliveryCompany $company, string $number = '9123457', ?int $operatorCodeId = null): void
+    {
+        if (Phone::where('profile_id', $company->profile_id)
+            ->where('context', Phone::CONTEXT_DELIVERY_COMPANY)
+            ->where('delivery_company_id', $company->id)
+            ->exists()) {
+            return;
+        }
+        $number = str_pad(substr(preg_replace('/\D/', '', $number), 0, 7), 7, '0', STR_PAD_LEFT);
+        Phone::create([
+            'profile_id' => $company->profile_id,
+            'context' => Phone::CONTEXT_DELIVERY_COMPANY,
+            'delivery_company_id' => $company->id,
             'operator_code_id' => $operatorCodeId ?? $this->operatorCodeId,
             'number' => $number,
             'is_primary' => true,
@@ -596,6 +689,15 @@ class ZonixDemoSeeder extends Seeder
     {
         $profileCompany = $users['delivery_company'];
         $mayorista = self::ZONAS[2]; // Mayorista, La Isabelica - sede empresa
+        $schedule = [
+            'monday' => ['open' => '08:00', 'close' => '20:00'],
+            'tuesday' => ['open' => '08:00', 'close' => '20:00'],
+            'wednesday' => ['open' => '08:00', 'close' => '20:00'],
+            'thursday' => ['open' => '08:00', 'close' => '20:00'],
+            'friday' => ['open' => '08:00', 'close' => '21:00'],
+            'saturday' => ['open' => '09:00', 'close' => '18:00'],
+            'sunday' => ['open' => '09:00', 'close' => '14:00'],
+        ];
         $company = DeliveryCompany::create([
             'profile_id' => $profileCompany->id,
             'name' => 'Envíos Carabobo C.A.',
@@ -604,7 +706,9 @@ class ZonixDemoSeeder extends Seeder
             'image' => 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=400',
             'active' => true,
             'open' => true,
+            'schedule' => $schedule,
         ]);
+        $this->ensureDeliveryCompanyPhone($company, '9123457', 2);
         $santaRosa = self::ZONAS[5]; // Santa Rosa - repartidores operando en zona
         $agents = [];
         foreach ($users['delivery_agents'] as $profile) {
@@ -667,9 +771,17 @@ class ZonixDemoSeeder extends Seeder
         foreach ($statuses as $i => $cfg) {
             $deliveryFee = $cfg['delivery'] ? 3.50 : 0;
             $isPaidOrBeyond = in_array($cfg['status'], ['paid', 'processing', 'shipped', 'delivered']);
+            $deliveryCompanyId = $cfg['delivery'] ? DeliveryCompany::where('active', true)->first()?->id : null;
+            $hasAgent = $cfg['delivery'] && in_array($cfg['status'], ['shipped', 'delivered']);
+            $hasPickupToken = in_array($cfg['status'], ['shipped', 'delivered']);
+            $hasDeliveryToken = $cfg['status'] === 'delivered';
+            $pickupToken = $hasPickupToken ? substr(hash_hmac('sha256', "order:seed:pickup:$i", config('app.key')), 0, 16) : null;
+            $deliveryToken = $hasDeliveryToken ? substr(hash_hmac('sha256', "order:seed:delivery:$i", config('app.key')), 0, 16) : null;
+
             $order = Order::create([
                 'profile_id' => $buyerProfile->id,
                 'commerce_id' => $commerce->id,
+                'delivery_company_id' => $deliveryCompanyId,
                 'delivery_type' => $cfg['delivery'] ? 'delivery' : 'pickup',
                 'status' => $cfg['status'],
                 'approved_for_payment' => $isPaidOrBeyond,
@@ -687,6 +799,9 @@ class ZonixDemoSeeder extends Seeder
                 'delivery_latitude' => $cfg['delivery'] ? $elSocorro['lat'] : null,
                 'delivery_longitude' => $cfg['delivery'] ? $elSocorro['lng'] : null,
                 'cancellation_reason' => $cfg['status'] === 'cancelled' ? 'Solicitud del cliente' : null,
+                'agent_accepted_at' => $hasAgent ? ($cfg['created_at'] ?? now()) : null,
+                'pickup_token' => $pickupToken,
+                'delivery_token' => $deliveryToken,
                 'created_at' => $cfg['created_at'] ?? now(),
             ]);
             $total = 0;
@@ -702,13 +817,48 @@ class ZonixDemoSeeder extends Seeder
                 $total += $p->price * $qty;
             }
             $order->update(['total' => $total]);
-            if ($cfg['delivery'] && in_array($cfg['status'], ['shipped', 'delivered']) && isset($agents[0])) {
-                OrderDelivery::create([
+            // Crear OrderPayment para food
+            $subtotal = $total - $deliveryFee;
+            OrderPayment::create([
+                'order_id' => $order->id,
+                'type' => 'food',
+                'amount' => max(0, $subtotal),
+                'payee_type' => 'commerce',
+                'payee_id' => $commerce->id,
+                'payment_method_label' => $isPaidOrBeyond ? 'cash' : null,
+                'reference_number' => $isPaidOrBeyond ? 'REF' . (10000 + $i) : null,
+                'payment_proof' => $isPaidOrBeyond ? 'payment_proofs/demo_food.jpg' : null,
+                'payment_proof_uploaded_at' => $isPaidOrBeyond ? now() : null,
+                'validated_at' => $isPaidOrBeyond ? now() : null,
+            ]);
+            if ($cfg['delivery'] && $deliveryFee > 0 && $deliveryCompanyId) {
+                OrderPayment::create([
                     'order_id' => $order->id,
-                    'agent_id' => $agents[0]->id,
-                    'status' => $cfg['status'] === 'shipped' ? 'in_transit' : 'delivered',
-                    'delivery_fee' => $deliveryFee,
+                    'type' => 'delivery',
+                    'amount' => $deliveryFee,
+                    'payee_type' => 'delivery_company',
+                    'payee_id' => $deliveryCompanyId,
+                    'payment_method_label' => $isPaidOrBeyond ? 'cash' : null,
+                    'reference_number' => $isPaidOrBeyond ? 'REF-D' . (10000 + $i) : null,
+                    'payment_proof' => $isPaidOrBeyond ? 'payment_proofs/demo_delivery.jpg' : null,
+                    'payment_proof_uploaded_at' => $isPaidOrBeyond ? now() : null,
+                    'validated_at' => $isPaidOrBeyond ? now() : null,
                 ]);
+            }
+            // Reparto: Jarvis (agents[0]) en shipped + 1ª delivered; Pedro (agents[1]) en 2ª delivered — misma empresa.
+            if ($cfg['delivery'] && in_array($cfg['status'], ['shipped', 'delivered'])) {
+                $pickAgent = $agents[0] ?? null;
+                if ($cfg['status'] === 'delivered' && $i === 5 && isset($agents[1])) {
+                    $pickAgent = $agents[1];
+                }
+                if ($pickAgent) {
+                    OrderDelivery::create([
+                        'order_id' => $order->id,
+                        'agent_id' => $pickAgent->id,
+                        'status' => $cfg['status'] === 'shipped' ? 'in_transit' : 'delivered',
+                        'delivery_fee' => $deliveryFee,
+                    ]);
+                }
             }
             $created[] = $order;
         }
@@ -742,14 +892,57 @@ class ZonixDemoSeeder extends Seeder
                 $total += $p->price * $qty;
             }
             $order->update(['total' => $total]);
-            if (isset($agents[0])) {
+            // Comprador 2: entrega por repartidor independiente (agents[2]) si existe — enlaza rol delivery sin empresa.
+            $agentMaria = isset($agents[2]) ? $agents[2] : ($agents[0] ?? null);
+            if ($agentMaria) {
                 OrderDelivery::create([
                     'order_id' => $order->id,
-                    'agent_id' => $agents[0]->id,
+                    'agent_id' => $agentMaria->id,
                     'status' => 'delivered',
                     'delivery_fee' => 3.50,
                 ]);
             }
+            $created[] = $order;
+        }
+
+        // 2 órdenes processing SIN delivery asignado → aparecen en "Disponibles" para repartidores
+        $availableBuyers = [$users['users'][2] ?? $users['users'][0], $users['users'][3] ?? $users['users'][0]];
+        $availableCommerces = [$commerces[1] ?? $commerce, $commerces[2] ?? $commerce];
+        foreach ([0, 1] as $idx) {
+            $buyer = $availableBuyers[$idx];
+            $comm = $availableCommerces[$idx];
+            $prods = Product::where('commerce_id', $comm->id)->where('available', true)->take(3)->get();
+            if ($prods->isEmpty()) {
+                continue;
+            }
+            $zone = self::ZONAS[($idx + 1) % count(self::ZONAS)];
+            $order = Order::create([
+                'profile_id' => $buyer->id,
+                'commerce_id' => $comm->id,
+                'delivery_type' => 'delivery',
+                'status' => 'processing',
+                'approved_for_payment' => true,
+                'total' => 0,
+                'delivery_fee' => 3.00,
+                'delivery_payment_amount' => null,
+                'commission_amount' => 0,
+                'estimated_delivery_time' => 30,
+                'payment_method' => 'mobile_payment',
+                'reference_number' => 'REF-AVAIL-' . ($idx + 1),
+                'payment_validated_at' => now()->subMinutes(15),
+                'pickup_token' => substr(hash_hmac('sha256', "order:seed:avail:$idx", config('app.key')), 0, 16),
+                'delivery_address' => $zone['street'] . ', Valencia, Carabobo',
+                'delivery_latitude' => $zone['lat'],
+                'delivery_longitude' => $zone['lng'],
+                'created_at' => now()->subMinutes(10 + $idx * 5),
+            ]);
+            $total = 0;
+            foreach ($prods as $p) {
+                $qty = rand(1, 2);
+                OrderItem::create(['order_id' => $order->id, 'product_id' => $p->id, 'quantity' => $qty, 'unit_price' => $p->price]);
+                $total += $p->price * $qty;
+            }
+            $order->update(['total' => $total]);
             $created[] = $order;
         }
 
@@ -1114,6 +1307,33 @@ class ZonixDemoSeeder extends Seeder
         }
     }
 
+    /** Métodos de pago demo para la delivery company (para que el buyer vea datos al pagar envío). */
+    private function seedDeliveryCompanyPaymentMethods(): void
+    {
+        $company = DeliveryCompany::where('active', true)->first();
+        if (!$company) {
+            return;
+        }
+        $company->paymentMethods()->delete();
+        $banesco = Bank::where('name', 'like', '%Banesco%')->first();
+        $mercantil = Bank::where('name', 'like', '%Mercantil%')->first();
+        $demoMethods = [
+            [
+                'type' => 'mobile_payment', 'phone' => '04149876543', 'owner_name' => 'Envíos Carabobo C.A.', 'owner_id' => 'J-40987654-3',
+                'bank_id' => $banesco?->id, 'is_default' => true, 'is_active' => true,
+                'reference_info' => ['alias' => 'Pago móvil - Empresa', 'bank' => $banesco?->name ?? 'Banesco', 'currency' => 'VES', 'number_ci' => 'J-40987654-3'],
+            ],
+            [
+                'type' => 'bank_transfer', 'account_number' => '01340000000000001234', 'owner_name' => 'Envíos Carabobo C.A.', 'owner_id' => 'J-40987654-3',
+                'bank_id' => $mercantil?->id, 'is_default' => false, 'is_active' => true,
+                'reference_info' => ['alias' => 'Transferencia Bancaria', 'bank' => $mercantil?->name ?? 'Mercantil', 'currency' => 'VES', 'rif_number' => 'J-40987654-3'],
+            ],
+        ];
+        foreach ($demoMethods as $data) {
+            $company->paymentMethods()->create($data);
+        }
+    }
+
     /** Todos los métodos de pago demo para el usuario 1 (comprador Abrahan). */
     private function seedUser1PaymentMethods(): void
     {
@@ -1264,6 +1484,56 @@ class ZonixDemoSeeder extends Seeder
                     'body' => $item['body'],
                     'type' => $item['type'],
                     'read_at' => null,
+                    'data' => [],
+                    'created_at' => $item['at'],
+                ]);
+            }
+        }
+
+        // Delivery agents: notificaciones de asignación y entregas
+        $deliveryAgents = DeliveryAgent::with('profile')->get();
+        foreach ($deliveryAgents as $agent) {
+            if (!$agent->profile) {
+                continue;
+            }
+            $deliveryItems = [
+                ['title' => 'Nueva orden disponible', 'body' => 'Hay una orden lista para recoger cerca de ti.', 'type' => 'order', 'at' => $today, 'read' => false],
+                ['title' => 'Entrega completada', 'body' => '¡Buen trabajo! Has completado una entrega exitosamente.', 'type' => 'order', 'at' => $yesterday, 'read' => true],
+                ['title' => 'Actualización de ganancias', 'body' => 'Tus ganancias de hoy han sido actualizadas.', 'type' => 'points', 'at' => $today->copy()->subHours(2), 'read' => false],
+            ];
+            foreach ($deliveryItems as $item) {
+                Notification::create([
+                    'profile_id' => $agent->profile->id,
+                    'title' => $item['title'],
+                    'body' => $item['body'],
+                    'type' => $item['type'],
+                    'read_at' => $item['read'] ? $item['at'] : null,
+                    'data' => [],
+                    'created_at' => $item['at'],
+                ]);
+            }
+        }
+
+        // Delivery company (user 16 - TOWDAH YADAH): notificaciones de gestión
+        $companyProfile = Profile::where('user_id', 16)->first();
+        if ($companyProfile) {
+            $demoOrderRef = Order::where('status', 'delivered')
+                ->whereHas('orderDelivery.agent', fn ($q) => $q->whereNotNull('company_id'))
+                ->orderByDesc('id')
+                ->value('id') ?? Order::max('id');
+            $companyItems = [
+                ['title' => 'Nuevo repartidor registrado', 'body' => 'Jarvis Pulido1 se ha unido a tu equipo de entregas.', 'type' => 'order', 'at' => $today, 'read' => false],
+                ['title' => 'Entrega completada por tu equipo', 'body' => 'Pedro Motorizado entregó un pedido #' . $demoOrderRef . ' exitosamente.', 'type' => 'order', 'at' => $today->copy()->subHours(1), 'read' => false],
+                ['title' => 'Resumen de ganancias', 'body' => 'Tu equipo generó entregas hoy; revisa Ganancias en la app.', 'type' => 'points', 'at' => $yesterday, 'read' => true],
+                ['title' => 'Orden disponible en tu zona', 'body' => 'Hay órdenes en ruta esperando repartidor cerca de El Socorro.', 'type' => 'order', 'at' => $today->copy()->subMinutes(30), 'read' => false],
+            ];
+            foreach ($companyItems as $item) {
+                Notification::create([
+                    'profile_id' => $companyProfile->id,
+                    'title' => $item['title'],
+                    'body' => $item['body'],
+                    'type' => $item['type'],
+                    'read_at' => $item['read'] ? $item['at'] : null,
                     'data' => [],
                     'created_at' => $item['at'],
                 ]);

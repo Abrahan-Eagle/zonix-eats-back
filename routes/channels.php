@@ -38,9 +38,23 @@ Broadcast::channel('commerce.{commerceId}', function ($user, $commerceId) {
     return $user->role === 'commerce' && $user->profile?->commerce?->id === (int) $commerceId;
 });
 
-// Canal para repartidor específico (motorizado: delivery_agent o delivery autónomo)
+// Canal para empresa de delivery (notificaciones de órdenes pendientes de asignación)
+Broadcast::channel('company.{companyId}', function ($user, $companyId) {
+    if ($user->role !== 'delivery_company') return false;
+    $company = \App\Models\DeliveryCompany::where('profile_id', $user->profile?->id)->first();
+    return $company && (int) $company->id === (int) $companyId;
+});
+
+// Canal para repartidor específico (motorizado, o empresa viendo a sus agentes)
 Broadcast::channel('delivery.{deliveryAgentId}', function ($user, $deliveryAgentId) {
-    return in_array($user->role, ['delivery', 'delivery_agent'], true) && $user->profile?->deliveryAgent?->id === (int) $deliveryAgentId;
+    if (in_array($user->role, ['delivery', 'delivery_agent'], true)) {
+        return $user->profile?->deliveryAgent?->id === (int) $deliveryAgentId;
+    }
+    if ($user->role === 'delivery_company') {
+        $company = \App\Models\DeliveryCompany::where('profile_id', $user->profile?->id)->first();
+        return $company && \App\Models\DeliveryAgent::where('company_id', $company->id)->where('id', (int) $deliveryAgentId)->exists();
+    }
+    return false;
 });
 
 // Canal para usuario específico (alias)

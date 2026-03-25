@@ -18,6 +18,7 @@ class DeliveryCompany extends Model
         'open',
         'schedule',
         'active',
+        'default_payout_percentage',
     ];
 
     protected $appends = ['phone'];
@@ -26,6 +27,7 @@ class DeliveryCompany extends Model
         'open' => 'boolean',
         'active' => 'boolean',
         'schedule' => 'array',
+        'default_payout_percentage' => 'decimal:2',
     ];
 
     public function profile()

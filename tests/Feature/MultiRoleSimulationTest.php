@@ -272,8 +272,16 @@ class MultiRoleSimulationTest extends TestCase
                 'data'
             ]);
 
-        // 2.6 Commerce mantiene orden en \"processing\" hasta que esté lista
-        // (El estado 'ready' no existe, se pasa directamente a 'on_way' cuando delivery acepta)
+        // 2.6 Commerce marca como "shipped" (listo para delivery)
+        $shipResponse = $this->putJson("/api/commerce/orders/{$orderId}/status", [
+            'status' => 'shipped'
+        ]);
+        $shipResponse->assertStatus(200);
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $orderId,
+            'status' => 'shipped'
+        ]);
 
         // ============================================
         // FASE 3: DELIVERY - Aceptar y Entregar
@@ -284,7 +292,7 @@ class MultiRoleSimulationTest extends TestCase
         $deliveryOrdersResponse = $this->getJson('/api/delivery/orders');
         $deliveryOrdersResponse->assertStatus(200);
 
-        // 3.2 Delivery acepta la orden usando el endpoint real
+        // 3.2 Delivery acepta la orden (ya está en shipped)
         $acceptResponse = $this->postJson("/api/delivery/orders/{$orderId}/accept", [
             'notes' => 'Entrega asignada en simulación'
         ]);
@@ -296,7 +304,7 @@ class MultiRoleSimulationTest extends TestCase
             'status' => 'assigned'
         ]);
 
-        // 3.3 La aceptación de la orden debe moverla a \"shipped\"
+        // 3.3 La orden sigue en "shipped" (delivery asignado)
         $this->assertDatabaseHas('orders', [
             'id' => $orderId,
             'status' => 'shipped'

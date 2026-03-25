@@ -24,10 +24,13 @@
 | **Migraciones**          | 51                                                 |
 | **Tests**                | 269 pasaron ✅, 0 fallaron                         |
 | **Seguridad**            | Sanctum + RBAC + Rate Limiting + Upload validation |
-| **Última actualización** | 19 Marzo 2026                                      |
+| **Última actualización** | 20 Marzo 2026                                      |
 
 ### Cambios recientes (documentar aquí los avances)
 
+- **20 Mar 2026:** Jarvis — Backlog producto/técnico persistido en `docs/active_context.md` (sección **Backlog candidato (no implementado)** + **Prioridad sugerida** para siguiente iteración; espejo en frontend). Sin cambios de código; referencia para implementar después con OK explícito.
+- **20 Mar 2026:** Cierre tareas pendientes Delivery Model: orders.delivery_company_id; al marcar shipped (delivery) se asigna empresa y Job auto-asignación (agente más cercano + timeout 60s + notificación company); GET /api/delivery-company/orders/pending; evento OrderPendingAssignment y canal company.{id}; calculateDeliveryFee acepta commerce_id; frontend tab Pendientes + flujo asignar, checkout con delivery_fee calculado (API), UI payout % agente y default % empresa. Tests backend 269 OK, frontend 250 OK.
+- **20 Mar 2026:** Plan Delivery Model Rebuild (FASE 0-5): Rutas `/api/delivery/*` solo para delivery_agent/delivery; DeliveryController consolidado; CompanyController: POST/PATCH agents, payout, settings, available-agents, assign; DeliveryFeeService y POST /api/buyer/delivery-fee/calculate; FCM para delivery; pantalla Agregar agente. FASE 4 (doble pago) cancelada.
 - **19 Mar 2026:** Subida a dev: reorganización de seeders (movidos de `database/seeders/_archive/` a `database/seeders/`), nuevo `NotificationService.php` y listener `OrderNotificationSubscriber`, ajustes en Events (OrderStatusChanged, NotificationCreated), BroadcastingController, rutas y migraciones. `.gitignore`: añadidos `venv_scraper/` y `pendrive_badblocks_result.txt` (proyecto/archivo ajeno); eliminado del repo el archivo local `pendrive_badblocks_result.txt`. Tests 269 OK.
 - **9 Mar 2026:** Módulo Exportar datos: ruta `GET /api/profile/export` (auth:sanctum, cualquier rol) para que commerce y otros roles puedan exportar; ExportController.getProfileDataForExport defensivo con `$profile` null (evita error en usuarios sin perfil buyer); frontend usa esa URL y descarga real (archivo JSON/TXT + Share.shareXFiles para guardar/compartir); formato TXT corregido (ciudad como nombre, activity_type en actividad).
 - **6 Mar 2026:** Tests: MultiRoleSimulationTest corrige assert (API devuelve `data.status` → assertJsonPath); migración `add_context_and_entity_fks_to_phones_table` en `down()` evita dropForeign/dropIndex en SQLite para que `php artisan test` pase (MySQL sin cambios).

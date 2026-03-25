@@ -11,21 +11,98 @@ use App\Models\Review;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use App\Models\DeliveryCompany;
 use App\Models\Dispute;
+use App\Jobs\AutoAssignDeliveryJob;
 use Illuminate\Support\Facades\Http;
 
 class DeliveryController extends Controller
 {
+    private function getAuthAgent()
+    {
+        $user = Auth::user();
+        $user->loadMissing('profile');
+        $profile = $user->profile;
+        if (!$profile) {
+            return null;
+        }
+
+        $agent = DeliveryAgent::where('profile_id', $profile->id)->first();
+        if ($agent) {
+            return $agent;
+        }
+
+        // delivery_company no actúa como agente; solo usa /api/delivery-company/* para monitorear y asignar
+        return null;
+    }
+
+    private function getCompanyAgentIds(): ?array
+    {
+        $user = Auth::user();
+        if ($user->role !== 'delivery_company') {
+            return null;
+        }
+        $profile = $user->profile;
+        if (!$profile) {
+            return null;
+        }
+        $company = DeliveryCompany::where('profile_id', $profile->id)->first();
+        if (!$company) {
+            return null;
+        }
+        return DeliveryAgent::where('company_id', $company->id)->pluck('id')->toArray();
+    }
+
+    private function canAccessAgent(int $deliveryAgentId): bool
+    {
+        $agent = $this->getAuthAgent();
+        if ($agent && $agent->id == $deliveryAgentId) {
+            return true;
+        }
+        $companyIds = $this->getCompanyAgentIds();
+        if ($companyIds && in_array($deliveryAgentId, $companyIds)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Contexto unificado para logs (delivery_company vs delivery_agent / delivery).
+     */
+    private function deliveryLogContext(array $extra = []): array
+    {
+        $user = Auth::user();
+        $profile = $user?->profile;
+        $agent = $this->getAuthAgent();
+        $companyAgentIds = $this->getCompanyAgentIds();
+
+        return array_merge([
+            'auth_user_id' => $user?->id,
+            'role' => $user?->role,
+            'profile_id' => $profile?->id,
+            'resolved_delivery_agent_id' => $agent?->id,
+            'resolved_company_id' => $agent?->company_id,
+            'company_team_agent_ids' => $companyAgentIds,
+        ], $extra);
+    }
+
     /**
      * Get available orders for delivery
      */
     public function getAvailableOrders()
     {
         try {
-            $availableOrders = Order::with(['commerce', 'profile', 'items'])
-                ->whereIn('status', ['paid', 'processing'])
+            Log::debug('[DeliveryAPI] getAvailableOrders entrada', $this->deliveryLogContext());
+
+            $availableOrders = Order::with(['commerce', 'profile.user', 'orderItems.product'])
+                ->whereIn('status', ['processing', 'shipped'])
                 ->whereDoesntHave('orderDelivery')
+                ->orderBy('created_at', 'desc')
                 ->get();
+
+            Log::info('[DeliveryAPI] getAvailableOrders OK', $this->deliveryLogContext([
+                'count' => $availableOrders->count(),
+            ]));
 
             return response()->json([
                 'success' => true,
@@ -41,27 +118,155 @@ class DeliveryController extends Controller
     }
 
     /**
+     * List orders assigned to the authenticated delivery agent.
+     */
+    public function index()
+    {
+        try {
+            $agent = $this->getAuthAgent();
+            if (!$agent) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Delivery agent not found',
+                ], 404);
+            }
+
+            $orders = Order::whereHas('orderDelivery', function ($query) use ($agent) {
+                $query->where('agent_id', $agent->id);
+            })
+                ->with(['commerce', 'profile.user', 'orderItems.product', 'orderDelivery'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $orders,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('[DeliveryAPI] index excepción: ' . $e->getMessage(), $this->deliveryLogContext());
+            return response()->json(['success' => false, 'message' => 'Error interno al listar órdenes'], 500);
+        }
+    }
+
+    /**
+     * Show a single order assigned to the authenticated delivery agent.
+     */
+    public function show($id)
+    {
+        try {
+            $agent = $this->getAuthAgent();
+            if (!$agent) {
+                return response()->json(['success' => false, 'message' => 'Delivery agent not found'], 404);
+            }
+
+            $order = Order::whereHas('orderDelivery', function ($query) use ($agent) {
+                $query->where('agent_id', $agent->id);
+            })
+                ->with(['commerce', 'profile.user', 'orderItems.product', 'orderDelivery'])
+                ->findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'data' => $order,
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'Orden no encontrada'], 404);
+        } catch (\Exception $e) {
+            Log::error('[DeliveryAPI] show excepción: ' . $e->getMessage(), ['order_id' => $id]);
+            return response()->json(['success' => false, 'message' => 'Error interno'], 500);
+        }
+    }
+
+    /**
+     * Update order status to delivered (only for assigned agent).
+     */
+    public function updateStatus(Request $request, $id)
+    {
+        try {
+            $agent = $this->getAuthAgent();
+            if (!$agent) {
+                return response()->json(['success' => false, 'message' => 'Delivery agent not found'], 422);
+            }
+
+            $order = Order::whereHas('orderDelivery', function ($query) use ($agent) {
+                $query->where('agent_id', $agent->id);
+            })->findOrFail($id);
+
+            $request->validate([
+                'status' => 'required|in:delivered',
+            ]);
+
+            $order->update(['status' => 'delivered']);
+
+            if ($order->orderDelivery) {
+                $order->orderDelivery->update(['status' => 'delivered']);
+            }
+
+            event(new \App\Events\OrderStatusChanged($order->fresh()));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pedido marcado como entregado',
+                'data' => $order->load(['commerce', 'profile.user', 'orderDelivery']),
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'Orden no encontrada o no asignada a ti'], 404);
+        } catch (\Exception $e) {
+            Log::error('[DeliveryAPI] updateStatus excepción: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error interno al actualizar estado'], 500);
+        }
+    }
+
+    public function me()
+    {
+        $agent = $this->getAuthAgent();
+        if (!$agent) {
+            $user = Auth::user();
+            $msg = $user->role === 'delivery_company'
+                ? 'No hay repartidores vinculados a tu empresa. Registra al menos un repartidor.'
+                : 'Delivery agent not found';
+            Log::warning('[DeliveryAPI] me() 404 — no hay DeliveryAgent resuelto', $this->deliveryLogContext());
+
+            return response()->json(['success' => false, 'message' => $msg], 404);
+        }
+
+        Log::debug('[DeliveryAPI] me() OK', $this->deliveryLogContext([
+            'effective_agent_id' => $agent->id,
+            'working' => (bool) $agent->working,
+        ]));
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $agent->id,
+                'profile_id' => $agent->profile_id,
+                'working' => (bool) $agent->working,
+                'company_id' => $agent->company_id,
+            ],
+        ]);
+    }
+
+    /**
      * Get orders assigned to delivery agent
      */
     public function getAssignedOrders($deliveryAgentId)
     {
         try {
-            $assignedOrders = Order::with(['commerce', 'profile', 'items', 'delivery'])
-                ->whereHas('delivery', function ($query) use ($deliveryAgentId) {
+            if (!$this->canAccessAgent($deliveryAgentId)) {
+                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+            }
+
+            $assignedOrders = Order::with(['commerce', 'profile.user', 'orderItems.product', 'orderDelivery'])
+                ->whereHas('orderDelivery', function ($query) use ($deliveryAgentId) {
                     $query->where('agent_id', $deliveryAgentId);
                 })
+                ->orderBy('created_at', 'desc')
                 ->get();
 
-            return response()->json([
-                'success' => true,
-                'data' => $assignedOrders
-            ]);
+            return response()->json(['success' => true, 'data' => $assignedOrders]);
         } catch (\Exception $e) {
             Log::error('Error fetching assigned orders: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error fetching assigned orders'
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Error fetching assigned orders'], 500);
         }
     }
 
@@ -73,24 +278,28 @@ class DeliveryController extends Controller
         try {
             $order = Order::findOrFail($orderId);
 
-            // La orden solo es aceptable si está pagada o en preparación
-            if (!in_array($order->status, ['paid', 'processing'])) {
+            if (!in_array($order->status, ['processing', 'shipped'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Order is not available for delivery'
+                    'message' => 'Solo se pueden aceptar órdenes en estado processing o shipped',
                 ], 400);
             }
 
-            $deliveryAgent = DeliveryAgent::where('profile_id', Auth::user()->profile->id)->first();
-            
+            $deliveryAgent = $this->getAuthAgent();
             if (!$deliveryAgent) {
+                Log::warning('[DeliveryAPI] acceptOrder 404 — sin agente resuelto', $this->deliveryLogContext(['order_id' => $orderId]));
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Delivery agent not found'
+                    'message' => 'Delivery agent not found',
                 ], 404);
             }
 
-            // Verificar que la orden no esté ya asignada
+            Log::info('[DeliveryAPI] acceptOrder asignando', $this->deliveryLogContext([
+                'order_id' => $orderId,
+                'assign_to_agent_id' => $deliveryAgent->id,
+            ]));
+
             if ($order->orderDelivery) {
                 return response()->json([
                     'success' => false,
@@ -98,7 +307,6 @@ class DeliveryController extends Controller
                 ], 400);
             }
 
-            // Create delivery assignment
             OrderDelivery::create([
                 'order_id' => $orderId,
                 'agent_id' => $deliveryAgent->id,
@@ -107,13 +315,26 @@ class DeliveryController extends Controller
                 'notes' => $request->input('notes', '')
             ]);
 
-            // Actualizar estado de la orden a 'shipped' cuando un repartidor la acepta
-            $order->update(['status' => 'shipped']);
+            $order->update(['agent_accepted_at' => now()]);
+
+            $freshOrder = $order->fresh();
+            event(new \App\Events\OrderStatusChanged($freshOrder));
+
+            $commerce = $freshOrder->commerce;
+            if ($commerce && $commerce->profile_id) {
+                app(\App\Services\NotificationService::class)->notify(
+                    $commerce->profile_id,
+                    'Repartidor asignado',
+                    "Un repartidor aceptó la orden #{$freshOrder->order_number}.",
+                    'commerce_order',
+                    ['order_id' => (string) $freshOrder->id]
+                );
+            }
 
             return response()->json([
-                'message' => 'Orden aceptada',
                 'success' => true,
-                'data' => $order->load(['commerce', 'profile', 'items', 'delivery'])
+                'message' => 'Orden aceptada exitosamente',
+                'data' => $freshOrder->load(['commerce', 'profile.user', 'orderItems.product', 'orderDelivery']),
             ]);
         } catch (\Exception $e) {
             Log::error('Error accepting order: ' . $e->getMessage());
@@ -125,28 +346,245 @@ class DeliveryController extends Controller
     }
 
     /**
+     * POST /api/delivery/orders/{orderId}/reject — Rechazar una orden asignada.
+     */
+    public function rejectOrder(Request $request, $orderId)
+    {
+        try {
+            $order = Order::findOrFail($orderId);
+
+            if (!in_array($order->status, ['processing', 'shipped'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solo se pueden rechazar órdenes en estado processing o shipped',
+                ], 400);
+            }
+
+            $deliveryAgent = $this->getAuthAgent();
+            if (!$deliveryAgent) {
+                return response()->json(['success' => false, 'message' => 'Delivery agent not found'], 404);
+            }
+
+            Log::info('[DeliveryAPI] rejectOrder', $this->deliveryLogContext([
+                'order_id' => $orderId,
+                'agent_id' => $deliveryAgent->id,
+            ]));
+
+            AutoAssignDeliveryJob::dispatch($order->id);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Orden rechazada. Se buscará otro repartidor.',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('[DeliveryAPI] rejectOrder error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error al rechazar orden'], 500);
+        }
+    }
+
+    /**
+     * POST /api/delivery/orders/{orderId}/scan-pickup — Escanear QR de recogida en el comercio.
+     */
+    public function scanPickup(Request $request, $orderId)
+    {
+        try {
+            $request->validate(['token' => 'required|string']);
+            $order = Order::findOrFail($orderId);
+
+            if ($order->status !== 'processing') {
+                return response()->json(['success' => false, 'message' => 'La orden no está en preparación'], 400);
+            }
+
+            $agent = $this->getAuthAgent();
+            if (!$agent || !$order->orderDelivery || $order->orderDelivery->agent_id !== $agent->id) {
+                return response()->json(['success' => false, 'message' => 'No estás asignado a esta orden'], 403);
+            }
+
+            if (!$order->pickup_token || $request->token !== $order->pickup_token) {
+                return response()->json(['success' => false, 'message' => 'Código QR inválido'], 400);
+            }
+
+            $order->update(['status' => 'shipped']);
+            if ($order->orderDelivery) {
+                $order->orderDelivery->update(['status' => 'picked_up']);
+            }
+
+            if (!$order->delivery_token) {
+                $deliveryToken = substr(hash_hmac('sha256', "order:{$order->id}:delivery:" . now()->timestamp, config('app.key')), 0, 16);
+                $order->update(['delivery_token' => $deliveryToken]);
+            }
+
+            \App\Models\ChatMessage::create([
+                'order_id' => $order->id,
+                'sender_id' => $agent->profile_id,
+                'sender_type' => 'delivery_agent',
+                'recipient_type' => 'customer',
+                'content' => 'El repartidor ya recogió tu pedido y va en camino.',
+                'type' => 'system',
+            ]);
+
+            $freshOrder = $order->fresh();
+            event(new \App\Events\OrderStatusChanged($freshOrder));
+
+            $commerce = $freshOrder->commerce;
+            if ($commerce && $commerce->profile_id) {
+                app(\App\Services\NotificationService::class)->notify(
+                    $commerce->profile_id,
+                    'Pedido recogido',
+                    "El repartidor recogió la orden #{$freshOrder->order_number} y va en camino al cliente.",
+                    'commerce_order',
+                    ['order_id' => (string) $freshOrder->id, 'status' => 'shipped']
+                );
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Producto recogido. En camino al cliente.',
+                'data' => $freshOrder->load(['commerce', 'profile.user', 'orderDelivery']),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('[DeliveryAPI] scanPickup error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error al verificar recogida'], 500);
+        }
+    }
+
+    /**
+     * POST /api/delivery/orders/{orderId}/scan-delivery — Escanear QR de entrega al buyer.
+     */
+    public function scanDelivery(Request $request, $orderId)
+    {
+        try {
+            $request->validate(['token' => 'required|string']);
+            $order = Order::findOrFail($orderId);
+
+            if ($order->status !== 'shipped') {
+                return response()->json(['success' => false, 'message' => 'La orden no está en camino'], 400);
+            }
+
+            $agent = $this->getAuthAgent();
+            if (!$agent || !$order->orderDelivery || $order->orderDelivery->agent_id !== $agent->id) {
+                return response()->json(['success' => false, 'message' => 'No estás asignado a esta orden'], 403);
+            }
+
+            if (!$order->delivery_token || $request->token !== $order->delivery_token) {
+                return response()->json(['success' => false, 'message' => 'Código QR inválido'], 400);
+            }
+
+            $order->update(['status' => 'delivered']);
+            if ($order->orderDelivery) {
+                $order->orderDelivery->update(['status' => 'delivered']);
+            }
+
+            $freshOrder = $order->fresh();
+            event(new \App\Events\OrderStatusChanged($freshOrder));
+
+            $commerce = $freshOrder->commerce;
+            if ($commerce && $commerce->profile_id) {
+                app(\App\Services\NotificationService::class)->notify(
+                    $commerce->profile_id,
+                    'Pedido entregado',
+                    "La orden #{$freshOrder->order_number} fue entregada al cliente.",
+                    'commerce_order',
+                    ['order_id' => (string) $freshOrder->id, 'status' => 'delivered']
+                );
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pedido entregado exitosamente.',
+                'data' => $order->load(['commerce', 'profile.user', 'orderDelivery']),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('[DeliveryAPI] scanDelivery error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error al verificar entrega'], 500);
+        }
+    }
+
+    /**
+     * POST /api/delivery/orders/{orderId}/arrived — El agente notifica que llegó al destino.
+     * Dispara evento Pusher + notificación FCM al buyer para que muestre el QR de entrega.
+     */
+    public function arrived($orderId)
+    {
+        try {
+            $order = Order::findOrFail($orderId);
+            if ($order->status !== 'shipped') {
+                return response()->json(['success' => false, 'message' => 'La orden no está en camino'], 400);
+            }
+            $agent = $this->getAuthAgent();
+            if (!$agent || !$order->orderDelivery || $order->orderDelivery->agent_id !== $agent->id) {
+                return response()->json(['success' => false, 'message' => 'No estás asignado a esta orden'], 403);
+            }
+
+            if (!$order->delivery_token) {
+                $token = substr(hash_hmac('sha256', "order:{$order->id}:delivery:" . now()->timestamp, config('app.key')), 0, 16);
+                $order->update(['delivery_token' => $token]);
+            }
+
+            \App\Models\ChatMessage::create([
+                'order_id' => $order->id,
+                'sender_id' => $agent->profile_id,
+                'sender_type' => 'delivery_agent',
+                'recipient_type' => 'customer',
+                'content' => 'El repartidor llegó a tu ubicación. Muestra tu código QR para confirmar la entrega.',
+                'type' => 'system',
+            ]);
+
+            $buyerProfile = $order->profile;
+            if ($buyerProfile) {
+                app(\App\Services\NotificationService::class)->notify(
+                    $buyerProfile->id,
+                    'Repartidor en tu ubicación',
+                    'Tu repartidor llegó. Muestra el QR para confirmar la entrega.',
+                    'delivery_arrived',
+                    ['order_id' => $order->id, 'action' => 'show_delivery_qr']
+                );
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Notificación enviada al cliente.',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('[DeliveryAPI] arrived error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error al notificar llegada'], 500);
+        }
+    }
+
+    /**
      * Get current delivery agent status (working) for the authenticated user.
      */
     public function getStatus()
     {
         try {
-            $deliveryAgent = DeliveryAgent::where('profile_id', Auth::user()->profile->id)->first();
+            $deliveryAgent = $this->getAuthAgent();
 
             if (!$deliveryAgent) {
+                Log::warning('[DeliveryAPI] getStatus 404 — sin agente (antes fallaba delivery_company al buscar por profile_id del dueño)', $this->deliveryLogContext());
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Delivery agent not found'
+                    'message' => 'Delivery agent not found',
                 ], 404);
             }
+
+            Log::debug('[DeliveryAPI] getStatus OK', $this->deliveryLogContext([
+                'agent_id' => $deliveryAgent->id,
+                'working' => (bool) $deliveryAgent->working,
+            ]));
 
             return response()->json([
                 'success' => true,
                 'data' => [
                     'working' => (bool) $deliveryAgent->working,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting delivery status: ' . $e->getMessage());
+            Log::error('[DeliveryAPI] getStatus excepción: ' . $e->getMessage(), $this->deliveryLogContext([
+                'exception' => $e::class,
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]));
             return response()->json([
                 'success' => false,
                 'message' => 'Error getting delivery status'
@@ -164,16 +602,25 @@ class DeliveryController extends Controller
                 'working' => 'required|boolean',
             ]);
 
-            $deliveryAgent = DeliveryAgent::where('profile_id', Auth::user()->profile->id)->first();
+            $deliveryAgent = $this->getAuthAgent();
 
             if (!$deliveryAgent) {
+                Log::warning('[DeliveryAPI] updateWorking 404 — sin agente resuelto', $this->deliveryLogContext([
+                    'requested_working' => $request->boolean('working'),
+                ]));
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Delivery agent not found'
+                    'message' => 'Delivery agent not found',
                 ], 404);
             }
 
             $deliveryAgent->update(['working' => $request->boolean('working')]);
+
+            Log::info('[DeliveryAPI] updateWorking OK', $this->deliveryLogContext([
+                'agent_id' => $deliveryAgent->id,
+                'working' => (bool) $deliveryAgent->working,
+            ]));
 
             return response()->json([
                 'success' => true,
@@ -202,24 +649,32 @@ class DeliveryController extends Controller
                 'longitude' => 'required|numeric'
             ]);
 
-            $deliveryAgent = DeliveryAgent::where('profile_id', Auth::user()->profile->id)->first();
-            
+            $deliveryAgent = $this->getAuthAgent();
+
             if (!$deliveryAgent) {
+                Log::warning('[DeliveryAPI] updateLocation 404 — sin agente resuelto', $this->deliveryLogContext());
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Delivery agent not found'
+                    'message' => 'Delivery agent not found',
                 ], 404);
             }
 
             $deliveryAgent->update([
                 'current_latitude' => $request->latitude,
                 'current_longitude' => $request->longitude,
-                'last_location_update' => now()
+                'last_location_update' => now(),
             ]);
+
+            Log::debug('[DeliveryAPI] updateLocation OK', $this->deliveryLogContext([
+                'agent_id' => $deliveryAgent->id,
+                'lat' => $request->latitude,
+                'lng' => $request->longitude,
+            ]));
 
             return response()->json([
                 'success' => true,
-                'message' => 'Location updated successfully'
+                'message' => 'Location updated successfully',
             ]);
         } catch (\Exception $e) {
             Log::error('Error updating location: ' . $e->getMessage());
@@ -236,8 +691,10 @@ class DeliveryController extends Controller
     public function getStatistics($deliveryAgentId)
     {
         try {
-            $deliveryAgent = DeliveryAgent::findOrFail($deliveryAgentId);
-            
+            if (!$this->canAccessAgent($deliveryAgentId)) {
+                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+            }
+
             $totalDeliveries = OrderDelivery::where('agent_id', $deliveryAgentId)->count();
             $completedDeliveries = OrderDelivery::where('agent_id', $deliveryAgentId)
                 ->where('status', 'delivered')->count();
@@ -368,56 +825,20 @@ class DeliveryController extends Controller
     }
 
     /**
-     * Update order status for delivery
-     */
-    public function updateOrderStatus($orderId, Request $request)
-    {
-        try {
-            $order = Order::whereHas('delivery', function($query) {
-                $query->where('agent_id', Auth::user()->profile->deliveryAgent->id);
-            })->findOrFail($orderId);
-
-            $request->validate([
-                'status' => 'required|in:shipped,delivered'
-            ]);
-
-            $order->update(['status' => $request->status]);
-
-            // Update delivery status as well
-            if ($order->delivery) {
-                $order->orderDelivery->update(['status' => $request->status === 'delivered' ? 'delivered' : 'shipped']);
-                
-                // Si se marca como entregado, actualizar estado de orden
-                if ($request->status === 'delivered') {
-                    $order->update(['status' => 'delivered']);
-                }
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Estado de la orden actualizado',
-                'data' => $order->load(['commerce', 'profile', 'items', 'delivery'])
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error al actualizar estado de orden de delivery: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error interno al actualizar estado de orden'
-            ], 500);
-        }
-    }
-
-    /**
      * Get delivery history for a delivery agent
      */
     public function getHistory($deliveryAgentId, Request $request)
     {
         try {
+            if (!$this->canAccessAgent($deliveryAgentId)) {
+                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+            }
+
             $startDate = $request->input('start_date');
             $endDate = $request->input('end_date');
 
-            $query = Order::with(['commerce', 'profile', 'items', 'delivery'])
-                ->whereHas('delivery', function($q) use ($deliveryAgentId) {
+            $query = Order::with(['commerce', 'profile.user', 'orderItems.product', 'orderDelivery'])
+                ->whereHas('orderDelivery', function($q) use ($deliveryAgentId) {
                     $q->where('agent_id', $deliveryAgentId);
                 })
                 ->whereIn('status', ['delivered', 'cancelled']);
@@ -425,23 +846,16 @@ class DeliveryController extends Controller
             if ($startDate) {
                 $query->where('created_at', '>=', $startDate);
             }
-
             if ($endDate) {
                 $query->where('created_at', '<=', $endDate);
             }
 
             $orders = $query->orderBy('created_at', 'desc')->get();
 
-            return response()->json([
-                'success' => true,
-                'data' => $orders
-            ]);
+            return response()->json(['success' => true, 'data' => $orders]);
         } catch (\Exception $e) {
             Log::error('Error fetching delivery history: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error fetching delivery history'
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Error fetching delivery history'], 500);
         }
     }
 
@@ -451,6 +865,10 @@ class DeliveryController extends Controller
     public function getEarnings($deliveryAgentId, Request $request)
     {
         try {
+            if (!$this->canAccessAgent($deliveryAgentId)) {
+                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+            }
+
             $startDate = $request->input('start_date');
             $endDate = $request->input('end_date');
 
@@ -529,75 +947,61 @@ class DeliveryController extends Controller
     public function getRoutes($deliveryAgentId)
     {
         try {
-            $assignedOrders = Order::with(['commerce', 'profile', 'delivery'])
-                ->whereHas('delivery', function($q) use ($deliveryAgentId) {
+            if (!$this->canAccessAgent($deliveryAgentId)) {
+                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+            }
+
+            $assignedOrders = Order::with(['commerce', 'profile.user', 'orderDelivery'])
+                ->whereHas('orderDelivery', function($q) use ($deliveryAgentId) {
                     $q->where('agent_id', $deliveryAgentId)
                       ->whereIn('status', ['assigned', 'shipped']);
                 })
                 ->get();
 
-            // Group orders by route (simplified - in production would use routing algorithm)
             $routes = [];
             foreach ($assignedOrders as $index => $order) {
-                $startLat = $order->commerce->latitude ?? -12.0464;
-                $startLng = $order->commerce->longitude ?? -77.0428;
-                
-                $deliveryAddress = $order->delivery_address ? json_decode($order->delivery_address, true) : null;
-                $endLat = $deliveryAddress['lat'] ?? $startLat;
-                $endLng = $deliveryAddress['lng'] ?? $startLng;
-                
-                // Calcular distancia y tiempo real usando OSRM
-                $distance = 5.0; // Default
-                $estimatedTime = 30; // Default (minutos)
-                
+                $startLat = $order->delivery_latitude ?? 10.1579;
+                $startLng = $order->delivery_longitude ?? -67.9972;
+                $endLat = $order->delivery_latitude ?? $startLat;
+                $endLng = $order->delivery_longitude ?? $startLng;
+
+                $distance = 5.0;
+                $estimatedTime = 30;
+
                 try {
                     $base = rtrim(config('zonix.osrm_base_url', 'http://router.project-osrm.org'), '/');
                     $osrmUrl = "{$base}/route/v1/driving/$startLng,$startLat;$endLng,$endLat";
-                    $response = Http::timeout(5)->get($osrmUrl, [
-                        'overview' => 'false',
-                    ]);
-                    
+                    $response = Http::timeout(5)->get($osrmUrl, ['overview' => 'false']);
+
                     if ($response->successful()) {
                         $data = $response->json();
-                        if (!empty($data['routes']) && !empty($data['routes'][0])) {
+                        if (!empty($data['routes'][0])) {
                             $routeData = $data['routes'][0];
-                            $distance = round($routeData['distance'] / 1000, 2); // Convertir metros a km
-                            $estimatedTime = round($routeData['duration'] / 60); // Convertir segundos a minutos
+                            $distance = round($routeData['distance'] / 1000, 2);
+                            $estimatedTime = round($routeData['duration'] / 60);
                         }
                     }
                 } catch (\Exception $e) {
                     Log::warning('Error calculando ruta OSRM: ' . $e->getMessage());
-                    // Usar valores por defecto si falla
                 }
-                
+
                 $routes[] = [
                     'id' => $index + 1,
-                    'name' => 'Ruta ' . ($index + 1),
-                    'orders' => [$order->id],
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'commerce_name' => $order->commerce->name ?? 'Comercio',
+                    'delivery_address' => $order->delivery_address ?? $order->shipping_address ?? '',
                     'estimated_time' => $estimatedTime,
                     'total_distance' => $distance,
-                    'status' => $order->delivery->status ?? 'assigned',
-                    'start_location' => [
-                        'lat' => $startLat,
-                        'lng' => $startLng
-                    ],
-                    'end_location' => [
-                        'lat' => $endLat,
-                        'lng' => $endLng
-                    ],
+                    'status' => $order->orderDelivery->status ?? 'assigned',
+                    'total' => $order->total,
                 ];
             }
 
-            return response()->json([
-                'success' => true,
-                'data' => $routes
-            ]);
+            return response()->json(['success' => true, 'data' => $routes]);
         } catch (\Exception $e) {
             Log::error('Error fetching delivery routes: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error fetching delivery routes'
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Error fetching delivery routes'], 500);
         }
     }
 } 
