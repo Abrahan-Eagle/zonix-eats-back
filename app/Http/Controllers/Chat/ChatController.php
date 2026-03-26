@@ -605,11 +605,10 @@ class ChatController extends Controller
         $user = Auth::user();
         $profile = $user->profile;
 
-        // Manejar caso donde el usuario aún no tiene perfil creado
+        // Manejar caso donde el usuario aún no tiene perfil creado (normal antes de onboarding)
         if (!$profile) {
-            Log::warning('⚠️ Intento de registrar FCM token sin perfil asociado', [
+            Log::debug('FCM register omitido: usuario sin perfil aún', [
                 'user_id' => $user?->id,
-                'device_token_preview' => substr($deviceToken, 0, 20) . '...',
             ]);
 
             // No lanzar 500: simplemente informar al frontend para que pueda reintentar
@@ -639,7 +638,7 @@ class ChatController extends Controller
         $profile = Auth::user()->profile;
 
         if (!$profile) {
-            Log::warning('⚠️ Intento de eliminar FCM token sin perfil asociado', [
+            Log::debug('FCM unregister: sin perfil (sin token que borrar)', [
                 'user_id' => Auth::id(),
             ]);
 
