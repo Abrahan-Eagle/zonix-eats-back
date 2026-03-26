@@ -68,9 +68,9 @@ use Illuminate\Support\Facades\Hash;
  * Delivery agent     | 17     | jarvispulido1@gmail.com                      | Google (Jarvis)
  * Delivery agent     | 18     | repartidor2@demo.zonix.eats                 | password
  * Delivery independ. | 19     | delivery.independent@demo.zonix.eats        | password
- * Admin              | 20     | admin@demo.zonix.eats                       | password
+ * Admin              | 20     | jarvispulido5@gmail.com                      | Google (Jarvis Pulido5)
  *
- * Usuarios reales (no cambiar ids): 1 Abrahan, 6 Wistremiro, 16 TOWDAH YADAH, 17 Jarvis. Resto: demo.
+ * Usuarios reales (no cambiar ids): 1 Abrahan, 6 Wistremiro, 16 TOWDAH YADAH, 17 Jarvis, 20 Jarvis Pulido5 (Admin). Resto: demo.
  *
  * --- Repartidores y órdenes (índice en array $agents tras seedDelivery) ---
  * - agents[0]: Jarvis (delivery_agent, company_id = Envíos Carabobo) — asignado a shipped/delivered (con agent_accepted_at + tokens QR).
@@ -474,20 +474,36 @@ class ZonixDemoSeeder extends Seeder
         $this->ensurePhone($p->id, '2612345', 4); // 0416 2612345
         $out['delivery_independent'] = $p;
 
-        // 20. Admin
-        $u = User::create([
-            'name' => 'Admin Zonix',
-            'email' => 'admin@demo.zonix.eats',
-            'email_verified_at' => now(),
-            'password' => $password,
-            'completed_onboarding' => true,
-            'role' => 'admin',
-            'light' => '1',
-        ]);
-        $p = Profile::create([
-            'user_id' => $u->id, 'firstName' => 'Admin', 'lastName' => 'Zonix', 'status' => 'completeData',
-            'photo_users' => self::DEFAULT_AVATAR, 'maritalStatus' => 'single', 'sex' => 'M',
-        ]);
+        // 20. Admin — Jarvis Pulido5 (usuario real Google)
+        $adminPic = 'https://lh3.googleusercontent.com/a/ACg8ocJo-XHm-39I7M___37sfYO4hznJcooBYmTl4cwfIokgXWTW=s96-c';
+        $u = User::updateOrCreate(
+            ['id' => 20],
+            [
+                'name' => 'Admin Zonix',
+                'email' => 'jarvispulido5@gmail.com',
+                'email_verified_at' => now(),
+                'password' => null,
+                'google_id' => '106491522856845756064',
+                'given_name' => 'Jarvis',
+                'family_name' => 'Pulido5',
+                'profile_pic' => $adminPic,
+                'AccessToken' => null,
+                'completed_onboarding' => true,
+                'role' => 'admin',
+                'light' => '1',
+            ]
+        );
+        $p = Profile::updateOrCreate(
+            ['user_id' => $u->id],
+            [
+                'firstName' => 'Jarvis',
+                'lastName' => 'Pulido5',
+                'status' => 'completeData',
+                'photo_users' => $adminPic,
+                'maritalStatus' => 'single',
+                'sex' => 'M',
+            ]
+        );
         $this->ensurePhone($p->id, '4140000', 2); // 0414 4140000
         $out['admin'] = $p;
 
