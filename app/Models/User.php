@@ -141,7 +141,7 @@ class User extends Authenticatable
 
     public function postLikes()
     {
-        return $this->hasMany(PostLike::class);
+        return $this->hasManyThrough(\App\Models\PostLike::class, \App\Models\Profile::class, 'user_id', 'profile_id');
     }
 
     /**
@@ -149,7 +149,7 @@ class User extends Authenticatable
      */
     public function buyerOrders()
     {
-        return $this->hasMany(Order::class, 'buyer_id');
+        return $this->hasManyThrough(Order::class, \App\Models\Profile::class, 'user_id', 'profile_id');
     }
 
     /**

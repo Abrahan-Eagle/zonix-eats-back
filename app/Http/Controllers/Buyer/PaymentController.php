@@ -523,8 +523,9 @@ class PaymentController extends Controller
     {
         try {
             $user = auth()->user();
-            
-            $payments = Order::where('buyer_id', $user->id)
+            $profile = $user->profile;
+
+            $payments = Order::where('profile_id', $profile->id)
                 ->whereNotNull('paid_at')
                 ->with(['commerce'])
                 ->orderBy('paid_at', 'desc')
@@ -562,20 +563,21 @@ class PaymentController extends Controller
     {
         try {
             $user = auth()->user();
-            
+            $profile = $user->profile;
+
             $stats = [
-                'total_payments' => Order::where('buyer_id', $user->id)
+                'total_payments' => Order::where('profile_id', $profile->id)
                     ->where('payment_status', 'paid')
                     ->count(),
-                'total_spent' => Order::where('buyer_id', $user->id)
+                'total_spent' => Order::where('profile_id', $profile->id)
                     ->where('payment_status', 'paid')
                     ->sum('total_amount'),
-                'payment_methods_used' => Order::where('buyer_id', $user->id)
+                'payment_methods_used' => Order::where('profile_id', $profile->id)
                     ->where('payment_status', 'paid')
                     ->select('payment_method', DB::raw('count(*) as count'))
                     ->groupBy('payment_method')
                     ->get(),
-                'monthly_spending' => Order::where('buyer_id', $user->id)
+                'monthly_spending' => Order::where('profile_id', $profile->id)
                     ->where('payment_status', 'paid')
                     ->whereMonth('paid_at', now()->month)
                     ->sum('total_amount')

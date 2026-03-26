@@ -18,12 +18,13 @@ class LoyaltyController extends Controller
     public function getLoyaltyInfo()
     {
         $user = Auth::user();
-        
-        $completedOrders = Order::where('buyer_id', $user->id)
+        $profile = $user->profile;
+
+        $completedOrders = Order::where('profile_id', $profile->id)
             ->where('status', 'delivered')
             ->count();
-        
-        $totalSpent = Order::where('buyer_id', $user->id)
+
+        $totalSpent = Order::where('profile_id', $profile->id)
             ->where('status', 'delivered')
             ->sum('total');
         
@@ -97,8 +98,9 @@ class LoyaltyController extends Controller
     public function getVolumeDiscounts()
     {
         $user = Auth::user();
-        
-        $monthlySpent = Order::where('buyer_id', $user->id)
+        $profile = $user->profile;
+
+        $monthlySpent = Order::where('profile_id', $profile->id)
             ->where('status', 'delivered')
             ->whereMonth('created_at', now()->month)
             ->sum('total');
@@ -255,16 +257,17 @@ class LoyaltyController extends Controller
     public function getLoyaltyStats()
     {
         $user = Auth::user();
-        
-        $totalSpent = Order::where('buyer_id', $user->id)
+        $profile = $user->profile;
+
+        $totalSpent = Order::where('profile_id', $profile->id)
             ->where('status', 'delivered')
             ->sum('total');
-        
-        $monthlySpent = Order::where('buyer_id', $user->id)
+
+        $monthlySpent = Order::where('profile_id', $profile->id)
             ->where('status', 'delivered')
             ->whereMonth('created_at', now()->month)
             ->sum('total');
-        
+
         $loyaltyLevel = $this->calculateLoyaltyLevel($totalSpent);
         
         return response()->json([
@@ -286,16 +289,17 @@ class LoyaltyController extends Controller
     public function getUpcomingBenefits()
     {
         $user = Auth::user();
-        
-        $totalSpent = Order::where('buyer_id', $user->id)
+        $profile = $user->profile;
+
+        $totalSpent = Order::where('profile_id', $profile->id)
             ->where('status', 'delivered')
             ->sum('total');
-        
-        $monthlySpent = Order::where('buyer_id', $user->id)
+
+        $monthlySpent = Order::where('profile_id', $profile->id)
             ->where('status', 'delivered')
             ->whereMonth('created_at', now()->month)
             ->sum('total');
-        
+
         $upcoming = [];
         
         // Beneficios por nivel de lealtad

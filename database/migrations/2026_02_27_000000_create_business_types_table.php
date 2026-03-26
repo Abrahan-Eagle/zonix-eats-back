@@ -15,21 +15,21 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->timestamps();
         });
-
-        Schema::table('commerces', function (Blueprint $table) {
-            $table->unsignedBigInteger('business_type_id')->nullable()->after('business_type');
-            $table->foreign('business_type_id')->references('id')->on('business_types')->onDelete('set null');
-        });
     }
 
     public function down(): void
     {
-        Schema::table('commerces', function (Blueprint $table) {
-            if (Schema::getConnection()->getDriverName() !== 'sqlite') {
-                $table->dropForeign(['business_type_id']);
-            }
-            $table->dropColumn('business_type_id');
-        });
+        // Legacy installs: old up() added FK from commerces → business_types; drop it before dropping the table.
+        if (Schema::hasTable('commerces') && Schema::getConnection()->getDriverName() !== 'sqlite') {
+            Schema::table('commerces', function (Blueprint $table) {
+                try {
+                    $table->dropForeign(['business_type_id']);
+                } catch (\Throwable $e) {
+                    // No FK (consolidated schema uses unsignedBigInteger only)
+                }
+            });
+        }
+
         Schema::dropIfExists('business_types');
     }
 };

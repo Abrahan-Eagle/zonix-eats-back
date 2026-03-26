@@ -21,10 +21,10 @@ class GamificationController extends Controller
         $profile = $user->profile;
         
         // Calcular puntos basados en pedidos completados
-        $completedOrders = Order::where('buyer_id', $user->id)
+        $completedOrders = Order::where('profile_id', $profile->id)
             ->where('status', 'delivered')
             ->count();
-        
+
         $points = $completedOrders * 10; // 10 puntos por pedido
         $level = floor($points / 100) + 1; // 1 nivel por cada 100 puntos
         
@@ -43,13 +43,12 @@ class GamificationController extends Controller
     {
         $user = Auth::user();
         $profile = $user->profile;
-        
-        // Calcular puntos actuales
-        $completedOrders = Order::where('buyer_id', $user->id)
+
+        $completedOrders = Order::where('profile_id', $profile->id)
             ->where('status', 'delivered')
             ->count();
         $points = $completedOrders * 10;
-        
+
         $rewards = [
             [
                 'id' => 1,
@@ -101,13 +100,13 @@ class GamificationController extends Controller
         ]);
         
         $user = Auth::user();
-        
-        // Calcular puntos actuales
-        $completedOrders = Order::where('buyer_id', $user->id)
+        $profile = $user->profile;
+
+        $completedOrders = Order::where('profile_id', $profile->id)
             ->where('status', 'delivered')
             ->count();
         $points = $completedOrders * 10;
-        
+
         $rewards = [
             1 => ['points' => 50, 'type' => 'discount', 'value' => 5],
             2 => ['points' => 100, 'type' => 'free_shipping', 'value' => 0],
@@ -144,12 +143,13 @@ class GamificationController extends Controller
     public function getUserBadges()
     {
         $user = Auth::user();
-        
-        $completedOrders = Order::where('buyer_id', $user->id)
+        $profile = $user->profile;
+
+        $completedOrders = Order::where('profile_id', $profile->id)
             ->where('status', 'delivered')
             ->count();
-        
-        $totalSpent = Order::where('buyer_id', $user->id)
+
+        $totalSpent = Order::where('profile_id', $profile->id)
             ->where('status', 'delivered')
             ->sum('total');
         
@@ -210,7 +210,7 @@ class GamificationController extends Controller
     {
         $leaderboard = DB::table('users')
             ->join('profiles', 'users.id', '=', 'profiles.user_id')
-            ->leftJoin('orders', 'users.id', '=', 'orders.buyer_id')
+            ->leftJoin('orders', 'profiles.id', '=', 'orders.profile_id')
             ->where('orders.status', 'delivered')
             ->select(
                 'users.id',
@@ -236,13 +236,15 @@ class GamificationController extends Controller
     private function getUserPosition()
     {
         $user = Auth::user();
-        
-        $userPoints = Order::where('buyer_id', $user->id)
+        $profile = $user->profile;
+
+        $userPoints = Order::where('profile_id', $profile->id)
             ->where('status', 'delivered')
             ->count() * 10;
-        
+
         $position = DB::table('users')
-            ->leftJoin('orders', 'users.id', '=', 'orders.buyer_id')
+            ->join('profiles', 'users.id', '=', 'profiles.user_id')
+            ->leftJoin('orders', 'profiles.id', '=', 'orders.profile_id')
             ->where('orders.status', 'delivered')
             ->select(DB::raw('COUNT(orders.id) * 10 as points'))
             ->groupBy('users.id')
@@ -258,15 +260,16 @@ class GamificationController extends Controller
     public function getGamificationStats()
     {
         $user = Auth::user();
-        
-        $completedOrders = Order::where('buyer_id', $user->id)
+        $profile = $user->profile;
+
+        $completedOrders = Order::where('profile_id', $profile->id)
             ->where('status', 'delivered')
             ->count();
-        
+
         $points = $completedOrders * 10;
         $level = floor($points / 100) + 1;
-        
-        $totalSpent = Order::where('buyer_id', $user->id)
+
+        $totalSpent = Order::where('profile_id', $profile->id)
             ->where('status', 'delivered')
             ->sum('total');
         

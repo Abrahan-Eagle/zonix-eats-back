@@ -289,15 +289,23 @@ class ProductController extends Controller
     public function estadisticas()
     {
         try {
-            $commerceId = Auth::id();
+            $user = Auth::user();
+            $commerce = $user->profile?->getPrimaryCommerce();
+            if (!$commerce) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Comercio no encontrado para el usuario autenticado',
+                ], 404);
+            }
+            $commerceId = $commerce->id;
 
             $stats = [
                 'total_productos' => Product::where('commerce_id', $commerceId)->count(),
-                'productos_disponibles' => Product::where('commerce_id', $commerceId)->where('disponible', true)->count(),
-                'productos_no_disponibles' => Product::where('commerce_id', $commerceId)->where('disponible', false)->count(),
-                'precio_promedio' => Product::where('commerce_id', $commerceId)->avg('precio'),
-                'producto_mas_caro' => Product::where('commerce_id', $commerceId)->max('precio'),
-                'producto_mas_barato' => Product::where('commerce_id', $commerceId)->min('precio'),
+                'productos_disponibles' => Product::where('commerce_id', $commerceId)->where('available', true)->count(),
+                'productos_no_disponibles' => Product::where('commerce_id', $commerceId)->where('available', false)->count(),
+                'precio_promedio' => Product::where('commerce_id', $commerceId)->avg('price'),
+                'producto_mas_caro' => Product::where('commerce_id', $commerceId)->max('price'),
+                'producto_mas_barato' => Product::where('commerce_id', $commerceId)->min('price'),
             ];
 
             return response()->json([

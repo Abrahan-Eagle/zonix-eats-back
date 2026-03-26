@@ -113,7 +113,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/test/products', function () {
-        $products = \App\Models\Product::where('disponible', true)->get();
+        $products = \App\Models\Product::where('available', true)->get();
         return response()->json($products);
     });
     Route::get('/test/auth', function () {

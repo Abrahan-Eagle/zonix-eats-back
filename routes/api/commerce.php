@@ -4,8 +4,6 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Commerce\OrderController as CommerceOrderController;
 use App\Http\Controllers\Commerce\ProductController;
 use App\Http\Controllers\Commerce\DashboardController;
-use App\Http\Controllers\Commerce\DeliveryRequestController;
-
 Route::middleware(['auth:sanctum', 'role:commerce'])->prefix('commerce')->group(function () {
     Route::get('/commerces', [\App\Http\Controllers\Commerce\CommerceListController::class, 'index']);
     Route::post('/commerces', [\App\Http\Controllers\Commerce\CommerceListController::class, 'store']);
@@ -24,7 +22,6 @@ Route::middleware(['auth:sanctum', 'role:commerce'])->prefix('commerce')->group(
     Route::post('/orders/{id}/approve-for-payment', [CommerceOrderController::class, 'approveForPayment']);
     Route::post('/orders/{id}/reject', [CommerceOrderController::class, 'rejectOrder']);
     Route::get('/orders/{id}/pickup-qr', [CommerceOrderController::class, 'pickupQr']);
-    Route::post('/delivery/request', [DeliveryRequestController::class, 'store']);
     Route::post('orders/{id}/validar-comprobante', [\App\Http\Controllers\Commerce\OrderController::class, 'validarComprobante']);
     Route::put('promotions/{id}/toggle', [\App\Http\Controllers\Commerce\CommercePromotionController::class, 'toggle']);
     Route::apiResource('promotions', \App\Http\Controllers\Commerce\CommercePromotionController::class);

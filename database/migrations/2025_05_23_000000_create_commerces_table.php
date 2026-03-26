@@ -21,6 +21,7 @@ return new class extends Migration
             $table->boolean('is_primary')->default(true); // Multi-restaurante: principal por perfil
             $table->string('business_name')->nullable();
             $table->string('business_type')->nullable();
+            $table->unsignedBigInteger('business_type_id')->nullable();
             $table->string('tax_id')->nullable()->comment('Número de identificación tributaria (RUC, NIT, etc.) - Required según modelo');
             $table->text('image')->nullable();
             $table->text('address')->nullable();
