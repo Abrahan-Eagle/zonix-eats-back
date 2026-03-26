@@ -15,7 +15,19 @@ class CommerceController extends Controller
     {
         $perPage = min((int) $request->get('per_page', 15), 100);
         $perPage = $perPage > 0 ? $perPage : 15;
-        $paginator = Commerce::with('user')->orderBy('id', 'desc')->paginate($perPage);
+
+        $query = Commerce::with('profile.user');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where('business_name', 'like', "%$search%");
+        }
+
+        if ($request->has('open')) {
+            $query->where('open', $request->boolean('open'));
+        }
+
+        $paginator = $query->orderBy('id', 'desc')->paginate($perPage);
 
         return response()->json([
             'success' => true,
@@ -29,16 +41,30 @@ class CommerceController extends Controller
         ]);
     }
 
+    public function show($id)
+    {
+        $commerce = Commerce::with(['profile.user', 'profile.phones', 'profile.addresses'])->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $commerce,
+        ]);
+    }
+
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'activo' => 'required|boolean',
+            'open' => 'required|boolean',
         ]);
 
         $commerce = Commerce::findOrFail($id);
-        $commerce->activo = $request->activo;
+        $commerce->open = $request->boolean('open');
         $commerce->save();
 
-        return response()->json(['message' => 'Estado del comercio actualizado']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Estado del comercio actualizado.',
+            'data' => $commerce,
+        ]);
     }
 }

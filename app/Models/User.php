@@ -121,22 +121,22 @@ class User extends Authenticatable
 
     public function commerce()
     {
-        return $this->hasOne(Commerce::class);
+        return $this->hasOneThrough(Commerce::class, Profile::class, 'user_id', 'profile_id');
     }
 
     public function deliveryCompany()
     {
-        return $this->hasOne(DeliveryCompany::class);
+        return $this->hasOneThrough(DeliveryCompany::class, Profile::class, 'user_id', 'profile_id');
     }
 
     public function deliveryAgent()
     {
-        return $this->hasOne(DeliveryAgent::class);
+        return $this->hasOneThrough(DeliveryAgent::class, Profile::class, 'user_id', 'profile_id');
     }
 
     public function orders()
     {
-        return $this->hasMany(Order::class);
+        return $this->hasManyThrough(Order::class, Profile::class, 'user_id', 'profile_id');
     }
 
     public function postLikes()

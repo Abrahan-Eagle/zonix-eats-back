@@ -96,6 +96,7 @@ class ReportController extends Controller
             $data['order_volume'] = $this->getOrderVolumeData($period);
         }
 
+        $totalUsers = User::count() ?: 1;
         $data['top_performing_roles'] = User::select('role', DB::raw('count(*) as count'))
             ->groupBy('role')
             ->orderByDesc('count')
@@ -104,7 +105,7 @@ class ReportController extends Controller
                 return [
                     'role' => $item->role,
                     'count' => $item->count,
-                    'percentage' => round(($item->count / User::count()) * 100, 1)
+                    'percentage' => round(($item->count / $totalUsers) * 100, 1)
                 ];
             });
 
@@ -227,17 +228,17 @@ class ReportController extends Controller
                 $targetUsers = $users->pluck('id')->toArray();
             }
 
+            $notificationService = app(\App\Services\NotificationService::class);
             $sentCount = 0;
             foreach ($targetUsers as $userId) {
                 $user = User::with('profile')->find($userId);
                 if ($user && $user->profile) {
-                    Notification::create([
-                        'profile_id' => $user->profile->id,
-                        'title' => $request->title,
-                        'body' => $request->message,
-                        'type' => $request->type,
-                        'read_at' => null,
-                    ]);
+                    $notificationService->notify(
+                        $user->profile->id,
+                        $request->title,
+                        $request->message,
+                        $request->type,
+                    );
                     $sentCount++;
                 }
             }

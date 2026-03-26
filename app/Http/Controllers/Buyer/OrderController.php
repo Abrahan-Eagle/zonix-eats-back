@@ -78,13 +78,16 @@ class OrderController extends Controller
         $deliveryLng = (float) $request->delivery_longitude;
 
         $distanceKm = DeliveryFeeService::distanceKm($commerceLat, $commerceLng, $deliveryLat, $deliveryLng);
-        $fee = DeliveryFeeService::calculate($distanceKm);
+        $result = DeliveryFeeService::calculate($distanceKm, $deliveryLat, $deliveryLng);
 
         return response()->json([
             'success' => true,
             'data' => [
-                'delivery_fee' => $fee,
-                'distance_km' => $distanceKm,
+                'delivery_fee'          => $result['fee'],
+                'distance_km'           => $result['distance_km'],
+                'delivery_time_minutes' => $result['delivery_time_minutes'],
+                'zone_id'               => $result['zone_id'],
+                'zone_name'             => $result['zone_name'],
             ],
         ]);
     }

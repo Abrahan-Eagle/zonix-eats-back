@@ -3,6 +3,10 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
+use App\Http\Controllers\Admin\DeliverySettingsController;
+use App\Http\Controllers\Admin\DeliveryZoneController;
+use App\Http\Controllers\Admin\DeliveryCompanyController;
+use App\Http\Controllers\Admin\CommerceController;
 
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/users', [AdminUserController::class, 'index']);
@@ -47,7 +51,24 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::get('/disputes/{id}', [\App\Http\Controllers\Admin\DisputeController::class, 'show']);
     Route::post('/disputes/{id}/resolve', [\App\Http\Controllers\Admin\DisputeController::class, 'resolve']);
 
-    Route::get('/commerces', [\App\Http\Controllers\Admin\AdminOrderController::class, 'commerces']);
+    // Delivery settings (singleton config)
+    Route::get('/delivery-settings', [DeliverySettingsController::class, 'index']);
+    Route::put('/delivery-settings', [DeliverySettingsController::class, 'update']);
+
+    // Delivery zones CRUD
+    Route::apiResource('delivery-zones', DeliveryZoneController::class);
+
+    // Commerces
+    Route::get('/commerces', [CommerceController::class, 'index']);
+    Route::get('/commerces/{id}', [CommerceController::class, 'show']);
+    Route::put('/commerces/{id}/status', [CommerceController::class, 'updateStatus']);
+
+    // Delivery companies
+    Route::get('/delivery-companies', [DeliveryCompanyController::class, 'index']);
+    Route::get('/delivery-companies/{id}', [DeliveryCompanyController::class, 'show']);
+    Route::get('/delivery-companies/{id}/agents', [DeliveryCompanyController::class, 'agents']);
+
+    // Orders
     Route::get('/orders', [\App\Http\Controllers\Admin\AdminOrderController::class, 'index']);
     Route::patch('/orders/{id}/status', [\App\Http\Controllers\Admin\AdminOrderController::class, 'updateStatus']);
 });
