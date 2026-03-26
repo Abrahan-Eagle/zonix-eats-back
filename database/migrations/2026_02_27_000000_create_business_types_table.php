@@ -19,17 +19,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        // Legacy installs: old up() added FK from commerces → business_types; drop it before dropping the table.
-        if (Schema::hasTable('commerces') && Schema::getConnection()->getDriverName() !== 'sqlite') {
-            Schema::table('commerces', function (Blueprint $table) {
-                try {
-                    $table->dropForeign(['business_type_id']);
-                } catch (\Throwable $e) {
-                    // No FK (consolidated schema uses unsignedBigInteger only)
-                }
-            });
-        }
-
         Schema::dropIfExists('business_types');
     }
 };
