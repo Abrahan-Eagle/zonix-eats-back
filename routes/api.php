@@ -364,7 +364,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/orders/{id}/reject', [CommerceOrderController::class, 'rejectOrder']);
         Route::get('/orders/{id}/pickup-qr', [CommerceOrderController::class, 'pickupQr']);
         Route::post('/delivery/request', [DeliveryRequestController::class, 'store']);
-        Route::post('commerce/orders/{id}/validar-comprobante', [\App\Http\Controllers\Commerce\OrderController::class, 'validarComprobante']);
+        Route::post('orders/{id}/validar-comprobante', [\App\Http\Controllers\Commerce\OrderController::class, 'validarComprobante']);
         Route::put('promotions/{id}/toggle', [\App\Http\Controllers\Commerce\CommercePromotionController::class, 'toggle']);
         Route::apiResource('promotions', \App\Http\Controllers\Commerce\CommercePromotionController::class);
 
