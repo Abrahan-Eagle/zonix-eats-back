@@ -64,6 +64,7 @@ class CommerceDataController extends Controller
             'address' => 'sometimes|string|max:500',
             'open' => 'sometimes|boolean',
             'schedule' => 'nullable|string|max:1000',
+            'preparation_time' => 'sometimes|integer|min:1|max:120',
         ]);
 
         if (isset($data['schedule']) && is_string($data['schedule'])) {

@@ -27,7 +27,8 @@ class Commerce extends Model
         'membership_expires_at',
         'commission_percentage',
         'cancellation_count',
-        'last_cancellation_date'
+        'last_cancellation_date',
+        'preparation_time',
     ];
 
     protected $appends = ['phone'];
@@ -40,7 +41,8 @@ class Commerce extends Model
         'commission_percentage' => 'decimal:2',
         'membership_expires_at' => 'datetime',
         'last_cancellation_date' => 'datetime',
-        'cancellation_count' => 'integer'
+        'cancellation_count' => 'integer',
+        'preparation_time' => 'integer',
     ];
 
     /**

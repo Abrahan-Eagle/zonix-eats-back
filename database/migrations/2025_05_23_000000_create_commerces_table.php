@@ -34,6 +34,7 @@ return new class extends Migration
             $table->decimal('commission_percentage', 5, 2)->default(0); // Porcentaje (ej: 10.00 = 10%)
             $table->integer('cancellation_count')->default(0);
             $table->timestamp('last_cancellation_date')->nullable();
+            $table->integer('preparation_time')->nullable();
             $table->timestamps();
         });
     }

@@ -409,6 +409,29 @@ class DeliveryController extends Controller
                 $order->orderDelivery->update(['status' => 'picked_up']);
             }
 
+            // Recalculate ETA using OSRM with agent's real-time location
+            try {
+                if ($agent->current_latitude && $agent->current_longitude
+                    && $order->delivery_latitude && $order->delivery_longitude) {
+                    $base = rtrim(config('zonix.osrm_base_url', 'http://router.project-osrm.org'), '/');
+                    $osrmUrl = "{$base}/route/v1/driving/{$agent->current_longitude},{$agent->current_latitude};{$order->delivery_longitude},{$order->delivery_latitude}";
+                    $osrmResp = Http::timeout(5)->get($osrmUrl, ['overview' => 'false']);
+
+                    if ($osrmResp->successful()) {
+                        $routeData = $osrmResp->json();
+                        if (!empty($routeData['routes'][0]['duration'])) {
+                            $etaMinutes = (int) round($routeData['routes'][0]['duration'] / 60);
+                            $order->update(['estimated_delivery_time' => max(1, $etaMinutes)]);
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning('ETA recalculation on pickup failed, keeping existing ETA', [
+                    'order_id' => $order->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             if (!$order->delivery_token) {
                 $deliveryToken = substr(hash_hmac('sha256', "order:{$order->id}:delivery:" . now()->timestamp, config('app.key')), 0, 16);
                 $order->update(['delivery_token' => $deliveryToken]);

@@ -313,6 +313,44 @@ class OrderController extends Controller
                 return $order;
             });
 
+            // Calculate ETA: preparation_time (commerce) + delivery_time (distance-based)
+            try {
+                $prepTime = $commerce->preparation_time ?? config('zonix.default_preparation_time_minutes', 12);
+                $deliveryTimeMinutes = 0;
+
+                if ($validated['delivery_type'] === 'delivery'
+                    && isset($validated['delivery_latitude'])
+                    && isset($validated['delivery_longitude'])) {
+                    $commerceAddr = $commerce->addresses()
+                        ->whereNotNull('latitude')
+                        ->whereNotNull('longitude')
+                        ->first();
+
+                    if ($commerceAddr) {
+                        $distKm = DeliveryFeeService::distanceKm(
+                            (float) $commerceAddr->latitude,
+                            (float) $commerceAddr->longitude,
+                            (float) $validated['delivery_latitude'],
+                            (float) $validated['delivery_longitude']
+                        );
+                        $feeResult = DeliveryFeeService::calculate(
+                            $distKm,
+                            (float) $validated['delivery_latitude'],
+                            (float) $validated['delivery_longitude']
+                        );
+                        $deliveryTimeMinutes = $feeResult['delivery_time_minutes'] ?? 0;
+                    }
+                }
+
+                $order->estimated_delivery_time = $prepTime + $deliveryTimeMinutes;
+                $order->save();
+            } catch (\Exception $e) {
+                Log::warning('ETA calculation failed, order created without ETA', [
+                    'order_id' => $order->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             // Limpiar carrito después de crear orden exitosamente
             try {
                 $cartService = app(\App\Services\CartService::class);
