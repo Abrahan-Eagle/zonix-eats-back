@@ -17,6 +17,7 @@ use App\Models\CouponUsage;
 use App\Models\DeliveryAgent;
 use App\Models\DeliveryCompany;
 use App\Models\DeliveryPayment;
+use App\Models\DeliverySetting;
 use App\Models\DeliveryZone;
 use App\Models\Dispute;
 use App\Models\Document;
@@ -158,6 +159,7 @@ class ZonixDemoSeeder extends Seeder
         $this->command->info('ZonixDemoSeeder: iniciando datos de referencia y demo.');
 
         $this->seedReferenceData();
+        $this->seedDeliverySettings();
         $users = $this->seedUsersAndProfiles();
         $this->seedAddresses($users);
         $this->ensureUser1AndUser6AddressesAndData($users);
@@ -236,6 +238,20 @@ class ZonixDemoSeeder extends Seeder
             $bt = BusinessType::updateOrCreate(['name' => $t['name']], $t);
             $this->businessTypeIds[$t['name']] = $bt->id;
         }
+    }
+
+    private function seedDeliverySettings(): void
+    {
+        DeliverySetting::updateOrCreate(
+            ['id' => 1],
+            [
+                'base_cost'   => 1.50,
+                'cost_per_km' => 0.50,
+                'free_km'     => 0.00,
+                'fee_min'     => 2.00,
+                'fee_max'     => 15.00,
+            ]
+        );
     }
 
     private function seedUsersAndProfiles(): array
@@ -646,6 +662,7 @@ class ZonixDemoSeeder extends Seeder
                 'image' => self::COMMERCE_IMAGES[$i % count(self::COMMERCE_IMAGES)],
                 'open' => true,
                 'tax_id' => 'J-' . (30000000 + $i),
+                'preparation_time' => $i === 0 ? 15 : rand(10, 25),
             ]);
             $commerces[] = $commerce;
             Address::create([
@@ -1541,35 +1558,31 @@ class ZonixDemoSeeder extends Seeder
         }
     }
 
-    /** Zonas de entrega activas para Valencia (El Socorro, Los Chorritos). */
+    /** Zonas de entrega activas para Valencia — todas las 6 zonas del ZONAS constant. */
     private function seedDeliveryZones(): void
     {
-        $zones = [
-            [
-                'name' => 'El Socorro',
-                'center_latitude' => self::ZONAS[0]['lat'],
-                'center_longitude' => self::ZONAS[0]['lng'],
-                'radius' => 3.5,
-                'delivery_fee' => 2.00,
-                'delivery_time' => 25,
-                'is_active' => true,
-                'description' => 'Zona El Socorro y alrededores, Valencia.',
-            ],
-            [
-                'name' => 'Los Chorritos',
-                'center_latitude' => self::ZONAS[1]['lat'],
-                'center_longitude' => self::ZONAS[1]['lng'],
-                'radius' => 4.0,
-                'delivery_fee' => 2.50,
-                'delivery_time' => 30,
-                'is_active' => true,
-                'description' => 'Zona Los Chorritos y sectores cercanos, Valencia.',
-            ],
+        $zoneConfigs = [
+            ['index' => 0, 'radius' => 3.5, 'fee' => 2.00, 'time' => 20, 'desc' => 'Zona El Socorro y alrededores, Valencia.'],
+            ['index' => 1, 'radius' => 4.0, 'fee' => 2.50, 'time' => 25, 'desc' => 'Zona Los Chorritos y sectores cercanos, Valencia.'],
+            ['index' => 2, 'radius' => 3.0, 'fee' => 3.00, 'time' => 30, 'desc' => 'Zona Mayorista (La Isabelica) y alrededores, Valencia.'],
+            ['index' => 3, 'radius' => 2.5, 'fee' => 2.00, 'time' => 20, 'desc' => 'Zona Bella Florida (La Florida), Valencia.'],
+            ['index' => 4, 'radius' => 5.0, 'fee' => 4.00, 'time' => 35, 'desc' => 'Zona San Diego, periferia Valencia.'],
+            ['index' => 5, 'radius' => 3.0, 'fee' => 2.50, 'time' => 25, 'desc' => 'Zona Santa Rosa y alrededores, Valencia.'],
         ];
-        foreach ($zones as $z) {
+        foreach ($zoneConfigs as $cfg) {
+            $zona = self::ZONAS[$cfg['index']];
             DeliveryZone::firstOrCreate(
-                ['name' => $z['name']],
-                $z
+                ['name' => $zona['name']],
+                [
+                    'name' => $zona['name'],
+                    'center_latitude' => $zona['lat'],
+                    'center_longitude' => $zona['lng'],
+                    'radius' => $cfg['radius'],
+                    'delivery_fee' => $cfg['fee'],
+                    'delivery_time' => $cfg['time'],
+                    'is_active' => true,
+                    'description' => $cfg['desc'],
+                ]
             );
         }
     }
