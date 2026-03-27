@@ -189,7 +189,6 @@ class ZonixDemoSeeder extends Seeder
         $this->seedPostLikes($users);
         $this->seedDeliveryZones();
         $this->seedChatMessages();
-        $this->fixDemoOrderTracking($orders);
 
         $this->command->info('ZonixDemoSeeder: finalizado.');
     }
@@ -294,15 +293,21 @@ class ZonixDemoSeeder extends Seeder
         ];
         $buyerPhones = [['1234567', 4], ['7654321', 2], ['5544332', 4], ['9988776', 2]]; // [7 dígitos, operator_id] → 0416/0414
         foreach ($buyers as $i => $b) {
-            $u = User::create([
-                'name' => $b['name'], 'email' => $b['email'], 'email_verified_at' => now(), 'password' => $password,
-                'given_name' => $b['first'], 'family_name' => $b['last'], 'completed_onboarding' => true, 'role' => 'users', 'light' => '1',
-            ]);
-            $p = Profile::create([
-                'user_id' => $u->id, 'firstName' => $b['first'], 'lastName' => $b['last'], 'status' => 'completeData',
-                'photo_users' => 'https://ui-avatars.com/api/?name=' . urlencode($b['first'] . '+' . $b['last']) . '&size=200&background=random',
-                'maritalStatus' => 'single', 'sex' => $i % 2 === 0 ? 'F' : 'M', 'date_of_birth' => '1992-05-10',
-            ]);
+            $u = User::updateOrCreate(
+                ['email' => $b['email']],
+                [
+                    'name' => $b['name'], 'email_verified_at' => now(), 'password' => $password,
+                    'given_name' => $b['first'], 'family_name' => $b['last'], 'completed_onboarding' => true, 'role' => 'users', 'light' => '1',
+                ]
+            );
+            $p = Profile::updateOrCreate(
+                ['user_id' => $u->id],
+                [
+                    'firstName' => $b['first'], 'lastName' => $b['last'], 'status' => 'completeData',
+                    'photo_users' => 'https://ui-avatars.com/api/?name=' . urlencode($b['first'] . '+' . $b['last']) . '&size=200&background=random',
+                    'maritalStatus' => 'single', 'sex' => $i % 2 === 0 ? 'F' : 'M', 'date_of_birth' => '1992-05-10',
+                ]
+            );
             $this->ensurePhone($p->id, $buyerPhones[$i][0], $buyerPhones[$i][1]); // 0416/0414 + 7 dígitos
             $out['users'][] = $p;
         }
@@ -347,24 +352,29 @@ class ZonixDemoSeeder extends Seeder
         ];
         $commerceTypes = ['Restaurant', 'Pizzería', 'Cafetería', 'Panadería', 'Comida Rápida', 'Sushi Bar', 'Restaurant', 'Comida Rápida', 'Restaurant', 'Cafetería'];
         for ($i = 1; $i < 10; $i++) {
-            $u = User::create([
-                'name' => $commerceNames[$i] . ' (Dueño)',
-                'email' => 'comercio' . ($i + 1) . '@demo.zonix.eats',
-                'email_verified_at' => now(),
-                'password' => $password,
-                'completed_onboarding' => true,
-                'role' => 'commerce',
-                'light' => '1',
-            ]);
-            $p = Profile::create([
-                'user_id' => $u->id,
-                'firstName' => 'Dueño',
-                'lastName' => 'Comercio ' . ($i + 1),
-                'status' => 'completeData',
-                'photo_users' => self::DEFAULT_AVATAR,
-                'maritalStatus' => 'single',
-                'sex' => 'M',
-            ]);
+            $email = 'comercio' . ($i + 1) . '@demo.zonix.eats';
+            $u = User::updateOrCreate(
+                ['email' => $email],
+                [
+                    'name' => $commerceNames[$i] . ' (Dueño)',
+                    'email_verified_at' => now(),
+                    'password' => $password,
+                    'completed_onboarding' => true,
+                    'role' => 'commerce',
+                    'light' => '1',
+                ]
+            );
+            $p = Profile::updateOrCreate(
+                ['user_id' => $u->id],
+                [
+                    'firstName' => 'Dueño',
+                    'lastName' => 'Comercio ' . ($i + 1),
+                    'status' => 'completeData',
+                    'photo_users' => self::DEFAULT_AVATAR,
+                    'maritalStatus' => 'single',
+                    'sex' => 'M',
+                ]
+            );
             $this->ensurePhone($p->id, (string)(5012345 + $i), 1);
             $out['commerce'][] = $p;
         }
@@ -493,19 +503,24 @@ class ZonixDemoSeeder extends Seeder
         }
 
         // 19. Repartidor independiente
-        $u = User::create([
-            'name' => 'Miguel Independiente',
-            'email' => 'delivery.independent@demo.zonix.eats',
-            'email_verified_at' => now(),
-            'password' => $password,
-            'completed_onboarding' => true,
-            'role' => 'delivery',
-            'light' => '1',
-        ]);
-        $p = Profile::create([
-            'user_id' => $u->id, 'firstName' => 'Miguel', 'lastName' => 'Independiente', 'status' => 'completeData',
-            'photo_users' => self::DEFAULT_AVATAR, 'maritalStatus' => 'single', 'sex' => 'M',
-        ]);
+        $u = User::updateOrCreate(
+            ['email' => 'delivery.independent@demo.zonix.eats'],
+            [
+                'name' => 'Miguel Independiente',
+                'email_verified_at' => now(),
+                'password' => $password,
+                'completed_onboarding' => true,
+                'role' => 'delivery',
+                'light' => '1',
+            ]
+        );
+        $p = Profile::updateOrCreate(
+            ['user_id' => $u->id],
+            [
+                'firstName' => 'Miguel', 'lastName' => 'Independiente', 'status' => 'completeData',
+                'photo_users' => self::DEFAULT_AVATAR, 'maritalStatus' => 'single', 'sex' => 'M',
+            ]
+        );
         $this->ensurePhone($p->id, '2612345', 4); // 0416 2612345
         $out['delivery_independent'] = $p;
 
@@ -800,17 +815,25 @@ class ZonixDemoSeeder extends Seeder
         $agents = [];
         foreach ($users['delivery_agents'] as $i => $profile) {
             $zone = $allZones[$i % count($allZones)];
+            $isWorking = $working[$i] ?? true;
+            $isActive = ($statuses[$i] ?? 'activo') === 'activo';
+            $lastUpdate = match (true) {
+                !$isActive => now()->subHours(rand(2, 12)),
+                !$isWorking => now()->subHours(rand(1, 6)),
+                $i <= 4 => now()->subMinutes(rand(1, 5)),
+                default => now()->subMinutes(rand(5, 20)),
+            };
             $agents[] = DeliveryAgent::create([
                 'company_id' => $company->id,
                 'profile_id' => $profile->id,
                 'status' => $statuses[$i] ?? 'activo',
-                'working' => $working[$i] ?? true,
+                'working' => $isWorking,
                 'rating' => $ratings[$i] ?? 4.0,
                 'vehicle_type' => $vehicleTypes[$i] ?? 'motorcycle',
                 'license_number' => 'LIC-' . str_pad((string) $profile->id, 5, '0', STR_PAD_LEFT),
                 'current_latitude' => $zone['lat'] + (rand(-80, 80) / 100000.0),
                 'current_longitude' => $zone['lng'] + (rand(-80, 80) / 100000.0),
-                'last_location_update' => now()->subMinutes(rand(1, 45)),
+                'last_location_update' => $lastUpdate,
             ]);
         }
         $elSocorro = self::ZONAS[0];
@@ -831,46 +854,75 @@ class ZonixDemoSeeder extends Seeder
     }
 
     /**
-     * Órdenes de prueba para evaluar todo el flujo: pending_payment, paid, processing, shipped, delivered, cancelled.
-     * Buyer 1 (Abrahan): 6 órdenes. Buyer 2 (María): 1 orden entregada para listados más ricos.
+     * Ordenes realistas: multiples compradores, multiples comercios, delivery y pickup,
+     * fees variados, comisiones, agentes diversos asignados a ordenes shipped.
      */
     private function seedOrders(array $users, array $commerces, array $agents): array
     {
-        $buyerProfile = $users['users'][0];
-        $commerce = $commerces[0];
-        $products = Product::where('commerce_id', $commerce->id)->where('available', true)->get();
-        if ($products->isEmpty()) {
-            return [];
-        }
+        $zonas = self::ZONAS;
+        $paymentMethods = ['cash', 'mobile_payment', 'bank_transfer', 'mobile_payment', 'cash'];
+        $deliveryCompanyId = DeliveryCompany::where('active', true)->first()?->id;
         $created = [];
-        $elSocorro = self::ZONAS[0];
-        $deliveryAddress = 'Av. Principal El Socorro, Valencia 2001, Carabobo';
 
-        // 6 órdenes para Abrahan (user 1): cubrir todos los estados para tests
-        $statuses = [
-            ['status' => 'pending_payment', 'delivery' => true, 'created_at' => now()],
-            ['status' => 'paid', 'delivery' => true, 'created_at' => now()->subHours(2)],
-            ['status' => 'processing', 'delivery' => true, 'created_at' => now()->subHours(1)],
-            ['status' => 'shipped', 'delivery' => true, 'created_at' => now()->subMinutes(30)],
-            ['status' => 'delivered', 'delivery' => true, 'created_at' => now()->subDay()],
-            ['status' => 'delivered', 'delivery' => true, 'created_at' => now()->subDays(2)],
-            ['status' => 'cancelled', 'delivery' => false, 'created_at' => now()->subDays(1)],
+        $orderConfigs = [
+            // Buyer 0 (Abrahan) — cubrir todos los estados
+            ['buyer' => 0, 'commerce' => 0, 'status' => 'pending_payment', 'type' => 'delivery', 'zone' => 0, 'fee' => 2.50, 'ago' => 'now'],
+            ['buyer' => 0, 'commerce' => 1, 'status' => 'paid',            'type' => 'delivery', 'zone' => 1, 'fee' => 3.00, 'ago' => '2h'],
+            ['buyer' => 0, 'commerce' => 2, 'status' => 'processing',      'type' => 'delivery', 'zone' => 0, 'fee' => 2.00, 'ago' => '1h'],
+            ['buyer' => 0, 'commerce' => 0, 'status' => 'shipped',         'type' => 'delivery', 'zone' => 0, 'fee' => 3.50, 'ago' => '30m', 'agent' => 0],
+            ['buyer' => 0, 'commerce' => 3, 'status' => 'delivered',        'type' => 'delivery', 'zone' => 3, 'fee' => 4.00, 'ago' => '1d',  'agent' => 0],
+            ['buyer' => 0, 'commerce' => 0, 'status' => 'delivered',        'type' => 'pickup',   'zone' => 0, 'fee' => 0,    'ago' => '2d'],
+            ['buyer' => 0, 'commerce' => 4, 'status' => 'cancelled',        'type' => 'delivery', 'zone' => 4, 'fee' => 5.00, 'ago' => '1d'],
+            // Buyer 1 (Maria) — ordenes entregadas para historial
+            ['buyer' => 1, 'commerce' => 0, 'status' => 'delivered',        'type' => 'delivery', 'zone' => 1, 'fee' => 2.50, 'ago' => '3d',  'agent' => 1],
+            // Buyer 2-3 — ordenes shipped con agentes nuevos (rutas visibles en mapa)
+            ['buyer' => 2, 'commerce' => 1, 'status' => 'shipped',         'type' => 'delivery', 'zone' => 5, 'fee' => 3.00, 'ago' => '20m', 'agent' => 2],
+            ['buyer' => 3, 'commerce' => 2, 'status' => 'shipped',         'type' => 'delivery', 'zone' => 3, 'fee' => 4.50, 'ago' => '15m', 'agent' => 4],
+            // Processing sin agente — "Disponibles" para repartidores
+            ['buyer' => 2, 'commerce' => 3, 'status' => 'processing',      'type' => 'delivery', 'zone' => 2, 'fee' => 3.00, 'ago' => '10m'],
+            ['buyer' => 3, 'commerce' => 5, 'status' => 'processing',      'type' => 'delivery', 'zone' => 4, 'fee' => 4.00, 'ago' => '5m'],
         ];
-        foreach ($statuses as $i => $cfg) {
-            $deliveryFee = $cfg['delivery'] ? 3.50 : 0;
+
+        foreach ($orderConfigs as $i => $cfg) {
+            $buyerProfile = $users['users'][$cfg['buyer']] ?? $users['users'][0];
+            $commerce = $commerces[$cfg['commerce']] ?? $commerces[0];
+            $products = Product::where('commerce_id', $commerce->id)->where('available', true)->get();
+            if ($products->isEmpty()) continue;
+
+            $zone = $zonas[$cfg['zone']];
+            $isDelivery = $cfg['type'] === 'delivery';
+            $deliveryFee = $isDelivery ? $cfg['fee'] : 0;
             $isPaidOrBeyond = in_array($cfg['status'], ['paid', 'processing', 'shipped', 'delivered']);
-            $deliveryCompanyId = $cfg['delivery'] ? DeliveryCompany::where('active', true)->first()?->id : null;
-            $hasAgent = $cfg['delivery'] && in_array($cfg['status'], ['shipped', 'delivered']);
-            $hasPickupToken = in_array($cfg['status'], ['shipped', 'delivered']);
-            $hasDeliveryToken = $cfg['status'] === 'delivered';
-            $pickupToken = $hasPickupToken ? substr(hash_hmac('sha256', "order:seed:pickup:$i", config('app.key')), 0, 16) : null;
-            $deliveryToken = $hasDeliveryToken ? substr(hash_hmac('sha256', "order:seed:delivery:$i", config('app.key')), 0, 16) : null;
+            $hasAgent = isset($cfg['agent']) && isset($agents[$cfg['agent']]);
+            $createdAt = match($cfg['ago']) {
+                'now' => now(),
+                '30m' => now()->subMinutes(30),
+                '20m' => now()->subMinutes(20),
+                '15m' => now()->subMinutes(15),
+                '10m' => now()->subMinutes(10),
+                '5m' => now()->subMinutes(5),
+                '1h' => now()->subHours(1),
+                '2h' => now()->subHours(2),
+                '1d' => now()->subDay(),
+                '2d' => now()->subDays(2),
+                '3d' => now()->subDays(3),
+                default => now(),
+            };
+
+            $buyerAddr = Address::where('profile_id', $buyerProfile->id)->where('is_default', true)->first();
+            $delLat = $isDelivery ? ($buyerAddr->latitude ?? $zone['lat']) : null;
+            $delLng = $isDelivery ? ($buyerAddr->longitude ?? $zone['lng']) : null;
+            $delAddress = $isDelivery ? ($buyerAddr->street ?? $zone['street']) . ', Valencia, Carabobo' : null;
+
+            $pickupToken = in_array($cfg['status'], ['shipped', 'delivered']) ? substr(hash_hmac('sha256', "order:seed:$i", config('app.key')), 0, 16) : null;
+            $deliveryToken = $cfg['status'] === 'delivered' ? substr(hash_hmac('sha256', "order:seed:dt:$i", config('app.key')), 0, 16) : null;
+            $payMethod = $isPaidOrBeyond ? $paymentMethods[$i % count($paymentMethods)] : null;
 
             $order = Order::create([
                 'profile_id' => $buyerProfile->id,
                 'commerce_id' => $commerce->id,
-                'delivery_company_id' => $deliveryCompanyId,
-                'delivery_type' => $cfg['delivery'] ? 'delivery' : 'pickup',
+                'delivery_company_id' => $isDelivery ? $deliveryCompanyId : null,
+                'delivery_type' => $cfg['type'],
                 'status' => $cfg['status'],
                 'approved_for_payment' => $isPaidOrBeyond,
                 'total' => 0,
@@ -879,161 +931,58 @@ class ZonixDemoSeeder extends Seeder
                 'commission_amount' => 0,
                 'cancellation_penalty' => 0,
                 'cancelled_by' => $cfg['status'] === 'cancelled' ? 'user_id' : null,
-                'estimated_delivery_time' => $cfg['delivery'] ? 25 : null,
-                'payment_method' => $cfg['status'] !== 'pending_payment' ? 'cash' : null,
-                'reference_number' => $cfg['status'] !== 'pending_payment' ? 'REF' . (10000 + $i) : null,
-                'payment_validated_at' => $isPaidOrBeyond ? ($cfg['created_at'] ?? now()) : null,
-                'delivery_address' => $cfg['delivery'] ? $deliveryAddress : null,
-                'delivery_latitude' => $cfg['delivery'] ? $elSocorro['lat'] : null,
-                'delivery_longitude' => $cfg['delivery'] ? $elSocorro['lng'] : null,
+                'estimated_delivery_time' => $isDelivery ? rand(15, 40) : null,
+                'payment_method' => $payMethod,
+                'reference_number' => $isPaidOrBeyond ? 'REF' . (10000 + $i) : null,
+                'payment_validated_at' => $isPaidOrBeyond ? $createdAt : null,
+                'delivery_address' => $delAddress,
+                'delivery_latitude' => $delLat,
+                'delivery_longitude' => $delLng,
                 'cancellation_reason' => $cfg['status'] === 'cancelled' ? 'Solicitud del cliente' : null,
-                'agent_accepted_at' => $hasAgent ? ($cfg['created_at'] ?? now()) : null,
+                'agent_accepted_at' => $hasAgent ? $createdAt : null,
                 'pickup_token' => $pickupToken,
                 'delivery_token' => $deliveryToken,
-                'created_at' => $cfg['created_at'] ?? now(),
+                'created_at' => $createdAt,
             ]);
+
             $total = 0;
-            $selected = $products->random(min(3, $products->count()));
+            $selected = $products->random(min(rand(2, 4), $products->count()));
             foreach ($selected as $p) {
-                $qty = rand(1, 2);
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $p->id,
-                    'quantity' => $qty,
-                    'unit_price' => $p->price,
-                ]);
+                $qty = rand(1, 3);
+                OrderItem::create(['order_id' => $order->id, 'product_id' => $p->id, 'quantity' => $qty, 'unit_price' => $p->price]);
                 $total += $p->price * $qty;
             }
-            $order->update(['total' => $total]);
-            // Crear OrderPayment para food
-            $subtotal = $total - $deliveryFee;
+            $commission = round($total * 0.05, 2);
+            $order->update(['total' => $total + $deliveryFee, 'commission_amount' => $commission]);
+
             OrderPayment::create([
-                'order_id' => $order->id,
-                'type' => 'food',
-                'amount' => max(0, $subtotal),
-                'payee_type' => 'commerce',
-                'payee_id' => $commerce->id,
-                'payment_method_label' => $isPaidOrBeyond ? 'cash' : null,
-                'reference_number' => $isPaidOrBeyond ? 'REF' . (10000 + $i) : null,
+                'order_id' => $order->id, 'type' => 'food', 'amount' => max(0, $total),
+                'payee_type' => 'commerce', 'payee_id' => $commerce->id,
+                'payment_method_label' => $payMethod, 'reference_number' => $isPaidOrBeyond ? 'REF' . (10000 + $i) : null,
                 'payment_proof' => $isPaidOrBeyond ? 'payment_proofs/demo_food.jpg' : null,
                 'payment_proof_uploaded_at' => $isPaidOrBeyond ? now() : null,
                 'validated_at' => $isPaidOrBeyond ? now() : null,
             ]);
-            if ($cfg['delivery'] && $deliveryFee > 0 && $deliveryCompanyId) {
+            if ($isDelivery && $deliveryFee > 0 && $deliveryCompanyId) {
                 OrderPayment::create([
-                    'order_id' => $order->id,
-                    'type' => 'delivery',
-                    'amount' => $deliveryFee,
-                    'payee_type' => 'delivery_company',
-                    'payee_id' => $deliveryCompanyId,
-                    'payment_method_label' => $isPaidOrBeyond ? 'cash' : null,
-                    'reference_number' => $isPaidOrBeyond ? 'REF-D' . (10000 + $i) : null,
+                    'order_id' => $order->id, 'type' => 'delivery', 'amount' => $deliveryFee,
+                    'payee_type' => 'delivery_company', 'payee_id' => $deliveryCompanyId,
+                    'payment_method_label' => $payMethod, 'reference_number' => $isPaidOrBeyond ? 'REF-D' . (10000 + $i) : null,
                     'payment_proof' => $isPaidOrBeyond ? 'payment_proofs/demo_delivery.jpg' : null,
                     'payment_proof_uploaded_at' => $isPaidOrBeyond ? now() : null,
                     'validated_at' => $isPaidOrBeyond ? now() : null,
                 ]);
             }
-            // Reparto: Jarvis (agents[0]) en shipped + 1ª delivered; Pedro (agents[1]) en 2ª delivered — misma empresa.
-            if ($cfg['delivery'] && in_array($cfg['status'], ['shipped', 'delivered'])) {
-                $pickAgent = $agents[0] ?? null;
-                if ($cfg['status'] === 'delivered' && $i === 5 && isset($agents[1])) {
-                    $pickAgent = $agents[1];
-                }
-                if ($pickAgent) {
-                    OrderDelivery::create([
-                        'order_id' => $order->id,
-                        'agent_id' => $pickAgent->id,
-                        'status' => $cfg['status'] === 'shipped' ? 'in_transit' : 'delivered',
-                        'delivery_fee' => $deliveryFee,
-                    ]);
-                }
-            }
-            $created[] = $order;
-        }
-
-        // 1 orden entregada para segundo comprador (María) - listados admin/commerce más ricos
-        if (isset($users['users'][1])) {
-            $secondBuyer = $users['users'][1];
-            $order = Order::create([
-                'profile_id' => $secondBuyer->id,
-                'commerce_id' => $commerce->id,
-                'delivery_type' => 'delivery',
-                'status' => 'delivered',
-                'approved_for_payment' => true,
-                'total' => 0,
-                'delivery_fee' => 3.50,
-                'delivery_payment_amount' => 3.50,
-                'commission_amount' => 0,
-                'estimated_delivery_time' => 25,
-                'payment_method' => 'cash',
-                'reference_number' => 'REF20001',
-                'payment_validated_at' => now()->subDays(3),
-                'delivery_address' => $deliveryAddress,
-                'delivery_latitude' => $elSocorro['lat'],
-                'delivery_longitude' => $elSocorro['lng'],
-                'created_at' => now()->subDays(3),
-            ]);
-            $total = 0;
-            foreach ($products->take(2) as $p) {
-                $qty = 1;
-                OrderItem::create(['order_id' => $order->id, 'product_id' => $p->id, 'quantity' => $qty, 'unit_price' => $p->price]);
-                $total += $p->price * $qty;
-            }
-            $order->update(['total' => $total]);
-            // Comprador 2: entrega por repartidor independiente (agents[2]) si existe — enlaza rol delivery sin empresa.
-            $agentMaria = isset($agents[2]) ? $agents[2] : ($agents[0] ?? null);
-            if ($agentMaria) {
+            if ($hasAgent && in_array($cfg['status'], ['shipped', 'delivered'])) {
                 OrderDelivery::create([
                     'order_id' => $order->id,
-                    'agent_id' => $agentMaria->id,
-                    'status' => 'delivered',
-                    'delivery_fee' => 3.50,
+                    'agent_id' => $agents[$cfg['agent']]->id,
+                    'status' => $cfg['status'] === 'shipped' ? 'in_transit' : 'delivered',
+                    'delivery_fee' => $deliveryFee,
                 ]);
             }
             $created[] = $order;
         }
-
-        // 2 órdenes processing SIN delivery asignado → aparecen en "Disponibles" para repartidores
-        $availableBuyers = [$users['users'][2] ?? $users['users'][0], $users['users'][3] ?? $users['users'][0]];
-        $availableCommerces = [$commerces[1] ?? $commerce, $commerces[2] ?? $commerce];
-        foreach ([0, 1] as $idx) {
-            $buyer = $availableBuyers[$idx];
-            $comm = $availableCommerces[$idx];
-            $prods = Product::where('commerce_id', $comm->id)->where('available', true)->take(3)->get();
-            if ($prods->isEmpty()) {
-                continue;
-            }
-            $zone = self::ZONAS[($idx + 1) % count(self::ZONAS)];
-            $order = Order::create([
-                'profile_id' => $buyer->id,
-                'commerce_id' => $comm->id,
-                'delivery_type' => 'delivery',
-                'status' => 'processing',
-                'approved_for_payment' => true,
-                'total' => 0,
-                'delivery_fee' => 3.00,
-                'delivery_payment_amount' => null,
-                'commission_amount' => 0,
-                'estimated_delivery_time' => 30,
-                'payment_method' => 'mobile_payment',
-                'reference_number' => 'REF-AVAIL-' . ($idx + 1),
-                'payment_validated_at' => now()->subMinutes(15),
-                'pickup_token' => substr(hash_hmac('sha256', "order:seed:avail:$idx", config('app.key')), 0, 16),
-                'delivery_address' => $zone['street'] . ', Valencia, Carabobo',
-                'delivery_latitude' => $zone['lat'],
-                'delivery_longitude' => $zone['lng'],
-                'created_at' => now()->subMinutes(10 + $idx * 5),
-            ]);
-            $total = 0;
-            foreach ($prods as $p) {
-                $qty = rand(1, 2);
-                OrderItem::create(['order_id' => $order->id, 'product_id' => $p->id, 'quantity' => $qty, 'unit_price' => $p->price]);
-                $total += $p->price * $qty;
-            }
-            $order->update(['total' => $total]);
-            $created[] = $order;
-        }
-
         return $created;
     }
 
@@ -1233,27 +1182,36 @@ class ZonixDemoSeeder extends Seeder
 
     private function seedReviews(): void
     {
+        $commerceComments = [
+            5 => 'Excelente comida, la mejor de Valencia.',
+            4 => 'Buena comida, pedido correcto.',
+            3 => 'Regular, la comida llegó tibia.',
+            5 => '10/10, sabor y presentación impecables.',
+            4 => 'Buena relación calidad-precio.',
+        ];
+        $deliveryComments = [
+            5 => 'Llegó súper rápido, muy amable.',
+            4 => 'Buen servicio, puntual.',
+            3 => 'Tardó un poco pero todo correcto.',
+            5 => 'Excelente motorizado, muy profesional.',
+            4 => 'Sin problemas, entrega rápida.',
+        ];
+
         $orders = Order::where('status', 'delivered')->get();
-        foreach ($orders->take(5) as $order) {
+        $cRatings = array_keys($commerceComments);
+        $dRatings = array_keys($deliveryComments);
+        foreach ($orders as $i => $order) {
+            $cRating = $cRatings[$i % count($cRatings)];
             Review::firstOrCreate(
-                [
-                    'profile_id' => $order->profile_id,
-                    'order_id' => $order->id,
-                    'reviewable_type' => Commerce::class,
-                    'reviewable_id' => $order->commerce_id,
-                ],
-                ['rating' => rand(4, 5), 'comment' => 'Excelente servicio y comida.']
+                ['profile_id' => $order->profile_id, 'order_id' => $order->id, 'reviewable_type' => Commerce::class, 'reviewable_id' => $order->commerce_id],
+                ['rating' => $cRating, 'comment' => $commerceComments[$cRating]]
             );
             $od = $order->orderDelivery;
             if ($od && $od->agent) {
+                $dRating = $dRatings[$i % count($dRatings)];
                 Review::firstOrCreate(
-                    [
-                        'profile_id' => $order->profile_id,
-                        'order_id' => $order->id,
-                        'reviewable_type' => DeliveryAgent::class,
-                        'reviewable_id' => $od->agent->id,
-                    ],
-                    ['rating' => rand(4, 5), 'comment' => 'Llegó a tiempo, muy amable.']
+                    ['profile_id' => $order->profile_id, 'order_id' => $order->id, 'reviewable_type' => DeliveryAgent::class, 'reviewable_id' => $od->agent->id],
+                    ['rating' => $dRating, 'comment' => $deliveryComments[$dRating]]
                 );
             }
         }
@@ -1261,24 +1219,28 @@ class ZonixDemoSeeder extends Seeder
 
     private function seedDisputes(): void
     {
-        $order = Order::whereIn('status', ['delivered', 'cancelled'])->first();
-        if (!$order || !$order->profile) {
-            return;
+        $disputes = [
+            ['type' => 'quality_issue',    'desc' => 'Producto llegó frío y en mal estado.',              'status' => 'pending'],
+            ['type' => 'delivery_problem', 'desc' => 'Faltaron 2 items del pedido, bolsa incompleta.',    'status' => 'in_review'],
+            ['type' => 'payment_issue',    'desc' => 'Me cobraron de más en el delivery fee.',            'status' => 'resolved'],
+            ['type' => 'other',            'desc' => 'Me entregaron un pedido que no era el mío.',        'status' => 'pending'],
+        ];
+        $orders = Order::whereIn('status', ['delivered', 'cancelled'])->with('commerce')->take(4)->get();
+        foreach ($orders as $i => $order) {
+            if (!$order->profile || !$order->commerce || $i >= count($disputes)) continue;
+            $d = $disputes[$i];
+            Dispute::firstOrCreate(
+                ['order_id' => $order->id, 'reported_by_type' => Profile::class, 'reported_by_id' => $order->profile_id],
+                [
+                    'reported_against_type' => Commerce::class,
+                    'reported_against_id' => $order->commerce->profile_id,
+                    'type' => $d['type'],
+                    'description' => $d['desc'],
+                    'status' => $d['status'],
+                    'admin_notes' => $d['status'] === 'resolved' ? 'Reembolso procesado al cliente.' : null,
+                ]
+            );
         }
-        Dispute::firstOrCreate(
-            [
-                'order_id' => $order->id,
-                'reported_by_type' => Profile::class,
-                'reported_by_id' => $order->profile_id,
-                'reported_against_type' => Commerce::class,
-                'reported_against_id' => $order->commerce->profile_id,
-            ],
-            [
-                'type' => 'quality_issue',
-                'description' => 'Demo: producto llegó frío.',
-                'status' => 'pending',
-            ]
-        );
     }
 
     private function seedDeliveryPayments(): void
@@ -1710,34 +1672,4 @@ class ZonixDemoSeeder extends Seeder
         }
     }
 
-    private function fixDemoOrderTracking(array $orders): void
-    {
-        $elSocorro = self::ZONAS[0];
-        $santaRosa = self::ZONAS[5];
-        foreach ($orders as $order) {
-            if ($order->delivery_type !== 'delivery') {
-                continue;
-            }
-            $order->update([
-                'delivery_latitude' => $elSocorro['lat'],
-                'delivery_longitude' => $elSocorro['lng'],
-            ]);
-            $od = OrderDelivery::where('order_id', $order->id)->first();
-            if ($od && $od->agent) {
-                $od->agent->update([
-                    'current_latitude' => $santaRosa['lat'],
-                    'current_longitude' => $santaRosa['lng'],
-                    'last_location_update' => now(),
-                ]);
-            }
-            $addr = Address::where('profile_id', $order->profile_id)->where('is_default', true)->first();
-            if ($addr) {
-                $addr->update([
-                    'street' => $elSocorro['street'],
-                    'latitude' => $elSocorro['lat'],
-                    'longitude' => $elSocorro['lng'],
-                ]);
-            }
-        }
-    }
 }
