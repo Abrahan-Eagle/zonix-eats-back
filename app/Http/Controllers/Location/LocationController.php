@@ -277,10 +277,10 @@ class LocationController extends Controller
             $base = rtrim(config('zonix.osrm_base_url', 'http://router.project-osrm.org'), '/');
             $osrmUrl = "{$base}/route/v1/$profile/$originLng,$originLat;$destLng,$destLat";
             
-            $response = Http::timeout(10)->get($osrmUrl, [
+            $response = Http::timeout(5)->get($osrmUrl, [
                 'overview' => 'full',
                 'geometries' => 'geojson',
-                'steps' => 'true',
+                'steps' => 'false',
             ]);
 
             if ($response->successful()) {
