@@ -16,33 +16,36 @@ class DeliveryLocationUpdated implements ShouldBroadcast
 
     public $orderId;
     public $deliveryAgentId;
+    public $companyId;
     public $latitude;
     public $longitude;
     public $estimatedArrival;
 
-    /**
-     * Create a new event instance.
-     */
-    public function __construct($orderId, $deliveryAgentId, $latitude, $longitude, $estimatedArrival = null)
+    public function __construct($orderId, $deliveryAgentId, $latitude, $longitude, $estimatedArrival = null, $companyId = null)
     {
         $this->orderId = $orderId;
         $this->deliveryAgentId = $deliveryAgentId;
         $this->latitude = $latitude;
         $this->longitude = $longitude;
         $this->estimatedArrival = $estimatedArrival;
+        $this->companyId = $companyId;
     }
 
-    /**
-     * Get the channels the event should broadcast on.
-     *
-     * @return array<int, \Illuminate\Broadcasting\Channel>
-     */
     public function broadcastOn(): array
     {
-        return [
-            new PrivateChannel('orders.' . $this->orderId),
+        $channels = [
             new PrivateChannel('delivery.' . $this->deliveryAgentId),
         ];
+
+        if ($this->orderId) {
+            $channels[] = new PrivateChannel('orders.' . $this->orderId);
+        }
+
+        if ($this->companyId) {
+            $channels[] = new PrivateChannel('company.' . $this->companyId);
+        }
+
+        return $channels;
     }
 
     /**

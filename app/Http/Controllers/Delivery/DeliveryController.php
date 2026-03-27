@@ -689,6 +689,19 @@ class DeliveryController extends Controller
                 'last_location_update' => now(),
             ]);
 
+            $activeDelivery = OrderDelivery::where('agent_id', $deliveryAgent->id)
+                ->whereIn('status', ['assigned', 'picked_up', 'in_transit'])
+                ->first();
+
+            event(new \App\Events\DeliveryLocationUpdated(
+                $activeDelivery?->order_id,
+                $deliveryAgent->id,
+                $request->latitude,
+                $request->longitude,
+                null,
+                $deliveryAgent->company_id,
+            ));
+
             Log::debug('[DeliveryAPI] updateLocation OK', $this->deliveryLogContext([
                 'agent_id' => $deliveryAgent->id,
                 'lat' => $request->latitude,

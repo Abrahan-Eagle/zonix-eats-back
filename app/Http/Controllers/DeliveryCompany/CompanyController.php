@@ -84,6 +84,16 @@ class CompanyController extends Controller
                         'active' => (bool) $company->active,
                         'open' => (bool) $company->open,
                         'default_payout_percentage' => (float) ($company->default_payout_percentage ?? 70),
+                        'headquarters' => (function () use ($company) {
+                            $addr = $company->profile?->addresses()
+                                ->whereNotNull('latitude')->whereNotNull('longitude')
+                                ->first();
+                            return $addr ? [
+                                'latitude' => (float) $addr->latitude,
+                                'longitude' => (float) $addr->longitude,
+                                'address' => $addr->address ?? $company->address,
+                            ] : null;
+                        })(),
                     ],
                     'agents_count' => count($agentIds),
                     'active_agents' => $activeAgents,
@@ -105,7 +115,7 @@ class CompanyController extends Controller
     /**
      * GET /api/delivery-company/agents
      */
-    public function agents()
+    public function agents(Request $request)
     {
         try {
             $company = $this->getAuthCompany();
@@ -113,35 +123,56 @@ class CompanyController extends Controller
                 return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
             }
 
-            $agents = DeliveryAgent::where('company_id', $company->id)
-                ->with(['profile.user', 'profile.phones'])
-                ->get()
-                ->map(function ($agent) {
-                    $profile = $agent->profile;
-                    $user = $profile?->user;
-                    $phone = $profile?->phones?->first();
+            $query = DeliveryAgent::where('company_id', $company->id)
+                ->with(['profile.user', 'profile.phones']);
 
-                    $totalDeliveries = OrderDelivery::where('agent_id', $agent->id)
-                        ->where('status', 'delivered')->count();
-                    $avgRating = Review::where('reviewable_type', DeliveryAgent::class)
-                        ->where('reviewable_id', $agent->id)->avg('rating') ?? 0;
+            if ($request->boolean('active_only', false)) {
+                $query->where('status', 'activo');
+            }
 
-                    return [
-                        'id' => $agent->id,
-                        'name' => trim(($profile->firstName ?? '') . ' ' . ($profile->lastName ?? '')),
-                        'photo' => $user->photo_users ?? null,
-                        'phone' => $phone?->phone_number ?? null,
-                        'status' => $agent->status,
-                        'working' => (bool) $agent->working,
-                        'vehicle_type' => $agent->vehicle_type,
-                        'license_number' => $agent->license_number,
-                        'rating' => round($avgRating, 1),
-                        'total_deliveries' => $totalDeliveries,
-                        'current_latitude' => $agent->current_latitude,
-                        'current_longitude' => $agent->current_longitude,
-                        'payout_percentage' => (float) ($agent->payout_percentage ?? 70),
-                    ];
-                });
+            $agents = $query->get()->map(function ($agent) {
+                $profile = $agent->profile;
+                $user = $profile?->user;
+                $phone = $profile?->phones?->first();
+
+                $totalDeliveries = OrderDelivery::where('agent_id', $agent->id)
+                    ->where('status', 'delivered')->count();
+                $avgRating = Review::where('reviewable_type', DeliveryAgent::class)
+                    ->where('reviewable_id', $agent->id)->avg('rating') ?? 0;
+
+                $activeDelivery = OrderDelivery::where('agent_id', $agent->id)
+                    ->whereIn('status', ['assigned', 'picked_up', 'in_transit'])
+                    ->with('order:id,status')
+                    ->first();
+
+                return [
+                    'id' => $agent->id,
+                    'name' => trim(($profile->firstName ?? '') . ' ' . ($profile->lastName ?? '')),
+                    'photo' => $user->photo_users ?? null,
+                    'phone' => $phone?->phone_number ?? null,
+                    'status' => $agent->status,
+                    'working' => (bool) $agent->working,
+                    'is_active' => $agent->status === 'activo',
+                    'vehicle_type' => $agent->vehicle_type,
+                    'license_number' => $agent->license_number,
+                    'rating' => round($avgRating, 1),
+                    'total_deliveries' => $totalDeliveries,
+                    'current_latitude' => $agent->current_latitude,
+                    'current_longitude' => $agent->current_longitude,
+                    'last_location_update' => $agent->last_location_update,
+                    'payout_percentage' => (float) ($agent->payout_percentage ?? 70),
+                    'current_order_id' => $activeDelivery?->order_id,
+                    'current_order_status' => $activeDelivery?->order?->status,
+                    'is_busy' => $activeDelivery !== null,
+                ];
+            });
+
+            $statusFilter = $request->query('status');
+            if ($statusFilter === 'available') {
+                $agents = $agents->where('is_busy', false)->values();
+            } elseif ($statusFilter === 'busy') {
+                $agents = $agents->where('is_busy', true)->values();
+            }
 
             return response()->json(['success' => true, 'data' => $agents]);
         } catch (\Exception $e) {
