@@ -142,8 +142,20 @@ class CompanyController extends Controller
 
                 $activeDelivery = OrderDelivery::where('agent_id', $agent->id)
                     ->whereIn('status', ['assigned', 'picked_up', 'in_transit'])
-                    ->with('order:id,status')
+                    ->with('order:id,status,delivery_latitude,delivery_longitude,delivery_address')
                     ->first();
+
+                $destination = null;
+                if ($activeDelivery?->order) {
+                    $o = $activeDelivery->order;
+                    if ($o->delivery_latitude && $o->delivery_longitude) {
+                        $destination = [
+                            'latitude' => (float) $o->delivery_latitude,
+                            'longitude' => (float) $o->delivery_longitude,
+                            'address' => $o->delivery_address ?? '',
+                        ];
+                    }
+                }
 
                 return [
                     'id' => $agent->id,
@@ -164,6 +176,7 @@ class CompanyController extends Controller
                     'current_order_id' => $activeDelivery?->order_id,
                     'current_order_status' => $activeDelivery?->order?->status,
                     'is_busy' => $activeDelivery !== null,
+                    'destination' => $destination,
                 ];
             });
 

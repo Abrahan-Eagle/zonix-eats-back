@@ -454,8 +454,43 @@ class ZonixDemoSeeder extends Seeder
                 'sex' => 'M',
             ]
         );
-        $this->ensurePhone($p->id, '6161001', 4); // 0416 6161001
+        $this->ensurePhone($p->id, '6161001', 4);
         $out['delivery_agents'][] = $p;
+
+        // Agentes demo adicionales (ids auto-generados)
+        $demoAgents = [
+            ['Carlos', 'Ramírez', 'M'], ['Ana', 'Torres', 'F'], ['Luis', 'Mendoza', 'M'],
+            ['María', 'González', 'F'], ['Diego', 'Herrera', 'M'], ['Sofía', 'Castro', 'F'],
+            ['Andrés', 'Rojas', 'M'], ['Valentina', 'López', 'F'],
+        ];
+        foreach ($demoAgents as $idx => $da) {
+            $email = strtolower($da[0]) . '.' . strtolower($da[1]) . '@demo.zonix.eats';
+            $u = User::updateOrCreate(
+                ['email' => $email],
+                [
+                    'name' => "{$da[0]} {$da[1]}",
+                    'email_verified_at' => now(),
+                    'password' => $password,
+                    'completed_onboarding' => true,
+                    'role' => 'delivery_agent',
+                    'light' => '1',
+                ]
+            );
+            $avatarUrl = 'https://ui-avatars.com/api/?name=' . urlencode("{$da[0]}+{$da[1]}") . '&size=200&background=random';
+            $p = Profile::updateOrCreate(
+                ['user_id' => $u->id],
+                [
+                    'firstName' => $da[0],
+                    'lastName' => $da[1],
+                    'status' => 'completeData',
+                    'photo_users' => $avatarUrl,
+                    'maritalStatus' => 'single',
+                    'sex' => $da[2],
+                ]
+            );
+            $this->ensurePhone($p->id, '616' . str_pad((string) ($idx + 10), 4, '0', STR_PAD_LEFT), 4);
+            $out['delivery_agents'][] = $p;
+        }
 
         // 19. Repartidor independiente
         $u = User::create([
@@ -756,29 +791,26 @@ class ZonixDemoSeeder extends Seeder
             ]
         );
 
-        // Agentes dispersos en diferentes zonas para mapa realista
-        $agentZones = [
-            self::ZONAS[5],  // Santa Rosa
-            self::ZONAS[0],  // El Socorro
-            self::ZONAS[1],  // Los Chorritos
-            self::ZONAS[3],  // Bella Florida
-        ];
-        $agentRatings = [4.7, 4.3, 4.5, 4.0];
-        $agentWorking = [true, true, false, true];
+        // 10 agentes dispersos en zonas de Valencia para mapa realista
+        $allZones = self::ZONAS;
+        $vehicleTypes = ['motorcycle', 'bicycle', 'motorcycle', 'car', 'motorcycle', 'bicycle', 'motorcycle', 'motorcycle', 'bicycle', 'motorcycle'];
+        $ratings = [4.7, 4.3, 4.5, 4.0, 4.8, 3.9, 4.6, 4.1, 4.4, 4.2];
+        $working = [true, true, true, false, true, true, false, true, true, true];
+        $statuses = ['activo', 'activo', 'activo', 'activo', 'activo', 'activo', 'inactivo', 'activo', 'activo', 'activo'];
         $agents = [];
         foreach ($users['delivery_agents'] as $i => $profile) {
-            $zone = $agentZones[$i % count($agentZones)];
+            $zone = $allZones[$i % count($allZones)];
             $agents[] = DeliveryAgent::create([
                 'company_id' => $company->id,
                 'profile_id' => $profile->id,
-                'status' => 'activo',
-                'working' => $agentWorking[$i % count($agentWorking)],
-                'rating' => $agentRatings[$i % count($agentRatings)],
-                'vehicle_type' => $i % 2 === 0 ? 'motorcycle' : 'bicycle',
+                'status' => $statuses[$i] ?? 'activo',
+                'working' => $working[$i] ?? true,
+                'rating' => $ratings[$i] ?? 4.0,
+                'vehicle_type' => $vehicleTypes[$i] ?? 'motorcycle',
                 'license_number' => 'LIC-' . str_pad((string) $profile->id, 5, '0', STR_PAD_LEFT),
-                'current_latitude' => $zone['lat'] + (rand(-50, 50) / 100000.0),
-                'current_longitude' => $zone['lng'] + (rand(-50, 50) / 100000.0),
-                'last_location_update' => now()->subMinutes(rand(1, 30)),
+                'current_latitude' => $zone['lat'] + (rand(-80, 80) / 100000.0),
+                'current_longitude' => $zone['lng'] + (rand(-80, 80) / 100000.0),
+                'last_location_update' => now()->subMinutes(rand(1, 45)),
             ]);
         }
         $elSocorro = self::ZONAS[0];
