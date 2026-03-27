@@ -124,26 +124,34 @@ class CompanyController extends Controller
             }
 
             $query = DeliveryAgent::where('company_id', $company->id)
-                ->with(['profile.user', 'profile.phones']);
+                ->with(['profile.user', 'profile.phones'])
+                ->withCount(['orderDeliveries as total_deliveries' => function ($q) {
+                    $q->where('status', 'delivered');
+                }])
+                ->withAvg(['reviews' => function ($q) {
+                    $q->where('reviewable_type', DeliveryAgent::class);
+                }], 'rating');
 
             if ($request->boolean('active_only', false)) {
                 $query->where('status', 'activo');
             }
 
-            $agents = $query->get()->map(function ($agent) {
+            $agentIds = (clone $query)->pluck('id');
+            $activeDeliveries = OrderDelivery::whereIn('agent_id', $agentIds)
+                ->whereIn('status', ['assigned', 'picked_up', 'in_transit'])
+                ->with('order:id,status,delivery_latitude,delivery_longitude,delivery_address')
+                ->get()
+                ->keyBy('agent_id');
+
+            $agents = $query->get()->map(function ($agent) use ($activeDeliveries) {
                 $profile = $agent->profile;
                 $user = $profile?->user;
                 $phone = $profile?->phones?->first();
 
-                $totalDeliveries = OrderDelivery::where('agent_id', $agent->id)
-                    ->where('status', 'delivered')->count();
-                $avgRating = Review::where('reviewable_type', DeliveryAgent::class)
-                    ->where('reviewable_id', $agent->id)->avg('rating') ?? 0;
+                $totalDeliveries = (int) ($agent->total_deliveries ?? 0);
+                $avgRating = (float) ($agent->reviews_avg_rating ?? 0);
 
-                $activeDelivery = OrderDelivery::where('agent_id', $agent->id)
-                    ->whereIn('status', ['assigned', 'picked_up', 'in_transit'])
-                    ->with('order:id,status,delivery_latitude,delivery_longitude,delivery_address')
-                    ->first();
+                $activeDelivery = $activeDeliveries->get($agent->id);
 
                 $destination = null;
                 if ($activeDelivery?->order) {
@@ -607,9 +615,10 @@ class CompanyController extends Controller
                 return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
             }
 
+            // Debe coincidir con availableAgentsForOrder / assignOrder: solo shipped sin repartidor.
             $orders = Order::with(['commerce', 'orderItems.product'])
                 ->where('delivery_company_id', $company->id)
-                ->whereIn('status', ['processing', 'shipped'])
+                ->where('status', 'shipped')
                 ->whereDoesntHave('orderDelivery')
                 ->orderBy('created_at', 'desc')
                 ->paginate(20);

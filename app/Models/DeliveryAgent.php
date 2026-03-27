@@ -71,7 +71,7 @@ class DeliveryAgent extends Model
 
     public function orderDeliveries()
     {
-        return $this->hasMany(OrderDelivery::class);
+        return $this->hasMany(OrderDelivery::class, 'agent_id');
     }
 
     public function paymentMethods()

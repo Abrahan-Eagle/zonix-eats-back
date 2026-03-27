@@ -34,7 +34,8 @@ Inventario para decidir qué implementar después. **No** implica compromiso has
 | Operación | Cancelaciones automáticas o reglas más claras | Alinear con políticas ya documentadas (ej. ventanas de comprobante). |
 | Incentivos | Modelo claro para delivery company / agentes | Comisiones, prioridad, penalizaciones. |
 | Cobertura | Zonas / módulo tarifa delivery | Base: `docs/PLAN_MODULO_TARIFA_DELIVERY.md`. |
-| Monetización | Membresía / comisiones si aplica MVP+ | Revisar `docs/logica-pagos-por-rol.md`. |
+| Monetización | Membresía fija (suscripcion a Commerce y Delivery Company, sin comision %) | Revisar `docs/logica-pagos-por-rol.md`. Modelo confirmado: solo membresia. |
+| **Pagos VE** | **Zelle, Binance Pay, C2P, multi-moneda, limpieza enum** | **Plan completo en `docs/PLAN_METODOS_PAGO_VENEZUELA.md`. Incluye regulación Sudeban, fases, costos.** |
 | Admin | Panel operativo (zonas, disputas, métricas) | Si el MVP lo requiere. |
 | Propinas | Permitir o no | Decisión de negocio (MVP suele excluirlas). |
 

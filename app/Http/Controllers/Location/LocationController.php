@@ -3,14 +3,15 @@
 namespace App\Http\Controllers\Location;
 
 use App\Http\Controllers\Controller;
-use App\Models\UserLocation;
 use App\Models\Commerce;
 use App\Models\DeliveryZone;
+use App\Models\UserLocation;
+use App\Services\Routing\RouteCalculationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class LocationController extends Controller
 {
@@ -33,10 +34,10 @@ class LocationController extends Controller
             $user = Auth::user();
             $profile = $user->profile;
 
-            if (!$profile) {
+            if (! $profile) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Profile not found'
+                    'message' => 'Profile not found',
                 ], 404);
             }
 
@@ -74,13 +75,14 @@ class LocationController extends Controller
                     'longitude' => $userLocation->longitude,
                     'address' => $address,
                     'timestamp' => $userLocation->recorded_at->toIso8601String(),
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error updating location: ' . $e->getMessage());
+            Log::error('Error updating location: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error updating location: ' . $e->getMessage()
+                'message' => 'Error updating location',
             ], 500);
         }
     }
@@ -91,8 +93,8 @@ class LocationController extends Controller
     private function reverseGeocode(float $latitude, float $longitude): ?string
     {
         try {
-            $userAgent = config('app.name', 'ZonixEats') . ' App';
-            
+            $userAgent = config('app.name', 'ZonixEats').' App';
+
             $response = Http::withHeaders([
                 'User-Agent' => $userAgent,
             ])->timeout(5)->get(config('zonix.nominatim_reverse_url', 'https://nominatim.openstreetmap.org/reverse'), [
@@ -106,44 +108,44 @@ class LocationController extends Controller
             if ($response->successful()) {
                 $data = $response->json();
                 $address = $data['address'] ?? null;
-                
+
                 if ($address) {
                     $parts = [];
-                    
+
                     // Construir dirección legible
-                    if (!empty($address['house_number'])) {
+                    if (! empty($address['house_number'])) {
                         $parts[] = $address['house_number'];
                     }
-                    if (!empty($address['road'])) {
+                    if (! empty($address['road'])) {
                         $parts[] = $address['road'];
                     }
-                    if (!empty($address['suburb']) || !empty($address['neighbourhood'])) {
+                    if (! empty($address['suburb']) || ! empty($address['neighbourhood'])) {
                         $parts[] = $address['suburb'] ?? $address['neighbourhood'];
                     }
-                    if (!empty($address['city']) || !empty($address['town']) || !empty($address['village'])) {
+                    if (! empty($address['city']) || ! empty($address['town']) || ! empty($address['village'])) {
                         $parts[] = $address['city'] ?? $address['town'] ?? $address['village'];
                     }
-                    if (!empty($address['state'])) {
+                    if (! empty($address['state'])) {
                         $parts[] = $address['state'];
                     }
-                    if (!empty($address['country'])) {
+                    if (! empty($address['country'])) {
                         $parts[] = $address['country'];
                     }
-                    
-                    if (!empty($parts)) {
+
+                    if (! empty($parts)) {
                         return implode(', ', $parts);
                     }
                 }
-                
+
                 // Fallback: usar display_name si está disponible
-                if (!empty($data['display_name'])) {
+                if (! empty($data['display_name'])) {
                     return $data['display_name'];
                 }
             }
         } catch (\Exception $e) {
-            Log::warning('Error en geocodificación inversa: ' . $e->getMessage());
+            Log::warning('Error en geocodificación inversa: '.$e->getMessage());
         }
-        
+
         return null;
     }
 
@@ -188,7 +190,7 @@ class LocationController extends Controller
                     ->leftJoin('addresses', 'addresses.profile_id', '=', 'commerces.profile_id')
                     ->whereNotNull('addresses.latitude')
                     ->whereNotNull('addresses.longitude')
-                    ->havingRaw("distance <= ?", [$radius])
+                    ->havingRaw('distance <= ?', [$radius])
                     ->orderBy('distance', 'asc')
                     ->limit(20)
                     ->get();
@@ -207,6 +209,7 @@ class LocationController extends Controller
                         + cos($latRad) * cos(deg2rad((float) $commerce->latitude))
                         * pow(sin(($lngRad - deg2rad((float) $commerce->longitude)) / 2), 2)
                     ));
+
                     return $commerce;
                 })->filter(fn ($c) => $c->distance <= $radius)->sortBy('distance')->take(20)->values();
             }
@@ -232,22 +235,23 @@ class LocationController extends Controller
                     'center' => ['lat' => $latitude, 'lng' => $longitude],
                     'radius' => $radius,
                     'count' => $nearbyPlaces->count(),
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting nearby places: ' . $e->getMessage());
+            Log::error('Error getting nearby places: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error getting nearby places: ' . $e->getMessage(),
-                'data' => []
+                'message' => 'Error getting nearby places',
+                'data' => [],
             ], 500);
         }
     }
 
     /**
-     * Calcular ruta entre dos puntos usando OSRM (Open Source Routing Machine)
+     * Calcular ruta entre dos puntos (cascada ORS → Valhalla → OSRM → interpolado).
      */
-    public function calculateRoute(Request $request)
+    public function calculateRoute(Request $request, RouteCalculationService $routing)
     {
         $request->validate([
             'origin_lat' => 'required|numeric|between:-90,90',
@@ -257,142 +261,66 @@ class LocationController extends Controller
             'mode' => 'nullable|string|in:driving,walking,bicycling,transit',
         ]);
 
-        $originLat = $request->origin_lat;
-        $originLng = $request->origin_lng;
-        $destLat = $request->destination_lat;
-        $destLng = $request->destination_lng;
+        $originLat = (float) $request->origin_lat;
+        $originLng = (float) $request->origin_lng;
+        $destLat = (float) $request->destination_lat;
+        $destLng = (float) $request->destination_lng;
         $mode = $request->get('mode', 'driving');
+        if ($mode === 'transit') {
+            $mode = 'driving';
+        }
 
         try {
-            // Mapear modo a perfil de OSRM
-            $profile = 'driving'; // Por defecto
-            if ($mode === 'walking') {
-                $profile = 'walking';
-            } elseif ($mode === 'bicycling') {
-                $profile = 'cycling';
+            $result = $routing->calculateBetween($originLat, $originLng, $destLat, $destLng, $mode);
+
+            $payload = [
+                'origin' => ['lat' => $originLat, 'lng' => $originLng],
+                'destination' => ['lat' => $destLat, 'lng' => $destLng],
+                'mode' => $request->get('mode', 'driving'),
+                'distance' => $result['distance'],
+                'duration' => $result['duration'],
+                'polyline' => $result['polyline'],
+            ];
+            if (! empty($result['note'])) {
+                $payload['note'] = $result['note'];
             }
-
-            // OSRM Route Service API
-            // Formato: /route/v1/{profile}/{coordinates}?overview=full&geometries=geojson
-            $base = rtrim(config('zonix.osrm_base_url', 'http://router.project-osrm.org'), '/');
-            $osrmUrl = "{$base}/route/v1/$profile/$originLng,$originLat;$destLng,$destLat";
-            
-            $response = Http::timeout(5)->get($osrmUrl, [
-                'overview' => 'full',
-                'geometries' => 'geojson',
-                'steps' => 'false',
-            ]);
-
-            if ($response->successful()) {
-                $data = $response->json();
-                
-                if (!empty($data['routes']) && !empty($data['routes'][0])) {
-                    $routeData = $data['routes'][0];
-                    $distance = $routeData['distance'] / 1000; // Convertir metros a km
-                    $duration = round($routeData['duration'] / 60); // Convertir segundos a minutos
-                    
-                    // Extraer polyline de la geometría GeoJSON
-                    $polyline = [];
-                    if (!empty($routeData['geometry']['coordinates'])) {
-                        foreach ($routeData['geometry']['coordinates'] as $coord) {
-                            $polyline[] = [
-                                'lat' => $coord[1],
-                                'lng' => $coord[0],
-                            ];
-                        }
-                    }
-
-                    return response()->json([
-                        'success' => true,
-                        'data' => [
-                            'origin' => ['lat' => $originLat, 'lng' => $originLng],
-                            'destination' => ['lat' => $destLat, 'lng' => $destLng],
-                            'mode' => $mode,
-                            'distance' => round($distance, 2), // km
-                            'duration' => $duration, // minutos
-                            'polyline' => $polyline,
-                        ],
-                    ]);
-                }
-            }
-
-            Log::debug('OSRM route failed, using interpolated fallback');
-
-            $distance = $this->calculateHaversineDistance($originLat, $originLng, $destLat, $destLng);
-            $duration = round($distance * 2);
 
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'origin' => ['lat' => $originLat, 'lng' => $originLng],
-                    'destination' => ['lat' => $destLat, 'lng' => $destLng],
-                    'mode' => $mode,
-                    'distance' => round($distance, 2),
-                    'duration' => $duration,
-                    'polyline' => $this->interpolateRoute($originLat, $originLng, $destLat, $destLng),
-                    'note' => 'Route calculated using interpolated fallback',
-                ],
+                'data' => $payload,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error calculating route: ' . $e->getMessage());
-
-            $distance = $this->calculateHaversineDistance($originLat, $originLng, $destLat, $destLng);
-            $duration = round($distance * 2);
+            Log::error('Error calculating route: '.$e->getMessage());
+            $fallback = app(RouteCalculationService::class)->calculateBetween($originLat, $originLng, $destLat, $destLng, $mode);
 
             return response()->json([
                 'success' => true,
                 'data' => [
                     'origin' => ['lat' => $originLat, 'lng' => $originLng],
                     'destination' => ['lat' => $destLat, 'lng' => $destLng],
-                    'mode' => $mode,
-                    'distance' => round($distance, 2),
-                    'duration' => $duration,
-                    'polyline' => $this->interpolateRoute($originLat, $originLng, $destLat, $destLng),
+                    'mode' => $request->get('mode', 'driving'),
+                    'distance' => $fallback['distance'],
+                    'duration' => $fallback['duration'],
+                    'polyline' => $fallback['polyline'],
                     'note' => 'Route calculated using interpolated fallback (exception)',
                 ],
             ]);
         }
     }
 
-    /**
-     * Genera waypoints interpolados con desplazamiento lateral para simular
-     * una ruta curva (no linea recta) cuando OSRM no esta disponible.
-     */
-    private function interpolateRoute(float $fromLat, float $fromLng, float $toLat, float $toLng, int $segments = 12): array
-    {
-        $points = [['lat' => $fromLat, 'lng' => $fromLng]];
-        $dist = $this->calculateHaversineDistance($fromLat, $fromLng, $toLat, $toLng);
-        $offset = $dist * 0.008;
-
-        for ($i = 1; $i < $segments; $i++) {
-            $t = $i / $segments;
-            $lat = $fromLat + ($toLat - $fromLat) * $t;
-            $lng = $fromLng + ($toLng - $fromLng) * $t;
-            $perpLat = -($toLng - $fromLng);
-            $perpLng = $toLat - $fromLat;
-            $norm = sqrt($perpLat * $perpLat + $perpLng * $perpLng) ?: 1;
-            $curve = sin(M_PI * $t) * $offset;
-            $lat += ($perpLat / $norm) * $curve;
-            $lng += ($perpLng / $norm) * $curve;
-            $points[] = ['lat' => round($lat, 6), 'lng' => round($lng, 6)];
-        }
-        $points[] = ['lat' => $toLat, 'lng' => $toLng];
-        return $points;
-    }
-
     private function calculateHaversineDistance(float $lat1, float $lon1, float $lat2, float $lon2): float
     {
         $earthRadius = 6371; // Radio de la Tierra en km
-        
+
         $dLat = deg2rad($lat2 - $lat1);
         $dLon = deg2rad($lon2 - $lon1);
-        
+
         $a = sin($dLat / 2) * sin($dLat / 2) +
              cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
              sin($dLon / 2) * sin($dLon / 2);
-        
+
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-        
+
         return $earthRadius * $c;
     }
 
@@ -408,8 +336,8 @@ class LocationController extends Controller
         $address = $request->address;
 
         try {
-            $userAgent = config('app.name', 'ZonixEats') . ' App';
-            
+            $userAgent = config('app.name', 'ZonixEats').' App';
+
             $response = Http::withHeaders([
                 'User-Agent' => $userAgent,
             ])->timeout(10)->get(config('zonix.nominatim_search_url', 'https://nominatim.openstreetmap.org/search'), [
@@ -421,10 +349,10 @@ class LocationController extends Controller
 
             if ($response->successful()) {
                 $data = $response->json();
-                
-                if (!empty($data) && is_array($data) && !empty($data[0])) {
+
+                if (! empty($data) && is_array($data) && ! empty($data[0])) {
                     $result = $data[0];
-                    
+
                     return response()->json([
                         'success' => true,
                         'data' => [
@@ -449,11 +377,11 @@ class LocationController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error geocoding address: ' . $e->getMessage());
-            
+            Log::error('Error geocoding address: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error geocoding address: ' . $e->getMessage(),
+                'message' => 'Error geocoding address',
                 'data' => [
                     'latitude' => -12.0464,
                     'longitude' => -77.0428,
@@ -493,11 +421,12 @@ class LocationController extends Controller
                 'data' => $zones,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting delivery zones: ' . $e->getMessage());
+            Log::error('Error getting delivery zones: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error getting delivery zones: ' . $e->getMessage(),
-                'data' => []
+                'message' => 'Error getting delivery zones',
+                'data' => [],
             ], 500);
         }
     }
@@ -510,7 +439,7 @@ class LocationController extends Controller
         try {
             /** @var \App\Models\User|null $user */
             $user = Auth::user();
-            if (!$user) {
+            if (! $user) {
                 return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
             }
             $user->load('profile.deliveryAgent');
@@ -518,42 +447,42 @@ class LocationController extends Controller
 
             // Obtener órdenes asignadas al usuario (si es delivery agent)
             $routes = [];
-            
+
             if ($profile && $profile->deliveryAgent) {
-                $orders = \App\Models\Order::whereHas('orderDelivery', function($q) use ($profile) {
+                $orders = \App\Models\Order::whereHas('orderDelivery', function ($q) use ($profile) {
                     $q->where('agent_id', $profile->deliveryAgent->id);
                 })
-                ->whereIn('status', ['shipped', 'processing'])
-                ->with(['commerce.profile', 'profile.user', 'orderDelivery.agent.profile'])
-                ->get();
+                    ->whereIn('status', ['shipped', 'processing'])
+                    ->with(['commerce.profile', 'profile.user', 'orderDelivery.agent.profile'])
+                    ->get();
 
                 foreach ($orders as $order) {
                     $commerce = $order->commerce;
                     $customer = $order->profile;
-                    
+
                     if ($commerce && $customer) {
                         // Obtener coordenadas del comercio desde Address
                         $commerceAddress = \App\Models\Address::where('profile_id', $commerce->profile_id)
                             ->first();
-                        
+
                         // Obtener coordenadas del cliente desde Address
                         $customerAddress = \App\Models\Address::where('profile_id', $customer->id)
                             ->first();
-                        
+
                         $commerceLat = $commerceAddress->latitude ?? -12.0464;
                         $commerceLng = $commerceAddress->longitude ?? -77.0428;
                         $customerLat = $customerAddress->latitude ?? -12.0470;
                         $customerLng = $customerAddress->longitude ?? -77.0435;
-                        
+
                         $distance = $this->calculateHaversineDistance($commerceLat, $commerceLng, $customerLat, $customerLng);
-                        
-                        $commerceAddressStr = $commerceAddress 
-                            ? "{$commerceAddress->street} {$commerceAddress->house_number}" 
+
+                        $commerceAddressStr = $commerceAddress
+                            ? "{$commerceAddress->street} {$commerceAddress->house_number}"
                             : ($commerce->address ?? 'Restaurante');
-                        $customerAddressStr = $customerAddress 
-                            ? "{$customerAddress->street} {$customerAddress->house_number}" 
+                        $customerAddressStr = $customerAddress
+                            ? "{$customerAddress->street} {$customerAddress->house_number}"
                             : ($customer->address ?? 'Dirección del cliente');
-                        
+
                         $routes[] = [
                             'id' => $order->id,
                             'order_id' => $order->id,
@@ -582,8 +511,8 @@ class LocationController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error obteniendo delivery routes: ' . $e->getMessage()
+                'message' => 'Error obteniendo delivery routes',
             ], 500);
         }
     }
-} 
+}

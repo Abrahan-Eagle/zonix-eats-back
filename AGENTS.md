@@ -206,6 +206,8 @@ Para no sobrecargar este archivo, el detalle por tema está en [docs/agents/](do
 - **Pagos por rol:** Quién configura métodos de pago, flujo del dinero, diagramas. Ver [docs/logica-pagos-por-rol.md](docs/logica-pagos-por-rol.md).
 - **Plan módulo tarifa delivery:** Diseño futuro (config global base+km, CRUD zonas, cálculo en backend). Cuando se vaya a implementar, usar y refinar [docs/PLAN_MODULO_TARIFA_DELIVERY.md](docs/PLAN_MODULO_TARIFA_DELIVERY.md).
 - **Teléfonos:** Tablas `phones` y `operator_codes`, dueño siempre `profile_id`, cómo cada rol obtiene el número. Ver [docs/LOGICA_MODULO_PHONE.md](docs/LOGICA_MODULO_PHONE.md).
+- **Plan métodos de pago Venezuela:** Investigación completa de métodos de pago (pago móvil, Zelle, Binance Pay, TDC, C2P, PayPal, Stripe, etc.), regulación Sudeban/Sunacrip, comisiones, requisitos y fases de implementación. **Leer antes de tocar el enum `payment_methods` o agregar nuevos tipos.** Ver [docs/PLAN_METODOS_PAGO_VENEZUELA.md](docs/PLAN_METODOS_PAGO_VENEZUELA.md).
+- **Requisitos para operar en Venezuela:** Todo lo legal, fiscal, laboral, sanitario, de datos personales, propiedad intelectual, seguros, infraestructura y checklist de lanzamiento para un marketplace de comida rápida en VE. Incluye caso Yummy/Sudeban, facturación digital SENIAT (obligatoria desde 19 mar 2026), Ley de Datos Personales 2025, modelo laboral delivery, y regulación derogada de Ipostel. Ver [docs/REQUISITOS_OPERAR_VENEZUELA.md](docs/REQUISITOS_OPERAR_VENEZUELA.md).
 
 Índice completo: [docs/agents/README.md](docs/agents/README.md).
 

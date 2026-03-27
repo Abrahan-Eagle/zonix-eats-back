@@ -2,28 +2,28 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Profile;
-use App\Models\UserLocation;
-use App\Models\Commerce;
 use App\Models\Address;
+use App\Models\Commerce;
 use App\Models\DeliveryAgent;
-use Laravel\Sanctum\Sanctum;
+use App\Models\Profile;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 class LocationControllerTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $user;
+
     protected $profile;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create();
         $this->profile = Profile::factory()->create(['user_id' => $this->user->id]);
     }
@@ -104,7 +104,7 @@ class LocationControllerTest extends TestCase
         // Crear comercios con direcciones
         $commerce1 = Commerce::factory()->create(['profile_id' => $this->profile->id]);
         $commerce2 = Commerce::factory()->create();
-        
+
         $profile2 = Profile::factory()->create();
         $commerce2->update(['profile_id' => $profile2->id]);
 
@@ -166,24 +166,40 @@ class LocationControllerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        // Mock OSRM response
-        Http::fake([
-            'router.project-osrm.org/route*' => Http::response([
-                'routes' => [
-                    [
-                        'distance' => 2500, // metros
-                        'duration' => 480, // segundos
-                        'geometry' => [
-                            'coordinates' => [
-                                [-77.0428, -12.0464],
-                                [-77.0430, -12.0466],
-                                [-77.0435, -12.0470],
-                            ],
+        $osrmOk = [
+            'routes' => [
+                [
+                    'distance' => 2500,
+                    'duration' => 480,
+                    'geometry' => [
+                        'coordinates' => [
+                            [-77.0428, -12.0464],
+                            [-77.0430, -12.0466],
+                            [-77.0435, -12.0470],
                         ],
                     ],
                 ],
-            ], 200),
-        ]);
+            ],
+        ];
+
+        // Cascada: Valhalla falla → OSRM FOSSGIS responde (mismo formato OSRM)
+        Http::fake(function ($request) use ($osrmOk) {
+            $url = $request->url();
+            if (str_contains($url, 'api.openrouteservice.org')) {
+                return Http::response([], 500);
+            }
+            if (str_contains($url, 'valhalla1.openstreetmap.de')) {
+                return Http::response(['error' => 'test'], 500);
+            }
+            if (str_contains($url, 'routing.openstreetmap.de')) {
+                return Http::response($osrmOk, 200);
+            }
+            if (str_contains($url, 'router.project-osrm.org')) {
+                return Http::response($osrmOk, 200);
+            }
+
+            return Http::response([], 500);
+        });
 
         $response = $this->postJson('/api/location/calculate-route', [
             'origin_lat' => -12.0464,
@@ -199,8 +215,8 @@ class LocationControllerTest extends TestCase
             ]);
 
         $data = $response->json('data');
-        $this->assertEquals(2.5, $data['distance']); // km
-        $this->assertEquals(8, $data['duration']); // minutos
+        $this->assertEquals(2.5, $data['distance']);
+        $this->assertEquals(8, $data['duration']);
         $this->assertArrayHasKey('polyline', $data);
     }
 
@@ -209,10 +225,14 @@ class LocationControllerTest extends TestCase
     {
         Sanctum::actingAs($this->user);
 
-        // Mock OSRM failure
-        Http::fake([
-            'router.project-osrm.org/route*' => Http::response([], 500),
-        ]);
+        Http::fake(function ($request) {
+            $url = $request->url();
+            if (str_contains($url, 'nominatim.openstreetmap.org')) {
+                return Http::response([], 200);
+            }
+
+            return Http::response([], 500);
+        });
 
         $response = $this->postJson('/api/location/calculate-route', [
             'origin_lat' => -12.0464,

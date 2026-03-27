@@ -4,19 +4,22 @@ namespace App\Http\Controllers\Buyer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Services\Routing\RouteCalculationService;
 use App\Services\TrackingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class TrackingController extends Controller
 {
     protected $trackingService;
 
-    public function __construct(TrackingService $trackingService)
+    protected RouteCalculationService $routeCalculation;
+
+    public function __construct(TrackingService $trackingService, RouteCalculationService $routeCalculation)
     {
         $this->trackingService = $trackingService;
+        $this->routeCalculation = $routeCalculation;
     }
 
     /**
@@ -31,13 +34,13 @@ class TrackingController extends Controller
      * No se usan coordenadas fijas para usuarios reales; los fallbacks solo aplican cuando
      * no hay datos en BD (ej. comercio sin dirección guardada).
      *
-     * @param int $orderId
+     * @param  int  $orderId
      * @return \Illuminate\Http\JsonResponse
      */
     public function getOrderTracking($orderId)
     {
         $user = Auth::user();
-        if (!$user?->profile) {
+        if (! $user?->profile) {
             return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
         }
 
@@ -46,7 +49,7 @@ class TrackingController extends Controller
             ->with(['orderDelivery.agent', 'commerce', 'profile.addresses'])
             ->first();
 
-        if (!$order) {
+        if (! $order) {
             return response()->json(['success' => false, 'message' => 'Orden no encontrada'], 404);
         }
 
@@ -110,24 +113,17 @@ class TrackingController extends Controller
         $clat = $orderData['customer_lat'];
         $clng = $orderData['customer_lon'];
         if ($waypointLat !== null && $waypointLng !== null && $dlat !== null && $dlng !== null && $clat !== null && $clng !== null) {
-            $base = rtrim(config('zonix.osrm_base_url', 'http://router.project-osrm.org'), '/');
-            // OSRM: lng,lat;lng,lat;lng,lat (origen → waypoint → destino)
-            $coords = "{$dlng},{$dlat};{$waypointLng},{$waypointLat};{$clng},{$clat}";
-            $osrmUrl = "{$base}/route/v1/driving/{$coords}";
             try {
-                $response = Http::timeout(8)->get($osrmUrl, ['overview' => 'full', 'geometries' => 'geojson']);
-                if ($response->successful()) {
-                    $data = $response->json();
-                    if (!empty($data['routes'][0]['geometry']['coordinates'])) {
-                        $polyline = [];
-                        foreach ($data['routes'][0]['geometry']['coordinates'] as $c) {
-                            $polyline[] = ['lat' => (float) $c[1], 'lng' => (float) $c[0]];
-                        }
-                        $tracking['routes']['to_customer'] = $polyline;
-                    }
+                $routeResult = $this->routeCalculation->calculateViaPoints([
+                    ['lat' => (float) $dlat, 'lng' => (float) $dlng],
+                    ['lat' => (float) $waypointLat, 'lng' => (float) $waypointLng],
+                    ['lat' => (float) $clat, 'lng' => (float) $clng],
+                ], 'driving');
+                if (! empty($routeResult['polyline'])) {
+                    $tracking['routes']['to_customer'] = $routeResult['polyline'];
                 }
             } catch (\Throwable $e) {
-                Log::debug('OSRM route with waypoint: ' . $e->getMessage());
+                Log::debug('Route with waypoint failed: '.$e->getMessage());
             }
         }
 
@@ -163,8 +159,7 @@ class TrackingController extends Controller
      * Actualizar ubicación del delivery (llamado por el repartidor).
      * Acepta lat/lng o latitude/longitude.
      *
-     * @param Request $request
-     * @param int $orderId
+     * @param  int  $orderId
      * @return \Illuminate\Http\JsonResponse
      */
     public function updateDeliveryLocation(Request $request, $orderId)
@@ -196,4 +191,4 @@ class TrackingController extends Controller
             'data' => ['latitude' => (float) $validated['lat'], 'longitude' => (float) $validated['lng']],
         ]);
     }
-} 
+}

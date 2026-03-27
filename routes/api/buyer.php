@@ -156,7 +156,7 @@ Route::middleware(['auth:sanctum', 'role:users'])->prefix('buyer')->group(functi
     Route::get('/favorites', [\App\Http\Controllers\Buyer\PostController::class, 'favorites']);
 
     Route::get('/orders/{orderId}/tracking', [\App\Http\Controllers\Buyer\TrackingController::class, 'getOrderTracking']);
-    Route::post('/orders/{orderId}/tracking/location', [\App\Http\Controllers\Buyer\TrackingController::class, 'updateDeliveryLocation']);
+    // updateDeliveryLocation removido: solo el delivery agent puede actualizar GPS via POST /api/delivery/location/update
 
     Route::get('/orders/{orderId}/messages', [\App\Http\Controllers\Chat\ChatController::class, 'getMessages']);
     Route::post('/orders/{orderId}/messages', [\App\Http\Controllers\Chat\ChatController::class, 'sendMessage']);

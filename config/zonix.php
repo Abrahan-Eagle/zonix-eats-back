@@ -7,7 +7,16 @@ return [
     | URLs de servicios externos (sin hardcode en controladores)
     |--------------------------------------------------------------------------
     */
-    'osrm_base_url' => env('ZONIX_OSRM_BASE_URL', 'http://router.project-osrm.org'),
+    // Routing en cascada: ORS (opcional) → Valhalla → OSRM FOSSGIS → OSRM demo → interpolado (RouteCalculationService)
+    'ors_api_key' => env('ZONIX_ORS_API_KEY', ''),
+    'ors_directions_base' => rtrim(env('ZONIX_ORS_DIRECTIONS_BASE', 'https://api.openrouteservice.org/v2/directions'), '/'),
+    'valhalla_route_url' => rtrim(env('ZONIX_VALHALLA_ROUTE_URL', 'https://valhalla1.openstreetmap.de/route'), '/'),
+    'osrm_fossgis_base_url' => rtrim(env('ZONIX_OSRM_FOSSGIS_BASE_URL', 'https://routing.openstreetmap.de/routed-car'), '/'),
+    'osrm_demo_base_url' => rtrim(env('ZONIX_OSRM_DEMO_BASE_URL', env('ZONIX_OSRM_BASE_URL', 'https://router.project-osrm.org')), '/'),
+    'routing_http_timeout' => (int) env('ZONIX_ROUTING_HTTP_TIMEOUT', 5),
+
+    /** @deprecated Usar osrm_demo_base_url; se mantiene para .env existentes */
+    'osrm_base_url' => rtrim(env('ZONIX_OSRM_BASE_URL', 'https://router.project-osrm.org'), '/'),
 
     'nominatim_reverse_url' => env('ZONIX_NOMINATIM_REVERSE_URL', 'https://nominatim.openstreetmap.org/reverse'),
     'nominatim_search_url' => env('ZONIX_NOMINATIM_SEARCH_URL', 'https://nominatim.openstreetmap.org/search'),

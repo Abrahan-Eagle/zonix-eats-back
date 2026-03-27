@@ -31,7 +31,10 @@ class Commerce extends Model
         'preparation_time',
     ];
 
-    protected $appends = ['phone'];
+    protected $appends = ['phone', 'latitude', 'longitude'];
+
+    /** Cache the resolved primary address to avoid repeated queries within a request. */
+    private mixed $_resolvedAddress = false;
 
     protected $casts = [
         'is_primary' => 'boolean',
@@ -66,6 +69,27 @@ class Commerce extends Model
             ->orderByDesc('is_primary')
             ->first();
         return $commercePhone?->full_number ?? $this->profile?->phone;
+    }
+
+    private function resolvedAddress(): ?Address
+    {
+        if ($this->_resolvedAddress === false) {
+            $this->_resolvedAddress = $this->relationLoaded('addresses')
+                ? ($this->addresses->firstWhere('is_default', true) ?? $this->addresses->first())
+                : $this->addresses()->where('is_default', true)->first() ?? $this->addresses()->first();
+        }
+
+        return $this->_resolvedAddress;
+    }
+
+    public function getLatitudeAttribute(): ?float
+    {
+        return $this->resolvedAddress()?->latitude !== null ? (float) $this->resolvedAddress()->latitude : null;
+    }
+
+    public function getLongitudeAttribute(): ?float
+    {
+        return $this->resolvedAddress()?->longitude !== null ? (float) $this->resolvedAddress()->longitude : null;
     }
 
     /**

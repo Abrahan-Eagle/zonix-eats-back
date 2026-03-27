@@ -72,16 +72,15 @@ use Illuminate\Support\Facades\Hash;
  *
  * Usuarios reales (no cambiar ids): 1 Abrahan, 6 Wistremiro, 16 TOWDAH YADAH, 17 Jarvis, 20 Jarvis Pulido5 (Admin). Resto: demo.
  *
- * --- Repartidores y órdenes (índice en array $agents tras seedDelivery) ---
- * - agents[0]: Jarvis (delivery_agent, company_id = Envíos Carabobo) — asignado a shipped/delivered (con agent_accepted_at + tokens QR).
- * - agents[1]: Pedro (delivery_agent, misma empresa) — al menos una entrega (historial/ganancias empresa).
- * - agents[2]: Miguel (delivery, company_id null) — al menos una entrega independiente (reviews/pagos/chat).
- * Órdenes: buyer 1 cubre estados (pending_payment…cancelled); buyer 2 una delivered; +2 processing sin OrderDelivery
- * (tab "Disponibles"); reparto repartido entre Jarvis, Pedro y Miguel donde aplica.
+ * --- Repartidores y órdenes (array $agents tras seedDelivery: 10 con empresa + 1 independiente al final) ---
+ * - agents[0]: Jarvis (user 17), agents[1]: Pedro (user 18); agents[2..9]: repartidores demo misma empresa.
+ * - agents[10]: Miguel independiente (company_id null) — no confundir con índice [2].
+ * Órdenes: comprador principal (índice 0 en $users['users']) cubre estados (pending_payment…cancelled); +3 shipped sin OrderDelivery
+ * (Disponibles repartidor + pestaña Asignar empresa); reparto repartido entre Jarvis, Pedro y Miguel donde aplica.
  *
  * --- Grafo de relaciones (probar cada app con estos vínculos) ---
  * - Buyer → Order → Commerce (Wistremiro = commerces[0]) → Products / PaymentMethods / Posts.
- * - Order (processing sin agente) → todos los delivery_agent/delivery ven "Disponibles"; al aceptar → OrderDelivery.
+ * - Order (shipped sin agente) → delivery_agent/delivery ven "Disponibles"; empresa delivery_company asigna en pestaña Asignar; al aceptar/asignar → OrderDelivery.
  * - OrderDelivery → DeliveryAgent → (DeliveryCompany vía company_id | null = independiente).
  * - Delivery company (user 16): perfil enlazado a DeliveryCompany; API usa primer agente de la empresa para /me
  *   y lista órdenes de todos los agentes de la empresa — por eso deben existir agentes 17 y 18 en seed.
@@ -855,7 +854,7 @@ class ZonixDemoSeeder extends Seeder
 
     /**
      * Ordenes realistas: multiples compradores, multiples comercios, delivery y pickup,
-     * fees variados, comisiones, agentes diversos asignados a ordenes shipped.
+     * fees variados, comisiones; shipped con/sin agente (sin agente = Disponibles + Asignar empresa).
      */
     private function seedOrders(array $users, array $commerces, array $agents): array
     {
@@ -868,7 +867,7 @@ class ZonixDemoSeeder extends Seeder
             // Buyer 0 (Abrahan) — cubrir todos los estados
             ['buyer' => 0, 'commerce' => 0, 'status' => 'pending_payment', 'type' => 'delivery', 'zone' => 0, 'fee' => 2.50, 'ago' => 'now'],
             ['buyer' => 0, 'commerce' => 1, 'status' => 'paid',            'type' => 'delivery', 'zone' => 1, 'fee' => 3.00, 'ago' => '2h'],
-            ['buyer' => 0, 'commerce' => 2, 'status' => 'processing',      'type' => 'delivery', 'zone' => 0, 'fee' => 2.00, 'ago' => '1h'],
+            ['buyer' => 0, 'commerce' => 2, 'status' => 'shipped',           'type' => 'delivery', 'zone' => 0, 'fee' => 2.00, 'ago' => '1h'],
             ['buyer' => 0, 'commerce' => 0, 'status' => 'shipped',         'type' => 'delivery', 'zone' => 0, 'fee' => 3.50, 'ago' => '30m', 'agent' => 0],
             ['buyer' => 0, 'commerce' => 3, 'status' => 'delivered',        'type' => 'delivery', 'zone' => 3, 'fee' => 4.00, 'ago' => '1d',  'agent' => 0],
             ['buyer' => 0, 'commerce' => 0, 'status' => 'delivered',        'type' => 'pickup',   'zone' => 0, 'fee' => 0,    'ago' => '2d'],
@@ -878,9 +877,9 @@ class ZonixDemoSeeder extends Seeder
             // Buyer 2-3 — ordenes shipped con agentes nuevos (rutas visibles en mapa)
             ['buyer' => 2, 'commerce' => 1, 'status' => 'shipped',         'type' => 'delivery', 'zone' => 5, 'fee' => 3.00, 'ago' => '20m', 'agent' => 2],
             ['buyer' => 3, 'commerce' => 2, 'status' => 'shipped',         'type' => 'delivery', 'zone' => 3, 'fee' => 4.50, 'ago' => '15m', 'agent' => 4],
-            // Processing sin agente — "Disponibles" para repartidores
-            ['buyer' => 2, 'commerce' => 3, 'status' => 'processing',      'type' => 'delivery', 'zone' => 2, 'fee' => 3.00, 'ago' => '10m'],
-            ['buyer' => 3, 'commerce' => 5, 'status' => 'processing',      'type' => 'delivery', 'zone' => 4, 'fee' => 4.00, 'ago' => '5m'],
+            // Shipped sin agente — Disponibles (repartidor) + Asignar (empresa); coincide con pending de delivery-company API
+            ['buyer' => 2, 'commerce' => 3, 'status' => 'shipped',           'type' => 'delivery', 'zone' => 2, 'fee' => 3.00, 'ago' => '10m'],
+            ['buyer' => 3, 'commerce' => 5, 'status' => 'shipped',           'type' => 'delivery', 'zone' => 4, 'fee' => 4.00, 'ago' => '5m'],
         ];
 
         foreach ($orderConfigs as $i => $cfg) {

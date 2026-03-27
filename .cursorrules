@@ -117,6 +117,8 @@ return response()->json([
 ### Planes futuros (documentos a leer cuando se vaya a implementar)
 
 - **Módulo tarifa de delivery:** Si el usuario pide implementar o diseñar el "módulo de tarifa de delivery" (config Admin, cálculo backend, zonas), **leer primero** `docs/PLAN_MODULO_TARIFA_DELIVERY.md` y usarlo como base para proponer y refinar la implementación. No preguntar si existe el plan; consultarlo y seguirlo.
+- **Métodos de pago Venezuela:** Si el usuario pide agregar métodos de pago, modificar el enum `payment_methods`, integrar Zelle/Binance/C2P, o cualquier cambio en el flujo de pagos, **leer primero** `docs/PLAN_METODOS_PAGO_VENEZUELA.md`. Contiene: investigación de cada método, regulación Sudeban/Sunacrip (caso Yummy), comisiones, requisitos, y fases de implementación. CRITICO: Zonix Eats NO debe ser intermediario de pagos (ver alerta regulatoria en el documento).
+- **Requisitos para operar en Venezuela:** Si se discute lanzamiento, constitución legal, facturación, impuestos, permisos, datos personales, relación laboral con delivery, o cualquier tema regulatorio, **leer primero** `docs/REQUISITOS_OPERAR_VENEZUELA.md`. Incluye checklist de lanzamiento completo.
 
 ### Tests
 ```bash

@@ -54,7 +54,7 @@ class TrackingService
     }
 
     /**
-     * Generar coordenadas de ruta simulada.
+     * Generar coordenadas de ruta interpolada (linea recta sin ruido aleatorio).
      *
      * @param float $startLat
      * @param float $startLon
@@ -72,10 +72,6 @@ class TrackingService
             
             $lat = $startLat + ($endLat - $startLat) * $ratio;
             $lon = $startLon + ($endLon - $startLon) * $ratio;
-            
-            // Agregar pequeñas variaciones para simular ruta real
-            $lat += (rand(-100, 100) / 10000); // ±0.01 grados
-            $lon += (rand(-100, 100) / 10000);
             
             $coordinates[] = [
                 'lat' => round($lat, 6),
