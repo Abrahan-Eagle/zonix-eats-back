@@ -742,20 +742,43 @@ class ZonixDemoSeeder extends Seeder
             'schedule' => $schedule,
         ]);
         $this->ensureDeliveryCompanyPhone($company, '9123457', 2);
-        $santaRosa = self::ZONAS[5]; // Santa Rosa - repartidores operando en zona
+
+        // Sede de la empresa: fijar dirección del perfil en Mayorista (para mapa)
+        Address::updateOrCreate(
+            ['profile_id' => $profileCompany->id, 'is_default' => true],
+            [
+                'street' => $mayorista['street'],
+                'house_number' => '1',
+                'latitude' => $mayorista['lat'],
+                'longitude' => $mayorista['lng'],
+                'status' => 'completeData',
+                'city_id' => $this->cityValenciaId,
+            ]
+        );
+
+        // Agentes dispersos en diferentes zonas para mapa realista
+        $agentZones = [
+            self::ZONAS[5],  // Santa Rosa
+            self::ZONAS[0],  // El Socorro
+            self::ZONAS[1],  // Los Chorritos
+            self::ZONAS[3],  // Bella Florida
+        ];
+        $agentRatings = [4.7, 4.3, 4.5, 4.0];
+        $agentWorking = [true, true, false, true];
         $agents = [];
-        foreach ($users['delivery_agents'] as $profile) {
+        foreach ($users['delivery_agents'] as $i => $profile) {
+            $zone = $agentZones[$i % count($agentZones)];
             $agents[] = DeliveryAgent::create([
                 'company_id' => $company->id,
                 'profile_id' => $profile->id,
                 'status' => 'activo',
-                'working' => true,
-                'rating' => 4.5,
-                'vehicle_type' => 'motorcycle',
+                'working' => $agentWorking[$i % count($agentWorking)],
+                'rating' => $agentRatings[$i % count($agentRatings)],
+                'vehicle_type' => $i % 2 === 0 ? 'motorcycle' : 'bicycle',
                 'license_number' => 'LIC-' . str_pad((string) $profile->id, 5, '0', STR_PAD_LEFT),
-                'current_latitude' => $santaRosa['lat'],
-                'current_longitude' => $santaRosa['lng'],
-                'last_location_update' => now(),
+                'current_latitude' => $zone['lat'] + (rand(-50, 50) / 100000.0),
+                'current_longitude' => $zone['lng'] + (rand(-50, 50) / 100000.0),
+                'last_location_update' => now()->subMinutes(rand(1, 30)),
             ]);
         }
         $elSocorro = self::ZONAS[0];
@@ -768,9 +791,9 @@ class ZonixDemoSeeder extends Seeder
             'rating' => 4.2,
             'vehicle_type' => 'motorcycle',
             'license_number' => 'LIC-IND-001',
-            'current_latitude' => $elSocorro['lat'],
-            'current_longitude' => $elSocorro['lng'],
-            'last_location_update' => now(),
+            'current_latitude' => $elSocorro['lat'] + (rand(-30, 30) / 100000.0),
+            'current_longitude' => $elSocorro['lng'] + (rand(-30, 30) / 100000.0),
+            'last_location_update' => now()->subMinutes(rand(1, 15)),
         ]);
         return [$company, $agents];
     }
