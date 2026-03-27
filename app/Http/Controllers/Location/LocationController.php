@@ -316,29 +316,8 @@ class LocationController extends Controller
                 }
             }
 
-            // Fallback: calcular distancia usando Haversine si OSRM falla
-            $distance = $this->calculateHaversineDistance($originLat, $originLng, $destLat, $destLng);
-            $duration = round($distance * 2); // Estimación: 2 minutos por km
+            Log::debug('OSRM route failed, using interpolated fallback');
 
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'origin' => ['lat' => $originLat, 'lng' => $originLng],
-                    'destination' => ['lat' => $destLat, 'lng' => $destLng],
-                    'mode' => $mode,
-                    'distance' => round($distance, 2),
-                    'duration' => $duration,
-                    'polyline' => [
-                        ['lat' => $originLat, 'lng' => $originLng],
-                        ['lat' => $destLat, 'lng' => $destLng],
-                    ],
-                    'note' => 'Route calculated using fallback method',
-                ],
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error calculating route: ' . $e->getMessage());
-            
-            // Fallback: calcular distancia básica
             $distance = $this->calculateHaversineDistance($originLat, $originLng, $destLat, $destLng);
             $duration = round($distance * 2);
 
@@ -350,19 +329,57 @@ class LocationController extends Controller
                     'mode' => $mode,
                     'distance' => round($distance, 2),
                     'duration' => $duration,
-                    'polyline' => [
-                        ['lat' => $originLat, 'lng' => $originLng],
-                        ['lat' => $destLat, 'lng' => $destLng],
-                    ],
-                    'note' => 'Route calculated using fallback method',
+                    'polyline' => $this->interpolateRoute($originLat, $originLng, $destLat, $destLng),
+                    'note' => 'Route calculated using interpolated fallback',
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error calculating route: ' . $e->getMessage());
+
+            $distance = $this->calculateHaversineDistance($originLat, $originLng, $destLat, $destLng);
+            $duration = round($distance * 2);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'origin' => ['lat' => $originLat, 'lng' => $originLng],
+                    'destination' => ['lat' => $destLat, 'lng' => $destLng],
+                    'mode' => $mode,
+                    'distance' => round($distance, 2),
+                    'duration' => $duration,
+                    'polyline' => $this->interpolateRoute($originLat, $originLng, $destLat, $destLng),
+                    'note' => 'Route calculated using interpolated fallback (exception)',
                 ],
             ]);
         }
     }
 
     /**
-     * Calcular distancia usando fórmula Haversine
+     * Genera waypoints interpolados con desplazamiento lateral para simular
+     * una ruta curva (no linea recta) cuando OSRM no esta disponible.
      */
+    private function interpolateRoute(float $fromLat, float $fromLng, float $toLat, float $toLng, int $segments = 12): array
+    {
+        $points = [['lat' => $fromLat, 'lng' => $fromLng]];
+        $dist = $this->calculateHaversineDistance($fromLat, $fromLng, $toLat, $toLng);
+        $offset = $dist * 0.008;
+
+        for ($i = 1; $i < $segments; $i++) {
+            $t = $i / $segments;
+            $lat = $fromLat + ($toLat - $fromLat) * $t;
+            $lng = $fromLng + ($toLng - $fromLng) * $t;
+            $perpLat = -($toLng - $fromLng);
+            $perpLng = $toLat - $fromLat;
+            $norm = sqrt($perpLat * $perpLat + $perpLng * $perpLng) ?: 1;
+            $curve = sin(M_PI * $t) * $offset;
+            $lat += ($perpLat / $norm) * $curve;
+            $lng += ($perpLng / $norm) * $curve;
+            $points[] = ['lat' => round($lat, 6), 'lng' => round($lng, 6)];
+        }
+        $points[] = ['lat' => $toLat, 'lng' => $toLng];
+        return $points;
+    }
+
     private function calculateHaversineDistance(float $lat1, float $lon1, float $lat2, float $lon2): float
     {
         $earthRadius = 6371; // Radio de la Tierra en km
