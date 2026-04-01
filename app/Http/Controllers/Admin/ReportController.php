@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Commerce;
 use App\Models\Notification;
 use App\Models\Review;
+use App\Models\AdminAuditLog;
 use App\Services\DeliveryObservabilityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -230,25 +231,53 @@ class ReportController extends Controller
 
     public function getSecurityLogs(Request $request)
     {
-        $perPage = $request->get('per_page', 20);
-        $logs = [];
+        $perPage = min(max((int) $request->get('per_page', 20), 1), 100);
+        $query = AdminAuditLog::query()->orderByDesc('id');
+
+        if ($request->filled('action')) {
+            $query->where('action', 'like', '%'.$request->string('action').'%');
+        }
+
+        if ($request->filled('status')) {
+            $status = $request->string('status')->toString();
+            if (in_array($status, ['success', 'ok', '2xx'], true)) {
+                $query->where('success', true);
+            } elseif (in_array($status, ['error', 'failed', '4xx', '5xx'], true)) {
+                $query->where('success', false);
+            }
+        }
+
+        $paginator = $query->paginate($perPage);
 
         return response()->json([
             'success' => true,
-            'data' => $logs,
-            'message' => 'Security logs - implementar con paquete de logging dedicado',
+            'data' => $paginator->items(),
+            // Compatibilidad con clientes que esperan logs en raíz.
+            'logs' => $paginator->items(),
+            'pagination' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+            'message' => 'Security logs obtenidos correctamente',
         ]);
     }
 
     public function getSystemSettings()
     {
+        $settingsPath = storage_path('app/system_settings.json');
+        $persistedSettings = file_exists($settingsPath)
+            ? (json_decode((string) file_get_contents($settingsPath), true) ?? [])
+            : [];
+
         return response()->json([
-            'app_name' => config('app.name', 'ZONIX EATS'),
+            'app_name' => $persistedSettings['app_name'] ?? config('app.name', 'ZONIX EATS'),
             'app_version' => '1.0.0',
-            'maintenance_mode' => config('app.maintenance_mode', false),
-            'registration_enabled' => env('REGISTRATION_ENABLED', true),
-            'email_verification_required' => env('EMAIL_VERIFICATION_REQUIRED', false),
-            'phone_verification_required' => env('PHONE_VERIFICATION_REQUIRED', false),
+            'maintenance_mode' => $persistedSettings['maintenance_mode'] ?? config('app.maintenance_mode', false),
+            'registration_enabled' => $persistedSettings['registration_enabled'] ?? env('REGISTRATION_ENABLED', true),
+            'email_verification_required' => $persistedSettings['email_verification_required'] ?? env('EMAIL_VERIFICATION_REQUIRED', false),
+            'phone_verification_required' => $persistedSettings['phone_verification_required'] ?? env('PHONE_VERIFICATION_REQUIRED', false),
             'max_file_size' => env('MAX_FILE_SIZE', '10MB'),
             'allowed_file_types' => ['jpg', 'png', 'pdf', 'jpeg'],
             'session_timeout' => config('sanctum.expiration', 60),

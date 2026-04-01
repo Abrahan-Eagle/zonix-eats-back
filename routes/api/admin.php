@@ -8,7 +8,7 @@ use App\Http\Controllers\Admin\DeliveryZoneController;
 use App\Http\Controllers\Admin\DeliveryCompanyController;
 use App\Http\Controllers\Admin\CommerceController;
 
-Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
+Route::middleware(['auth:sanctum', 'role:admin', \App\Http\Middleware\AdminAuditMiddleware::class])->prefix('admin')->group(function () {
     Route::get('/users', [AdminUserController::class, 'index']);
     Route::get('/users/{id}', [AdminUserController::class, 'show']);
     Route::put('/users/{id}/role', [AdminUserController::class, 'updateRole']);
