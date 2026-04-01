@@ -10,12 +10,15 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 use App\Models\Order;
+use Illuminate\Support\Str;
 
 class OrderStatusChanged implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $order;
+    private string $eventId;
+    private string $occurredAt;
 
     /**
      * Create a new event instance.
@@ -23,6 +26,8 @@ class OrderStatusChanged implements ShouldBroadcast
     public function __construct(Order $order)
     {
         $this->order = $order;
+        $this->eventId = (string) Str::uuid();
+        $this->occurredAt = now()->toISOString();
     }
 
     /**
@@ -60,6 +65,9 @@ class OrderStatusChanged implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
+            'event_id' => $this->eventId,
+            'schema_version' => 'v1',
+            'occurred_at' => $this->occurredAt,
             'order_id' => $this->order->id,
             'order_number' => $this->order->order_number,
             'status' => $this->order->status,

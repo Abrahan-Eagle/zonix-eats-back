@@ -10,6 +10,7 @@ use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Str;
 
 class PaymentValidated implements ShouldBroadcast
 {
@@ -18,6 +19,8 @@ class PaymentValidated implements ShouldBroadcast
     public $order;
     public $isValidated;
     public $validatedBy;
+    private string $eventId;
+    private string $occurredAt;
 
     /**
      * Create a new event instance.
@@ -27,6 +30,8 @@ class PaymentValidated implements ShouldBroadcast
         $this->order = $order;
         $this->isValidated = $isValidated;
         $this->validatedBy = $validatedBy;
+        $this->eventId = (string) Str::uuid();
+        $this->occurredAt = now()->toISOString();
     }
 
     /**
@@ -51,6 +56,9 @@ class PaymentValidated implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
+            'event_id' => $this->eventId,
+            'schema_version' => 'v1',
+            'occurred_at' => $this->occurredAt,
             'order_id' => $this->order->id,
             'order_number' => $this->order->orderNumber ?? 'ORD-' . $this->order->id,
             'is_validated' => $this->isValidated,

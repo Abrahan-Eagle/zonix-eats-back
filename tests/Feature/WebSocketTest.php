@@ -8,10 +8,13 @@ use App\Models\Order;
 use App\Models\Commerce;
 use App\Models\Product;
 use App\Models\Profile;
+use App\Models\Notification;
 use App\Events\OrderCreated;
 use App\Events\PaymentValidated;
 use App\Events\OrderStatusChanged;
 use App\Events\DeliveryLocationUpdated;
+use App\Events\OrderPendingAssignment;
+use App\Events\NotificationCreated;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Support\Facades\Event;
@@ -74,6 +77,14 @@ class WebSocketTest extends TestCase
         Event::assertDispatched(OrderCreated::class, function ($event) use ($order) {
             return $event->order->id === $order->id;
         });
+
+        $channels = (new OrderCreated($order))->broadcastOn();
+        $this->assertCount(1, $channels);
+        $this->assertSame('private-commerce.' . $this->commerce->id, $channels[0]->name);
+        $payload = (new OrderCreated($order))->broadcastWith();
+        $this->assertArrayHasKey('event_id', $payload);
+        $this->assertArrayHasKey('schema_version', $payload);
+        $this->assertArrayHasKey('occurred_at', $payload);
     }
 
     /** @test */
@@ -94,6 +105,10 @@ class WebSocketTest extends TestCase
         Event::assertDispatched(PaymentValidated::class, function ($event) use ($order) {
             return $event->order->id === $order->id && $event->isValidated === true;
         });
+        $payload = (new PaymentValidated($order, true, 'Test Commerce'))->broadcastWith();
+        $this->assertArrayHasKey('event_id', $payload);
+        $this->assertArrayHasKey('schema_version', $payload);
+        $this->assertArrayHasKey('occurred_at', $payload);
     }
 
     /** @test */
@@ -114,6 +129,10 @@ class WebSocketTest extends TestCase
         Event::assertDispatched(OrderStatusChanged::class, function ($event) use ($order) {
             return $event->order->id === $order->id;
         });
+        $payload = (new OrderStatusChanged($order))->broadcastWith();
+        $this->assertArrayHasKey('event_id', $payload);
+        $this->assertArrayHasKey('schema_version', $payload);
+        $this->assertArrayHasKey('occurred_at', $payload);
     }
 
     /** @test */
@@ -142,6 +161,57 @@ class WebSocketTest extends TestCase
                    $event->latitude === -12.3456 && 
                    $event->longitude === -78.9012;
         });
+        $payload = (new DeliveryLocationUpdated(
+            $order->id,
+            1,
+            -12.3456,
+            -78.9012,
+            now()->addMinutes(30)
+        ))->broadcastWith();
+        $this->assertArrayHasKey('event_id', $payload);
+        $this->assertArrayHasKey('schema_version', $payload);
+        $this->assertArrayHasKey('occurred_at', $payload);
+    }
+
+    /** @test */
+    public function it_includes_pending_assignment_payload_for_company_ui()
+    {
+        $order = Order::factory()->create([
+            'profile_id' => $this->user->profile->id,
+            'commerce_id' => $this->commerce->id,
+            'status' => 'processing',
+            'delivery_fee' => 3.25,
+            'delivery_address' => 'Av Principal, Valencia',
+        ]);
+
+        $event = new OrderPendingAssignment($order);
+        $payload = $event->broadcastWith();
+
+        $this->assertArrayHasKey('order_id', $payload);
+        $this->assertArrayHasKey('order_number', $payload);
+        $this->assertArrayHasKey('commerce_name', $payload);
+        $this->assertArrayHasKey('delivery_address', $payload);
+        $this->assertArrayHasKey('delivery_fee', $payload);
+        $this->assertArrayHasKey('event_id', $payload);
+        $this->assertArrayHasKey('schema_version', $payload);
+        $this->assertArrayHasKey('occurred_at', $payload);
+    }
+
+    /** @test */
+    public function it_includes_notification_contract_metadata()
+    {
+        $notification = Notification::create([
+            'profile_id' => $this->user->profile->id,
+            'title' => 'Test',
+            'body' => 'Body',
+            'type' => 'system',
+            'data' => ['order_id' => '1'],
+        ]);
+
+        $payload = (new NotificationCreated($notification))->broadcastWith();
+        $this->assertArrayHasKey('event_id', $payload);
+        $this->assertArrayHasKey('schema_version', $payload);
+        $this->assertArrayHasKey('occurred_at', $payload);
     }
 
     /** @test */

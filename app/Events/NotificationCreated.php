@@ -10,12 +10,15 @@ use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Str;
 
 class NotificationCreated implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $notification;
+    private string $eventId;
+    private string $occurredAt;
 
     /**
      * Create a new event instance.
@@ -23,6 +26,8 @@ class NotificationCreated implements ShouldBroadcast
     public function __construct(Notification $notification)
     {
         $this->notification = $notification;
+        $this->eventId = (string) Str::uuid();
+        $this->occurredAt = now()->toISOString();
     }
 
     /**
@@ -53,7 +58,9 @@ class NotificationCreated implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-
+            'event_id' => $this->eventId,
+            'schema_version' => 'v1',
+            'occurred_at' => $this->occurredAt,
             'id' => $this->notification->id,
             'title' => $this->notification->title,
             'body' => $this->notification->body,
