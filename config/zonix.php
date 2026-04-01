@@ -73,4 +73,16 @@ return [
     'tracking_waypoint_lat' => env('ZONIX_TRACKING_WAYPOINT_LAT') !== null && env('ZONIX_TRACKING_WAYPOINT_LAT') !== '' ? (float) env('ZONIX_TRACKING_WAYPOINT_LAT') : null,
     'tracking_waypoint_lng' => env('ZONIX_TRACKING_WAYPOINT_LNG') !== null && env('ZONIX_TRACKING_WAYPOINT_LNG') !== '' ? (float) env('ZONIX_TRACKING_WAYPOINT_LNG') : null,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Delivery observability (SLA y alertas operativas)
+    |--------------------------------------------------------------------------
+    */
+    'observability' => [
+        'window_hours' => (int) env('ZONIX_OBS_WINDOW_HOURS', 24),
+        'unassigned_threshold_minutes' => (int) env('ZONIX_OBS_UNASSIGNED_THRESHOLD_MINUTES', 5),
+        'tracking_frozen_minutes' => (int) env('ZONIX_OBS_TRACKING_FROZEN_MINUTES', 5),
+        'alert_dedupe_minutes' => (int) env('ZONIX_OBS_ALERT_DEDUPE_MINUTES', 30),
+    ],
+
 ];

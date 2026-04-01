@@ -3,7 +3,9 @@
 namespace App\Jobs;
 
 use App\Models\Order;
+use App\Models\DeliveryAssignmentTimeout;
 use App\Services\NotificationService;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -43,6 +45,21 @@ class AutoAssignTimeoutJob implements ShouldQueue
             'order',
             ['order_id' => $order->id, 'action' => 'assign_order']
         );
+
+        Log::warning('Delivery assignment timeout', [
+            'event_code' => 'DELIVERY_ORDER_ASSIGNMENT_TIMEOUT',
+            'order_id' => $order->id,
+            'company_id' => $company->id,
+            'agent_id' => null,
+            'occurred_at' => now()->toISOString(),
+        ]);
+
+        DeliveryAssignmentTimeout::create([
+            'order_id' => $order->id,
+            'company_id' => $company->id,
+            'occurred_at' => now(),
+            'source' => 'auto_assign_timeout_job',
+        ]);
 
         event(new \App\Events\OrderPendingAssignment($order));
     }

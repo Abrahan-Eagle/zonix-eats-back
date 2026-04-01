@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Commerce;
 use App\Models\Notification;
 use App\Models\Review;
+use App\Services\DeliveryObservabilityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -15,6 +16,119 @@ use Illuminate\Support\Facades\Schema;
 
 class ReportController extends Controller
 {
+    public function getDeliveryObservabilitySummary(DeliveryObservabilityService $observabilityService)
+    {
+        try {
+            $data = $observabilityService->getSummary(null, [
+                'window_hours' => request()->query('window_hours'),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+                'message' => 'Resumen de observabilidad de delivery obtenido correctamente',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error en observabilidad delivery summary: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Error obteniendo resumen de observabilidad',
+            ], 500);
+        }
+    }
+
+    public function getDeliveryObservabilityIncidents(DeliveryObservabilityService $observabilityService)
+    {
+        try {
+            $incidents = $observabilityService->getIncidents(null, [
+                'type' => request()->query('type'),
+                'priority' => request()->query('priority'),
+                'window_hours' => request()->query('window_hours'),
+                'page' => request()->query('page', 1),
+                'per_page' => request()->query('per_page', 20),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $incidents,
+                'message' => 'Incidentes de observabilidad obtenidos correctamente',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error en observabilidad delivery incidents: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Error obteniendo incidentes de observabilidad',
+            ], 500);
+        }
+    }
+
+    public function getDeliveryObservabilityIncidentOrders(DeliveryObservabilityService $observabilityService)
+    {
+        try {
+            $orders = $observabilityService->getIncidentOrders(null, [
+                'type' => request()->query('type'),
+                'window_hours' => request()->query('window_hours'),
+                'page' => request()->query('page', 1),
+                'per_page' => request()->query('per_page', 20),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $orders,
+                'message' => 'Ordenes de incidentes obtenidas correctamente',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error en observabilidad delivery incident orders: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Error obteniendo ordenes de incidentes',
+            ], 500);
+        }
+    }
+
+    public function getDeliveryObservabilityRunbooks(DeliveryObservabilityService $observabilityService)
+    {
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'items' => $observabilityService->getRunbooks(),
+            ],
+            'message' => 'Runbooks de observabilidad obtenidos correctamente',
+        ]);
+    }
+
+    public function getDeliveryObservabilityHistory(DeliveryObservabilityService $observabilityService)
+    {
+        try {
+            $history = $observabilityService->getHistory(
+                null,
+                (int) request()->query('page', 1),
+                (int) request()->query('per_page', 24),
+                request()->query('window_hours') !== null ? (int) request()->query('window_hours') : null
+            );
+
+            return response()->json([
+                'success' => true,
+                'data' => $history,
+                'message' => 'Historico de observabilidad obtenido correctamente',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error en observabilidad delivery history: '.$e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Error obteniendo historico de observabilidad',
+            ], 500);
+        }
+    }
+
     public function index()
     {
         return response()->json([

@@ -19,6 +19,11 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::get('/statistics', [AdminReportController::class, 'getStatistics']);
     Route::get('/system-health', [AdminReportController::class, 'getSystemHealth']);
     Route::get('/analytics', [AdminReportController::class, 'getAnalytics']);
+    Route::get('/delivery/observability/summary', [AdminReportController::class, 'getDeliveryObservabilitySummary']);
+    Route::get('/delivery/observability/incidents', [AdminReportController::class, 'getDeliveryObservabilityIncidents']);
+    Route::get('/delivery/observability/incident-orders', [AdminReportController::class, 'getDeliveryObservabilityIncidentOrders']);
+    Route::get('/delivery/observability/history', [AdminReportController::class, 'getDeliveryObservabilityHistory']);
+    Route::get('/delivery/observability/runbooks', [AdminReportController::class, 'getDeliveryObservabilityRunbooks']);
 
     Route::prefix('analytics')->group(function () {
         Route::get('/overview', [\App\Http\Controllers\Analytics\AnalyticsController::class, 'getOverview']);

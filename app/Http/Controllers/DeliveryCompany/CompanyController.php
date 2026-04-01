@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Events\OrderStatusChanged;
 use App\Events\PaymentValidated;
 use App\Services\DeliveryFeeService;
+use App\Services\DeliveryObservabilityService;
 use App\Services\OrderStateMachineService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -449,37 +450,168 @@ class CompanyController extends Controller
             return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
         }
 
-        $order = Order::find($orderId);
-        if (!$order || $order->status !== 'shipped') {
-            return response()->json(['success' => false, 'message' => 'Orden no encontrada o no disponible'], 404);
-        }
-        if ($order->delivery_company_id !== $company->id) {
-            return response()->json(['success' => false, 'message' => 'La orden no pertenece a tu empresa'], 403);
-        }
-        if ($order->orderDelivery) {
-            return response()->json(['success' => false, 'message' => 'La orden ya tiene un repartidor asignado'], 400);
-        }
-
         $agent = DeliveryAgent::where('id', $request->agent_id)->where('company_id', $company->id)->first();
         if (!$agent) {
             return response()->json(['success' => false, 'message' => 'Agente no pertenece a tu empresa'], 403);
         }
 
-        OrderDelivery::create([
-            'order_id' => $orderId,
-            'agent_id' => $agent->id,
-            'status' => 'assigned',
-            'delivery_fee' => $order->delivery_fee ?? 0,
-            'notes' => '',
-        ]);
+        $result = DB::transaction(function () use ($orderId, $company, $agent) {
+            $order = Order::where('id', $orderId)->lockForUpdate()->first();
+            if (!$order || $order->status !== 'shipped') {
+                return response()->json(['success' => false, 'message' => 'Orden no encontrada o no disponible'], 404);
+            }
+            if ((int) $order->delivery_company_id !== (int) $company->id) {
+                return response()->json(['success' => false, 'message' => 'La orden no pertenece a tu empresa'], 403);
+            }
 
-        event(new OrderStatusChanged($order->fresh()));
+            $existingAssignment = OrderDelivery::where('order_id', $order->id)->lockForUpdate()->first();
+            if ($existingAssignment) {
+                return response()->json(['success' => false, 'message' => 'La orden ya tiene un repartidor asignado'], 409);
+            }
 
+            OrderDelivery::create([
+                'order_id' => $order->id,
+                'agent_id' => $agent->id,
+                'status' => 'assigned',
+                'delivery_fee' => $order->delivery_fee ?? 0,
+                'notes' => '',
+            ]);
+
+            event(new OrderStatusChanged($order->fresh()));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Orden asignada al repartidor',
+                'data' => $order->fresh()->load(['commerce', 'profile.user', 'orderItems.product', 'orderDelivery']),
+            ]);
+        });
+
+        return $result;
+    }
+
+    public function observabilitySummary(DeliveryObservabilityService $observabilityService)
+    {
+        $company = $this->getAuthCompany();
+        if (!$company) {
+            return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
+        }
+
+        try {
+            $data = $observabilityService->getSummary((int) $company->id, [
+                'window_hours' => request()->query('window_hours'),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+                'message' => 'Resumen de observabilidad obtenido correctamente',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error observabilitySummary company: '.$e->getMessage(), ['company_id' => $company->id]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error obteniendo resumen de observabilidad',
+            ], 500);
+        }
+    }
+
+    public function observabilityIncidents(Request $request, DeliveryObservabilityService $observabilityService)
+    {
+        $company = $this->getAuthCompany();
+        if (!$company) {
+            return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
+        }
+
+        try {
+            $incidents = $observabilityService->getIncidents((int) $company->id, [
+                'type' => $request->query('type'),
+                'priority' => $request->query('priority'),
+                'window_hours' => $request->query('window_hours'),
+                'page' => $request->query('page', 1),
+                'per_page' => $request->query('per_page', 20),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $incidents,
+                'message' => 'Incidentes de observabilidad obtenidos correctamente',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error observabilityIncidents company: '.$e->getMessage(), ['company_id' => $company->id]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error obteniendo incidentes de observabilidad',
+            ], 500);
+        }
+    }
+
+    public function observabilityIncidentOrders(Request $request, DeliveryObservabilityService $observabilityService)
+    {
+        $company = $this->getAuthCompany();
+        if (!$company) {
+            return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
+        }
+
+        try {
+            $orders = $observabilityService->getIncidentOrders((int) $company->id, [
+                'type' => $request->query('type'),
+                'window_hours' => $request->query('window_hours'),
+                'page' => $request->query('page', 1),
+                'per_page' => $request->query('per_page', 20),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $orders,
+                'message' => 'Ordenes de incidentes obtenidas correctamente',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error observabilityIncidentOrders company: '.$e->getMessage(), ['company_id' => $company->id]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error obteniendo ordenes de incidentes',
+            ], 500);
+        }
+    }
+
+    public function observabilityRunbooks(DeliveryObservabilityService $observabilityService)
+    {
         return response()->json([
             'success' => true,
-            'message' => 'Orden asignada al repartidor',
-            'data' => $order->load(['commerce', 'profile.user', 'orderItems.product', 'orderDelivery']),
+            'data' => [
+                'items' => $observabilityService->getRunbooks(),
+            ],
+            'message' => 'Runbooks de observabilidad obtenidos correctamente',
         ]);
+    }
+
+    public function observabilityHistory(Request $request, DeliveryObservabilityService $observabilityService)
+    {
+        $company = $this->getAuthCompany();
+        if (!$company) {
+            return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
+        }
+
+        try {
+            $history = $observabilityService->getHistory(
+                (int) $company->id,
+                (int) $request->query('page', 1),
+                (int) $request->query('per_page', 24),
+                $request->query('window_hours') !== null ? (int) $request->query('window_hours') : null
+            );
+
+            return response()->json([
+                'success' => true,
+                'data' => $history,
+                'message' => 'Historico de observabilidad obtenido correctamente',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error observabilityHistory company: '.$e->getMessage(), ['company_id' => $company->id]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error obteniendo historico de observabilidad',
+            ], 500);
+        }
     }
 
     private function createPhoneForProfile(Profile $profile, string $phoneString): void

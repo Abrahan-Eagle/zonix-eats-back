@@ -17,4 +17,9 @@ Route::middleware(['auth:sanctum', 'role:delivery_company'])->prefix('delivery-c
     Route::get('/orders/{id}/available-agents', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'availableAgentsForOrder']);
     Route::post('/orders/{id}/assign', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'assignOrder']);
     Route::get('/earnings', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'earnings']);
+    Route::get('/observability/summary', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'observabilitySummary']);
+    Route::get('/observability/incidents', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'observabilityIncidents']);
+    Route::get('/observability/incident-orders', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'observabilityIncidentOrders']);
+    Route::get('/observability/history', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'observabilityHistory']);
+    Route::get('/observability/runbooks', [\App\Http\Controllers\DeliveryCompany\CompanyController::class, 'observabilityRunbooks']);
 });
