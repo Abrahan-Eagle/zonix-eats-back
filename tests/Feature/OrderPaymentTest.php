@@ -257,7 +257,65 @@ class OrderPaymentTest extends TestCase
         $second = $this->postJson("/api/commerce/orders/{$order->id}/validate-payment", [
             'is_valid' => true,
         ]);
-        $second->assertStatus(400);
+        $second->assertStatus(409)
+            ->assertJsonPath('error_code', 'ORDER_INVALID_STATE_FOR_PAYMENT_VALIDATION');
+    }
+
+    /** @test */
+    public function delivery_company_validating_delivery_payment_registers_status_history()
+    {
+        $companyUser = User::factory()->create(['role' => 'delivery_company']);
+        $companyProfile = Profile::factory()->create(['user_id' => $companyUser->id]);
+        $company = \App\Models\DeliveryCompany::factory()->create(['profile_id' => $companyProfile->id]);
+        Sanctum::actingAs($companyUser);
+
+        $order = Order::factory()->create([
+            'delivery_company_id' => $company->id,
+            'delivery_type' => 'delivery',
+            'status' => 'pending_payment',
+            'approved_for_payment' => true,
+        ]);
+
+        OrderPayment::updateOrCreate(
+            ['order_id' => $order->id, 'type' => 'food'],
+            [
+                'amount' => 10,
+                'payment_proof' => 'payment_proofs/food.jpg',
+                'payment_proof_uploaded_at' => now(),
+                'validated_at' => now(),
+                'validated_by' => $companyProfile->id,
+            ]
+        );
+
+        OrderPayment::updateOrCreate(
+            ['order_id' => $order->id, 'type' => 'delivery'],
+            [
+                'amount' => 5,
+                'payment_proof' => 'payment_proofs/delivery.jpg',
+                'payment_proof_uploaded_at' => now(),
+            ]
+        );
+
+        $response = $this->postJson("/api/delivery-company/orders/{$order->id}/validate-delivery-payment", [
+            'is_valid' => true,
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'paid',
+        ]);
+
+        $this->assertDatabaseHas('order_status_history', [
+            'order_id' => $order->id,
+            'from_status' => 'pending_payment',
+            'to_status' => 'paid',
+            'actor_role' => 'delivery_company',
+            'actor_id' => $companyProfile->id,
+            'source' => 'delivery_company_payment_validation',
+        ]);
     }
 
     /** @test */

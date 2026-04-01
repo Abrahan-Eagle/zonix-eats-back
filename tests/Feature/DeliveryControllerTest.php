@@ -169,9 +169,14 @@ class DeliveryControllerTest extends TestCase
 
         $response->assertStatus(200)
                  ->assertJson(['success' => true])
-                 ->assertJsonStructure(['success', 'data']);
+                 ->assertJsonStructure([
+                     'success',
+                     'message',
+                     'error_code',
+                     'data' => ['items', 'data', 'pagination'],
+                 ]);
 
-        $data = $response->json('data');
+        $data = $response->json('data.items');
         $this->assertCount(2, $data);
     }
 
@@ -209,7 +214,7 @@ class DeliveryControllerTest extends TestCase
         ]));
 
         $response->assertStatus(200);
-        $data = $response->json('data');
+        $data = $response->json('data.items');
         $this->assertCount(1, $data); // Solo order1 está en el rango
     }
 
@@ -316,7 +321,7 @@ class DeliveryControllerTest extends TestCase
             'notes' => 'Test'
         ]);
 
-        $response->assertStatus(400)
-                 ->assertJson(['success' => false]);
+        $response->assertStatus(409)
+                 ->assertJsonPath('error_code', 'ORDER_ALREADY_ASSIGNED');
     }
 }

@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\OrderDelivery;
 use App\Models\DeliveryAgent;
 use App\Models\Review;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class OrderTrackingController extends Controller
@@ -19,8 +20,15 @@ class OrderTrackingController extends Controller
     public function getOrderStatus($orderId): JsonResponse
     {
         try {
+            $profileId = auth()->user()?->profile?->id;
             $order = Order::with(['commerce', 'orderDelivery.agent.profile', 'items'])
                 ->findOrFail($orderId);
+            if (!$profileId || (int) $order->profile_id !== (int) $profileId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pedido no encontrado',
+                ], 404);
+            }
 
             $statusInfo = $this->getStatusInfo($order->status);
             
@@ -74,8 +82,15 @@ class OrderTrackingController extends Controller
     public function getDeliveryAgentLocation($orderId): JsonResponse
     {
         try {
+            $profileId = auth()->user()?->profile?->id;
             $order = Order::with('orderDelivery.agent.profile')
                 ->findOrFail($orderId);
+            if (!$profileId || (int) $order->profile_id !== (int) $profileId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pedido no encontrado',
+                ], 404);
+            }
 
             $agent = $order->orderDelivery?->agent;
             if (!$agent) {
@@ -175,41 +190,11 @@ class OrderTrackingController extends Controller
      */
     public function updateOrderStatus(Request $request, $orderId): JsonResponse
     {
-        $validator = \Validator::make($request->all(), [
-            'status' => 'required|in:pending_payment,paid,processing,shipped,delivered,cancelled'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Estado inválido',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        try {
-            $order = Order::findOrFail($orderId);
-            $order->update([
-                'status' => $request->status,
-                'status_updated_at' => now()
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Estado del pedido actualizado',
-                'data' => [
-                    'order_id' => $order->id,
-                    'status' => $order->status,
-                    'status_info' => $this->getStatusInfo($order->status)
-                ]
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error updating order status: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al actualizar el estado del pedido'
-            ], 500);
-        }
+        return response()->json([
+            'success' => false,
+            'message' => 'Este endpoint fue deprecado. El comprador no puede actualizar estados operativos.',
+            'error_code' => 'ORDER_TRACKING_UPDATE_DEPRECATED',
+        ], 410);
     }
 
     /**
@@ -313,16 +298,77 @@ class OrderTrackingController extends Controller
      */
     private function generateTimeline(Order $order): array
     {
-        $timeline = [];
+        $history = DB::table('order_status_history')
+            ->where('order_id', $order->id)
+            ->orderBy('occurred_at')
+            ->orderBy('id')
+            ->get(['to_status', 'occurred_at']);
 
-        // Estado actual
+        if ($history->isNotEmpty()) {
+            $timeline = [];
+            $seen = [];
+            foreach ($history as $entry) {
+                $status = (string) $entry->to_status;
+                if (isset($seen[$status])) {
+                    continue;
+                }
+                $info = $this->getStatusInfo($status);
+                $timeline[] = [
+                    'status' => $status,
+                    'title' => $info['title'],
+                    'description' => $info['description'],
+                    'timestamp' => $entry->occurred_at,
+                    'completed' => true,
+                    'icon' => $info['icon'],
+                ];
+                $seen[$status] = true;
+            }
+
+            $currentStatus = (string) $order->status;
+            if (!isset($seen[$currentStatus])) {
+                $info = $this->getStatusInfo($currentStatus);
+                $timeline[] = [
+                    'status' => $currentStatus,
+                    'title' => $info['title'],
+                    'description' => $info['description'],
+                    'timestamp' => $order->status_updated_at ?? $order->updated_at,
+                    'completed' => true,
+                    'icon' => $info['icon'],
+                ];
+            }
+
+            $futureStates = ['pending_payment', 'paid', 'processing', 'shipped', 'delivered'];
+            $currentIndex = array_search($currentStatus, $futureStates, true);
+            if ($currentIndex !== false && $currentStatus !== 'cancelled') {
+                for ($i = $currentIndex + 1; $i < count($futureStates); $i++) {
+                    $futureStatus = $futureStates[$i];
+                    if (isset($seen[$futureStatus])) {
+                        continue;
+                    }
+                    $futureInfo = $this->getStatusInfo($futureStatus);
+                    $timeline[] = [
+                        'status' => $futureStatus,
+                        'title' => $futureInfo['title'],
+                        'description' => $futureInfo['description'],
+                        'timestamp' => null,
+                        'completed' => false,
+                        'icon' => $futureInfo['icon'],
+                    ];
+                }
+            }
+
+            return $timeline;
+        }
+
+        $timeline = [];
+        $currentInfo = $this->getStatusInfo($order->status);
         $timeline[] = [
             'status' => $order->status,
-            'title' => $this->getStatusInfo($order->status)['title'],
-            'description' => $this->getStatusInfo($order->status)['description'],
+            'title' => $currentInfo['title'],
+            'description' => $currentInfo['description'],
             'timestamp' => $order->status_updated_at ?? $order->created_at,
             'completed' => true,
-            'icon' => $this->getStatusInfo($order->status)['icon']
+            'icon' => $currentInfo['icon']
         ];
 
         $futureStates = ['pending_payment', 'paid', 'processing', 'shipped', 'delivered'];

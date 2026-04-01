@@ -261,6 +261,70 @@ class OrderTest extends TestCase
             ->assertJsonPath('error_code', 'ORDER_IDEMPOTENCY_CONFLICT');
     }
 
+    public function test_create_order_returns_in_progress_when_same_key_is_processing()
+    {
+        $user = User::factory()->create(['role' => 'users']);
+        $profile = Profile::factory()->create([
+            'user_id' => $user->id,
+            'firstName' => 'Cliente',
+            'lastName' => 'Test',
+            'photo_users' => 'https://via.placeholder.com/150',
+            'status' => 'completeData',
+        ]);
+        $commerce = Commerce::factory()->create(['profile_id' => $profile->id, 'open' => true]);
+        $product = Product::factory()->create([
+            'commerce_id' => $commerce->id,
+            'available' => true,
+            'stock_quantity' => 10,
+        ]);
+        $operatorCode = OperatorCode::firstOrCreate(['code' => 412], ['name' => '0412']);
+        Phone::create([
+            'profile_id' => $profile->id,
+            'operator_code_id' => $operatorCode->id,
+            'number' => '1234567',
+            'is_primary' => true,
+            'status' => true,
+        ]);
+
+        $this->actingAs($user, 'sanctum');
+
+        $payload = [
+            'commerce_id' => $commerce->id,
+            'products' => [['id' => $product->id, 'quantity' => 1]],
+            'delivery_type' => 'pickup',
+            'total' => $product->price,
+            'delivery_fee' => 0,
+            'delivery_address' => 'Calle 123',
+        ];
+
+        $requestFingerprint = hash('sha256', json_encode([
+            'commerce_id' => $payload['commerce_id'],
+            'products' => $payload['products'],
+            'delivery_type' => $payload['delivery_type'],
+            'delivery_fee' => $payload['delivery_fee'],
+            'coupon_code' => '',
+            'delivery_address' => $payload['delivery_address'],
+            'delivery_latitude' => null,
+            'delivery_longitude' => null,
+        ]));
+
+        DB::table('order_idempotency_keys')->insert([
+            'profile_id' => $profile->id,
+            'idempotency_key' => 'idem-order-processing',
+            'request_fingerprint' => $requestFingerprint,
+            'order_id' => null,
+            'response_payload' => null,
+            'status_code' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->withHeaders(['Idempotency-Key' => 'idem-order-processing'])
+            ->postJson('/api/buyer/orders', $payload)
+            ->assertStatus(409)
+            ->assertJsonPath('error_code', 'ORDER_IDEMPOTENCY_IN_PROGRESS');
+    }
+
     public function test_create_order_applies_coupon_atomically()
     {
         $user = User::factory()->create(['role' => 'users']);
@@ -319,5 +383,105 @@ class OrderTest extends TestCase
             'profile_id' => $profile->id,
             'order_id' => $orderId,
         ]);
+    }
+
+    public function test_buyer_cannot_track_another_users_order(): void
+    {
+        $buyerA = User::factory()->create(['role' => 'users']);
+        $profileA = Profile::factory()->create(['user_id' => $buyerA->id]);
+        $buyerB = User::factory()->create(['role' => 'users']);
+        $profileB = Profile::factory()->create(['user_id' => $buyerB->id]);
+        $commerce = Commerce::factory()->create(['profile_id' => $profileA->id, 'open' => true]);
+
+        $orderOfB = \App\Models\Order::factory()->create([
+            'profile_id' => $profileB->id,
+            'commerce_id' => $commerce->id,
+            'status' => 'processing',
+        ]);
+
+        $this->actingAs($buyerA, 'sanctum');
+        $this->getJson("/api/buyer/tracking/order/{$orderOfB->id}")
+            ->assertStatus(404);
+    }
+
+    public function test_buyer_cancel_order_registers_status_history(): void
+    {
+        $buyer = User::factory()->create(['role' => 'users']);
+        $profile = Profile::factory()->create(['user_id' => $buyer->id]);
+        $commerce = Commerce::factory()->create(['profile_id' => $profile->id, 'open' => true]);
+        $order = \App\Models\Order::factory()->create([
+            'profile_id' => $profile->id,
+            'commerce_id' => $commerce->id,
+            'status' => 'pending_payment',
+            'created_at' => now()->subMinute(),
+        ]);
+
+        $this->actingAs($buyer, 'sanctum');
+        $response = $this->postJson("/api/buyer/orders/{$order->id}/cancel", [
+            'reason' => 'Cambio de planes',
+        ]);
+
+        $response->assertStatus(200)->assertJsonPath('success', true);
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'cancelled',
+        ]);
+        $this->assertDatabaseHas('order_status_history', [
+            'order_id' => $order->id,
+            'from_status' => 'pending_payment',
+            'to_status' => 'cancelled',
+            'actor_role' => 'buyer',
+            'actor_id' => $profile->id,
+            'source' => 'buyer_api_cancel',
+        ]);
+    }
+
+    public function test_buyer_tracking_endpoint_includes_timeline(): void
+    {
+        $buyer = User::factory()->create(['role' => 'users']);
+        $profile = Profile::factory()->create(['user_id' => $buyer->id]);
+        $commerce = Commerce::factory()->create(['profile_id' => $profile->id, 'open' => true]);
+        $order = \App\Models\Order::factory()->create([
+            'profile_id' => $profile->id,
+            'commerce_id' => $commerce->id,
+            'status' => 'processing',
+        ]);
+
+        DB::table('order_status_history')->insert([
+            [
+                'order_id' => $order->id,
+                'from_status' => 'pending_payment',
+                'to_status' => 'paid',
+                'actor_role' => 'commerce',
+                'actor_id' => $profile->id,
+                'source' => 'test',
+                'reason' => null,
+                'occurred_at' => now()->subMinutes(10),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'order_id' => $order->id,
+                'from_status' => 'paid',
+                'to_status' => 'processing',
+                'actor_role' => 'commerce',
+                'actor_id' => $profile->id,
+                'source' => 'test',
+                'reason' => null,
+                'occurred_at' => now()->subMinutes(5),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ]);
+
+        $this->actingAs($buyer, 'sanctum');
+        $response = $this->getJson("/api/buyer/orders/{$order->id}/tracking");
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure([
+                'data' => [
+                    'timeline',
+                ],
+            ]);
     }
 } 

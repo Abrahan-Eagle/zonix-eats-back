@@ -26,21 +26,24 @@ class CommerceOrderTest extends TestCase
 
         // Listar órdenes
         $response = $this->getJson('/api/commerce/orders');
-        $response->assertStatus(200);
-        $data = $response->json();
-        // Verificar estructura de paginación
-        if (isset($data['data'])) {
-            $this->assertCount(1, $data['data']);
-        } else {
-            // Si no tiene paginación, verificar que sea array
-            $this->assertIsArray($data);
-            $this->assertGreaterThanOrEqual(1, count($data));
-        }
+        $response->assertStatus(200)->assertJsonStructure([
+            'success',
+            'message',
+            'data' => [
+                'items',
+                'pagination' => ['current_page', 'last_page', 'per_page', 'total'],
+            ],
+        ]);
+        $this->assertCount(1, $response->json('data.items'));
 
         // Mostrar orden
         $response = $this->getJson('/api/commerce/orders/' . $order->id);
-        $response->assertStatus(200);
-        $this->assertEquals($order->id, $response->json('id'));
+        $response->assertStatus(200)->assertJsonStructure([
+            'success',
+            'message',
+            'data' => ['id', 'status'],
+        ]);
+        $this->assertEquals($order->id, $response->json('data.id'));
 
         // Actualizar estado de la orden
         $response = $this->putJson('/api/commerce/orders/' . $order->id . '/status', [

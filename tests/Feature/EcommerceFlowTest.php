@@ -34,6 +34,7 @@ class EcommerceFlowTest extends TestCase
         $product = Product::factory()->create([
             'commerce_id' => $commerce->id,
             'available' => true,
+            'stock_quantity' => 10,
         ]);
 
         // Listar restaurantes

@@ -16,6 +16,7 @@ use App\Models\User;
 use App\Events\OrderStatusChanged;
 use App\Events\PaymentValidated;
 use App\Services\DeliveryFeeService;
+use App\Services\OrderStateMachineService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -752,7 +753,22 @@ class CompanyController extends Controller
                 $order->refresh();
                 $order->load(['foodPayment', 'deliveryPayment']);
                 if ($order->allPaymentsValidated()) {
-                    $order->update(['status' => 'paid', 'payment_validated_at' => now()]);
+                    $decision = app(OrderStateMachineService::class)->applyTransition(
+                        $order,
+                        'delivery_company',
+                        'paid',
+                        $profile->id,
+                        'delivery_company_payment_validation',
+                        'Todos los pagos validados'
+                    );
+                    if (!($decision['allowed'] ?? false)) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => $decision['message'] ?? 'No se pudo actualizar el estado de la orden',
+                            'error_code' => $decision['error_code'] ?? 'ORDER_INVALID_TRANSITION',
+                        ], (int) ($decision['http_status'] ?? 409));
+                    }
+                    $order->update(['payment_validated_at' => now()]);
                     $message = 'Todos los pagos validados. Orden lista para preparar.';
                 } else {
                     $message = 'Pago de envío validado. Pendiente: pago de comida.';

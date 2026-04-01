@@ -22,6 +22,7 @@ return new class extends Migration
             $table->decimal('delivery_fee', 10, 2); // En inglés desde el inicio (antes 'costo_envio')
             $table->text('notes')->nullable(); // En inglés desde el inicio (antes 'notas')
             $table->timestamps();
+            $table->unique('order_id', 'order_delivery_order_id_unique');
         });
     }
 

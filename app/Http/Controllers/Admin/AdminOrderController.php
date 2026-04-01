@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Commerce;
 use Illuminate\Http\Request;
+use App\Services\OrderStateMachineService;
 
 class AdminOrderController extends Controller
 {
@@ -50,9 +51,38 @@ class AdminOrderController extends Controller
         ]);
 
         $order = Order::findOrFail($id);
-        $order->status = $request->input('status');
-        $order->save();
-        return response()->json(['message' => 'Estado actualizado', 'order' => $order]);
+        $stateMachine = app(OrderStateMachineService::class);
+        $targetStatus = $stateMachine->normalizeStatus((string) $request->input('status'));
+        $adminId = auth()->id();
+
+        $decision = $stateMachine->applyTransition(
+            $order,
+            'admin',
+            $targetStatus,
+            $adminId,
+            'admin_api',
+            (string) $request->input('reason', '')
+        );
+
+        if (!$decision['allowed']) {
+            return response()->json([
+                'success' => false,
+                'message' => $decision['message'],
+                'error_code' => $decision['error_code'],
+                'data' => [
+                    'from_status' => $decision['from'],
+                    'to_status' => $decision['to'],
+                ],
+            ], $decision['http_status']);
+        }
+
+        event(new \App\Events\OrderStatusChanged($order->fresh()));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Estado actualizado',
+            'order' => $order->fresh(),
+        ]);
     }
 
     public function commerces(Request $request)

@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Events\PaymentValidated;
 use App\Events\OrderStatusChanged;
+use App\Services\OrderStateMachineService;
 
 class OrderController extends Controller
 {
@@ -39,7 +40,7 @@ class OrderController extends Controller
                 $commerce = $requested;
             }
             
-            $perPage = $request->input('per_page', 15);
+            $perPage = max(1, min((int) $request->input('per_page', 15), 100));
             $status = $request->input('status');
             
             $query = Order::where('commerce_id', $commerce->id)
@@ -49,10 +50,23 @@ class OrderController extends Controller
                 $query->where('status', $status);
             }
             
-            $orders = $query->orderBy('created_at', 'desc')
-                ->paginate($perPage);
+            $orders = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
-            return response()->json($orders);
+            return response()->json([
+                'success' => true,
+                'message' => 'Órdenes obtenidas correctamente',
+                'data' => [
+                    'items' => $orders->items(),
+                    // Compatibilidad temporal para clientes que leen data como lista directa.
+                    'data' => $orders->items(),
+                    'pagination' => [
+                        'current_page' => $orders->currentPage(),
+                        'last_page' => $orders->lastPage(),
+                        'per_page' => $orders->perPage(),
+                        'total' => $orders->total(),
+                    ],
+                ],
+            ]);
         } catch (\Exception $e) {
             Log::error('Error al listar órdenes de comercio: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error interno al listar órdenes'], 500);
@@ -78,7 +92,14 @@ class OrderController extends Controller
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
 
-            return response()->json($order->load(['profile.user', 'orderItems.product', 'orderDelivery', 'orderPayments']));
+            $loadedOrder = $order->load(['profile.user', 'orderItems.product', 'orderDelivery', 'orderPayments']);
+            return response()->json([
+                'success' => true,
+                'message' => 'Orden obtenida correctamente',
+                'data' => $loadedOrder,
+                // Compatibilidad temporal para clientes legacy.
+                'order' => $loadedOrder,
+            ]);
         } catch (\Exception $e) {
             Log::error('Error al mostrar orden de comercio: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error interno al mostrar orden'], 500);
@@ -106,36 +127,33 @@ class OrderController extends Controller
             }
 
             $request->validate([
-                'status' => 'required|in:paid,processing,shipped,delivered,cancelled'
+                'status' => 'required|string'
             ]);
 
-            // Validar transiciones de estado
-            $validTransitions = [
-                'paid' => ['processing', 'cancelled'],
-                'processing' => ['shipped', 'cancelled'],
-            ];
+            $stateMachine = app(OrderStateMachineService::class);
+            $targetStatus = $stateMachine->normalizeStatus((string) $request->status);
+            $decision = $stateMachine->applyTransition(
+                $order,
+                'commerce',
+                $targetStatus,
+                $profile->id,
+                'commerce_api'
+            );
 
-            if (isset($validTransitions[$order->status])) {
-                if (!in_array($request->status, $validTransitions[$order->status])) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => "No se puede cambiar de '{$order->status}' a '{$request->status}'"
-                    ], 400);
-                }
-            } else {
-                // Estados que no permiten cambios
-                if (in_array($order->status, ['pending_payment', 'delivered', 'cancelled'])) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => "No se puede cambiar el estado de una orden en '{$order->status}'"
-                    ], 400);
-                }
+            if (!$decision['allowed']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $decision['message'],
+                    'error_code' => $decision['error_code'],
+                    'data' => [
+                        'from_status' => $decision['from'],
+                        'to_status' => $decision['to'],
+                    ],
+                ], $decision['http_status']);
             }
 
-            $order->update(['status' => $request->status]);
-
             // Si pasa a processing y es delivery, asignar empresa y disparar auto-asignación
-            if ($request->status === 'processing' && $order->delivery_type === 'delivery') {
+            if ($targetStatus === 'processing' && $order->delivery_type === 'delivery') {
                 $order->refresh();
                 if (!$order->delivery_company_id) {
                     $company = DeliveryCompany::where('active', true)->first();
@@ -171,6 +189,7 @@ class OrderController extends Controller
     public function validatePayment(Request $request, $id)
     {
         try {
+            $stateMachine = app(OrderStateMachineService::class);
             $validated = $request->validate([
                 'is_valid' => 'required|boolean',
                 'rejection_reason' => 'nullable|string|max:500',
@@ -178,7 +197,9 @@ class OrderController extends Controller
 
             if ($validated['is_valid'] === false && empty(trim((string) ($validated['rejection_reason'] ?? '')))) {
                 return response()->json([
+                    'success' => false,
                     'message' => 'El motivo de rechazo es obligatorio cuando el pago es rechazado.',
+                    'error_code' => 'PAYMENT_REJECTION_REASON_REQUIRED',
                     'errors' => [
                         'rejection_reason' => ['El motivo de rechazo es obligatorio cuando el pago es rechazado.'],
                     ],
@@ -198,24 +219,28 @@ class OrderController extends Controller
             if (!$profile || !$profile->commerces()->where('id', $order->commerce_id)->exists()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No autorizado para validar esta orden'
+                    'message' => 'No autorizado para validar esta orden',
+                    'error_code' => 'ORDER_FORBIDDEN',
                 ], 403);
             }
 
             // Solo se puede validar pago si la orden está pendiente de pago
-            if ($order->status !== 'pending_payment') {
+            $currentStatus = $stateMachine->normalizeStatus((string) $order->status);
+            if ($currentStatus !== 'pending_payment') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Solo se puede validar el pago de órdenes pendientes de pago'
-                ], 400);
+                    'message' => 'Solo se puede validar el pago de órdenes pendientes de pago',
+                    'error_code' => 'ORDER_INVALID_STATE_FOR_PAYMENT_VALIDATION',
+                ], 409);
             }
 
             // Requiere que el comercio haya aprobado previamente la orden para pago
             if (!$order->approved_for_payment) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Debes aprobar la orden para pago antes de validar el comprobante'
-                ], 400);
+                    'message' => 'Debes aprobar la orden para pago antes de validar el comprobante',
+                    'error_code' => 'ORDER_NOT_APPROVED_FOR_PAYMENT',
+                ], 409);
             }
 
             $foodPayment = $order->foodPayment;
@@ -223,13 +248,15 @@ class OrderController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'No hay comprobante de pago de comida para validar.',
-                ], 400);
+                    'error_code' => 'PAYMENT_PROOF_NOT_FOUND',
+                ], 422);
             }
 
             if ($foodPayment->validated_at) {
                 return response()->json([
                     'success' => false,
                     'message' => 'El comprobante ya fue validado previamente.',
+                    'error_code' => 'PAYMENT_ALREADY_VALIDATED',
                 ], 409);
             }
 
@@ -237,6 +264,7 @@ class OrderController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'El comprobante ya fue rechazado previamente.',
+                    'error_code' => 'PAYMENT_ALREADY_REJECTED',
                 ], 409);
             }
 
@@ -261,7 +289,27 @@ class OrderController extends Controller
                 $order->refresh();
                 $order->load(['foodPayment', 'deliveryPayment']);
                 if ($order->allPaymentsValidated()) {
-                    $order->update(['status' => 'paid']);
+                    $decision = $stateMachine->applyTransition(
+                        $order,
+                        'commerce',
+                        'paid',
+                        $profile->id,
+                        'commerce_payment_validation',
+                        'Todos los pagos validados'
+                    );
+
+                    if (!$decision['allowed']) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => $decision['message'],
+                            'error_code' => $decision['error_code'],
+                            'data' => [
+                                'from_status' => $decision['from'],
+                                'to_status' => $decision['to'],
+                            ],
+                        ], $decision['http_status']);
+                    }
+
                     $message = 'Todos los pagos validados. Orden lista para preparar.';
                 } else {
                     $message = 'Pago de comida validado. Pendiente: pago de envío.';
@@ -280,11 +328,32 @@ class OrderController extends Controller
                     ]);
                 }
 
+                $rejectionReason = $validated['rejection_reason'] ?? 'Pago rechazado por el comercio';
                 $order->update([
-                    'status' => 'cancelled',
-                    'cancellation_reason' => $validated['rejection_reason'] ?? 'Pago rechazado por el comercio',
+                    'cancellation_reason' => $rejectionReason,
                     'payment_validated_at' => null,
                 ]);
+
+                $decision = $stateMachine->applyTransition(
+                    $order,
+                    'commerce',
+                    'cancelled',
+                    $profile->id,
+                    'commerce_payment_validation',
+                    $rejectionReason
+                );
+
+                if (!$decision['allowed']) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $decision['message'],
+                        'error_code' => $decision['error_code'],
+                        'data' => [
+                            'from_status' => $decision['from'],
+                            'to_status' => $decision['to'],
+                        ],
+                    ], $decision['http_status']);
+                }
                 
                 $message = 'Pago rechazado';
                 event(new OrderStatusChanged($order));
@@ -298,6 +367,7 @@ class OrderController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => $message,
+                'error_code' => null,
                 'all_payments_validated' => $order->allPaymentsValidated(),
                 'order' => $order, // alias legacy
                 'data' => [
@@ -310,7 +380,8 @@ class OrderController extends Controller
             Log::error('Error al validar el comprobante: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error al validar el comprobante: ' . $e->getMessage()
+                'message' => 'Error al validar el comprobante: ' . $e->getMessage(),
+                'error_code' => 'PAYMENT_VALIDATION_FAILED',
             ], 500);
         }
     }
@@ -412,21 +483,44 @@ class OrderController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'No autorizado para rechazar esta orden',
+                    'error_code' => 'ORDER_FORBIDDEN',
                 ], 403);
             }
 
-            if ($order->status !== 'pending_payment') {
+            $stateMachine = app(OrderStateMachineService::class);
+            if ($stateMachine->normalizeStatus((string) $order->status) !== 'pending_payment') {
                 return response()->json([
                     'success' => false,
                     'message' => 'Solo se puede rechazar una orden en estado pendiente de pago',
-                ], 400);
+                    'error_code' => 'ORDER_INVALID_STATE_FOR_REJECTION',
+                ], 409);
             }
 
             $reason = $validated['reason'] ?? 'Orden rechazada por el comercio';
             $order->update([
-                'status' => 'cancelled',
                 'cancellation_reason' => $reason,
             ]);
+
+            $decision = $stateMachine->applyTransition(
+                $order,
+                'commerce',
+                'cancelled',
+                $profile->id,
+                'commerce_reject_order',
+                $reason
+            );
+
+            if (!$decision['allowed']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $decision['message'],
+                    'error_code' => $decision['error_code'],
+                    'data' => [
+                        'from_status' => $decision['from'],
+                        'to_status' => $decision['to'],
+                    ],
+                ], $decision['http_status']);
+            }
 
             event(new OrderStatusChanged($order));
 

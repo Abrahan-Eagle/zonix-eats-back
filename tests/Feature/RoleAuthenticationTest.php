@@ -76,7 +76,7 @@ class RoleAuthenticationTest extends TestCase
         ]);
 
         $response->assertStatus(200);
-        $this->assertEquals('delivery', $response->json('data.user.role'));
+        $this->assertEquals('delivery_agent', $response->json('data.user.role'));
     }
 
     public function test_admin_can_login_with_valid_credentials()
@@ -224,7 +224,7 @@ class RoleAuthenticationTest extends TestCase
                     'data' => [
                         'id' => $deliveryUser->id,
                         'email' => $deliveryUser->email,
-                        'role' => 'delivery'
+                        'role' => 'delivery_agent'
                     ]
                 ]);
     }
@@ -408,7 +408,7 @@ class RoleAuthenticationTest extends TestCase
             'email' => 'delivery@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            'role' => 'delivery'
+            'role' => 'delivery_agent'
         ];
 
         $response = $this->postJson('/api/auth/register', $deliveryData);
@@ -420,7 +420,7 @@ class RoleAuthenticationTest extends TestCase
                         'user' => [
                             'name' => 'Test Delivery',
                             'email' => 'delivery@example.com',
-                            'role' => 'delivery'
+                            'role' => 'delivery_agent'
                         ]
                     ]
                 ]);

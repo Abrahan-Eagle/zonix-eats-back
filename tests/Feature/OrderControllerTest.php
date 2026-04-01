@@ -20,15 +20,17 @@ class OrderControllerTest extends TestCase
         Sanctum::actingAs($user);
         $response = $this->getJson('/api/buyer/orders');
         $response->assertStatus(200);
-        $data = $response->json();
-        // Verificar estructura de paginación
-        if (isset($data['data'])) {
-            $this->assertCount(2, $data['data']);
-        } else {
-            // Si no tiene paginación, verificar que sea array
-            $this->assertIsArray($data);
-            $this->assertGreaterThanOrEqual(2, count($data));
-        }
+        $response->assertJsonStructure([
+            'success',
+            'message',
+            'data' => [
+                'items',
+                'pagination',
+            ],
+        ]);
+        $items = $response->json('data.items');
+        $this->assertIsArray($items);
+        $this->assertCount(2, $items);
     }
 
     public function test_cannot_list_orders_if_not_authenticated()

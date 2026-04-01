@@ -239,7 +239,7 @@ class CompleteRoleTest extends TestCase
      */
     public function test_delivery_role_has_same_permissions_as_delivery_agent()
     {
-        $deliveryUser = User::factory()->create(['role' => 'delivery']);
+        $deliveryUser = User::factory()->create(['role' => 'delivery_agent']);
         $profile = Profile::factory()->create(['user_id' => $deliveryUser->id]);
         $deliveryAgent = DeliveryAgent::factory()->create(['profile_id' => $profile->id]);
         Sanctum::actingAs($deliveryUser);
@@ -366,7 +366,7 @@ class CompleteRoleTest extends TestCase
         $this->assertEquals('commerce', $commerceUser->role);
 
         $deliveryUser = User::factory()->deliveryAgent()->create();
-        $this->assertEquals('delivery', $deliveryUser->role);
+        $this->assertEquals('delivery_agent', $deliveryUser->role);
 
         $admin = User::factory()->admin()->create();
         $this->assertEquals('admin', $admin->role);

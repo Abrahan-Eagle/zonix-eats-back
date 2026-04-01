@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 use App\Events\OrderCreated;
 use App\Events\OrderStatusChanged;
 use App\Services\NotificationService;
+use App\Services\OrderStateMachineService;
 
 /**
  * Controlador para gestionar las órdenes del comprador.
@@ -220,13 +221,25 @@ class OrderController extends Controller
             ]));
 
             if ($idempotencyKey !== '') {
-                $existingIdempotency = DB::table('order_idempotency_keys')
+                // Reserva atómica por clave: evita ventana check-then-act bajo concurrencia.
+                $inserted = DB::table('order_idempotency_keys')->insertOrIgnore([
+                    'profile_id' => $profile->id,
+                    'idempotency_key' => $idempotencyKey,
+                    'request_fingerprint' => $requestFingerprint,
+                    'response_payload' => null,
+                    'status_code' => 0,
+                    'order_id' => null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                $idempotencyRecord = DB::table('order_idempotency_keys')
                     ->where('profile_id', $profile->id)
                     ->where('idempotency_key', $idempotencyKey)
                     ->first();
 
-                if ($existingIdempotency) {
-                    if ($existingIdempotency->request_fingerprint !== $requestFingerprint) {
+                if ($idempotencyRecord) {
+                    if ($idempotencyRecord->request_fingerprint !== $requestFingerprint) {
                         return $this->errorResponse(
                             'La clave de idempotencia ya fue usada con una solicitud distinta.',
                             'ORDER_IDEMPOTENCY_CONFLICT',
@@ -234,37 +247,19 @@ class OrderController extends Controller
                         );
                     }
 
-                    if (!empty($existingIdempotency->response_payload)) {
-                        $payload = json_decode($existingIdempotency->response_payload, true);
+                    if (!empty($idempotencyRecord->response_payload)) {
+                        $payload = json_decode($idempotencyRecord->response_payload, true);
                         if (is_array($payload)) {
-                            return response()->json($payload, (int) $existingIdempotency->status_code);
+                            return response()->json($payload, (int) $idempotencyRecord->status_code);
                         }
                     }
-                } else {
-                    try {
-                        DB::table('order_idempotency_keys')->insert([
-                            'profile_id' => $profile->id,
-                            'idempotency_key' => $idempotencyKey,
-                            'request_fingerprint' => $requestFingerprint,
-                            'response_payload' => null,
-                            'status_code' => 0,
-                            'order_id' => null,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
-                    } catch (\Throwable $idempotencyException) {
-                        $racingRecord = DB::table('order_idempotency_keys')
-                            ->where('profile_id', $profile->id)
-                            ->where('idempotency_key', $idempotencyKey)
-                            ->first();
 
-                        if ($racingRecord && $racingRecord->request_fingerprint !== $requestFingerprint) {
-                            return $this->errorResponse(
-                                'La clave de idempotencia ya fue usada con una solicitud distinta.',
-                                'ORDER_IDEMPOTENCY_CONFLICT',
-                                409
-                            );
-                        }
+                    if ((int) $inserted === 0) {
+                        return $this->errorResponse(
+                            'La orden está siendo procesada. Reintenta en unos segundos.',
+                            'ORDER_IDEMPOTENCY_IN_PROGRESS',
+                            409
+                        );
                     }
                 }
             }
@@ -283,6 +278,35 @@ class OrderController extends Controller
                     'success' => false,
                     'message' => 'El comercio no está disponible en este momento'
                 ], 400);
+            }
+
+            // Hardening monetario: cuando hay coordenadas, recalcular delivery_fee en servidor.
+            if (
+                $validated['delivery_type'] === 'delivery'
+                && isset($validated['delivery_latitude'], $validated['delivery_longitude'])
+            ) {
+                $addr = $commerce->addresses()
+                    ->whereNotNull('latitude')
+                    ->whereNotNull('longitude')
+                    ->first();
+                $commerceLat = $addr ? (float) $addr->latitude : (float) config('zonix.default_commerce_lat', 10.1620);
+                $commerceLng = $addr ? (float) $addr->longitude : (float) config('zonix.default_commerce_lng', -68.0074);
+                $deliveryLat = (float) $validated['delivery_latitude'];
+                $deliveryLng = (float) $validated['delivery_longitude'];
+
+                $distanceKm = DeliveryFeeService::distanceKm($commerceLat, $commerceLng, $deliveryLat, $deliveryLng);
+                $serverFee = (float) DeliveryFeeService::calculate($distanceKm, $deliveryLat, $deliveryLng)['fee'];
+                $clientFee = (float) $validated['delivery_fee'];
+                if (abs($clientFee - $serverFee) > 0.05) {
+                    Log::info('checkout_delivery_fee_recalculated', [
+                        'profile_id' => $profile->id,
+                        'commerce_id' => $validated['commerce_id'],
+                        'client_delivery_fee' => round($clientFee, 2),
+                        'server_delivery_fee' => round($serverFee, 2),
+                        'distance_km' => $distanceKm,
+                    ]);
+                }
+                $validated['delivery_fee'] = $serverFee;
             }
 
             // Validar productos y calcular total
@@ -920,22 +944,36 @@ class OrderController extends Controller
                 ], 400);
             }
 
-            // Restaurar stock si se cancela la orden (si tiene stock_quantity)
-            foreach ($order->orderItems as $item) {
-                $product = $item->product;
-                if ($product && $product->stock_quantity !== null) {
-                    $product->increment('stock_quantity', $item->quantity);
-                    // Si había stock 0 y se restauró, marcar como disponible nuevamente
-                    if ($product->stock_quantity > 0 && !$product->available) {
-                        $product->update(['available' => true]);
+            DB::transaction(function () use ($order, $request, $profile) {
+                // Restaurar stock si se cancela la orden (si tiene stock_quantity)
+                foreach ($order->orderItems as $item) {
+                    $product = $item->product;
+                    if ($product && $product->stock_quantity !== null) {
+                        $product->increment('stock_quantity', $item->quantity);
+                        // Si había stock 0 y se restauró, marcar como disponible nuevamente
+                        if ($product->stock_quantity > 0 && !$product->available) {
+                            $product->update(['available' => true]);
+                        }
                     }
                 }
-            }
 
-            $order->update([
-                'status' => 'cancelled',
-                'cancellation_reason' => $request->reason
-            ]);
+                $decision = app(OrderStateMachineService::class)->applyTransition(
+                    $order,
+                    'buyer',
+                    'cancelled',
+                    $profile->id,
+                    'buyer_api_cancel',
+                    (string) $request->reason
+                );
+
+                if (!($decision['allowed'] ?? false)) {
+                    throw new \RuntimeException($decision['reason'] ?? 'Transición inválida para cancelar');
+                }
+
+                $order->update([
+                    'cancellation_reason' => $request->reason,
+                ]);
+            });
 
             event(new OrderStatusChanged($order->fresh()));
 

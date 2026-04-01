@@ -29,10 +29,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::post('/buyer/delivery-fee/calculate', [BuyerOrderController::class, 'calculateDeliveryFee']);
 
-    Route::prefix('buyer/tracking')->group(function () {
+    Route::prefix('buyer/tracking')->middleware('role:users')->group(function () {
         Route::get('/order/{orderId}', [App\Http\Controllers\Buyer\OrderTrackingController::class, 'getOrderStatus']);
         Route::get('/delivery-agent/{orderId}', [App\Http\Controllers\Buyer\OrderTrackingController::class, 'getDeliveryAgentLocation']);
-        Route::put('/order/{orderId}/status', [App\Http\Controllers\Buyer\OrderTrackingController::class, 'updateOrderStatus']);
     });
 
     Route::prefix('buyer/reviews')->middleware('role:users')->group(function () {

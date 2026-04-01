@@ -144,7 +144,7 @@ class WorkingRoleTest extends TestCase
         $this->assertEquals('commerce', $commerceUser->role);
 
         $deliveryUser = User::factory()->deliveryAgent()->create();
-        $this->assertEquals('delivery', $deliveryUser->role);
+        $this->assertEquals('delivery_agent', $deliveryUser->role);
 
         $admin = User::factory()->admin()->create();
         $this->assertEquals('admin', $admin->role);
@@ -223,7 +223,7 @@ class WorkingRoleTest extends TestCase
         $deliveryUser = User::factory()->deliveryAgent()->create();
         $this->assertDatabaseHas('users', [
             'id' => $deliveryUser->id,
-            'role' => 'delivery'
+            'role' => 'delivery_agent'
         ]);
 
         // Crear usuario con rol 'admin'
@@ -286,7 +286,7 @@ class WorkingRoleTest extends TestCase
                     'data' => [
                         'id' => $deliveryUser->id,
                         'email' => $deliveryUser->email,
-                        'role' => 'delivery'
+                        'role' => 'delivery_agent'
                     ]
                 ]);
     }

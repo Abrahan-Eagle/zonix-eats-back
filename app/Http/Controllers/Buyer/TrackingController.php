@@ -8,6 +8,7 @@ use App\Services\Routing\RouteCalculationService;
 use App\Services\TrackingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class TrackingController extends Controller
@@ -150,9 +151,90 @@ class TrackingController extends Controller
                 'estimated_times' => $tracking['estimated_times'] ?? null,
                 'estimated_delivery_time_minutes' => $etaMinutes,
                 'route_to_customer' => $routeToCustomer,
+                // Contrato unificado: tracking incluye timeline de estados para evitar doble consulta.
+                'timeline' => $this->generateTimeline($order),
             ],
             'tracking' => $tracking,
         ]);
+    }
+
+    private function getStatusInfo(string $status): array
+    {
+        $statusMap = [
+            'pending_payment' => ['title' => 'Pendiente de Pago', 'description' => 'Tu pedido fue creado. Sube el comprobante de pago.', 'icon' => 'hourglass_empty'],
+            'paid' => ['title' => 'Pago Confirmado', 'description' => 'El comercio validó tu pago y procesará el pedido.', 'icon' => 'check_circle'],
+            'processing' => ['title' => 'Preparando tu Pedido', 'description' => 'El restaurante está preparando tu comida.', 'icon' => 'restaurant'],
+            'shipped' => ['title' => 'En Camino', 'description' => 'El repartidor está llevando tu pedido.', 'icon' => 'directions_car'],
+            'delivered' => ['title' => 'Entregado', 'description' => 'Tu pedido ha sido entregado exitosamente.', 'icon' => 'done_all'],
+            'cancelled' => ['title' => 'Cancelado', 'description' => 'Tu pedido ha sido cancelado.', 'icon' => 'cancel'],
+        ];
+
+        return $statusMap[$status] ?? $statusMap['pending_payment'];
+    }
+
+    private function generateTimeline(Order $order): array
+    {
+        $history = DB::table('order_status_history')
+            ->where('order_id', $order->id)
+            ->orderBy('occurred_at')
+            ->orderBy('id')
+            ->get(['to_status', 'occurred_at']);
+
+        $timeline = [];
+        $seen = [];
+
+        foreach ($history as $entry) {
+            $status = (string) $entry->to_status;
+            if (isset($seen[$status])) {
+                continue;
+            }
+            $info = $this->getStatusInfo($status);
+            $timeline[] = [
+                'status' => $status,
+                'title' => $info['title'],
+                'description' => $info['description'],
+                'timestamp' => $entry->occurred_at,
+                'completed' => true,
+                'icon' => $info['icon'],
+            ];
+            $seen[$status] = true;
+        }
+
+        $currentStatus = (string) $order->status;
+        if (!isset($seen[$currentStatus])) {
+            $info = $this->getStatusInfo($currentStatus);
+            $timeline[] = [
+                'status' => $currentStatus,
+                'title' => $info['title'],
+                'description' => $info['description'],
+                'timestamp' => $order->status_updated_at ?? $order->updated_at,
+                'completed' => true,
+                'icon' => $info['icon'],
+            ];
+            $seen[$currentStatus] = true;
+        }
+
+        $futureStates = ['pending_payment', 'paid', 'processing', 'shipped', 'delivered'];
+        $currentIndex = array_search($currentStatus, $futureStates, true);
+        if ($currentIndex !== false && $currentStatus !== 'cancelled') {
+            for ($i = $currentIndex + 1; $i < count($futureStates); $i++) {
+                $futureStatus = $futureStates[$i];
+                if (isset($seen[$futureStatus])) {
+                    continue;
+                }
+                $futureInfo = $this->getStatusInfo($futureStatus);
+                $timeline[] = [
+                    'status' => $futureStatus,
+                    'title' => $futureInfo['title'],
+                    'description' => $futureInfo['description'],
+                    'timestamp' => null,
+                    'completed' => false,
+                    'icon' => $futureInfo['icon'],
+                ];
+            }
+        }
+
+        return $timeline;
     }
 
     /**

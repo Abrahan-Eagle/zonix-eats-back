@@ -11,8 +11,10 @@ use App\Models\Order;
 use App\Models\OrderDelivery;
 use App\Models\Review;
 use App\Services\Routing\RouteCalculationService;
+use App\Services\OrderStateMachineService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class DeliveryController extends Controller
@@ -200,7 +202,21 @@ class DeliveryController extends Controller
                 'status' => 'required|in:delivered',
             ]);
 
-            $order->update(['status' => 'delivered']);
+            $stateMachine = app(OrderStateMachineService::class);
+            $decision = $stateMachine->applyTransition(
+                $order,
+                'delivery',
+                'delivered',
+                $agent->id,
+                'delivery_api'
+            );
+            if (!$decision['allowed']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $decision['message'],
+                    'error_code' => $decision['error_code'],
+                ], $decision['http_status']);
+            }
 
             if ($order->orderDelivery) {
                 $order->orderDelivery->update(['status' => 'delivered']);
@@ -282,15 +298,6 @@ class DeliveryController extends Controller
     public function acceptOrder(Request $request, $orderId)
     {
         try {
-            $order = Order::findOrFail($orderId);
-
-            if (! in_array($order->status, ['processing', 'shipped'])) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Solo se pueden aceptar órdenes en estado processing o shipped',
-                ], 400);
-            }
-
             $deliveryAgent = $this->getAuthAgent();
             if (! $deliveryAgent) {
                 Log::warning('[DeliveryAPI] acceptOrder 404 — sin agente resuelto', $this->deliveryLogContext(['order_id' => $orderId]));
@@ -301,29 +308,59 @@ class DeliveryController extends Controller
                 ], 404);
             }
 
-            Log::info('[DeliveryAPI] acceptOrder asignando', $this->deliveryLogContext([
-                'order_id' => $orderId,
-                'assign_to_agent_id' => $deliveryAgent->id,
-            ]));
+            $accepted = DB::transaction(function () use ($orderId, $deliveryAgent, $request) {
+                $order = Order::where('id', $orderId)->lockForUpdate()->firstOrFail();
 
-            if ($order->orderDelivery) {
+                if (! in_array($order->status, ['processing', 'shipped'], true)) {
+                    return ['ok' => false, 'http_status' => 409, 'error_code' => 'ORDER_ACCEPT_INVALID_STATUS', 'message' => 'Solo se pueden aceptar órdenes en estado processing o shipped'];
+                }
+
+                if (OrderDelivery::where('order_id', $orderId)->exists()) {
+                    return ['ok' => false, 'http_status' => 409, 'error_code' => 'ORDER_ALREADY_ASSIGNED', 'message' => 'La orden ya fue asignada a otro repartidor.'];
+                }
+
+                try {
+                    OrderDelivery::create([
+                        'order_id' => $orderId,
+                        'agent_id' => $deliveryAgent->id,
+                        'status' => 'assigned',
+                        'delivery_fee' => $order->delivery_fee ?? 0,
+                        'notes' => $request->input('notes', ''),
+                    ]);
+                } catch (\Throwable $e) {
+                    if (str_contains($e->getMessage(), 'order_delivery_order_id_unique')) {
+                        return ['ok' => false, 'http_status' => 409, 'error_code' => 'ORDER_ALREADY_ASSIGNED', 'message' => 'La orden ya fue asignada a otro repartidor.'];
+                    }
+                    throw $e;
+                }
+
+                $order->update(['agent_accepted_at' => now()]);
+
+                DB::table('order_status_history')->insert([
+                    'order_id' => $order->id,
+                    'from_status' => $order->status,
+                    'to_status' => $order->status,
+                    'actor_role' => 'delivery',
+                    'actor_id' => $deliveryAgent->id,
+                    'source' => 'delivery_accept',
+                    'reason' => 'delivery_agent_assigned',
+                    'occurred_at' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                return ['ok' => true];
+            });
+
+            if (!$accepted['ok']) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Order is not available for delivery',
-                ], 400);
+                    'message' => $accepted['message'],
+                    'error_code' => $accepted['error_code'],
+                ], $accepted['http_status']);
             }
 
-            OrderDelivery::create([
-                'order_id' => $orderId,
-                'agent_id' => $deliveryAgent->id,
-                'status' => 'assigned',
-                'delivery_fee' => $order->delivery_fee ?? 0,
-                'notes' => $request->input('notes', ''),
-            ]);
-
-            $order->update(['agent_accepted_at' => now()]);
-
-            $freshOrder = $order->fresh();
+            $freshOrder = Order::with(['commerce.addresses', 'profile.user', 'orderItems.product', 'orderDelivery'])->findOrFail($orderId);
             event(new \App\Events\OrderStatusChanged($freshOrder));
 
             $commerce = $freshOrder->commerce;
@@ -340,7 +377,7 @@ class DeliveryController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Orden aceptada exitosamente',
-                'data' => $freshOrder->load(['commerce.addresses', 'profile.user', 'orderItems.product', 'orderDelivery']),
+                'data' => $freshOrder,
             ]);
         } catch (\Exception $e) {
             Log::error('Error accepting order: '.$e->getMessage());
@@ -417,7 +454,21 @@ class DeliveryController extends Controller
                 return response()->json(['success' => false, 'message' => 'Código QR inválido'], 400);
             }
 
-            $order->update(['status' => 'shipped']);
+            $stateMachine = app(OrderStateMachineService::class);
+            $decision = $stateMachine->applyTransition(
+                $order,
+                'delivery',
+                'shipped',
+                $agent->id,
+                'delivery_qr_pickup'
+            );
+            if (!$decision['allowed']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $decision['message'],
+                    'error_code' => $decision['error_code'],
+                ], $decision['http_status']);
+            }
             if ($order->orderDelivery) {
                 $order->orderDelivery->update(['status' => 'picked_up']);
             }
@@ -505,7 +556,21 @@ class DeliveryController extends Controller
                 return response()->json(['success' => false, 'message' => 'Código QR inválido'], 400);
             }
 
-            $order->update(['status' => 'delivered']);
+            $stateMachine = app(OrderStateMachineService::class);
+            $decision = $stateMachine->applyTransition(
+                $order,
+                'delivery',
+                'delivered',
+                $agent->id,
+                'delivery_qr_dropoff'
+            );
+            if (!$decision['allowed']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $decision['message'],
+                    'error_code' => $decision['error_code'],
+                ], $decision['http_status']);
+            }
             if ($order->orderDelivery) {
                 $order->orderDelivery->update(['status' => 'delivered']);
             }
@@ -887,11 +952,17 @@ class DeliveryController extends Controller
     {
         try {
             if (! $this->canAccessAgent($deliveryAgentId)) {
-                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autorizado',
+                    'error_code' => 'ORDER_FORBIDDEN',
+                    'data' => null,
+                ], 403);
             }
 
             $startDate = $request->input('start_date');
             $endDate = $request->input('end_date');
+            $perPage = max(1, min((int) $request->input('per_page', 15), 100));
 
             $query = Order::with(['commerce', 'profile.user', 'orderItems.product', 'orderDelivery'])
                 ->whereHas('orderDelivery', function ($q) use ($deliveryAgentId) {
@@ -906,13 +977,33 @@ class DeliveryController extends Controller
                 $query->where('created_at', '<=', $endDate);
             }
 
-            $orders = $query->orderBy('created_at', 'desc')->get();
+            $orders = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
-            return response()->json(['success' => true, 'data' => $orders]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Historial obtenido correctamente',
+                'error_code' => null,
+                'data' => [
+                    'items' => $orders->items(),
+                    // Compatibilidad: algunos clientes consumen data como lista directa.
+                    'data' => $orders->items(),
+                    'pagination' => [
+                        'current_page' => $orders->currentPage(),
+                        'last_page' => $orders->lastPage(),
+                        'per_page' => $orders->perPage(),
+                        'total' => $orders->total(),
+                    ],
+                ],
+            ]);
         } catch (\Exception $e) {
             Log::error('Error fetching delivery history: '.$e->getMessage());
 
-            return response()->json(['success' => false, 'message' => 'Error fetching delivery history'], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching delivery history',
+                'error_code' => 'DELIVERY_HISTORY_FETCH_FAILED',
+                'data' => null,
+            ], 500);
         }
     }
 
