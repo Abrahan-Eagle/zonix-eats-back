@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\ReviewService;
 use Illuminate\Http\Request;
+use Illuminate\Database\QueryException;
 
 class ReviewController extends Controller
 {
@@ -23,15 +24,41 @@ class ReviewController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'reviewable_id' => 'required|integer',
-            'reviewable_type' => 'required|string|in:App\Models\Commerce,App\Models\Product',
+            'order_id' => 'required|integer|exists:orders,id',
+            'type' => 'required|string|in:restaurant,delivery',
             'rating' => 'required|integer|between:1,5',
             'comment' => 'nullable|string|max:500',
         ]);
 
-        $result = $this->reviewService->createReview($validated);
+        try {
+            $review = $this->reviewService->createReview($validated);
 
-        return response()->json($result, $result['success'] ? 201 : 400);
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'review_id' => $review->id,
+                    'rating' => $review->rating,
+                    'comment' => $review->comment,
+                ],
+                'message' => 'Calificación creada exitosamente',
+            ], 201);
+        } catch (QueryException $e) {
+            $isDuplicated = ($e->getCode() ?? '') === '23000';
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => $isDuplicated ? 'Ya has calificado este elemento' : 'No se pudo crear la calificación',
+                'error_code' => $isDuplicated ? 'REVIEWS_DUPLICATE_REVIEW' : 'REVIEWS_CREATE_ERROR',
+            ], $isDuplicated ? 409 : 400);
+        } catch (\Exception $e) {
+            $isDuplicated = str_contains(strtolower($e->getMessage()), 'ya has calificado');
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => $e->getMessage(),
+                'error_code' => $isDuplicated ? 'REVIEWS_DUPLICATE_REVIEW' : 'REVIEWS_CREATE_ERROR',
+            ], $isDuplicated ? 409 : 400);
+        }
     }
 
     /**
@@ -43,14 +70,29 @@ class ReviewController extends Controller
      */
     public function index($reviewableId, $reviewableType)
     {
-        $reviews = $this->reviewService->getReviews($reviewableId, $reviewableType);
-        $averageRating = $this->reviewService->getAverageRating($reviewableId, $reviewableType);
+        if ($reviewableType === 'App\\Models\\Commerce') {
+            $reviews = $this->reviewService->getRestaurantReviews($reviewableId);
+            $averageRating = $this->reviewService->getRestaurantAverageRating($reviewableId);
+        } elseif ($reviewableType === 'App\\Models\\DeliveryAgent') {
+            $reviews = $this->reviewService->getDeliveryAgentReviews($reviewableId);
+            $averageRating = $this->reviewService->getDeliveryAgentAverageRating($reviewableId);
+        } else {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Tipo de review no soportado',
+                'error_code' => 'REVIEWS_INVALID_TYPE',
+            ], 422);
+        }
 
         return response()->json([
             'success' => true,
-            'reviews' => $reviews,
-            'average_rating' => $averageRating,
-            'total_reviews' => $reviews->count(),
+            'data' => [
+                'reviews' => $reviews,
+                'average_rating' => $averageRating,
+                'total_reviews' => $reviews->count(),
+            ],
+            'message' => 'Reseñas obtenidas exitosamente',
         ]);
     }
 
@@ -96,11 +138,13 @@ class ReviewController extends Controller
     public function canReview($reviewableId, $reviewableType)
     {
         $user = auth()->user();
-        $canReview = $this->reviewService->canUserReview($user->id, $reviewableId, $reviewableType);
+        $orderId = (int) $reviewableId;
+        $canReview = $this->reviewService->canUserReview($orderId, $user->id);
 
         return response()->json([
             'success' => true,
-            'can_review' => $canReview,
+            'data' => ['can_review' => $canReview],
+            'message' => 'Elegibilidad obtenida exitosamente',
         ]);
     }
 } 

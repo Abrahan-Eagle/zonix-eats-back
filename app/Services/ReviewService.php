@@ -49,6 +49,7 @@ class ReviewService
         // Preparar datos base del review
         $reviewData = [
             'profile_id' => $profile->id,
+            'order_id' => $order->id,
             'rating' => $data['rating'],
             'comment' => $data['comment'] ?? null
         ];
@@ -57,14 +58,15 @@ class ReviewService
         if ($data['type'] === 'restaurant' && $order->commerce_id) {
             $reviewData['reviewable_type'] = 'App\\Models\\Commerce';
             $reviewData['reviewable_id'] = $order->commerce_id;
-        } elseif ($data['type'] === 'delivery' && $order->delivery_agent_id) {
-            $reviewData['reviewable_type'] = 'App\\Models\\User';
-            $reviewData['reviewable_id'] = $order->delivery_agent_id;
+        } elseif ($data['type'] === 'delivery' && ($order->orderDelivery?->agent_id || $order->deliveryAgent?->id)) {
+            $deliveryAgentId = $order->orderDelivery?->agent_id ?? $order->deliveryAgent?->id;
+            $reviewData['reviewable_type'] = 'App\\Models\\DeliveryAgent';
+            $reviewData['reviewable_id'] = $deliveryAgentId;
         } else {
             Log::error('ReviewService::createReview - Tipo de review no válido o datos faltantes', [
                 'type' => $data['type'],
                 'commerce_id' => $order->commerce_id,
-                'delivery_agent_id' => $order->delivery_agent_id
+                'delivery_agent_id' => $order->orderDelivery?->agent_id ?? $order->deliveryAgent?->id
             ]);
             throw new \Exception('Tipo de review no válido o datos faltantes');
         }
@@ -77,6 +79,7 @@ class ReviewService
         
         // Verificar si ya existe un review del mismo usuario para el mismo elemento
         $existingReview = Review::where('profile_id', $profile->id)
+                               ->where('order_id', $order->id)
                                ->where('reviewable_type', $reviewData['reviewable_type'])
                                ->where('reviewable_id', $reviewData['reviewable_id'])
                                ->first();

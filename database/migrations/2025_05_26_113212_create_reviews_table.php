@@ -21,7 +21,15 @@ return new class extends Migration
             $table->morphs('reviewable'); // reviewable_type, reviewable_id (commerce, delivery_agent)
             $table->tinyInteger('rating')->unsigned();
             $table->text('comment')->nullable(); // En inglés desde el inicio (antes 'comentario')
+            $table->string('moderation_status', 16)->default('approved');
+            $table->timestamp('reported_at')->nullable();
+            $table->text('reported_reason')->nullable();
+            $table->unsignedBigInteger('reported_by_profile_id')->nullable();
             $table->timestamps();
+
+            $table->unique(['profile_id', 'order_id', 'reviewable_type', 'reviewable_id'], 'reviews_unique_profile_order_target');
+            $table->index(['reviewable_type', 'reviewable_id', 'created_at'], 'reviews_target_created_at_index');
+            $table->index(['moderation_status', 'reported_at'], 'reviews_moderation_status_reported_at_index');
         });
     }
 

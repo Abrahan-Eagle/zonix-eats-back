@@ -35,11 +35,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::put('/order/{orderId}/status', [App\Http\Controllers\Buyer\OrderTrackingController::class, 'updateOrderStatus']);
     });
 
-    Route::prefix('buyer/reviews')->group(function () {
+    Route::prefix('buyer/reviews')->middleware('role:users')->group(function () {
         Route::post('/restaurant', [App\Http\Controllers\Buyer\ReviewController::class, 'rateRestaurant']);
         Route::post('/delivery-agent', [App\Http\Controllers\Buyer\ReviewController::class, 'rateDeliveryAgent']);
         Route::get('/restaurant/{commerceId}', [App\Http\Controllers\Buyer\ReviewController::class, 'getRestaurantReviews']);
         Route::get('/delivery-agent/{agentId}', [App\Http\Controllers\Buyer\ReviewController::class, 'getDeliveryAgentReviews']);
+        Route::post('/{reviewId}/report', [App\Http\Controllers\Buyer\ReviewController::class, 'reportReview']);
     });
 
     Route::prefix('buyer/chat')->group(function () {

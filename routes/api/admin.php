@@ -45,6 +45,8 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::post('/notifications', [AdminReportController::class, 'sendSystemNotification']);
 
     Route::get('/reports', [AdminReportController::class, 'index']);
+    Route::get('/reviews/reported', [AdminReportController::class, 'getReportedReviews']);
+    Route::post('/reviews/{reviewId}/moderate', [AdminReportController::class, 'moderateReview']);
 
     Route::get('/disputes', [\App\Http\Controllers\Admin\DisputeController::class, 'index']);
     Route::get('/disputes/stats', [\App\Http\Controllers\Admin\DisputeController::class, 'stats']);

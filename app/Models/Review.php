@@ -15,11 +15,16 @@ class Review extends Model
         'reviewable_type',
         'reviewable_id',
         'rating',
-        'comment'
+        'comment',
+        'moderation_status',
+        'reported_at',
+        'reported_reason',
+        'reported_by_profile_id',
     ];
 
     protected $casts = [
-        'rating' => 'integer'
+        'rating' => 'integer',
+        'reported_at' => 'datetime',
     ];
 
     public function reviewable()

@@ -7,9 +7,11 @@ use App\Models\User;
 use App\Models\Order;
 use App\Models\Commerce;
 use App\Models\Notification;
+use App\Models\Review;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class ReportController extends Controller
 {
@@ -268,6 +270,114 @@ class ReportController extends Controller
                 'message' => 'Error enviando notificación: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Listar reseñas reportadas para moderación operativa.
+     */
+    public function getReportedReviews(Request $request)
+    {
+        if (!Schema::hasColumn('reviews', 'moderation_status')) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'reviews' => [],
+                    'pagination' => null,
+                ],
+                'message' => 'Moderación no disponible en el esquema actual',
+            ]);
+        }
+
+        $perPage = min(max((int) $request->input('per_page', 20), 1), 100);
+
+        $query = Review::query()
+            ->with(['profile', 'order'])
+            ->where('moderation_status', 'reported')
+            ->orderByDesc('reported_at')
+            ->orderByDesc('updated_at');
+
+        $reviews = $query->paginate($perPage);
+
+        $items = $reviews->getCollection()->map(function (Review $review) {
+            $profile = $review->profile;
+            $authorName = $profile
+                ? trim(($profile->firstName ?? '') . ' ' . ($profile->lastName ?? ''))
+                : 'Usuario';
+            return [
+                'id' => $review->id,
+                'order_id' => $review->order_id,
+                'reviewable_type' => $review->reviewable_type,
+                'reviewable_id' => $review->reviewable_id,
+                'rating' => $review->rating,
+                'comment' => $review->comment,
+                'moderation_status' => $review->moderation_status,
+                'reported_reason' => Schema::hasColumn('reviews', 'reported_reason') ? $review->reported_reason : null,
+                'reported_at' => Schema::hasColumn('reviews', 'reported_at') ? optional($review->reported_at)->toISOString() : null,
+                'author_name' => $authorName !== '' ? $authorName : 'Usuario',
+                'created_at' => optional($review->created_at)->toISOString(),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'reviews' => $items,
+                'pagination' => [
+                    'current_page' => $reviews->currentPage(),
+                    'last_page' => $reviews->lastPage(),
+                    'per_page' => $reviews->perPage(),
+                    'total' => $reviews->total(),
+                ],
+            ],
+            'message' => 'Reseñas reportadas obtenidas exitosamente',
+        ]);
+    }
+
+    /**
+     * Moderar reseña reportada: approved o rejected.
+     */
+    public function moderateReview(Request $request, int $reviewId)
+    {
+        $validated = $request->validate([
+            'action' => 'required|string|in:approved,rejected',
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        $review = Review::find($reviewId);
+        if (!$review) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Reseña no encontrada',
+                'error_code' => 'REVIEWS_NOT_FOUND',
+            ], 404);
+        }
+
+        if (!Schema::hasColumn('reviews', 'moderation_status')) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Moderación no disponible en el esquema actual',
+                'error_code' => 'REVIEWS_MODERATION_SCHEMA_MISSING',
+            ], 400);
+        }
+
+        $updatePayload = [
+            'moderation_status' => $validated['action'],
+        ];
+        if (Schema::hasColumn('reviews', 'reported_reason') && !empty($validated['reason'])) {
+            $updatePayload['reported_reason'] = $validated['reason'];
+        }
+        $review->update($updatePayload);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'review_id' => $review->id,
+                'moderation_status' => $review->moderation_status,
+            ],
+            'message' => 'Reseña moderada exitosamente',
+        ]);
     }
 
     private function getUserGrowthData($period)
