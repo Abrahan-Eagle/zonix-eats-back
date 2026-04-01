@@ -145,6 +145,12 @@ class PromotionController extends Controller
                 ->first();
 
             if (!$coupon) {
+                Log::info('coupon_validation_failed', [
+                    'reason' => 'invalid_or_expired',
+                    'profile_id' => $profile->id,
+                    'code' => $code,
+                    'order_amount' => $orderAmount,
+                ]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Cupón no válido o expirado'
@@ -157,6 +163,13 @@ class PromotionController extends Controller
                 ->count();
 
             if ($usageCount >= $coupon->usage_limit) {
+                Log::info('coupon_validation_failed', [
+                    'reason' => 'usage_limit',
+                    'profile_id' => $profile->id,
+                    'coupon_id' => $coupon->id,
+                    'usage_count' => $usageCount,
+                    'usage_limit' => (int) $coupon->usage_limit,
+                ]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Has alcanzado el límite de uso de este cupón'
@@ -165,6 +178,13 @@ class PromotionController extends Controller
 
             // Verificar monto mínimo
             if ($orderAmount < $coupon->minimum_order) {
+                Log::info('coupon_validation_failed', [
+                    'reason' => 'minimum_order',
+                    'profile_id' => $profile->id,
+                    'coupon_id' => $coupon->id,
+                    'order_amount' => $orderAmount,
+                    'minimum_order' => (float) $coupon->minimum_order,
+                ]);
                 return response()->json([
                     'success' => false,
                     'message' => "Monto mínimo requerido: $" . number_format($coupon->minimum_order, 2)
@@ -202,6 +222,15 @@ class PromotionController extends Controller
      */
     public function applyCouponToOrder(Request $request): JsonResponse
     {
+        $legacyEnabled = filter_var(env('ENABLE_LEGACY_APPLY_COUPON', false), FILTER_VALIDATE_BOOL);
+        if (!$legacyEnabled) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Este flujo está deprecado. Usa coupon_code en el checkout.',
+                'error_code' => 'COUPON_FLOW_DEPRECATED',
+            ], 410);
+        }
+
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|exists:orders,id',
             'coupon_id' => 'required|exists:coupons,id'
@@ -216,6 +245,12 @@ class PromotionController extends Controller
         }
 
         try {
+            Log::warning('legacy_apply_coupon_used', [
+                'profile_id' => auth()->user()?->profile?->id,
+                'order_id' => $request->order_id,
+                'coupon_id' => $request->coupon_id,
+            ]);
+
             $order = Order::findOrFail($request->order_id);
             $coupon = Coupon::findOrFail($request->coupon_id);
 
@@ -227,8 +262,8 @@ class PromotionController extends Controller
                 ], 403);
             }
 
-            // Verificar que el cupón no se haya aplicado ya
-            if ($order->coupon_id) {
+            // Verificar que el cupón no se haya aplicado ya para esta orden
+            if (DB::table('coupon_usages')->where('order_id', $order->id)->exists()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Este pedido ya tiene un cupón aplicado'
@@ -245,13 +280,13 @@ class PromotionController extends Controller
             }
 
             // Calcular descuento
-            $discount = $this->calculateDiscount($coupon, $order->subtotal);
+            $baseAmount = (float) $order->total;
+            $discount = $this->calculateDiscount($coupon, $baseAmount);
+            $newTotal = max(0, $baseAmount - $discount);
 
-            // Aplicar cupón al pedido
+            // Aplicar cupón al pedido usando el campo canónico `total`
             $order->update([
-                'coupon_id' => $coupon->id,
-                'discount_amount' => $discount,
-                'total_amount' => $order->subtotal + $order->tax_amount + $order->delivery_fee - $discount
+                'total' => $newTotal,
             ]);
 
             // Registrar uso del cupón
@@ -269,7 +304,7 @@ class PromotionController extends Controller
                     'order_id' => $order->id,
                     'coupon_code' => $coupon->code,
                     'discount_amount' => $discount,
-                    'new_total' => $order->total_amount
+                    'new_total' => $order->total
                 ]
             ]);
         } catch (\Exception $e) {
@@ -299,7 +334,7 @@ class PromotionController extends Controller
                     'coupon_usages.discount_amount',
                     'coupon_usages.used_at',
                     'orders.id as order_id',
-                    'orders.total_amount'
+                    'orders.total as order_total'
                 ])
                 ->orderBy('coupon_usages.used_at', 'desc')
                 ->paginate(10);
@@ -354,7 +389,7 @@ class PromotionController extends Controller
         }
 
         // Verificar monto mínimo
-        if ($order->subtotal < $coupon->minimum_order) {
+        if ((float) $order->total < (float) $coupon->minimum_order) {
             return [
                 'valid' => false,
                 'message' => "Monto mínimo requerido: $" . number_format($coupon->minimum_order, 2)

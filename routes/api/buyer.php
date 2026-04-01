@@ -139,7 +139,7 @@ Route::middleware(['auth:sanctum', 'role:users'])->prefix('buyer')->group(functi
     Route::put('/cart/update-quantity', [CartController::class, 'updateQuantity']);
     Route::delete('/cart/{productId}', [CartController::class, 'remove']);
     Route::post('/cart/notes', [CartController::class, 'addNotes']);
-    Route::post('/orders', [BuyerOrderController::class, 'store']);
+    Route::post('/orders', [BuyerOrderController::class, 'store'])->middleware('throttle:create');
     Route::get('/orders', [BuyerOrderController::class, 'index']);
     Route::get('/orders/{id}', [BuyerOrderController::class, 'show']);
     Route::get('/products/{id}', [\App\Http\Controllers\Buyer\ProductController::class, 'show']);

@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Buyer;
 use App\Http\Controllers\Controller;
 use App\Services\DeliveryFeeService;
 use App\Services\OrderService;
+use App\Models\Coupon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Events\OrderCreated;
 use App\Events\OrderStatusChanged;
@@ -152,6 +154,7 @@ class OrderController extends Controller
                 'delivery_type' => 'required|in:pickup,delivery',
                 'total' => 'required|numeric|min:0',
                 'delivery_fee' => 'nullable|numeric|min:0',
+                'coupon_code' => 'nullable|string|max:20',
                 'notes' => 'nullable|string|max:500',
                 'delivery_address' => 'required_if:delivery_type,delivery|nullable|string|max:500',
                 'delivery_latitude' => 'nullable|numeric|between:-90,90',
@@ -172,10 +175,11 @@ class OrderController extends Controller
             // Obtener profile
             $profile = $user->profile;
             if (!$profile) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Debes completar tu perfil antes de crear una orden'
-                ], 400);
+                return $this->errorResponse(
+                    'Debes completar tu perfil antes de crear una orden',
+                    'ORDER_PROFILE_REQUIRED',
+                    400
+                );
             }
 
             // Validar datos mínimos del perfil para crear orden (teléfono en tabla phones)
@@ -185,20 +189,84 @@ class OrderController extends Controller
 
             foreach ($requiredProfileFields as $field) {
                 if (empty($profile->$field)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => "Se requiere {$field} para crear una orden. Por favor, completa tu perfil.",
-                        'missing_field' => $field
-                    ], 400);
+                    return $this->errorResponse(
+                        "Se requiere {$field} para crear una orden. Por favor, completa tu perfil.",
+                        'ORDER_PROFILE_FIELD_REQUIRED',
+                        400,
+                        ['missing_field' => $field]
+                    );
                 }
             }
 
             if (!$profile->phones()->where('status', true)->exists()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Se requiere al menos un teléfono para crear una orden. Por favor, agrega un teléfono en tu perfil.',
-                    'missing_field' => 'phone'
-                ], 400);
+                return $this->errorResponse(
+                    'Se requiere al menos un teléfono para crear una orden. Por favor, agrega un teléfono en tu perfil.',
+                    'ORDER_PHONE_REQUIRED',
+                    400,
+                    ['missing_field' => 'phone']
+                );
+            }
+
+            $idempotencyKey = trim((string) $request->header('Idempotency-Key', ''));
+            $requestFingerprint = hash('sha256', json_encode([
+                'commerce_id' => $validated['commerce_id'],
+                'products' => $validated['products'],
+                'delivery_type' => $validated['delivery_type'],
+                'delivery_fee' => $validated['delivery_fee'],
+                'coupon_code' => strtoupper(trim((string) ($validated['coupon_code'] ?? ''))),
+                'delivery_address' => $validated['delivery_address'] ?? null,
+                'delivery_latitude' => $validated['delivery_latitude'] ?? null,
+                'delivery_longitude' => $validated['delivery_longitude'] ?? null,
+            ]));
+
+            if ($idempotencyKey !== '') {
+                $existingIdempotency = DB::table('order_idempotency_keys')
+                    ->where('profile_id', $profile->id)
+                    ->where('idempotency_key', $idempotencyKey)
+                    ->first();
+
+                if ($existingIdempotency) {
+                    if ($existingIdempotency->request_fingerprint !== $requestFingerprint) {
+                        return $this->errorResponse(
+                            'La clave de idempotencia ya fue usada con una solicitud distinta.',
+                            'ORDER_IDEMPOTENCY_CONFLICT',
+                            409
+                        );
+                    }
+
+                    if (!empty($existingIdempotency->response_payload)) {
+                        $payload = json_decode($existingIdempotency->response_payload, true);
+                        if (is_array($payload)) {
+                            return response()->json($payload, (int) $existingIdempotency->status_code);
+                        }
+                    }
+                } else {
+                    try {
+                        DB::table('order_idempotency_keys')->insert([
+                            'profile_id' => $profile->id,
+                            'idempotency_key' => $idempotencyKey,
+                            'request_fingerprint' => $requestFingerprint,
+                            'response_payload' => null,
+                            'status_code' => 0,
+                            'order_id' => null,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    } catch (\Throwable $idempotencyException) {
+                        $racingRecord = DB::table('order_idempotency_keys')
+                            ->where('profile_id', $profile->id)
+                            ->where('idempotency_key', $idempotencyKey)
+                            ->first();
+
+                        if ($racingRecord && $racingRecord->request_fingerprint !== $requestFingerprint) {
+                            return $this->errorResponse(
+                                'La clave de idempotencia ya fue usada con una solicitud distinta.',
+                                'ORDER_IDEMPOTENCY_CONFLICT',
+                                409
+                            );
+                        }
+                    }
+                }
             }
 
             // Validar commerce existe y está activo
@@ -269,23 +337,81 @@ class OrderController extends Controller
             $tolerance = 0.05; // redondeo
             $totalOk = false;
             if ($validated['delivery_fee'] == 0) {
-                // Recoger: el cliente puede enviar un total mayor por extras/modificadores; aceptar si no es menor al esperado
-                $totalOk = $sentTotal >= $expectedTotal - $tolerance && $sentTotal <= $expectedTotal + 500;
+                // Pickup: solo se acepta tolerancia de redondeo para mantener integridad monetaria.
+                $totalOk = abs($expectedTotal - $sentTotal) <= $tolerance;
             } else {
                 $totalOk = abs($expectedTotal - $sentTotal) <= $tolerance;
             }
             if (!$totalOk) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'El total no coincide. Por favor, revisa tu carrito.',
-                    'recalculated_total' => round($expectedTotal, 2),
-                    'sent_total' => $validated['total']
-                ], 422);
+                Log::warning('checkout_total_mismatch', [
+                    'profile_id' => $profile->id,
+                    'commerce_id' => $validated['commerce_id'],
+                    'delivery_type' => $validated['delivery_type'],
+                    'expected_total' => round($expectedTotal, 2),
+                    'sent_total' => round($sentTotal, 2),
+                ]);
+
+                return $this->errorResponse(
+                    'El total no coincide. Por favor, revisa tu carrito.',
+                    'ORDER_TOTAL_MISMATCH',
+                    422,
+                    [
+                        'recalculated_total' => round($expectedTotal, 2),
+                        'sent_total' => round($sentTotal, 2),
+                    ]
+                );
             }
-            // Usar el total enviado por el cliente cuando hay extras (Recoger); si no, el esperado
-            $orderTotal = ($validated['delivery_fee'] == 0 && $sentTotal > $expectedTotal + $tolerance)
-                ? $sentTotal
-                : $expectedTotal;
+            $orderTotal = $expectedTotal;
+
+            $appliedCoupon = null;
+            $couponCode = strtoupper(trim((string) ($validated['coupon_code'] ?? '')));
+            if ($couponCode !== '') {
+                $coupon = Coupon::where('code', $couponCode)
+                    ->where('is_active', true)
+                    ->where('start_date', '<=', now())
+                    ->where('end_date', '>=', now())
+                    ->where(function ($query) use ($profile) {
+                        $query->where('is_public', true)
+                            ->orWhere('assigned_to_profile_id', $profile->id);
+                    })
+                    ->first();
+
+                if (!$coupon) {
+                    return $this->errorResponse(
+                        'Cupón no válido o expirado.',
+                        'ORDER_COUPON_INVALID',
+                        400
+                    );
+                }
+
+                $couponUsageCount = $coupon->usages()
+                    ->where('profile_id', $profile->id)
+                    ->count();
+                $usageLimit = max(1, (int) ($coupon->usage_limit ?? 1));
+                if ($couponUsageCount >= $usageLimit) {
+                    return $this->errorResponse(
+                        'Has alcanzado el límite de uso de este cupón.',
+                        'ORDER_COUPON_USAGE_LIMIT_REACHED',
+                        400
+                    );
+                }
+
+                if ($orderTotal < (float) ($coupon->minimum_order ?? 0)) {
+                    return $this->errorResponse(
+                        'El total no alcanza el monto mínimo para este cupón.',
+                        'ORDER_COUPON_MINIMUM_NOT_MET',
+                        400
+                    );
+                }
+
+                $discount = $this->calculateCouponDiscount($coupon, $orderTotal);
+                $orderTotal = max(0, $orderTotal - $discount);
+                $appliedCoupon = [
+                    'id' => $coupon->id,
+                    'code' => $coupon->code,
+                    'discount_amount' => round($discount, 2),
+                ];
+            }
 
             // Si es delivery, asignar empresa de delivery al crear la orden
             $deliveryCompanyId = null;
@@ -297,7 +423,7 @@ class OrderController extends Controller
             }
 
             // Crear orden en transacción
-            $order = \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $profile, $orderTotal, $deliveryCompanyId, $commerce) {
+            $order = DB::transaction(function () use ($validated, $profile, $orderTotal, $deliveryCompanyId, $commerce, $appliedCoupon) {
                 $order = \App\Models\Order::create([
                     'profile_id' => $profile->id,
                     'commerce_id' => $validated['commerce_id'],
@@ -366,6 +492,18 @@ class OrderController extends Controller
                     ]);
                 }
 
+                if ($appliedCoupon) {
+                    DB::table('coupon_usages')->insert([
+                        'coupon_id' => $appliedCoupon['id'],
+                        'profile_id' => $profile->id,
+                        'order_id' => $order->id,
+                        'discount_amount' => $appliedCoupon['discount_amount'],
+                        'used_at' => now(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+
                 return $order;
             });
 
@@ -424,28 +562,71 @@ class OrderController extends Controller
             // Cargar relaciones para respuesta
             $orderWithProducts = $order->load(['commerce', 'orderItems.product', 'profile.user', 'orderPayments']);
 
-            return response()->json([
+            $responsePayload = [
                 'success' => true,
                 'message' => 'Orden creada exitosamente',
-                'data' => $orderWithProducts
-            ], 201);
+                'data' => $orderWithProducts,
+                'pricing_breakdown' => [
+                    'items_subtotal' => round($calculatedTotal, 2),
+                    'delivery_fee' => round($validated['delivery_fee'], 2),
+                    'coupon_discount' => $appliedCoupon['discount_amount'] ?? 0.0,
+                    'final_total' => round((float) $orderWithProducts->total, 2),
+                ],
+            ];
+
+            if ($idempotencyKey !== '') {
+                DB::table('order_idempotency_keys')
+                    ->where('profile_id', $profile->id)
+                    ->where('idempotency_key', $idempotencyKey)
+                    ->update([
+                        'order_id' => $order->id,
+                        'response_payload' => json_encode($responsePayload),
+                        'status_code' => 201,
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            return response()->json($responsePayload, 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::debug('Validación al crear orden (datos inválidos)', ['errors' => $e->errors()]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Datos inválidos',
-                'errors' => $e->errors()
-            ], 422);
+            return $this->errorResponse(
+                'Datos inválidos',
+                'ORDER_VALIDATION_ERROR',
+                422,
+                ['errors' => $e->errors()]
+            );
         } catch (\Exception $e) {
             Log::error('Error al crear orden', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Error interno al crear orden: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse(
+                'Error interno al crear orden',
+                'ORDER_CREATE_ERROR',
+                500
+            );
         }
+    }
+
+    private function calculateCouponDiscount(Coupon $coupon, float $amount): float
+    {
+        if ($coupon->discount_type === 'percentage') {
+            $discount = ($amount * (float) $coupon->discount_value) / 100;
+            $cap = $coupon->maximum_discount !== null ? (float) $coupon->maximum_discount : $discount;
+            return min($discount, $cap);
+        }
+
+        return min((float) $coupon->discount_value, $amount);
+    }
+
+    private function errorResponse(string $message, string $errorCode, int $status, array $extra = [])
+    {
+        return response()->json(array_merge([
+            'success' => false,
+            'data' => null,
+            'message' => $message,
+            'error_code' => $errorCode,
+        ], $extra), $status);
     }
 
     /**

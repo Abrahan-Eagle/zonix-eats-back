@@ -5,9 +5,11 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Models\Profile;
 use App\Models\Commerce;
+use App\Models\Coupon;
 use App\Models\OperatorCode;
 use App\Models\Phone;
 use App\Models\Product;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -153,5 +155,169 @@ class OrderTest extends TestCase
                     'pagination' => ['current_page', 'last_page', 'per_page', 'total'],
                 ],
             ]);
+    }
+
+    public function test_create_order_is_idempotent_with_same_key()
+    {
+        $user = User::factory()->create(['role' => 'users']);
+        $profile = Profile::factory()->create([
+            'user_id' => $user->id,
+            'firstName' => 'Cliente',
+            'lastName' => 'Test',
+            'photo_users' => 'https://via.placeholder.com/150',
+            'status' => 'completeData',
+        ]);
+        $commerce = Commerce::factory()->create(['profile_id' => $profile->id, 'open' => true]);
+        $product = Product::factory()->create([
+            'commerce_id' => $commerce->id,
+            'available' => true,
+            'stock_quantity' => 10,
+        ]);
+        $operatorCode = OperatorCode::firstOrCreate(['code' => 412], ['name' => '0412']);
+        Phone::create([
+            'profile_id' => $profile->id,
+            'operator_code_id' => $operatorCode->id,
+            'number' => '1234567',
+            'is_primary' => true,
+            'status' => true,
+        ]);
+
+        $this->actingAs($user, 'sanctum');
+
+        $payload = [
+            'commerce_id' => $commerce->id,
+            'products' => [
+                ['id' => $product->id, 'quantity' => 1],
+            ],
+            'delivery_type' => 'pickup',
+            'total' => $product->price,
+            'delivery_fee' => 0,
+            'delivery_address' => 'Calle 123',
+        ];
+
+        $first = $this->withHeaders(['Idempotency-Key' => 'idem-order-1'])
+            ->postJson('/api/buyer/orders', $payload);
+        $first->assertStatus(201)->assertJsonPath('success', true);
+
+        $second = $this->withHeaders(['Idempotency-Key' => 'idem-order-1'])
+            ->postJson('/api/buyer/orders', $payload);
+        $second->assertStatus(201)->assertJsonPath('success', true);
+
+        $this->assertSame($first->json('data.id'), $second->json('data.id'));
+        $this->assertEquals(1, DB::table('orders')->count());
+    }
+
+    public function test_create_order_rejects_reused_idempotency_key_with_different_payload()
+    {
+        $user = User::factory()->create(['role' => 'users']);
+        $profile = Profile::factory()->create([
+            'user_id' => $user->id,
+            'firstName' => 'Cliente',
+            'lastName' => 'Test',
+            'photo_users' => 'https://via.placeholder.com/150',
+            'status' => 'completeData',
+        ]);
+        $commerce = Commerce::factory()->create(['profile_id' => $profile->id, 'open' => true]);
+        $product = Product::factory()->create([
+            'commerce_id' => $commerce->id,
+            'available' => true,
+            'stock_quantity' => 10,
+        ]);
+        $operatorCode = OperatorCode::firstOrCreate(['code' => 412], ['name' => '0412']);
+        Phone::create([
+            'profile_id' => $profile->id,
+            'operator_code_id' => $operatorCode->id,
+            'number' => '1234567',
+            'is_primary' => true,
+            'status' => true,
+        ]);
+
+        $this->actingAs($user, 'sanctum');
+
+        $firstPayload = [
+            'commerce_id' => $commerce->id,
+            'products' => [['id' => $product->id, 'quantity' => 1]],
+            'delivery_type' => 'pickup',
+            'total' => $product->price,
+            'delivery_fee' => 0,
+            'delivery_address' => 'Calle 123',
+        ];
+        $secondPayload = [
+            'commerce_id' => $commerce->id,
+            'products' => [['id' => $product->id, 'quantity' => 2]],
+            'delivery_type' => 'pickup',
+            'total' => $product->price * 2,
+            'delivery_fee' => 0,
+            'delivery_address' => 'Calle 123',
+        ];
+
+        $this->withHeaders(['Idempotency-Key' => 'idem-order-2'])
+            ->postJson('/api/buyer/orders', $firstPayload)
+            ->assertStatus(201);
+
+        $this->withHeaders(['Idempotency-Key' => 'idem-order-2'])
+            ->postJson('/api/buyer/orders', $secondPayload)
+            ->assertStatus(409)
+            ->assertJsonPath('error_code', 'ORDER_IDEMPOTENCY_CONFLICT');
+    }
+
+    public function test_create_order_applies_coupon_atomically()
+    {
+        $user = User::factory()->create(['role' => 'users']);
+        $profile = Profile::factory()->create([
+            'user_id' => $user->id,
+            'firstName' => 'Cliente',
+            'lastName' => 'Test',
+            'photo_users' => 'https://via.placeholder.com/150',
+            'status' => 'completeData',
+        ]);
+        $commerce = Commerce::factory()->create(['profile_id' => $profile->id, 'open' => true]);
+        $product = Product::factory()->create([
+            'commerce_id' => $commerce->id,
+            'available' => true,
+            'stock_quantity' => 10,
+            'price' => 100,
+        ]);
+        $coupon = Coupon::factory()->public()->create([
+            'code' => 'DESC10',
+            'is_active' => true,
+            'discount_type' => 'fixed',
+            'discount_value' => 10,
+            'minimum_order' => 50,
+            'usage_limit' => 10,
+            'start_date' => now()->subDay(),
+            'end_date' => now()->addDay(),
+        ]);
+        $operatorCode = OperatorCode::firstOrCreate(['code' => 412], ['name' => '0412']);
+        Phone::create([
+            'profile_id' => $profile->id,
+            'operator_code_id' => $operatorCode->id,
+            'number' => '1234567',
+            'is_primary' => true,
+            'status' => true,
+        ]);
+
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->postJson('/api/buyer/orders', [
+            'commerce_id' => $commerce->id,
+            'products' => [['id' => $product->id, 'quantity' => 1]],
+            'delivery_type' => 'pickup',
+            'total' => 100,
+            'delivery_fee' => 0,
+            'coupon_code' => $coupon->code,
+            'delivery_address' => 'Calle 123',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('pricing_breakdown.coupon_discount', 10)
+            ->assertJsonPath('pricing_breakdown.final_total', 90);
+
+        $orderId = $response->json('data.id');
+        $this->assertDatabaseHas('coupon_usages', [
+            'coupon_id' => $coupon->id,
+            'profile_id' => $profile->id,
+            'order_id' => $orderId,
+        ]);
     }
 } 
