@@ -83,7 +83,7 @@ class UserFactory extends Factory
     public function deliveryAgent(): Factory
     {
         return $this->state([
-            'role' => 'delivery',
+            'role' => 'delivery_agent',
         ]);
     }
 

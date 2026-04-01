@@ -31,6 +31,26 @@ class AdminRoleTest extends TestCase
         $response->assertStatus(200);
     }
 
+    public function test_admin_orders_returns_canonical_envelope_with_legacy_aliases()
+    {
+        $admin = User::factory()->admin()->create();
+        Sanctum::actingAs($admin);
+
+        Order::factory()->count(2)->create();
+
+        $response = $this->getJson('/api/admin/orders?per_page=10');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'items',
+                    'data',
+                    'pagination' => ['current_page', 'last_page', 'per_page', 'total'],
+                ],
+            ]);
+    }
+
     public function test_admin_can_update_order_status()
     {
         $admin = User::factory()->admin()->create();

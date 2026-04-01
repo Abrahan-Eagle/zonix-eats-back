@@ -134,27 +134,29 @@ if (abs($calculatedTotal - $validated['total']) > 0.01) {
 - **Opción B:** Implementar gestión de stock con cantidades (tiene 10 unidades, se venden 2, quedan 8)
 
 **Decisión según mejores prácticas:**
-✅ **OPCIÓN A: Solo validar `available` para MVP** (agregar stock después)
+✅ **OPCIÓN HÍBRIDA: validar siempre `available` y, si existe `stock_quantity`, validar cantidad**
 
-- **Razón:** Más simple para MVP
-- **Razón:** Funciona para productos que no requieren control de cantidad exacta
-- **Razón:** Se puede agregar stock después sin romper funcionalidad actual
+- **Razón:** Mantiene MVP simple para productos sin control de inventario (`stock_quantity = null`).
+- **Razón:** Evita sobreventa cuando el comercio sí define inventario.
+- **Razón:** Permite convivir catálogo ilimitado y catálogo con stock real sin romper contratos.
 
-**Implementación MVP:**
+**Implementación MVP actual:**
 
 ```php
-// Validar solo available
 if (!$product->available) {
     throw new \Exception('Producto no está disponible');
 }
+
+if ($product->stock_quantity !== null && $requestedQty > $product->stock_quantity) {
+    throw new \Exception('Stock insuficiente');
+}
 ```
 
-**Futuro (Post-MVP):**
+**Comportamiento esperado:**
 
-- Agregar campo `stock_quantity` a Product
-- Descontar stock al crear orden
-- Restaurar stock al cancelar orden
-- Alertas de stock bajo
+- `stock_quantity = null` -> stock no limitado (solo aplica `available`).
+- `stock_quantity = 0` -> no vendible (debe bloquear compra).
+- `stock_quantity > 0` -> vendible hasta agotar existencia.
 
 ---
 

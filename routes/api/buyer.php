@@ -49,7 +49,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/unread/{orderId}', [App\Http\Controllers\Buyer\ChatController::class, 'getUnreadMessages']);
     });
 
-    Route::prefix('buyer/search')->group(function () {
+    Route::prefix('buyer/search')->middleware('role:users')->group(function () {
         Route::get('/restaurants', [App\Http\Controllers\Buyer\SearchController::class, 'searchRestaurants']);
         Route::get('/products', [App\Http\Controllers\Buyer\SearchController::class, 'searchProducts']);
         Route::get('/categories', [App\Http\Controllers\Buyer\SearchController::class, 'getCategories']);
@@ -134,6 +134,7 @@ Route::middleware(['auth:sanctum', 'role:users'])->prefix('buyer')->group(functi
     Route::get('/restaurants/{id}', [RestaurantController::class, 'show']);
     Route::post('/cart/add', [CartController::class, 'add']);
     Route::get('/cart', [CartController::class, 'show']);
+    Route::delete('/cart', [CartController::class, 'clear']);
     Route::put('/cart/update-quantity', [CartController::class, 'updateQuantity']);
     Route::delete('/cart/{productId}', [CartController::class, 'remove']);
     Route::post('/cart/notes', [CartController::class, 'addNotes']);

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Address;
 use App\Models\BusinessType;
+use App\Models\Review;
 
 class Commerce extends Model
 {
@@ -64,12 +65,23 @@ class Commerce extends Model
      */
     public function getPhoneAttribute(): ?string
     {
-        $commercePhone = \App\Models\Phone::where('profile_id', $this->profile_id)
-            ->where('context', \App\Models\Phone::CONTEXT_COMMERCE)
-            ->where('commerce_id', $this->id)
-            ->where('status', true)
-            ->orderByDesc('is_primary')
-            ->first();
+        $commercePhone = null;
+        if ($this->relationLoaded('phones')) {
+            $commercePhone = $this->phones
+                ->where('profile_id', $this->profile_id)
+                ->where('context', \App\Models\Phone::CONTEXT_COMMERCE)
+                ->where('commerce_id', $this->id)
+                ->where('status', true)
+                ->sortByDesc('is_primary')
+                ->first();
+        } else {
+            $commercePhone = \App\Models\Phone::where('profile_id', $this->profile_id)
+                ->where('context', \App\Models\Phone::CONTEXT_COMMERCE)
+                ->where('commerce_id', $this->id)
+                ->where('status', true)
+                ->orderByDesc('is_primary')
+                ->first();
+        }
         return $commercePhone?->full_number ?? $this->profile?->phone;
     }
 
@@ -140,6 +152,14 @@ class Commerce extends Model
     public function posts()
     {
         return $this->hasMany(Post::class);
+    }
+
+    /**
+     * Reviews del comercio (polimórfico).
+     */
+    public function reviews()
+    {
+        return $this->morphMany(Review::class, 'reviewable');
     }
 
     /**

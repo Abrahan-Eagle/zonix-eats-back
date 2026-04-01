@@ -1059,8 +1059,15 @@ class ZonixDemoSeeder extends Seeder
             $selected = $products->random(min($howMany, $products->count()));
             foreach ($selected as $product) {
                 CartItem::firstOrCreate(
-                    ['cart_id' => $cart->id, 'product_id' => $product->id],
-                    ['quantity' => $idx === 0 ? 2 : rand(1, 2)]
+                    [
+                        'cart_id' => $cart->id,
+                        // Seed estable por carrito-producto para evitar colisiones del unique(cart_id, line_id)
+                        'line_id' => 'seed-' . $cart->id . '-' . $product->id,
+                    ],
+                    [
+                        'product_id' => $product->id,
+                        'quantity' => $idx === 0 ? 2 : rand(1, 2),
+                    ]
                 );
             }
         }

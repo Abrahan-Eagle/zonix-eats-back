@@ -15,6 +15,9 @@ use Illuminate\Database\Seeder;
  * - 1 empresa de delivery
  * - 10 agentes repartidos cerca de establecimientos en el estado
  * - 1 agente asignado a la orden 4 para simular pedido activo (con ubicación actual)
+ *
+ * Seeder principal recomendado para demo de delivery.
+ * Si se necesita solo reasignar orden demo sin recrear flota, usar DeliveryCaraboboOrder4Seeder.
  */
 class DeliveryCaraboboSeeder extends Seeder
 {

@@ -37,9 +37,28 @@ class RestaurantController extends Controller
      */
     public function index(Request $request)
     {
-        $perPage = $request->input('per_page', 15);
-        $restaurants = $this->restaurantService->getAllRestaurants($perPage);
-        return response()->json($restaurants);
+        $perPage = min(max((int) $request->input('per_page', 15), 1), 100);
+        $restaurantsPaginator = $this->restaurantService->getAllRestaurants($perPage);
+        $restaurants = $restaurantsPaginator->items();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                // Canonico v2
+                'items' => $restaurants,
+                // Canonico actual
+                'restaurants' => $restaurants,
+                // Legacy compatibility
+                'data' => $restaurants,
+                'pagination' => [
+                    'current_page' => $restaurantsPaginator->currentPage(),
+                    'last_page' => $restaurantsPaginator->lastPage(),
+                    'per_page' => $restaurantsPaginator->perPage(),
+                    'total' => $restaurantsPaginator->total(),
+                ],
+            ],
+            'message' => 'Restaurantes obtenidos exitosamente',
+        ]);
     }
 
     /**
@@ -49,10 +68,18 @@ class RestaurantController extends Controller
      */
     public function show($id)
     {
-        $restaurant = $this->restaurantService->getRestaurantById($id);
+        $restaurant = $this->restaurantService->getCatalogVisibleRestaurantById($id);
         if (!$restaurant) {
-            return response()->json(['message' => 'Restaurante no encontrado'], 404);
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Restaurante no encontrado',
+            ], 404);
         }
-        return response()->json($restaurant);
+        return response()->json([
+            'success' => true,
+            'data' => $restaurant,
+            'message' => 'Restaurante encontrado',
+        ]);
     }
 }

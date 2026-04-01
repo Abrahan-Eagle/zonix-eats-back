@@ -9,10 +9,10 @@
 
 *(La skill **context-updater** rellena esta sección al final de sesiones con cambios relevantes. Si está vacía, no hay resumen pendiente.)*
 
-- **Fecha:** 31 Marzo 2026
-- **Resumen:** Corrección integral repo-wide en backend: hotfix de contrato de direcciones para onboarding commerce, hardening anti-IDOR/ownership en `DocumentController` y endpoints `create*` de `ProfileController`, consistencia de acceso para direcciones de comercio en `AddressController`, y alineación de `Buyer/AddressController` al esquema canónico de `addresses`.
-- **Áreas tocadas:** `app/Http/Controllers/Profiles/AddressController.php`, `app/Http/Controllers/Profiles/DocumentController.php`, `app/Http/Controllers/Profiles/ProfileController.php`, `app/Http/Controllers/Buyer/AddressController.php`, `tests/Feature/AddressControllerTest.php`, `tests/Feature/DocumentControllerTest.php`, `tests/Feature/ProfileControllerTest.php`, `AGENTS.md`.
-- **Próximos pasos sugeridos:** QA manual del onboarding Commerce en dispositivo real (validar `house_number` requerido y cierre sin estados parciales) y seguimiento de deprecación de payload legacy (`address_line_*`, `city/state/country`) en clientes antiguos.
+- **Fecha:** 1 Abril 2026
+- **Resumen:** Módulo de saneamiento de datos de prueba (Factories/Seeders) cerrado en backend. Se corrigió la consistencia de `cart_items.line_id` en fábrica y seeders, se alineó `UserFactory::deliveryAgent()` al rol real `delivery_agent`, se blindó `CommerceSeeder` para no cambiar implícitamente el rol base del usuario 1 y se dejó explícito el uso principal/complementario de seeders demo de delivery para evitar duplicaciones.
+- **Áreas tocadas:** `database/factories/CartItemFactory.php`, `database/factories/UserFactory.php`, `database/seeders/CartItemSeeder.php`, `database/seeders/ZonixDemoSeeder.php`, `database/seeders/CommerceSeeder.php`, `database/seeders/DeliveryCaraboboSeeder.php`, `database/seeders/DeliveryCaraboboOrder4Seeder.php`, `database/seeders/DatabaseSeeder.php`, `AGENTS.md`.
+- **Próximos pasos sugeridos:** Mantener este baseline para demos locales y CI; si se agregan nuevos seeders de carrito, exigir `line_id` determinista/único y evitar mutaciones implícitas de roles base en seeders compartidos.
 
 ---
 

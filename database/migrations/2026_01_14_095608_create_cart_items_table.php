@@ -15,11 +15,14 @@ return new class extends Migration
             $table->id();
             $table->foreignId('cart_id')->constrained()->onDelete('cascade');
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
+            $table->string('line_id', 120);
             $table->integer('quantity')->default(1);
+            $table->text('notes')->nullable();
             $table->timestamps();
 
-            // Índice único para evitar productos duplicados en el mismo carrito
-            $table->unique(['cart_id', 'product_id']);
+            // Línea lógica única por carrito para soportar personalizaciones por item.
+            $table->unique(['cart_id', 'line_id']);
+            $table->index(['cart_id', 'product_id']);
         });
     }
 

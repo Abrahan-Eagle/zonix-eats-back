@@ -8,6 +8,7 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\Commerce;
+use Illuminate\Support\Str;
 
 class CartItemSeeder extends Seeder
 {
@@ -42,6 +43,7 @@ class CartItemSeeder extends Seeder
                 CartItem::factory()->create([
                     'cart_id' => $cart->id,
                     'product_id' => $product->id,
+                    'line_id' => (string) Str::uuid(),
                     'quantity' => rand(1, 3),
                 ]);
             }

@@ -99,9 +99,40 @@ class OrderController extends Controller
      */
     public function index(Request $request)
     {
-        $perPage = $request->input('per_page', 15);
+        $perPage = min(max((int) $request->input('per_page', 15), 1), 100);
         $orders = $this->orderService->getUserOrders($perPage);
-        return response()->json($orders);
+
+        if (!method_exists($orders, 'items')) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Órdenes obtenidas exitosamente',
+                'data' => [
+                    'items' => [],
+                    'pagination' => [
+                        'current_page' => 1,
+                        'last_page' => 1,
+                        'per_page' => $perPage,
+                        'total' => 0,
+                    ],
+                ],
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Órdenes obtenidas exitosamente',
+            'data' => [
+                'items' => $orders->items(),
+                // Legacy compatibility (clientes existentes)
+                'data' => $orders->items(),
+                'pagination' => [
+                    'current_page' => $orders->currentPage(),
+                    'last_page' => $orders->lastPage(),
+                    'per_page' => $orders->perPage(),
+                    'total' => $orders->total(),
+                ],
+            ],
+        ]);
     }
 
     /**
@@ -208,6 +239,13 @@ class OrderController extends Controller
                     ], 400);
                 }
 
+                if ($productModel->stock_quantity !== null && $product['quantity'] > $productModel->stock_quantity) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Stock insuficiente para '{$productModel->name}'. Solo hay {$productModel->stock_quantity} unidades disponibles"
+                    ], 400);
+                }
+
                 // Validar que producto pertenece al commerce
                 if ($productModel->commerce_id !== $validated['commerce_id']) {
                     return response()->json([
@@ -259,7 +297,7 @@ class OrderController extends Controller
             }
 
             // Crear orden en transacción
-            $order = \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $profile, $orderTotal, $productModels, $deliveryCompanyId, $commerce) {
+            $order = \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $profile, $orderTotal, $deliveryCompanyId, $commerce) {
                 $order = \App\Models\Order::create([
                     'profile_id' => $profile->id,
                     'commerce_id' => $validated['commerce_id'],
@@ -274,18 +312,36 @@ class OrderController extends Controller
                     'delivery_longitude' => isset($validated['delivery_longitude']) ? (float) $validated['delivery_longitude'] : null,
                 ]);
 
-                foreach ($productModels as $item) {
+                foreach ($validated['products'] as $item) {
+                    $lockedProduct = \App\Models\Product::query()
+                        ->where('id', (int) $item['id'])
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$lockedProduct || !$lockedProduct->available || $lockedProduct->commerce_id !== (int) $validated['commerce_id']) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'products' => ["El producto {$item['id']} ya no está disponible para esta orden."],
+                        ]);
+                    }
+
+                    if ($lockedProduct->stock_quantity !== null && (int) $item['quantity'] > (int) $lockedProduct->stock_quantity) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'products' => ["Stock insuficiente para '{$lockedProduct->name}'. Solo hay {$lockedProduct->stock_quantity} unidades disponibles"],
+                        ]);
+                    }
+
                     \App\Models\OrderItem::create([
                         'order_id' => $order->id,
-                        'product_id' => $item['data']['id'],
-                        'quantity' => $item['data']['quantity'],
-                        'unit_price' => $item['model']->price
+                        'product_id' => $lockedProduct->id,
+                        'quantity' => (int) $item['quantity'],
+                        'unit_price' => $lockedProduct->price
                     ]);
 
-                    if ($item['model']->stock_quantity !== null) {
-                        $item['model']->decrement('stock_quantity', $item['data']['quantity']);
-                        if ($item['model']->stock_quantity <= 0) {
-                            $item['model']->update(['available' => false]);
+                    if ($lockedProduct->stock_quantity !== null) {
+                        $lockedProduct->decrement('stock_quantity', (int) $item['quantity']);
+                        $lockedProduct->refresh();
+                        if ((int) $lockedProduct->stock_quantity <= 0) {
+                            $lockedProduct->update(['available' => false]);
                         }
                     }
                 }

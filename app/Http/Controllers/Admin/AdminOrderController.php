@@ -26,8 +26,21 @@ class AdminOrderController extends Controller
         }
         
         $orders = $query->orderBy('created_at', 'desc')->paginate($perPage);
-        
-        return response()->json($orders);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'items' => $orders->items(),
+                // Legacy compatibility for existing clients
+                'data' => $orders->items(),
+                'pagination' => [
+                    'current_page' => $orders->currentPage(),
+                    'last_page' => $orders->lastPage(),
+                    'per_page' => $orders->perPage(),
+                    'total' => $orders->total(),
+                ],
+            ],
+        ]);
     }
 
     public function updateStatus($id, Request $request)

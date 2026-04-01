@@ -15,7 +15,8 @@ class RestaurantService
     public function getAllRestaurants($perPage = 15)
     {
         return Commerce::where('status', 'approved')
-            ->with(['profile', 'addresses', 'businessTypeRelation'])
+            ->where('open', true)
+            ->with(['profile', 'addresses', 'businessTypeRelation', 'phones'])
             ->paginate($perPage);
     }
 
@@ -27,6 +28,25 @@ class RestaurantService
      */
     public function getRestaurantById($id)
     {
-        return Commerce::with(['profile', 'products.category', 'addresses', 'businessTypeRelation'])->find($id);
+        return Commerce::with(['profile', 'products.category', 'addresses', 'businessTypeRelation', 'phones'])->find($id);
+    }
+
+    /**
+     * Obtener restaurante visible en catalogo publico buyer.
+     *
+     * Reglas:
+     * - Comercio aprobado
+     * - Comercio abierto
+     *
+     * @param int $id
+     * @return Commerce|null
+     */
+    public function getCatalogVisibleRestaurantById($id)
+    {
+        return Commerce::where('id', $id)
+            ->where('status', 'approved')
+            ->where('open', true)
+            ->with(['profile', 'products.category', 'addresses', 'businessTypeRelation', 'phones'])
+            ->first();
     }
 }

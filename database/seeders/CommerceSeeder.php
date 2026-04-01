@@ -58,7 +58,7 @@ class CommerceSeeder extends Seeder
         $zones = self::COMMERCE_ZONES;
         $count = 0;
 
-        // Usuario 1 (Abrahan): un comercio para que el seeder de métodos de pago y la app muestren la lista
+        // Usuario 1 (Abrahan): un comercio demo para listados, sin mutar su rol base.
         $profile1 = Profile::where('user_id', 1)->first();
         if ($profile1) {
             $zone = $zones[0];
@@ -72,7 +72,6 @@ class CommerceSeeder extends Seeder
                 'address' => $zone['address'],
                 'open' => true,
             ]);
-            $profile1->user?->update(['role' => 'commerce']);
             $count++;
         }
 

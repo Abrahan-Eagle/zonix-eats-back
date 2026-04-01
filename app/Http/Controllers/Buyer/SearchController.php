@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Models\Commerce;
+use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
 
 class SearchController extends Controller
 {
@@ -18,27 +18,76 @@ class SearchController extends Controller
     public function searchRestaurants(Request $request): JsonResponse
     {
         try {
-            $query = Commerce::with(['products', 'reviews'])
-                ->where('status', 'approved')
-                ->where('is_active', true)
-                ->where('is_open', true);
+            $request->validate([
+                'search' => 'nullable|string|max:120',
+                'open' => 'nullable|boolean',
+                'business_type_id' => 'nullable|integer|exists:business_types,id',
+                'category_id' => 'nullable|integer|exists:categories,id',
+                'min_price' => 'nullable|numeric|min:0',
+                'max_price' => 'nullable|numeric|min:0',
+                'min_rating' => 'nullable|numeric|min:0|max:5',
+                'sort_by' => 'nullable|in:name,rating,delivery_time',
+                'sort_order' => 'nullable|in:asc,desc',
+                'per_page' => 'nullable|integer|min:1|max:100',
+            ]);
+
+            $query = Commerce::query()
+                ->select([
+                    'id',
+                    'business_name',
+                    'business_type',
+                    'business_type_id',
+                    'address',
+                    'phone',
+                    'image',
+                    'open',
+                    'delivery_fee',
+                    'minimum_order',
+                    'preparation_time',
+                    'status',
+                ])
+                ->with([
+                    'products' => function ($productQuery) {
+                        $productQuery->where('available', true)->select(['id', 'commerce_id', 'name', 'price', 'image']);
+                    },
+                    'businessTypeRelation',
+                    'addresses',
+                    'phones',
+                ])
+                ->withAvg('reviews', 'rating')
+                ->withCount('reviews')
+                ->where('status', 'approved');
 
             // Búsqueda por nombre
             if ($request->filled('search')) {
-                $searchTerm = $request->search;
+                $searchTerm = trim((string) $request->search);
                 $query->where(function ($q) use ($searchTerm) {
-                    $q->where('name', 'LIKE', "%{$searchTerm}%")
-                      ->orWhere('description', 'LIKE', "%{$searchTerm}%")
+                    $q->where('business_name', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('business_type', 'LIKE', "%{$searchTerm}%")
                       ->orWhereHas('products', function ($productQuery) use ($searchTerm) {
-                          $productQuery->where('name', 'LIKE', "%{$searchTerm}%")
-                                      ->orWhere('description', 'LIKE', "%{$searchTerm}%");
+                          $productQuery->where('name', 'LIKE', "%{$searchTerm}%");
                       });
                 });
             }
 
-            // Filtro por categoría
-            if ($request->filled('category')) {
-                $query->where('category', $request->category);
+            // Filtro por estado abierto/cerrado
+            if ($request->filled('open')) {
+                $query->where('open', filter_var($request->open, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false);
+            } else {
+                $query->where('open', true);
+            }
+
+            // Filtro por tipo de negocio
+            if ($request->filled('business_type_id')) {
+                $query->where('business_type_id', (int) $request->business_type_id);
+            }
+
+            // Filtro por categoría de producto
+            if ($request->filled('category_id')) {
+                $categoryId = (int) $request->category_id;
+                $query->whereHas('products', function ($productQuery) use ($categoryId) {
+                    $productQuery->where('category_id', $categoryId);
+                });
             }
 
             // Filtro por precio mínimo
@@ -54,81 +103,64 @@ class SearchController extends Controller
                     $productQuery->where('price', '<=', $request->max_price);
                 });
             }
+            if ($request->filled('min_price') && $request->filled('max_price')
+                && (float) $request->min_price > (float) $request->max_price) {
+                return response()->json([
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'Parámetros de búsqueda inválidos',
+                    'errors' => [
+                        'min_price' => ['min_price no puede ser mayor que max_price'],
+                    ],
+                ], 422);
+            }
 
-            // Filtro por calificación mínima
+            // Filtro por calificación mínima (promedio de reviews)
             if ($request->filled('min_rating')) {
-                $query->where('average_rating', '>=', $request->min_rating);
+                $query->having('reviews_avg_rating', '>=', (float) $request->min_rating);
             }
 
-            // Filtro por distancia (si se proporcionan coordenadas)
-            if ($request->filled('latitude') && $request->filled('longitude')) {
-                $lat = $request->latitude;
-                $lng = $request->longitude;
-                $maxDistance = $request->max_distance ?? 10; // km por defecto
+            $allowedSortBy = ['name', 'rating', 'delivery_time'];
+            $sortBy = in_array($request->sort_by, $allowedSortBy, true) ? $request->sort_by : 'name';
+            $sortOrder = strtolower((string) $request->sort_order) === 'desc' ? 'desc' : 'asc';
 
-                $query->selectRaw("
-                    *,
-                    (6371 * acos(cos(radians(?)) * cos(radians(latitude)) * 
-                    cos(radians(longitude) - radians(?)) + sin(radians(?)) * 
-                    sin(radians(latitude)))) AS distance
-                ", [$lat, $lng, $lat])
-                ->having('distance', '<=', $maxDistance)
-                ->orderBy('distance', 'asc');
-            }
-
-            // Ordenamiento
-            $sortBy = $request->sort_by ?? 'name';
-            $sortOrder = $request->sort_order ?? 'asc';
-
-            switch ($sortBy) {
-                case 'rating':
-                    $query->orderBy('average_rating', $sortOrder);
-                    break;
-                case 'distance':
-                    if ($request->filled('latitude') && $request->filled('longitude')) {
-                        // Ya ordenado por distancia arriba
-                    } else {
-                        $query->orderBy('name', 'asc');
-                    }
-                    break;
-                case 'delivery_time':
-                    $query->orderBy('estimated_delivery_time', $sortOrder);
-                    break;
-                case 'price':
-                    $query->orderBy(DB::raw('(SELECT MIN(price) FROM products WHERE commerce_id = commerces.id)'), $sortOrder);
-                    break;
-                default:
-                    $query->orderBy('name', 'asc');
+            if ($sortBy === 'rating') {
+                $query->orderBy('reviews_avg_rating', $sortOrder);
+            } elseif ($sortBy === 'delivery_time') {
+                $query->orderBy('preparation_time', $sortOrder);
+            } else {
+                $query->orderBy('business_name', $sortOrder);
             }
 
             // Paginación
-            $perPage = $request->per_page ?? 20;
+            $perPage = min(max((int) ($request->per_page ?? 20), 1), 100);
             $restaurants = $query->paginate($perPage);
 
-            $restaurantsData = $restaurants->map(function ($restaurant) use ($request) {
+            $favoriteIds = [];
+            $profile = $request->user()?->profile;
+            if ($profile && method_exists($profile, 'favorites')) {
+                $favoriteIds = $profile->favorites()->pluck('commerce_id')->all();
+            }
+
+            $restaurantsData = $restaurants->getCollection()->map(function ($restaurant) use ($favoriteIds) {
                 $data = [
                     'id' => $restaurant->id,
-                    'name' => $restaurant->name,
-                    'description' => $restaurant->description,
-                    'category' => $restaurant->category,
+                    'name' => $restaurant->business_name,
+                    'description' => $restaurant->business_type,
+                    'category' => $restaurant->businessTypeRelation?->name ?? $restaurant->business_type,
                     'address' => $restaurant->address,
                     'phone' => $restaurant->phone,
-                    'logo_url' => $restaurant->logo_url,
-                    'cover_url' => $restaurant->cover_url,
-                    'average_rating' => $restaurant->average_rating ?? 0,
-                    'total_reviews' => $restaurant->total_reviews ?? 0,
-                    'estimated_delivery_time' => $restaurant->estimated_delivery_time ?? 30,
+                    'logo_url' => $restaurant->image,
+                    'cover_url' => $restaurant->image,
+                    'average_rating' => $restaurant->reviews_avg_rating ? round((float) $restaurant->reviews_avg_rating, 1) : 0,
+                    'total_reviews' => (int) ($restaurant->reviews_count ?? 0),
+                    'estimated_delivery_time' => $restaurant->preparation_time ?? 30,
                     'delivery_fee' => $restaurant->delivery_fee ?? 0,
                     'minimum_order' => $restaurant->minimum_order ?? 0,
-                    'is_open' => $restaurant->is_open,
-                    'is_favorite' => $this->isFavorite($restaurant->id),
+                    'is_open' => (bool) $restaurant->open,
+                    'is_favorite' => in_array($restaurant->id, $favoriteIds, true),
                     'total_products' => $restaurant->products->count()
                 ];
-
-                // Agregar distancia si se calculó
-                if (isset($restaurant->distance)) {
-                    $data['distance'] = round($restaurant->distance, 2);
-                }
 
                 // Agregar productos destacados
                 $data['featured_products'] = $restaurant->products
@@ -137,8 +169,8 @@ class SearchController extends Controller
                         return [
                             'id' => $product->id,
                             'name' => $product->name,
-                            'price' => $product->price,
-                            'image_url' => $product->image_url
+                            'price' => (float) $product->price,
+                            'image_url' => $product->image
                         ];
                     });
 
@@ -148,7 +180,10 @@ class SearchController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
+                    'items' => $restaurantsData,
                     'restaurants' => $restaurantsData,
+                    // Legacy compatibility
+                    'data' => $restaurantsData,
                     'pagination' => [
                         'current_page' => $restaurants->currentPage(),
                         'last_page' => $restaurants->lastPage(),
@@ -157,20 +192,30 @@ class SearchController extends Controller
                     ],
                     'filters_applied' => [
                         'search' => $request->search,
-                        'category' => $request->category,
+                        'business_type_id' => $request->business_type_id,
+                        'category_id' => $request->category_id,
+                        'open' => $request->open,
                         'min_price' => $request->min_price,
                         'max_price' => $request->max_price,
                         'min_rating' => $request->min_rating,
-                        'max_distance' => $request->max_distance,
                         'sort_by' => $request->sort_by,
                         'sort_order' => $request->sort_order
                     ]
-                ]
+                ],
+                'message' => 'Restaurantes encontrados exitosamente',
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Parámetros de búsqueda inválidos',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             Log::error('Error searching restaurants: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
+                'data' => null,
                 'message' => 'Error al buscar restaurantes'
             ], 500);
         }
@@ -182,8 +227,23 @@ class SearchController extends Controller
     public function searchProducts(Request $request): JsonResponse
     {
         try {
-            $query = Product::with(['commerce'])
-                ->where('is_active', true);
+            $request->validate([
+                'search' => 'nullable|string|max:120',
+                'commerce_id' => 'nullable|integer|exists:commerces,id',
+                'category_id' => 'nullable|integer|exists:categories,id',
+                'available' => 'nullable|boolean',
+                'min_price' => 'nullable|numeric|min:0',
+                'max_price' => 'nullable|numeric|min:0',
+                'sort_by' => 'nullable|in:name,price,created_at',
+                'sort_order' => 'nullable|in:asc,desc',
+                'per_page' => 'nullable|integer|min:1|max:100',
+            ]);
+
+            $query = Product::with(['commerce', 'category'])
+                ->whereHas('commerce', function ($commerceQuery) {
+                    $commerceQuery->where('status', 'approved')
+                        ->where('open', true);
+                });
 
             // Búsqueda por nombre o descripción
             if ($request->filled('search')) {
@@ -200,8 +260,8 @@ class SearchController extends Controller
             }
 
             // Filtro por categoría
-            if ($request->filled('category')) {
-                $query->where('category', $request->category);
+            if ($request->filled('category_id')) {
+                $query->where('category_id', (int) $request->category_id);
             }
 
             // Filtro por precio
@@ -212,36 +272,55 @@ class SearchController extends Controller
             if ($request->filled('max_price')) {
                 $query->where('price', '<=', $request->max_price);
             }
+            if ($request->filled('min_price') && $request->filled('max_price')
+                && (float) $request->min_price > (float) $request->max_price) {
+                return response()->json([
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'Parámetros de búsqueda inválidos',
+                    'errors' => [
+                        'min_price' => ['min_price no puede ser mayor que max_price'],
+                    ],
+                ], 422);
+            }
 
             // Filtro por disponibilidad
             if ($request->filled('available')) {
-                $query->where('is_available', $request->available);
+                $query->where('available', filter_var($request->available, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false);
+            } else {
+                $query->where('available', true);
             }
 
             // Ordenamiento
-            $sortBy = $request->sort_by ?? 'name';
-            $sortOrder = $request->sort_order ?? 'asc';
+            $allowedSortBy = ['name', 'price', 'created_at'];
+            $sortBy = in_array($request->sort_by, $allowedSortBy, true) ? $request->sort_by : 'name';
+            $sortOrder = strtolower((string) $request->sort_order) === 'desc' ? 'desc' : 'asc';
 
             $query->orderBy($sortBy, $sortOrder);
 
             // Paginación
-            $perPage = $request->per_page ?? 20;
+            $perPage = min(max((int) ($request->per_page ?? 20), 1), 100);
             $products = $query->paginate($perPage);
 
             $productsData = $products->map(function ($product) {
                 return [
                     'id' => $product->id,
+                    'commerce_id' => $product->commerce_id,
                     'name' => $product->name,
                     'description' => $product->description,
-                    'price' => $product->price,
-                    'category' => $product->category,
-                    'image_url' => $product->image_url,
-                    'is_available' => $product->is_available,
-                    'is_popular' => $product->is_popular,
+                    'price' => (float) $product->price,
+                    'category_id' => $product->category_id,
+                    'category_name' => $product->category?->name,
+                    'category' => $product->category?->name,
+                    'image' => $product->image,
+                    'image_url' => $product->image,
+                    'available' => (bool) $product->available,
+                    'is_available' => (bool) $product->available,
+                    'stock_quantity' => $product->stock_quantity,
                     'commerce' => [
                         'id' => $product->commerce->id,
-                        'name' => $product->commerce->name,
-                        'logo_url' => $product->commerce->logo_url
+                        'name' => $product->commerce->business_name,
+                        'logo_url' => $product->commerce->image
                     ]
                 ];
             });
@@ -249,19 +328,31 @@ class SearchController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
+                    'items' => $productsData,
                     'products' => $productsData,
+                    // Legacy compatibility
+                    'data' => $productsData,
                     'pagination' => [
                         'current_page' => $products->currentPage(),
                         'last_page' => $products->lastPage(),
                         'per_page' => $products->perPage(),
                         'total' => $products->total()
-                    ]
-                ]
+                    ],
+                ],
+                'message' => 'Productos encontrados exitosamente',
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Parámetros de búsqueda inválidos',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             Log::error('Error searching products: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
+                'data' => null,
                 'message' => 'Error al buscar productos'
             ], 500);
         }
@@ -273,16 +364,18 @@ class SearchController extends Controller
     public function getCategories(): JsonResponse
     {
         try {
-            $categories = \App\Models\Category::select('id', 'name', 'description')->get();
+            $categories = Category::select('id', 'name', 'description')->orderBy('name')->get();
 
             return response()->json([
                 'success' => true,
-                'data' => $categories
+                'data' => $categories,
+                'message' => 'Categorías obtenidas exitosamente',
             ]);
         } catch (\Exception $e) {
             \Log::error('Error getting categories: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
+                'data' => null,
                 'message' => 'Error al obtener las categorías'
             ], 500);
         }
@@ -299,19 +392,22 @@ class SearchController extends Controller
             if (strlen($searchTerm) < 2) {
                 return response()->json([
                     'success' => true,
-                    'data' => []
+                    'data' => [],
+                    'message' => 'Sugerencias obtenidas exitosamente',
                 ]);
             }
 
             // Sugerencias de restaurantes
             $restaurantSuggestions = Commerce::where('status', 'approved')
-                ->where('is_active', true)
-                ->where('name', 'LIKE', "%{$searchTerm}%")
+                ->where('business_name', 'LIKE', "%{$searchTerm}%")
                 ->limit(5)
-                ->pluck('name');
+                ->pluck('business_name');
 
             // Sugerencias de productos
-            $productSuggestions = Product::where('is_active', true)
+            $productSuggestions = Product::where('available', true)
+                ->whereHas('commerce', function ($query) {
+                    $query->where('status', 'approved')->where('open', true);
+                })
                 ->where('name', 'LIKE', "%{$searchTerm}%")
                 ->limit(5)
                 ->pluck('name');
@@ -323,12 +419,14 @@ class SearchController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $suggestions
+                'data' => $suggestions,
+                'message' => 'Sugerencias obtenidas exitosamente',
             ]);
         } catch (\Exception $e) {
             Log::error('Error getting search suggestions: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
+                'data' => null,
                 'message' => 'Error al obtener las sugerencias'
             ], 500);
         }

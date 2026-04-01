@@ -25,6 +25,7 @@ class CartControllerTest extends TestCase
         $product = Product::factory()->create([
             'commerce_id' => $commerce->id,
             'available' => true,
+            'stock_quantity' => 5,
         ]);
         
         $data = [
@@ -34,7 +35,8 @@ class CartControllerTest extends TestCase
         $response = $this->postJson('/api/buyer/cart/add', $data);
         $response->assertStatus(200)
                  ->assertJsonFragment(['message' => 'Producto agregado al carrito'])
-                 ->assertJsonStructure(['cart']);
+                 ->assertJsonStructure(['success', 'data' => ['items', 'notes'], 'message']);
+        $this->assertNotEmpty($response->json('data.items.0.line_id'));
     }
 
     public function test_show_cart_contents()
@@ -45,6 +47,57 @@ class CartControllerTest extends TestCase
         
         $response = $this->getJson('/api/buyer/cart');
         $response->assertStatus(200)
-                 ->assertJsonStructure(['cart']);
+                 ->assertJsonStructure(['success', 'data' => ['items', 'notes'], 'message']);
+    }
+
+    public function test_rejects_add_to_cart_when_stock_is_insufficient()
+    {
+        $user = User::factory()->create(['role' => 'users']);
+        Profile::factory()->create(['user_id' => $user->id]);
+        Sanctum::actingAs($user);
+
+        $commerce = Commerce::factory()->create(['open' => true]);
+        $product = Product::factory()->create([
+            'commerce_id' => $commerce->id,
+            'available' => true,
+            'stock_quantity' => 1,
+        ]);
+
+        $response = $this->postJson('/api/buyer/cart/add', [
+            'product_id' => $product->id,
+            'quantity' => 2,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('error_code', 'OUT_OF_STOCK');
+    }
+
+    public function test_add_same_product_with_different_notes_creates_different_lines()
+    {
+        $user = User::factory()->create(['role' => 'users']);
+        Profile::factory()->create(['user_id' => $user->id]);
+        Sanctum::actingAs($user);
+
+        $commerce = Commerce::factory()->create(['open' => true]);
+        $product = Product::factory()->create([
+            'commerce_id' => $commerce->id,
+            'available' => true,
+            'stock_quantity' => 10,
+        ]);
+
+        $this->postJson('/api/buyer/cart/add', [
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'notes' => 'Sin cebolla',
+        ])->assertStatus(200);
+
+        $response = $this->postJson('/api/buyer/cart/add', [
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'notes' => 'Con extra salsa',
+        ])->assertStatus(200);
+
+        $response->assertJsonCount(2, 'data.items');
     }
 }

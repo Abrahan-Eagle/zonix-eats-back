@@ -6,6 +6,7 @@ use App\Models\CartItem;
 use App\Models\Cart;
 use App\Models\Product;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\CartItem>
@@ -24,6 +25,7 @@ class CartItemFactory extends Factory
         return [
             'cart_id' => Cart::factory(),
             'product_id' => Product::factory(),
+            'line_id' => (string) Str::uuid(),
             'quantity' => $this->faker->numberBetween(1, 5),
         ];
     }

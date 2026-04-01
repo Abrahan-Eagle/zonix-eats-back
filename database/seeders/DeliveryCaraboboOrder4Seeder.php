@@ -14,6 +14,7 @@ use Illuminate\Database\Seeder;
  * Crea una flotilla de delivery en Carabobo (Valencia y alrededores) y asigna
  * un repartidor a la orden de demo para simular el pedido activo con ubicación y ruta.
  * ID de orden de demo: config('zonix.seeder.demo_order_id') o env ZONIX_SEEDER_DEMO_ORDER_ID.
+ * Si ya existe una flotilla activa, la reutiliza para evitar duplicación de agentes demo.
  */
 class DeliveryCaraboboOrder4Seeder extends Seeder
 {
@@ -38,28 +39,36 @@ class DeliveryCaraboboOrder4Seeder extends Seeder
             $company = DeliveryCompany::factory()->create(['profile_id' => $profileCompany->id]);
         }
 
-        $agents = [];
-        for ($i = 1; $i <= 10; $i++) {
-            $profile = Profile::factory()->create();
-            /** @var User $user */
-            $user = $profile->user;
-            $user->update(['role' => 'delivery_agent']);
+        $agents = DeliveryAgent::where('company_id', $company->id)
+            ->orderBy('id')
+            ->take(10)
+            ->get()
+            ->all();
 
-            $lat = self::VALENCIA_LAT + (random_int(-100, 100) / 1000.0) * self::RADIUS;
-            $lng = self::VALENCIA_LNG + (random_int(-100, 100) / 1000.0) * self::RADIUS;
+        if (count($agents) < 10) {
+            $missing = 10 - count($agents);
+            for ($i = 1; $i <= $missing; $i++) {
+                $profile = Profile::factory()->create();
+                /** @var User $user */
+                $user = $profile->user;
+                $user->update(['role' => 'delivery_agent']);
 
-            $agents[] = DeliveryAgent::create([
-                'company_id' => $company->id,
-                'profile_id' => $profile->id,
-                'status' => 'activo',
-                'working' => true,
-                'rating' => round(3.5 + (random_int(0, 15) / 10.0), 1),
-                'vehicle_type' => ['motorcycle', 'motorcycle', 'car', 'bicycle'][$i % 4],
-                'license_number' => 'LIC-' . str_pad((string) $i, 5, '0', STR_PAD_LEFT),
-                'current_latitude' => $lat,
-                'current_longitude' => $lng,
-                'last_location_update' => now(),
-            ]);
+                $lat = self::VALENCIA_LAT + (random_int(-100, 100) / 1000.0) * self::RADIUS;
+                $lng = self::VALENCIA_LNG + (random_int(-100, 100) / 1000.0) * self::RADIUS;
+
+                $agents[] = DeliveryAgent::create([
+                    'company_id' => $company->id,
+                    'profile_id' => $profile->id,
+                    'status' => 'activo',
+                    'working' => true,
+                    'rating' => round(3.5 + (random_int(0, 15) / 10.0), 1),
+                    'vehicle_type' => ['motorcycle', 'motorcycle', 'car', 'bicycle'][$i % 4],
+                    'license_number' => 'LIC-' . str_pad((string) $i, 5, '0', STR_PAD_LEFT),
+                    'current_latitude' => $lat,
+                    'current_longitude' => $lng,
+                    'last_location_update' => now(),
+                ]);
+            }
         }
 
         $demoOrderId = $this->demoOrderId();

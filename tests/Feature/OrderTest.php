@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Models\Profile;
 use App\Models\Commerce;
+use App\Models\OperatorCode;
+use App\Models\Phone;
 use App\Models\Product;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\UploadedFile;
@@ -31,6 +33,17 @@ class OrderTest extends TestCase
         $product = Product::factory()->create([
             'commerce_id' => $commerce->id,
             'available' => true,
+        ]);
+        $operatorCode = OperatorCode::firstOrCreate(
+            ['code' => 412],
+            ['name' => '0412']
+        );
+        Phone::create([
+            'profile_id' => $profile->id,
+            'operator_code_id' => $operatorCode->id,
+            'number' => '1234567',
+            'is_primary' => true,
+            'status' => true,
         ]);
         $this->actingAs($user, 'sanctum');
 
@@ -63,5 +76,82 @@ class OrderTest extends TestCase
             'reason' => 'Cambio de planes'
         ]);
         $response->assertStatus(200)->assertJson(['success' => true]);
+    }
+
+    public function test_user_cannot_create_order_when_stock_is_insufficient()
+    {
+        $user = User::factory()->create(['role' => 'users']);
+        $profile = Profile::factory()->create([
+            'user_id' => $user->id,
+            'firstName' => 'Cliente',
+            'lastName' => 'Test',
+            'photo_users' => 'https://via.placeholder.com/150',
+            'status' => 'completeData',
+        ]);
+        $commerce = Commerce::factory()->create(['profile_id' => $profile->id, 'open' => true]);
+        $product = Product::factory()->create([
+            'commerce_id' => $commerce->id,
+            'available' => true,
+            'stock_quantity' => 1,
+        ]);
+        $operatorCode = OperatorCode::firstOrCreate(
+            ['code' => 412],
+            ['name' => '0412']
+        );
+        Phone::create([
+            'profile_id' => $profile->id,
+            'operator_code_id' => $operatorCode->id,
+            'number' => '1234567',
+            'is_primary' => true,
+            'status' => true,
+        ]);
+
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->postJson('/api/buyer/orders', [
+            'commerce_id' => $commerce->id,
+            'products' => [
+                ['id' => $product->id, 'quantity' => 2]
+            ],
+            'delivery_type' => 'pickup',
+            'total' => $product->price * 2,
+            'delivery_address' => 'Calle 123'
+        ]);
+
+        $response->assertStatus(400)
+            ->assertJsonPath('success', false);
+    }
+
+    public function test_orders_index_returns_canonical_envelope()
+    {
+        $user = User::factory()->create(['role' => 'users']);
+        $profile = Profile::factory()->create([
+            'user_id' => $user->id,
+            'firstName' => 'Cliente',
+            'lastName' => 'Test',
+            'photo_users' => 'https://via.placeholder.com/150',
+            'status' => 'completeData',
+        ]);
+        $commerce = Commerce::factory()->create(['profile_id' => $profile->id, 'open' => true]);
+
+        \App\Models\Order::factory()->create([
+            'profile_id' => $profile->id,
+            'commerce_id' => $commerce->id,
+        ]);
+
+        $this->actingAs($user, 'sanctum');
+        $response = $this->getJson('/api/buyer/orders?per_page=10');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'items',
+                    'data',
+                    'pagination' => ['current_page', 'last_page', 'per_page', 'total'],
+                ],
+            ]);
     }
 } 

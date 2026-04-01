@@ -56,9 +56,10 @@ class CartServiceTest extends TestCase
         $cart = $this->cartService->addToCart($productData);
 
         $this->assertIsArray($cart);
-        $this->assertCount(1, $cart);
-        $this->assertEquals(2, $cart[0]['quantity']);
-        $this->assertEquals(1, $cart[0]['product_id']);
+        $this->assertArrayHasKey('items', $cart);
+        $this->assertCount(1, $cart['items']);
+        $this->assertEquals(2, $cart['items'][0]['quantity']);
+        $this->assertEquals(1, $cart['items'][0]['product_id']);
     }
 
     public function test_add_to_cart_existing_product()
@@ -70,8 +71,8 @@ class CartServiceTest extends TestCase
         $cart = $this->cartService->addToCart(['product_id' => 1, 'quantity' => 3]);
 
         $this->assertIsArray($cart);
-        $this->assertCount(1, $cart);
-        $this->assertEquals(5, $cart[0]['quantity']); // 2 + 3
+        $this->assertCount(1, $cart['items']);
+        $this->assertEquals(5, $cart['items'][0]['quantity']); // 2 + 3
     }
 
     public function test_update_quantity()
@@ -83,7 +84,7 @@ class CartServiceTest extends TestCase
         $cart = $this->cartService->updateQuantity(1, 5);
 
         $this->assertIsArray($cart);
-        $this->assertEquals(5, $cart[0]['quantity']);
+        $this->assertEquals(5, $cart['items'][0]['quantity']);
     }
 
     public function test_remove_from_cart()
@@ -96,8 +97,8 @@ class CartServiceTest extends TestCase
         $cart = $this->cartService->removeFromCart(1);
 
         $this->assertIsArray($cart);
-        $this->assertCount(1, $cart);
-        $this->assertEquals(2, $cart[0]['product_id']);
+        $this->assertCount(1, $cart['items']);
+        $this->assertEquals(2, $cart['items'][0]['product_id']);
     }
 
     public function test_add_notes_to_cart()
@@ -121,6 +122,34 @@ class CartServiceTest extends TestCase
         $cart = $this->cartService->clearCart();
 
         $this->assertIsArray($cart);
-        $this->assertEmpty($cart);
+        $this->assertArrayHasKey('items', $cart);
+        $this->assertEmpty($cart['items']);
+    }
+
+    public function test_add_to_cart_throws_when_stock_is_insufficient()
+    {
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Stock insuficiente');
+
+        Product::where('id', 1)->update(['stock_quantity' => 1]);
+        $this->cartService->addToCart(['product_id' => 1, 'quantity' => 2]);
+    }
+
+    public function test_add_same_product_with_different_notes_keeps_separate_lines()
+    {
+        $this->cartService->addToCart([
+            'product_id' => 1,
+            'quantity' => 1,
+            'notes' => 'Sin cebolla',
+        ]);
+
+        $cart = $this->cartService->addToCart([
+            'product_id' => 1,
+            'quantity' => 1,
+            'notes' => 'Con extra salsa',
+        ]);
+
+        $this->assertCount(2, $cart['items']);
+        $this->assertNotEquals($cart['items'][0]['line_id'], $cart['items'][1]['line_id']);
     }
 }
