@@ -176,6 +176,15 @@ class OrderController extends Controller
                 'rejection_reason' => 'nullable|string|max:500',
             ]);
 
+            if ($validated['is_valid'] === false && empty(trim((string) ($validated['rejection_reason'] ?? '')))) {
+                return response()->json([
+                    'message' => 'El motivo de rechazo es obligatorio cuando el pago es rechazado.',
+                    'errors' => [
+                        'rejection_reason' => ['El motivo de rechazo es obligatorio cuando el pago es rechazado.'],
+                    ],
+                ], 422);
+            }
+
             $order = Order::findOrFail($id);
             /** @var \App\Models\User|null $user */
             $user = Auth::user();
@@ -210,6 +219,26 @@ class OrderController extends Controller
             }
 
             $foodPayment = $order->foodPayment;
+            if (!$foodPayment || !$foodPayment->payment_proof) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No hay comprobante de pago de comida para validar.',
+                ], 400);
+            }
+
+            if ($foodPayment->validated_at) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El comprobante ya fue validado previamente.',
+                ], 409);
+            }
+
+            if ($foodPayment->rejected_at && $validated['is_valid'] === false) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El comprobante ya fue rechazado previamente.',
+                ], 409);
+            }
 
             if ($validated['is_valid']) {
                 // Marcar pago food como validado en order_payments
@@ -239,6 +268,10 @@ class OrderController extends Controller
                 }
 
                 event(new PaymentValidated($order->fresh(), true, $profile->id));
+                Log::info('payment_food_validated', [
+                    'order_id' => $order->id,
+                    'validated_by' => $profile->id,
+                ]);
             } else {
                 if ($foodPayment) {
                     $foodPayment->update([
@@ -255,13 +288,22 @@ class OrderController extends Controller
                 
                 $message = 'Pago rechazado';
                 event(new OrderStatusChanged($order));
+                Log::warning('payment_food_rejected', [
+                    'order_id' => $order->id,
+                    'validated_by' => $profile->id,
+                    'reason' => $validated['rejection_reason'] ?? null,
+                ]);
             }
 
             return response()->json([
                 'success' => true,
                 'message' => $message,
                 'all_payments_validated' => $order->allPaymentsValidated(),
-                'order' => $order
+                'order' => $order, // alias legacy
+                'data' => [
+                    'order' => $order,
+                    'all_payments_validated' => $order->allPaymentsValidated(),
+                ],
             ]);
 
         } catch (\Exception $e) {
@@ -290,7 +332,7 @@ class OrderController extends Controller
      * Reglas:
      * - Solo el comercio dueño de la orden puede aprobar.
      * - La orden debe estar en estado pending_payment.
-     * - No debe tener comprobante de pago aún.
+     * - Puede aprobarse aunque el comprador ya haya subido comprobante.
      */
     public function approveForPayment($id)
     {

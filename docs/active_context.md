@@ -10,9 +10,9 @@
 *(La skill **context-updater** rellena esta sección al final de sesiones con cambios relevantes. Si está vacía, no hay resumen pendiente.)*
 
 - **Fecha:** 1 Abril 2026
-- **Resumen:** Módulo de saneamiento de datos de prueba (Factories/Seeders) cerrado en backend. Se corrigió la consistencia de `cart_items.line_id` en fábrica y seeders, se alineó `UserFactory::deliveryAgent()` al rol real `delivery_agent`, se blindó `CommerceSeeder` para no cambiar implícitamente el rol base del usuario 1 y se dejó explícito el uso principal/complementario de seeders demo de delivery para evitar duplicaciones.
-- **Áreas tocadas:** `database/factories/CartItemFactory.php`, `database/factories/UserFactory.php`, `database/seeders/CartItemSeeder.php`, `database/seeders/ZonixDemoSeeder.php`, `database/seeders/CommerceSeeder.php`, `database/seeders/DeliveryCaraboboSeeder.php`, `database/seeders/DeliveryCaraboboOrder4Seeder.php`, `database/seeders/DatabaseSeeder.php`, `AGENTS.md`.
-- **Próximos pasos sugeridos:** Mantener este baseline para demos locales y CI; si se agregan nuevos seeders de carrito, exigir `line_id` determinista/único y evitar mutaciones implícitas de roles base en seeders compartidos.
+- **Resumen:** Módulo Métodos de Pago cerrado con objetivo 10/10 verificable. Se completó hardening de endpoints legacy de pagos (`buyer/payments/*`) con control por rol/rate limit, señalización de deprecación (`X-API-Deprecated`, `X-API-Replacement`, `Sunset`) y gate por flag (`LEGACY_PAYMENT_PROCESSING_ENABLED`) para desactivar procesamiento legacy. Se reforzó el flujo canónico de comprobantes/validación con idempotencia y coherencia de contrato: bloqueo de reemplazo de comprobante ya validado (409), rechazo con motivo obligatorio, validación de comprobante existente y protección ante doble validación/rechazo. Se mantuvo compatibilidad transitoria con campos legacy en `orders` detrás de flag (`SYNC_LEGACY_ORDER_PAYMENT_FIELDS`). 
+- **Áreas tocadas:** `routes/api/buyer.php`, `app/Http/Controllers/Buyer/PaymentController.php`, `app/Http/Controllers/Buyer/OrderController.php`, `app/Http/Controllers/Commerce/OrderController.php`, `tests/Feature/OrderPaymentTest.php`, `tests/Feature/MultiRoleSimulationTest.php`, `AGENTS.md`.
+- **Próximos pasos sugeridos:** Conservar legacy processing deshabilitado por defecto en entornos objetivo, monitorear logs estructurados de eventos de pago y, al confirmar estabilidad operativa, ejecutar retiro definitivo de rutas legacy según ventana `Sunset` y runbook de rollback.
 
 ---
 

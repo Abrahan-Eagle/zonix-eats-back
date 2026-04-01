@@ -13,6 +13,36 @@ use Illuminate\Support\Facades\DB;
 
 class PaymentController extends Controller
 {
+    public function __construct()
+    {
+        // Endpoints legacy: mantenemos compatibilidad temporal mientras migra el cliente.
+        $this->middleware(function ($request, $next) {
+            /** @var \Illuminate\Http\JsonResponse $response */
+            $response = $next($request);
+            $response->headers->set('X-API-Deprecated', 'true');
+            $response->headers->set('X-API-Replacement', '/api/buyer/orders/{id}/payment-info + /api/buyer/orders/{id}/payment-proof');
+            $response->headers->set('Sunset', 'Fri, 31 Jul 2026 23:59:59 GMT');
+            return $response;
+        });
+    }
+
+    private function shouldAllowLegacyProcessing(): bool
+    {
+        return filter_var(env('LEGACY_PAYMENT_PROCESSING_ENABLED', false), FILTER_VALIDATE_BOOL);
+    }
+
+    private function legacyProcessingDisabledResponse(): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'El procesamiento legacy de pagos está deshabilitado. Usa el flujo de comprobantes por orden.',
+            'replacement' => [
+                'payment_info' => '/api/buyer/orders/{id}/payment-info',
+                'upload_proof' => '/api/buyer/orders/{id}/payment-proof',
+            ],
+        ], 410);
+    }
+
     /**
      * Obtener métodos de pago disponibles
      */
@@ -56,7 +86,7 @@ class PaymentController extends Controller
                 'name' => 'Stripe',
                 'icon' => 'stripe',
                 'description' => 'Pago con tarjeta vía Stripe',
-                'enabled' => true,
+                'enabled' => false,
                 'supported_cards' => ['visa', 'mastercard', 'amex']
             ],
             [
@@ -64,7 +94,7 @@ class PaymentController extends Controller
                 'name' => 'MercadoPago',
                 'icon' => 'mercadopago',
                 'description' => 'Pago con MercadoPago',
-                'enabled' => true,
+                'enabled' => false,
                 'supported_cards' => ['visa', 'mastercard', 'amex']
             ],
             [
@@ -88,6 +118,10 @@ class PaymentController extends Controller
      */
     public function processCardPayment(Request $request): JsonResponse
     {
+        if (!$this->shouldAllowLegacyProcessing()) {
+            return $this->legacyProcessingDisabledResponse();
+        }
+
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|exists:orders,id',
             'card_number' => 'required|string|min:13|max:19',
@@ -158,6 +192,10 @@ class PaymentController extends Controller
      */
     public function processPayPalPayment(Request $request): JsonResponse
     {
+        if (!$this->shouldAllowLegacyProcessing()) {
+            return $this->legacyProcessingDisabledResponse();
+        }
+
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|exists:orders,id',
             'paypal_order_id' => 'required|string',
@@ -216,6 +254,10 @@ class PaymentController extends Controller
      */
     public function processMercadoPagoPayment(Request $request): JsonResponse
     {
+        if (!$this->shouldAllowLegacyProcessing()) {
+            return $this->legacyProcessingDisabledResponse();
+        }
+
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|exists:orders,id',
             'preference_id' => 'required|string',
@@ -275,6 +317,10 @@ class PaymentController extends Controller
      */
     public function confirmCashPayment(Request $request): JsonResponse
     {
+        if (!$this->shouldAllowLegacyProcessing()) {
+            return $this->legacyProcessingDisabledResponse();
+        }
+
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|exists:orders,id',
             'amount' => 'required|numeric|min:0.01'
@@ -320,6 +366,10 @@ class PaymentController extends Controller
      */
     public function processMobilePayment(Request $request): JsonResponse
     {
+        if (!$this->shouldAllowLegacyProcessing()) {
+            return $this->legacyProcessingDisabledResponse();
+        }
+
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|exists:orders,id',
             'bank' => 'required|string|in:banesco,banco_de_venezuela,bbva,provincial,mercantil',
@@ -394,6 +444,10 @@ class PaymentController extends Controller
      */
     public function requestRefund(Request $request): JsonResponse
     {
+        if (!$this->shouldAllowLegacyProcessing()) {
+            return $this->legacyProcessingDisabledResponse();
+        }
+
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|exists:orders,id',
             'reason' => 'required|string|max:500',

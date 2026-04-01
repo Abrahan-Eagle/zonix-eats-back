@@ -614,6 +614,13 @@ class OrderController extends Controller
                 ]);
             }
 
+            if ($orderPayment->validated_at) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Este pago ya fue validado y no puede ser reemplazado.',
+                ], 409);
+            }
+
             $file = $request->file('payment_proof');
             $file->store('payment_proofs', 'public');
             $proofPath = 'payment_proofs/' . $file->hashName();
@@ -627,8 +634,9 @@ class OrderController extends Controller
                 'rejection_reason' => null,
             ]);
 
-            // Compatibilidad: actualizar campos legacy en la orden (para el pago food)
-            if ($paymentType === 'food') {
+            // Compatibilidad temporal: sincronizar campos legacy en orders solo si está habilitado.
+            $syncLegacy = filter_var(env('SYNC_LEGACY_ORDER_PAYMENT_FIELDS', true), FILTER_VALIDATE_BOOL);
+            if ($syncLegacy && $paymentType === 'food') {
                 $order->update([
                     'payment_proof' => $proofPath,
                     'payment_method' => $request->payment_method,
@@ -636,6 +644,13 @@ class OrderController extends Controller
                     'payment_proof_uploaded_at' => now(),
                 ]);
             }
+
+            Log::info('payment_proof_uploaded', [
+                'order_id' => $order->id,
+                'payment_type' => $paymentType,
+                'profile_id' => $profile->id,
+                'has_legacy_sync' => $syncLegacy,
+            ]);
 
             $order = $order->fresh();
             event(new OrderStatusChanged($order));

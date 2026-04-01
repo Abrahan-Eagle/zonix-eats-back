@@ -364,6 +364,11 @@ class MultiRoleSimulationTest extends TestCase
         // Verificar que la orden está en la lista de admin (puede estar paginada)
         $orderFound = false;
         $ordersData = is_array($adminOrders) && isset($adminOrders['data']) ? $adminOrders['data'] : $adminOrders;
+        if (is_array($ordersData) && isset($ordersData['items']) && is_array($ordersData['items'])) {
+            $ordersData = $ordersData['items'];
+        } elseif (is_array($ordersData) && isset($ordersData['data']) && is_array($ordersData['data'])) {
+            $ordersData = $ordersData['data'];
+        }
         foreach ($ordersData as $order) {
             if (is_array($order) && isset($order['id']) && $order['id'] == $orderId) {
                 $orderFound = true;
@@ -438,6 +443,11 @@ class MultiRoleSimulationTest extends TestCase
         // Verificar que la orden está en el listado
         $adminOrders = $adminListResponse->json();
         $ordersData = is_array($adminOrders) && isset($adminOrders['data']) ? $adminOrders['data'] : $adminOrders;
+        if (is_array($ordersData) && isset($ordersData['items']) && is_array($ordersData['items'])) {
+            $ordersData = $ordersData['items'];
+        } elseif (is_array($ordersData) && isset($ordersData['data']) && is_array($ordersData['data'])) {
+            $ordersData = $ordersData['data'];
+        }
         $orderFound = false;
         foreach ($ordersData as $o) {
             if (is_array($o) && isset($o['id']) && $o['id'] == $order->id) {

@@ -14,7 +14,7 @@ Route::prefix('buyer')->middleware(['auth:sanctum', 'role:users'])->group(functi
 
 Route::middleware(['auth:sanctum'])->group(function () {
 
-    Route::prefix('buyer/payments')->group(function () {
+    Route::prefix('buyer/payments')->middleware(['role:users', 'throttle:30,1'])->group(function () {
         Route::get('/methods', [App\Http\Controllers\Buyer\PaymentController::class, 'getPaymentMethods']);
         Route::post('/card', [App\Http\Controllers\Buyer\PaymentController::class, 'processCardPayment']);
         Route::post('/mobile', [App\Http\Controllers\Buyer\PaymentController::class, 'processMobilePayment']);
