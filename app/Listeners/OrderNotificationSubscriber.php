@@ -50,13 +50,12 @@ class OrderNotificationSubscriber
         $profileId = $order->profile_id;
 
         $messages = [
-            'preparing' => 'Tu pedido está siendo preparado.',
-            'ready' => 'Tu pedido está listo para ser retirado/enviado.',
-            'shipped' => 'Tu pedido ya salió del comercio.',
-            'out_for_delivery' => 'Tu pedido está en camino a tu dirección.',
-            'delivered' => '¡Pedido entregado! Esperamos que lo disfrutes.',
-            'cancelled' => 'Tu pedido ha sido cancelado.',
-            'pending_payment' => 'Tu pedido ha sido aprobado. Por favor procede a realizar el pago.',
+            'pending_payment' => 'Tu pedido fue creado. Por favor sube el comprobante de pago.',
+            'paid'            => 'Tu pago ha sido confirmado. El comercio procesará tu pedido.',
+            'processing'      => 'Tu pedido está siendo preparado.',
+            'shipped'         => 'Tu pedido va en camino.',
+            'delivered'       => '¡Pedido entregado! Esperamos que lo disfrutes.',
+            'cancelled'       => 'Tu pedido ha sido cancelado.',
         ];
 
         Log::debug('OrderNotificationSubscriber: Handling OrderStatusChanged event', [
@@ -76,10 +75,6 @@ class OrderNotificationSubscriber
             );
         }
 
-        // Si se asignó un repartidor, notificar al repartidor
-        if ($status === 'searching_delivery' && $order->delivery_agent_id) {
-            // Esto suele ocurrir en otros eventos, pero por si acaso
-        }
     }
 
     /**

@@ -35,7 +35,7 @@ class ProfileFactory extends Factory
     {
         return $this->afterCreating(function (\App\Models\Profile $profile) {
             $operatorCode = OperatorCode::first()
-                ?? OperatorCode::create(['name' => 'Movilnet', 'code' => '0412']);
+                ?? OperatorCode::create(['name' => '0412', 'code' => 412]);
             Phone::create([
                 'profile_id' => $profile->id,
                 'operator_code_id' => $operatorCode->id,

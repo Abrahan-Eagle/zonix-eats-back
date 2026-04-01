@@ -176,7 +176,7 @@ class OrderTrackingController extends Controller
     public function updateOrderStatus(Request $request, $orderId): JsonResponse
     {
         $validator = \Validator::make($request->all(), [
-            'status' => 'required|in:pending,confirmed,preparing,ready,on_way,delivered,cancelled'
+            'status' => 'required|in:pending_payment,paid,processing,shipped,delivered,cancelled'
         ]);
 
         if ($validator->fails()) {
@@ -218,51 +218,45 @@ class OrderTrackingController extends Controller
     private function getStatusInfo(string $status): array
     {
         $statusMap = [
-            'pending' => [
-                'title' => 'Pedido Pendiente',
-                'description' => 'Tu pedido está siendo revisado por el restaurante',
+            'pending_payment' => [
+                'title' => 'Pendiente de Pago',
+                'description' => 'Tu pedido fue creado. Sube el comprobante de pago.',
                 'icon' => 'hourglass_empty',
                 'color' => '#FFA726'
             ],
-            'confirmed' => [
-                'title' => 'Pedido Confirmado',
-                'description' => 'El restaurante ha confirmado tu pedido',
+            'paid' => [
+                'title' => 'Pago Confirmado',
+                'description' => 'El comercio validó tu pago y procesará el pedido.',
                 'icon' => 'check_circle',
                 'color' => '#4CAF50'
             ],
-            'preparing' => [
+            'processing' => [
                 'title' => 'Preparando tu Pedido',
-                'description' => 'El restaurante está preparando tu comida',
+                'description' => 'El restaurante está preparando tu comida.',
                 'icon' => 'restaurant',
                 'color' => '#2196F3'
             ],
-            'ready' => [
-                'title' => 'Listo para Enviar',
-                'description' => 'Tu pedido está listo y esperando al repartidor',
-                'icon' => 'local_shipping',
-                'color' => '#9C27B0'
-            ],
-            'on_way' => [
+            'shipped' => [
                 'title' => 'En Camino',
-                'description' => 'El repartidor está llevando tu pedido',
+                'description' => 'El repartidor está llevando tu pedido.',
                 'icon' => 'directions_car',
                 'color' => '#FF9800'
             ],
             'delivered' => [
                 'title' => 'Entregado',
-                'description' => 'Tu pedido ha sido entregado exitosamente',
+                'description' => 'Tu pedido ha sido entregado exitosamente.',
                 'icon' => 'done_all',
                 'color' => '#4CAF50'
             ],
             'cancelled' => [
                 'title' => 'Cancelado',
-                'description' => 'Tu pedido ha sido cancelado',
+                'description' => 'Tu pedido ha sido cancelado.',
                 'icon' => 'cancel',
                 'color' => '#F44336'
             ]
         ];
 
-        return $statusMap[$status] ?? $statusMap['pending'];
+        return $statusMap[$status] ?? $statusMap['pending_payment'];
     }
 
     /**
@@ -271,13 +265,12 @@ class OrderTrackingController extends Controller
     private function getCurrentStep(string $status): int
     {
         $stepMap = [
-            'pending' => 1,
-            'confirmed' => 2,
-            'preparing' => 3,
-            'ready' => 4,
-            'on_way' => 5,
-            'delivered' => 5,
-            'cancelled' => 0
+            'pending_payment' => 1,
+            'paid'            => 2,
+            'processing'      => 3,
+            'shipped'         => 4,
+            'delivered'       => 5,
+            'cancelled'       => 0,
         ];
 
         return $stepMap[$status] ?? 1;
@@ -288,18 +281,15 @@ class OrderTrackingController extends Controller
      */
     private function calculateEstimatedDeliveryTime(Order $order): string
     {
-        $baseTime = 30; // 30 minutos base
-        
-        // Ajustar según el estado
+        $baseTime = 30;
+
         switch ($order->status) {
-            case 'pending':
-            case 'confirmed':
+            case 'pending_payment':
+            case 'paid':
                 return now()->addMinutes($baseTime)->format('H:i');
-            case 'preparing':
+            case 'processing':
                 return now()->addMinutes($baseTime - 10)->format('H:i');
-            case 'ready':
-                return now()->addMinutes($baseTime - 20)->format('H:i');
-            case 'on_way':
+            case 'shipped':
                 return now()->addMinutes(15)->format('H:i');
             default:
                 return now()->addMinutes($baseTime)->format('H:i');
@@ -311,7 +301,6 @@ class OrderTrackingController extends Controller
      */
     private function calculateEstimatedArrival(Order $order): string
     {
-        // Actualizado: usar 'shipped' en lugar de 'on_way'
         if ($order->status !== 'shipped') {
             return 'N/A';
         }
@@ -336,8 +325,7 @@ class OrderTrackingController extends Controller
             'icon' => $this->getStatusInfo($order->status)['icon']
         ];
 
-        // Agregar estados futuros
-        $futureStates = ['confirmed', 'preparing', 'ready', 'on_way', 'delivered'];
+        $futureStates = ['pending_payment', 'paid', 'processing', 'shipped', 'delivered'];
         $currentIndex = array_search($order->status, $futureStates);
         
         if ($currentIndex !== false) {

@@ -27,6 +27,10 @@ class CommerceController extends Controller
             $query->where('open', $request->boolean('open'));
         }
 
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
         $paginator = $query->orderBy('id', 'desc')->paginate($perPage);
 
         return response()->json([
@@ -54,6 +58,49 @@ class CommerceController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
+            'status' => 'required|in:pending_review,approved,rejected,suspended',
+            'rejection_reason' => 'nullable|string|max:500',
+        ]);
+
+        $commerce = Commerce::findOrFail($id);
+        $commerce->status = $request->status;
+
+        if ($request->status === 'rejected' && $request->filled('rejection_reason')) {
+            $commerce->rejection_reason = $request->rejection_reason;
+        }
+
+        if ($request->status === 'approved') {
+            $commerce->rejection_reason = null;
+        }
+
+        $commerce->save();
+
+        if (in_array($request->status, ['approved', 'rejected'])) {
+            try {
+                $profileId = $commerce->profile_id;
+                $statusText = $request->status === 'approved' ? 'aprobado' : 'rechazado';
+                app(\App\Services\NotificationService::class)->notify(
+                    $profileId,
+                    'Actualización de tu comercio',
+                    "Tu comercio \"{$commerce->business_name}\" ha sido {$statusText}.",
+                    'commerce_status',
+                    ['commerce_id' => (string) $commerce->id, 'status' => $request->status]
+                );
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('No se pudo notificar al commerce: ' . $e->getMessage());
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Estado del comercio actualizado.',
+            'data' => $commerce,
+        ]);
+    }
+
+    public function toggleOpen(Request $request, $id)
+    {
+        $request->validate([
             'open' => 'required|boolean',
         ]);
 
@@ -63,7 +110,7 @@ class CommerceController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Estado del comercio actualizado.',
+            'message' => $commerce->open ? 'Comercio abierto.' : 'Comercio cerrado.',
             'data' => $commerce,
         ]);
     }

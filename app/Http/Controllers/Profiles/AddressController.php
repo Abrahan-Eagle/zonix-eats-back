@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Address;
 use App\Models\City;
+use App\Models\Commerce;
 use App\Models\Country;
 use App\Models\Profile;
 use App\Models\State;
@@ -15,13 +16,58 @@ use Illuminate\Support\Facades\Validator;
 
 class AddressController extends Controller
 {
+    private function isAdmin(Request $request): bool
+    {
+        return $request->user() && $request->user()->role === 'admin';
+    }
+
+    private function authProfile(Request $request): ?Profile
+    {
+        return Profile::where('user_id', $request->user()->id)->first();
+    }
+
+    private function canAccessAddress(Request $request, Address $address): bool
+    {
+        if ($this->isAdmin($request)) {
+            return true;
+        }
+
+        $authProfile = $this->authProfile($request);
+        if (!$authProfile) {
+            return false;
+        }
+
+        if ($address->profile_id && (int) $address->profile_id === (int) $authProfile->id) {
+            return true;
+        }
+
+        if ($address->commerce_id) {
+            $address->loadMissing('commerce');
+            return (int) optional($address->commerce)->profile_id === (int) $authProfile->id;
+        }
+
+        return false;
+    }
+
     /**
      * Display a listing of the addresses.
      */
-    public function index()
+    public function index(Request $request)
     {
-        // Obtener todas las direcciones
-        $addresses = Address::with(['profile', 'city'])->get();
+        $query = Address::with(['profile', 'city']);
+        if (!$this->isAdmin($request)) {
+            $authProfile = $this->authProfile($request);
+            if (!$authProfile) {
+                return response()->json([], 200);
+            }
+            $query->where(function ($q) use ($authProfile) {
+                $q->where('profile_id', $authProfile->id)
+                    ->orWhereHas('commerce', function ($cq) use ($authProfile) {
+                        $cq->where('profile_id', $authProfile->id);
+                    });
+            });
+        }
+        $addresses = $query->get();
         return response()->json($addresses);
     }
 
@@ -37,7 +83,7 @@ public function store(Request $request)
 
     // Validar: dirección de persona (profile_id) O dirección de comercio (commerce_id), no ambos obligatorios.
     $validator = Validator::make($request->all(), [
-        'profile_id' => 'required_without:commerce_id|nullable|exists:profiles,user_id',
+        'profile_id' => 'required_without:commerce_id|nullable|exists:profiles,id',
         'commerce_id' => 'required_without:profile_id|nullable|exists:commerces,id',
         'street' => 'required|string|max:255',
         'house_number' => 'required|string|max:50',
@@ -49,13 +95,22 @@ public function store(Request $request)
     ]);
 
     if ($validator->fails()) {
-        return response()->json(['error' => $validator->errors()], 400);
+        return response()->json([
+            'success' => false,
+            'data' => null,
+            'message' => 'Datos de dirección inválidos.',
+            'errors' => $validator->errors(),
+        ], 400);
     }
 
     $statusx = 'notverified';
 
     // Opción A: dirección del establecimiento → solo commerce_id (sin profile_id).
     if ($request->filled('commerce_id')) {
+        $commerce = Commerce::findOrFail((int) $request->commerce_id);
+        if (!$this->isAdmin($request) && (int) $commerce->profile_id !== (int) optional($this->authProfile($request))->id) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
         $address = Address::create([
             'street' => $request->street,
             'house_number' => $request->house_number,
@@ -72,7 +127,11 @@ public function store(Request $request)
     }
 
     // Dirección de persona (dueño, usuario, etc.): requiere profile_id.
-    $profile = Profile::where('user_id', $request->profile_id)->firstOrFail();
+    $profile = Profile::find((int) $request->profile_id)
+        ?? Profile::where('user_id', (int) $request->profile_id)->firstOrFail();
+    if (!$this->isAdmin($request) && (int) $profile->id !== (int) optional($this->authProfile($request))->id) {
+        return response()->json(['message' => 'No autorizado'], 403);
+    }
     $role = $request->role ?? $profile->user->role ?? null;
 
     $address = Address::create([
@@ -96,19 +155,16 @@ public function store(Request $request)
     /**
      * Display the specified address.
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        $profile = Profile::where('user_id', $id)->firstOrFail();
-
-        $addresses = Address::with(['city.state.country'])
-            ->where('profile_id', $profile->id)
-            ->get();
-
-        if ($addresses->isEmpty()) {
+        $address = Address::with(['city.state.country', 'profile'])->find($id);
+        if (!$address) {
             return response()->json(['message' => 'Address not found'], 404);
         }
-
-        return response()->json($addresses);
+        if (!$this->canAccessAddress($request, $address)) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
+        return response()->json($address);
     }
 
     /**
@@ -121,6 +177,9 @@ public function store(Request $request)
 
         if (!$address) {
             return response()->json(['message' => 'Address not found'], 404);
+        }
+        if (!$this->canAccessAddress($request, $address)) {
+            return response()->json(['message' => 'No autorizado'], 403);
         }
 
         // Validar los datos de la solicitud
@@ -146,7 +205,9 @@ public function store(Request $request)
         $address->latitude = $request->latitude ?? $address->latitude;
         $address->longitude = $request->longitude ?? $address->longitude;
         $address->status = $request->status ?? $address->status;
-        $address->profile_id = $request->profile_id ?? $address->profile_id;
+        if ($this->isAdmin($request)) {
+            $address->profile_id = $request->profile_id ?? $address->profile_id;
+        }
         $address->city_id = $request->city_id ?? $address->city_id;
 
         // Guardar los cambios
@@ -158,13 +219,16 @@ public function store(Request $request)
     /**
      * Remove the specified address from storage.
      */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         // Buscar la dirección por ID
         $address = Address::find($id);
 
         if (!$address) {
             return response()->json(['message' => 'Address not found'], 404);
+        }
+        if (!$this->canAccessAddress($request, $address)) {
+            return response()->json(['message' => 'No autorizado'], 403);
         }
 
         // Eliminar la dirección

@@ -19,6 +19,8 @@ class DeliveryCompany extends Model
         'schedule',
         'active',
         'default_payout_percentage',
+        'status',
+        'rejection_reason',
     ];
 
     protected $appends = ['phone'];

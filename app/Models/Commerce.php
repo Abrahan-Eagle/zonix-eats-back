@@ -29,6 +29,8 @@ class Commerce extends Model
         'cancellation_count',
         'last_cancellation_date',
         'preparation_time',
+        'status',
+        'rejection_reason',
     ];
 
     protected $appends = ['phone', 'latitude', 'longitude'];

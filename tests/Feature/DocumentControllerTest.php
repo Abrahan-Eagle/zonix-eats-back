@@ -124,4 +124,49 @@ class DocumentControllerTest extends TestCase
         $data = $response->json();
         $this->assertIsArray($data);
     }
+
+    public function test_store_returns_403_for_foreign_profile(): void
+    {
+        $user = User::factory()->create(['role' => 'users']);
+        $otherUser = User::factory()->create(['role' => 'users']);
+        $otherProfile = Profile::factory()->create(['user_id' => $otherUser->id]);
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/documents', [
+            'profile_id' => $otherProfile->id,
+            'type' => 'ci',
+            'number_ci' => 12345678,
+        ]);
+
+        $response->assertStatus(403)
+            ->assertJson(['message' => 'No autorizado']);
+    }
+
+    public function test_show_update_and_destroy_require_document_ownership(): void
+    {
+        $user = User::factory()->create(['role' => 'users']);
+        $otherUser = User::factory()->create(['role' => 'users']);
+        $otherProfile = Profile::factory()->create(['user_id' => $otherUser->id]);
+        $foreignDocument = Document::create([
+            'profile_id' => $otherProfile->id,
+            'type' => 'ci',
+            'number_ci' => 87654321,
+            'status' => true,
+            'approved' => false,
+        ]);
+        Sanctum::actingAs($user);
+
+        $show = $this->getJson('/api/documents/' . $otherUser->id);
+        $show->assertStatus(403);
+
+        $update = $this->putJson('/api/documents/' . $foreignDocument->id, [
+            'number_ci' => 12312312,
+        ]);
+        $update->assertStatus(403)
+            ->assertJson(['message' => 'No autorizado']);
+
+        $delete = $this->deleteJson('/api/documents/' . $foreignDocument->id);
+        $delete->assertStatus(403)
+            ->assertJson(['message' => 'No autorizado']);
+    }
 }

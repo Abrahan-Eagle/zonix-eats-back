@@ -56,12 +56,13 @@ class DeliveryAssignmentService
         }
 
         if ($bestAgent) {
-            // Asignar el delivery
-            $order->delivery_agent_id = $bestAgent->id;
-            $order->status = 'assigned';
-            $order->save();
+            \App\Models\OrderDelivery::create([
+                'order_id'     => $order->id,
+                'agent_id'     => $bestAgent->id,
+                'status'       => 'assigned',
+                'delivery_fee' => $order->delivery_fee ?? 0,
+            ]);
 
-            // Marcar al agente como ocupado
             $bestAgent->working = false;
             $bestAgent->save();
 
@@ -129,9 +130,13 @@ class DeliveryAssignmentService
      */
     public function reassignOrdersFromAgent($agentId)
     {
-        $orders = Order::where('delivery_agent_id', $agentId)
-                      ->whereIn('status', ['assigned', 'in_transit'])
-                      ->get();
+        $orderIds = \App\Models\OrderDelivery::where('agent_id', $agentId)
+            ->whereIn('status', ['assigned', 'picked_up', 'in_transit'])
+            ->pluck('order_id');
+
+        $orders = Order::whereIn('id', $orderIds)
+            ->whereIn('status', ['processing', 'shipped'])
+            ->get();
 
         $reassigned = [];
 

@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Models\Address;
+use App\Models\City;
+use App\Models\Country;
 use App\Models\Profile;
+use App\Models\State;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
@@ -64,15 +67,18 @@ class AddressController extends Controller
     public function createAddress(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:100',
-            'address_line_1' => 'required|string|max:255',
+            'name' => 'nullable|string|max:100',
+            'street' => 'required_without:address_line_1|string|max:255',
+            'address_line_1' => 'required_without:street|string|max:255',
+            'house_number' => 'nullable|string|max:50',
             'address_line_2' => 'nullable|string|max:255',
-            'city' => 'required|string|max:100',
-            'state' => 'required|string|max:100',
-            'postal_code' => 'required|string|max:20',
-            'country' => 'required|string|max:100',
-            'latitude' => 'nullable|numeric|between:-90,90',
-            'longitude' => 'nullable|numeric|between:-180,180',
+            'city_id' => 'nullable|exists:cities,id',
+            'city' => 'required_without:city_id|string|max:100',
+            'state' => 'nullable|string|max:100',
+            'postal_code' => 'nullable|string|max:20',
+            'country' => 'nullable|string|max:100',
+            'latitude' => 'required|numeric|between:-90,90',
+            'longitude' => 'required|numeric|between:-180,180',
             'is_default' => 'boolean',
             'delivery_instructions' => 'nullable|string|max:500'
         ]);
@@ -87,6 +93,13 @@ class AddressController extends Controller
 
         try {
             $profile = auth()->user()->profile;
+            $cityId = $this->resolveCityId($request);
+            if (!$cityId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se pudo resolver la ciudad con los datos enviados',
+                ], 422);
+            }
 
             // Si se marca como predeterminada, quitar la marca de las demás
             if ($request->is_default) {
@@ -97,17 +110,15 @@ class AddressController extends Controller
 
             $address = Address::create([
                 'profile_id' => $profile->id,
-                'name' => $request->name,
-                'address_line_1' => $request->address_line_1,
-                'address_line_2' => $request->address_line_2,
-                'city' => $request->city,
-                'state' => $request->state,
+                'street' => $request->street ?? $request->address_line_1,
+                'house_number' => $request->house_number ?? $request->address_line_2,
                 'postal_code' => $request->postal_code,
-                'country' => $request->country,
                 'latitude' => $request->latitude,
                 'longitude' => $request->longitude,
                 'is_default' => $request->is_default ?? false,
-                'delivery_instructions' => $request->delivery_instructions
+                'status' => 'notverified',
+                'role' => 'users',
+                'city_id' => $cityId,
             ]);
 
             return response()->json([
@@ -115,17 +126,17 @@ class AddressController extends Controller
                 'message' => 'Dirección creada exitosamente',
                 'data' => [
                     'id' => $address->id,
-                    'name' => $address->name,
-                    'address_line_1' => $address->address_line_1,
-                    'address_line_2' => $address->address_line_2,
-                    'city' => $address->city,
-                    'state' => $address->state,
+                    'name' => $request->name ?? $address->street,
+                    'address_line_1' => $address->street,
+                    'address_line_2' => $address->house_number,
+                    'city' => optional($address->city)->name,
+                    'state' => optional(optional($address->city)->state)->name,
                     'postal_code' => $address->postal_code,
-                    'country' => $address->country,
+                    'country' => optional(optional(optional($address->city)->state)->country)->name,
                     'latitude' => $address->latitude,
                     'longitude' => $address->longitude,
                     'is_default' => $address->is_default,
-                    'delivery_instructions' => $address->delivery_instructions,
+                    'delivery_instructions' => null,
                     'formatted_address' => $this->formatAddress($address)
                 ]
             ]);
@@ -144,15 +155,18 @@ class AddressController extends Controller
     public function updateAddress(Request $request, $addressId): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:100',
-            'address_line_1' => 'required|string|max:255',
+            'name' => 'nullable|string|max:100',
+            'street' => 'required_without:address_line_1|string|max:255',
+            'address_line_1' => 'required_without:street|string|max:255',
+            'house_number' => 'nullable|string|max:50',
             'address_line_2' => 'nullable|string|max:255',
-            'city' => 'required|string|max:100',
-            'state' => 'required|string|max:100',
-            'postal_code' => 'required|string|max:20',
-            'country' => 'required|string|max:100',
-            'latitude' => 'nullable|numeric|between:-90,90',
-            'longitude' => 'nullable|numeric|between:-180,180',
+            'city_id' => 'nullable|exists:cities,id',
+            'city' => 'required_without:city_id|string|max:100',
+            'state' => 'nullable|string|max:100',
+            'postal_code' => 'nullable|string|max:20',
+            'country' => 'nullable|string|max:100',
+            'latitude' => 'required|numeric|between:-90,90',
+            'longitude' => 'required|numeric|between:-180,180',
             'is_default' => 'boolean',
             'delivery_instructions' => 'nullable|string|max:500'
         ]);
@@ -170,6 +184,13 @@ class AddressController extends Controller
             $address = Address::where('id', $addressId)
                 ->where('profile_id', $profile->id)
                 ->firstOrFail();
+            $cityId = $this->resolveCityId($request);
+            if (!$cityId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se pudo resolver la ciudad con los datos enviados',
+                ], 422);
+            }
 
             // Si se marca como predeterminada, quitar la marca de las demás
             if ($request->is_default) {
@@ -180,17 +201,13 @@ class AddressController extends Controller
             }
 
             $address->update([
-                'name' => $request->name,
-                'address_line_1' => $request->address_line_1,
-                'address_line_2' => $request->address_line_2,
-                'city' => $request->city,
-                'state' => $request->state,
+                'street' => $request->street ?? $request->address_line_1,
+                'house_number' => $request->house_number ?? $request->address_line_2,
                 'postal_code' => $request->postal_code,
-                'country' => $request->country,
                 'latitude' => $request->latitude,
                 'longitude' => $request->longitude,
                 'is_default' => $request->is_default ?? $address->is_default,
-                'delivery_instructions' => $request->delivery_instructions
+                'city_id' => $cityId,
             ]);
 
             return response()->json([
@@ -198,17 +215,17 @@ class AddressController extends Controller
                 'message' => 'Dirección actualizada exitosamente',
                 'data' => [
                     'id' => $address->id,
-                    'name' => $address->name,
-                    'address_line_1' => $address->address_line_1,
-                    'address_line_2' => $address->address_line_2,
-                    'city' => $address->city,
-                    'state' => $address->state,
+                    'name' => $request->name ?? $address->street,
+                    'address_line_1' => $address->street,
+                    'address_line_2' => $address->house_number,
+                    'city' => optional($address->city)->name,
+                    'state' => optional(optional($address->city)->state)->name,
                     'postal_code' => $address->postal_code,
-                    'country' => $address->country,
+                    'country' => optional(optional(optional($address->city)->state)->country)->name,
                     'latitude' => $address->latitude,
                     'longitude' => $address->longitude,
                     'is_default' => $address->is_default,
-                    'delivery_instructions' => $address->delivery_instructions,
+                    'delivery_instructions' => null,
                     'formatted_address' => $this->formatAddress($address)
                 ]
             ]);
@@ -323,17 +340,17 @@ class AddressController extends Controller
                 'success' => true,
                 'data' => [
                     'id' => $address->id,
-                    'name' => $address->name,
-                    'address_line_1' => $address->address_line_1,
-                    'address_line_2' => $address->address_line_2,
-                    'city' => $address->city,
-                    'state' => $address->state,
+                    'name' => $address->street,
+                    'address_line_1' => $address->street,
+                    'address_line_2' => $address->house_number,
+                    'city' => optional($address->city)->name,
+                    'state' => optional(optional($address->city)->state)->name,
                     'postal_code' => $address->postal_code,
-                    'country' => $address->country,
+                    'country' => optional(optional(optional($address->city)->state)->country)->name,
                     'latitude' => $address->latitude,
                     'longitude' => $address->longitude,
                     'is_default' => $address->is_default,
-                    'delivery_instructions' => $address->delivery_instructions,
+                    'delivery_instructions' => null,
                     'formatted_address' => $this->formatAddress($address)
                 ]
             ]);
@@ -360,5 +377,30 @@ class AddressController extends Controller
         ]);
 
         return implode(', ', $parts);
+    }
+
+    private function resolveCityId(Request $request): ?int
+    {
+        if ($request->filled('city_id')) {
+            return (int) $request->city_id;
+        }
+
+        if (!$request->filled('city')) {
+            return null;
+        }
+
+        $cityQuery = City::query()->where('name', $request->city);
+        if ($request->filled('state')) {
+            $cityQuery->whereHas('state', function ($q) use ($request) {
+                $q->where('name', $request->state);
+                if ($request->filled('country')) {
+                    $q->whereHas('country', function ($cq) use ($request) {
+                        $cq->where('name', $request->country);
+                    });
+                }
+            });
+        }
+
+        return optional($cityQuery->first())->id;
     }
 } 

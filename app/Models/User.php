@@ -35,7 +35,6 @@ class User extends Authenticatable
         'given_name',       // Nombre de pila
         'family_name',      // Apellido
         'profile_pic',      // URL de la imagen de perfil de Google
-        'AccessToken',
         'role',  // Rol del usuario (admin, cliente, etc.
         'completed_onboarding',
         'light', // Tema: '1' Claro, '0' Oscuro

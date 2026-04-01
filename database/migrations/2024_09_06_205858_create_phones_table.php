@@ -29,7 +29,6 @@ return new class extends Migration
             $table->string('number', 7);
             $table->boolean('is_primary')->default(false);
             $table->boolean('status')->default(true);
-            $table->boolean('approved')->default(false);
             $table->timestamps();
 
             // Índices para filtrar por contexto y entidad

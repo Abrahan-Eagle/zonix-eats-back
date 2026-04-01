@@ -14,13 +14,31 @@ use Illuminate\Support\Facades\Storage;
 
 class ProfileController extends Controller
 {
+    private function isAdmin(Request $request): bool
+    {
+        return $request->user() && $request->user()->role === 'admin';
+    }
+
+    private function canAccessProfile(Request $request, Profile $profile): bool
+    {
+        return $this->isAdmin($request) || ((int) $profile->user_id === (int) $request->user()->id);
+    }
+
     /**
      * Listar todos los perfiles.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $profiles = Profile::with(['user', 'addresses'])->get();
-        return response()->json($profiles);
+        if ($this->isAdmin($request)) {
+            $profiles = Profile::with(['user', 'addresses'])->get();
+            return response()->json($profiles);
+        }
+
+        $profile = Profile::with(['user', 'addresses'])
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        return response()->json($profile ? [$profile] : []);
     }
 
     /**
@@ -43,6 +61,10 @@ class ProfileController extends Controller
 
         if ($validator->fails()) {
             return response()->json(['error' => $validator->errors()], 400);
+        }
+
+        if (!$this->isAdmin($request) && (int) $request->user_id !== (int) $request->user()->id) {
+            return response()->json(['message' => 'No autorizado'], 403);
         }
 
                 // Verificar si ya existe un perfil para el usuario.
@@ -106,7 +128,7 @@ class ProfileController extends Controller
     /**
      * Mostrar un perfil específico por ID.
      */
-    public function show($id = null)
+    public function show(Request $request, $id = null)
     {
         if ($id === null || $id === '' || (is_string($id) && trim($id) === '')) {
             return response()->json(['message' => 'ID de perfil requerido'], 400);
@@ -115,12 +137,33 @@ class ProfileController extends Controller
         if (!$profile) {
             return response()->json(['message' => 'Perfil no encontrado'], 404);
         }
+        if (!$this->canAccessProfile($request, $profile)) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
         return response()->json($profile);
     }
+
+    /**
+     * PUT /api/profile — actualizar el perfil del usuario autenticado.
+     */
+    public function updateCurrent(Request $request)
+    {
+        $user = $request->user();
+        $profile = Profile::where('user_id', $user->id)->first();
+        if (!$profile) {
+            return response()->json(['success' => false, 'message' => 'Perfil no encontrado'], 404);
+        }
+
+        return $this->update($request, $profile->id);
+    }
+
     public function update(Request $request, $id)
 {
     // Buscar el perfil por ID o devolver error 404.
     $profile = Profile::findOrFail($id);
+    if (! $this->canAccessProfile($request, $profile)) {
+        return response()->json(['message' => 'No autorizado'], 403);
+    }
 
     // Validar los datos recibidos (date_of_birth nullable para perfiles sin fecha).
     $validatedData = $request->validate([
@@ -199,12 +242,15 @@ class ProfileController extends Controller
     /**
      * Eliminar un perfil.
      */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $profile = Profile::find($id);
 
         if (!$profile) {
             return response()->json(['message' => 'Perfil no encontrado'], 404);
+        }
+        if (! $this->canAccessProfile($request, $profile)) {
+            return response()->json(['message' => 'No autorizado'], 403);
         }
 
         // Eliminar la imagen asociada si existe.
@@ -254,6 +300,9 @@ class ProfileController extends Controller
 
         if ($validator->fails()) {
             return response()->json(['error' => $validator->errors()], 400);
+        }
+        if (!$this->isAdmin($request) && (int) $request->user_id !== (int) $request->user()->id) {
+            return response()->json(['message' => 'No autorizado'], 403);
         }
 
         // Verificar si ya existe un perfil para el usuario
@@ -340,6 +389,9 @@ class ProfileController extends Controller
 
         if ($validator->fails()) {
             return response()->json(['error' => $validator->errors()], 400);
+        }
+        if (!$this->isAdmin($request) && (int) $request->user_id !== (int) $request->user()->id) {
+            return response()->json(['message' => 'No autorizado'], 403);
         }
 
         // Verificar si ya existe un perfil para el usuario
@@ -443,6 +495,9 @@ class ProfileController extends Controller
 
         try {
             $profile = Profile::findOrFail($request->profile_id);
+            if (! $this->canAccessProfile($request, $profile)) {
+                return response()->json(['message' => 'No autorizado'], 403);
+            }
             $isFirstCommerce = $profile->commerces()->count() === 0;
 
             $scheduleValue = null;
@@ -463,6 +518,8 @@ class ProfileController extends Controller
                 'schedule' => $scheduleValue,
             ]);
 
+            $this->notifyAdminsNewCommerce($commerce);
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -470,6 +527,7 @@ class ProfileController extends Controller
                     'business_name' => $commerce->business_name,
                     'address' => $commerce->address,
                     'open' => $commerce->open,
+                    'status' => $commerce->status,
                 ],
             ], 201);
         } catch (\Throwable $e) {
@@ -480,6 +538,26 @@ class ProfileController extends Controller
                 'message' => 'Error al crear el comercio.',
                 'error' => config('app.debug') ? $e->getMessage() : null,
             ], 500);
+        }
+    }
+
+    private function notifyAdminsNewCommerce(\App\Models\Commerce $commerce): void
+    {
+        try {
+            $notificationService = app(\App\Services\NotificationService::class);
+            $adminProfiles = \App\Models\Profile::whereHas('user', fn ($q) => $q->where('role', 'admin'))->pluck('id');
+
+            foreach ($adminProfiles as $profileId) {
+                $notificationService->notify(
+                    $profileId,
+                    'Nuevo comercio registrado',
+                    "{$commerce->business_name} solicita aprobación.",
+                    'admin_commerce',
+                    ['commerce_id' => (string) $commerce->id, 'action' => 'review_commerce']
+                );
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('No se pudo notificar a admins: ' . $e->getMessage());
         }
     }
 
@@ -504,6 +582,9 @@ class ProfileController extends Controller
 
         if ($validator->fails()) {
             return response()->json(['error' => $validator->errors()], 400);
+        }
+        if (!$this->isAdmin($request) && (int) $request->user_id !== (int) $request->user()->id) {
+            return response()->json(['message' => 'No autorizado'], 403);
         }
 
         // Verificar si ya existe un perfil para el usuario
@@ -565,6 +646,10 @@ class ProfileController extends Controller
     {
         $digits = preg_replace('/\D/', '', $phoneString);
         if (strlen($digits) < 7) {
+            \Illuminate\Support\Facades\Log::warning("createPhoneForProfile: teléfono '{$phoneString}' tiene menos de 7 dígitos, no se creó registro.", [
+                'profile_id' => $profile->id,
+                'digits_count' => strlen($digits),
+            ]);
             return;
         }
         $number = substr($digits, -7);
@@ -573,6 +658,9 @@ class ProfileController extends Controller
         $operatorCode = OperatorCode::where('code', $code4)->orWhere('code', $code3)->first()
             ?? OperatorCode::first();
         if (!$operatorCode) {
+            \Illuminate\Support\Facades\Log::warning("createPhoneForProfile: no se encontró código de operador para '{$phoneString}'.", [
+                'profile_id' => $profile->id,
+            ]);
             return;
         }
         Phone::create([

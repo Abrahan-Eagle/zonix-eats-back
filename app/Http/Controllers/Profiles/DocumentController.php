@@ -13,6 +13,21 @@ use Illuminate\Support\Facades\Log;
 
 class DocumentController extends Controller
 {
+    private function isAdmin(Request $request): bool
+    {
+        return $request->user() && $request->user()->role === 'admin';
+    }
+
+    private function authProfile(Request $request): ?Profile
+    {
+        return Profile::where('user_id', $request->user()->id)->first();
+    }
+
+    private function canAccessProfile(Request $request, Profile $profile): bool
+    {
+        return $this->isAdmin($request) || ((int) $profile->user_id === (int) $request->user()->id);
+    }
+
     public function index()
     {
         $user = auth()->user();
@@ -40,7 +55,11 @@ class DocumentController extends Controller
             return response()->json(['error' => 'Invalid document type. Only CI and RIF are allowed.'], 400);
         }
 
-        $profile = Profile::where('user_id', $request->profile_id)->firstOrFail();
+        $profile = Profile::find((int) $request->profile_id)
+            ?? Profile::where('user_id', (int) $request->profile_id)->firstOrFail();
+        if (!$this->canAccessProfile($request, $profile)) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
 
         // CI y RIF son únicos por perfil (normativa Venezuela: un RIF/identificador por contribuyente).
         $existingDocument = Document::where('profile_id', $profile->id)
@@ -76,9 +95,12 @@ class DocumentController extends Controller
         return response()->json(['message' => 'Document created successfully', 'document' => $document], 201);
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $profile = Profile::where('user_id', $id)->firstOrFail();
+        if (!$this->canAccessProfile($request, $profile)) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
 
         $document = Document::with('profile')
             ->where('profile_id', $profile->id)
@@ -96,19 +118,26 @@ class DocumentController extends Controller
 
     public function update(Request $request, $id)
     {
-
-        // Solo se permiten CI y RIF
-        if (!in_array($request->type, ['ci', 'rif'])) {
-            return response()->json(['error' => 'Invalid document type. Only CI and RIF are allowed.'], 400);
-        }
-
         $document = Document::find($id);
 
         if (!$document) {
             return response()->json(['message' => 'Document not found'], 404);
         }
 
-        $validator = $this->getValidator($request->all(), $request->type ?? $document->type);
+        $profile = Profile::find($document->profile_id);
+        if (!$profile || !$this->canAccessProfile($request, $profile)) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
+
+        $effectiveType = $request->type ?? $document->type;
+        if (!in_array($effectiveType, ['ci', 'rif'])) {
+            return response()->json(['error' => 'Invalid document type. Only CI and RIF are allowed.'], 400);
+        }
+
+        $payload = $request->all();
+        $payload['profile_id'] = $request->profile_id ?? $document->profile_id;
+        $payload['type'] = $effectiveType;
+        $validator = $this->getValidator($payload, $effectiveType, true);
 
         if ($validator->fails()) {
             return response()->json(['error' => $validator->errors()], 400);
@@ -121,18 +150,25 @@ class DocumentController extends Controller
                 'type', 'number_ci', 'rif_number', 'taxDomicile',
                 'issued_at', 'expires_at', 'status',
             ]),
-            $paths
+            $paths,
+            [
+                'profile_id' => $document->profile_id,
+            ]
         ));
 
         return response()->json(['message' => 'Document updated successfully', 'document' => $document]);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $document = Document::find($id);
 
         if (!$document) {
             return response()->json(['message' => 'Document not found'], 404);
+        }
+        $profile = Profile::find($document->profile_id);
+        if (!$profile || !$this->canAccessProfile($request, $profile)) {
+            return response()->json(['message' => 'No autorizado'], 403);
         }
 
         $this->deleteImages($document);
@@ -141,27 +177,27 @@ class DocumentController extends Controller
         return response()->json(['message' => 'Document deleted successfully']);
     }
 
-    private function getValidator(array $data, string $type)
+    private function getValidator(array $data, string $type, bool $isUpdate = false)
     {
         $rules = [
-            'profile_id' => 'required|exists:profiles,user_id',
-            'issued_at' => 'nullable|date',
-            'expires_at' => 'nullable|date|after_or_equal:issued_at',
-            'status' => 'boolean',
+            'profile_id' => ($isUpdate ? 'sometimes' : 'required') . '|exists:profiles,id',
+            'issued_at' => ($isUpdate ? 'sometimes' : 'nullable') . '|nullable|date',
+            'expires_at' => ($isUpdate ? 'sometimes' : 'nullable') . '|nullable|date|after_or_equal:issued_at',
+            'status' => ($isUpdate ? 'sometimes' : 'nullable') . '|boolean',
             'front_image' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         ];
 
         switch ($type) {
             case 'ci':
                 $rules = array_merge($rules, [
-                    'number_ci' => 'required|integer|digits_between:6,9', // Venezuela: número cédula (solo dígitos, sin V)
+                    'number_ci' => ($isUpdate ? 'sometimes' : 'required') . '|integer|digits_between:6,9', // Venezuela: número cédula (solo dígitos, sin V)
                     'front_image' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
                 ]);
                 break;
             case 'rif':
                 $rules = array_merge($rules, [
-                    'rif_number' => ['required', 'string', 'max:20', 'regex:/^[VEJGP]-?\d{8}-?\d$/'], // Venezuela: X-NNNNNNNN-N (guiones opcionales)
-                    'taxDomicile' => 'nullable|string',
+                    'rif_number' => [$isUpdate ? 'sometimes' : 'required', 'string', 'max:20', 'regex:/^[VEJGP]-?\d{8}-?\d$/'], // Venezuela: X-NNNNNNNN-N (guiones opcionales)
+                    'taxDomicile' => ($isUpdate ? 'sometimes' : 'nullable') . '|nullable|string',
                     'front_image' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
                 ]);
                 break;

@@ -6,6 +6,7 @@ use Tests\TestCase;
 use App\Models\Profile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 
 class ProfileControllerTest extends TestCase
 {
@@ -14,7 +15,7 @@ class ProfileControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->user = User::factory()->create();
+        $this->user = User::factory()->create(['role' => 'users']);
     }
 
     public function testIndex()
@@ -165,5 +166,120 @@ class ProfileControllerTest extends TestCase
             'profile_id' => $profile->id,
             'business_name' => 'Otro Restaurante',
         ]);
+    }
+
+    public function test_add_commerce_to_profile_returns_403_for_foreign_profile()
+    {
+        $otherUser = User::factory()->create(['role' => 'users']);
+        $foreignProfile = Profile::factory()->create(['user_id' => $otherUser->id]);
+
+        $payload = [
+            'profile_id' => $foreignProfile->id,
+            'business_name' => 'Comercio Ajeno',
+            'business_type' => 'Restaurante',
+            'tax_id' => 'J-11111111-1',
+            'address' => 'Dirección X',
+            'open' => false,
+            'schedule' => 'Lunes a Viernes 8:00-18:00',
+        ];
+
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->postJson('/api/profiles/add-commerce', $payload);
+
+        $response->assertStatus(403)
+            ->assertJson(['message' => 'No autorizado']);
+    }
+
+    public function test_profile_show_update_and_destroy_require_ownership()
+    {
+        $otherUser = User::factory()->create(['role' => 'users']);
+        $foreignProfile = Profile::factory()->create(['user_id' => $otherUser->id]);
+
+        $showResponse = $this->actingAs($this->user, 'sanctum')
+            ->get("/api/profiles/{$foreignProfile->id}");
+        $showResponse->assertStatus(403);
+
+        $updateResponse = $this->actingAs($this->user, 'sanctum')
+            ->post("/api/profiles/{$foreignProfile->id}", [
+                'firstName' => 'X',
+                'lastName' => 'Y',
+                'date_of_birth' => '1990-01-01',
+                'maritalStatus' => 'single',
+                'sex' => 'M',
+            ]);
+        $updateResponse->assertStatus(403);
+
+        $destroyResponse = $this->actingAs($this->user, 'sanctum')
+            ->delete("/api/profiles/{$foreignProfile->id}");
+        $destroyResponse->assertStatus(403);
+    }
+
+    public function test_create_commerce_returns_403_for_foreign_user_id(): void
+    {
+        $otherUser = User::factory()->create(['role' => 'users']);
+
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->post('/api/profiles/commerce', [
+                'user_id' => $otherUser->id,
+                'firstName' => 'Owner',
+                'lastName' => 'Foreign',
+                'date_of_birth' => '1990-01-01',
+                'maritalStatus' => 'single',
+                'sex' => 'M',
+                'photo_users' => UploadedFile::fake()->image('owner.jpg'),
+                'phone' => '04121234567',
+                'business_name' => 'Comercio Test',
+                'business_type' => 'Restaurante',
+                'tax_id' => 'J-12345678-9',
+                'address' => 'Av. Principal',
+            ]);
+
+        $response->assertStatus(403)
+            ->assertJson(['message' => 'No autorizado']);
+    }
+
+    public function test_create_delivery_agent_returns_403_for_foreign_user_id(): void
+    {
+        $otherUser = User::factory()->create(['role' => 'users']);
+
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->post('/api/profiles/delivery-agent', [
+                'user_id' => $otherUser->id,
+                'firstName' => 'Delivery',
+                'lastName' => 'Foreign',
+                'date_of_birth' => '1992-01-01',
+                'maritalStatus' => 'single',
+                'sex' => 'M',
+                'photo_users' => UploadedFile::fake()->image('delivery.jpg'),
+                'phone' => '04121234567',
+                'vehicle_type' => 'Moto',
+                'license_number' => 'LIC-123',
+            ]);
+
+        $response->assertStatus(403)
+            ->assertJson(['message' => 'No autorizado']);
+    }
+
+    public function test_create_delivery_company_returns_403_for_foreign_user_id(): void
+    {
+        $otherUser = User::factory()->create(['role' => 'users']);
+
+        $response = $this->actingAs($this->user, 'sanctum')
+            ->post('/api/profiles/delivery-company', [
+                'user_id' => $otherUser->id,
+                'firstName' => 'Company',
+                'lastName' => 'Foreign',
+                'date_of_birth' => '1993-01-01',
+                'maritalStatus' => 'single',
+                'sex' => 'M',
+                'photo_users' => UploadedFile::fake()->image('company.jpg'),
+                'phone' => '04121234567',
+                'company_name' => 'Company Test',
+                'address' => 'Av. Company',
+                'ci' => 'V12345678',
+            ]);
+
+        $response->assertStatus(403)
+            ->assertJson(['message' => 'No autorizado']);
     }
 }

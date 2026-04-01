@@ -209,8 +209,16 @@ class ZonixDemoSeeder extends Seeder
             $this->bankIds[$b['name']] = $bank->id;
         }
 
-        // OperatorCode lo puebla OperatorCodeSeeder (code numérico 412, 414, 424, 416, 426)
-        $this->operatorCodeId = 1;
+        // OperatorCode lo puebla OperatorCodeSeeder (code numérico 412, 414, 424, 416, 426).
+        // Fallback defensivo para evitar fallos si se ejecuta el seeder aislado.
+        $defaultOperator = OperatorCode::whereIn('code', [412, '412', '0412'])->first();
+        if (!$defaultOperator) {
+            $defaultOperator = OperatorCode::create([
+                'name' => '0412',
+                'code' => 412,
+            ]);
+        }
+        $this->operatorCodeId = (int) $defaultOperator->id;
 
         $categories = [
             ['name' => 'Arepas', 'description' => 'Arepas venezolanas'],
@@ -269,7 +277,6 @@ class ZonixDemoSeeder extends Seeder
                 'given_name' => 'Abrahan',
                 'family_name' => 'Pulido',
                 'profile_pic' => 'https://lh3.googleusercontent.com/a/ACg8ocIuLGJWAUiZXz3X-UKcCtla9yqtb8nK0sTu_33NkIv2O1x5d5-E=s96-c',
-                'AccessToken' => null,
                 'completed_onboarding' => true,
                 'role' => 'users',
                 'light' => '1',
@@ -323,7 +330,6 @@ class ZonixDemoSeeder extends Seeder
                 'given_name' => 'Wistremiro A',
                 'family_name' => 'Pulido B',
                 'profile_pic' => 'https://lh3.googleusercontent.com/a/ACg8ocKgWH29et0okV9S-wV6quri0609QRDbCoqH_C2OmUKMl_mi5Q=s96-c',
-                'AccessToken' => null,
                 'completed_onboarding' => true,
                 'role' => 'commerce',
                 'light' => '1',
@@ -390,7 +396,6 @@ class ZonixDemoSeeder extends Seeder
                 'given_name' => 'TOWDAH',
                 'family_name' => 'YADAH',
                 'profile_pic' => 'https://lh3.googleusercontent.com/a/ACg8ocLQWQonRPYna_OTsFql1mhypE7Jb_5kr5T_CjMGuyN7Qay5Iz0=s96-c',
-                'AccessToken' => null,
                 'completed_onboarding' => true,
                 'role' => 'delivery_company',
                 'light' => '1',
@@ -419,7 +424,6 @@ class ZonixDemoSeeder extends Seeder
                 'given_name' => 'Jarvis',
                 'family_name' => 'Pulido1',
                 'profile_pic' => $jarvisProfilePic,
-                'AccessToken' => null,
                 'completed_onboarding' => true,
                 'role' => 'delivery_agent',
                 'light' => '1',
@@ -536,7 +540,6 @@ class ZonixDemoSeeder extends Seeder
                 'given_name' => 'Jarvis',
                 'family_name' => 'Pulido5',
                 'profile_pic' => $adminPic,
-                'AccessToken' => null,
                 'completed_onboarding' => true,
                 'role' => 'admin',
                 'light' => '1',
@@ -728,6 +731,7 @@ class ZonixDemoSeeder extends Seeder
                 'open' => true,
                 'tax_id' => 'J-' . (30000000 + $i),
                 'preparation_time' => $i === 0 ? 15 : rand(10, 25),
+                'status' => 'approved',
             ]);
             $commerces[] = $commerce;
             Address::create([
@@ -789,6 +793,7 @@ class ZonixDemoSeeder extends Seeder
             'active' => true,
             'open' => true,
             'schedule' => $schedule,
+            'status' => 'approved',
         ]);
         $this->ensureDeliveryCompanyPhone($company, '9123457', 2);
 

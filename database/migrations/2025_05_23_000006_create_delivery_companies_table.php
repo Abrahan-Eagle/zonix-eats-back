@@ -21,7 +21,9 @@ return new class extends Migration
             $table->string('name'); // En inglés desde el inicio
             $table->string('tax_id')->unique();
             $table->text('address');
-            $table->boolean('active')->default(true); // En inglés desde el inicio (antes 'activo')
+            $table->boolean('active')->default(true);
+            $table->enum('status', ['pending_review', 'approved', 'rejected', 'suspended'])->default('pending_review');
+            $table->text('rejection_reason')->nullable();
             // Campos agregados después
             $table->text('image')->nullable()->comment('Logo de la empresa de delivery');
             $table->boolean('open')->default(false)->comment('Si la empresa está abierta/disponible');

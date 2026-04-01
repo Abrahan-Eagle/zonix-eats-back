@@ -67,6 +67,7 @@ class CommercePromotionController extends Controller
             'terms_conditions' => 'nullable|string|max:1000',
             'priority' => 'nullable|integer|min:0',
             'is_active' => 'nullable|boolean',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
         ]);
 
         $user = Auth::user();
@@ -123,6 +124,7 @@ class CommercePromotionController extends Controller
             'terms_conditions' => 'nullable|string|max:1000',
             'priority' => 'nullable|integer|min:0',
             'is_active' => 'nullable|boolean',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
         ]);
 
         $data = $request->only([

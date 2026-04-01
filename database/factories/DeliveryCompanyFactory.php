@@ -33,7 +33,8 @@ class DeliveryCompanyFactory extends Factory
                 'saturday' => ['open' => '00:00', 'close' => '23:59'],
                 'sunday' => ['open' => '00:00', 'close' => '23:59'],
             ],
-            'active' => $this->faker->boolean(80), // 80% probability of being active
+            'active' => $this->faker->boolean(80),
+            'status' => 'approved',
         ];
     }
 }

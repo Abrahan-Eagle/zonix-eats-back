@@ -9,10 +9,10 @@
 
 *(La skill **context-updater** rellena esta sección al final de sesiones con cambios relevantes. Si está vacía, no hay resumen pendiente.)*
 
-- **Fecha:** 20 Marzo 2026
-- **Resumen:** Documentación Jarvis: inventario **Backlog candidato (no implementado)** persistido en este archivo (y espejo en frontend) a partir del plan de revisión producto/técnico; sin cambios de código. Incluye línea base ya implementada (flujo multi-rol, QR, auto-asignación, calificaciones) y lista opcional de mejoras futuras.
-- **Áreas tocadas:** `docs/active_context.md` (back y front), `AGENTS.md` (entrada “Cambios recientes”).
-- **Próximos pasos sugeridos:** Ver sección **Prioridad sugerida (siguiente iteración)** abajo; elegir 1–2 ítems del backlog y pedir plan o implementación explícita.
+- **Fecha:** 31 Marzo 2026
+- **Resumen:** Corrección integral repo-wide en backend: hotfix de contrato de direcciones para onboarding commerce, hardening anti-IDOR/ownership en `DocumentController` y endpoints `create*` de `ProfileController`, consistencia de acceso para direcciones de comercio en `AddressController`, y alineación de `Buyer/AddressController` al esquema canónico de `addresses`.
+- **Áreas tocadas:** `app/Http/Controllers/Profiles/AddressController.php`, `app/Http/Controllers/Profiles/DocumentController.php`, `app/Http/Controllers/Profiles/ProfileController.php`, `app/Http/Controllers/Buyer/AddressController.php`, `tests/Feature/AddressControllerTest.php`, `tests/Feature/DocumentControllerTest.php`, `tests/Feature/ProfileControllerTest.php`, `AGENTS.md`.
+- **Próximos pasos sugeridos:** QA manual del onboarding Commerce en dispositivo real (validar `house_number` requerido y cierre sin estados parciales) y seguimiento de deprecación de payload legacy (`address_line_*`, `city/state/country`) en clientes antiguos.
 
 ---
 

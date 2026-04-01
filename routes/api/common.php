@@ -21,7 +21,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::get('/profile', [ProfileController::class, 'showCurrent']);
-    Route::put('/profile', [ProfileController::class, 'update']);
+    Route::put('/profile', [ProfileController::class, 'updateCurrent']);
     Route::get('/profile/export', [\App\Http\Controllers\Buyer\ExportController::class, 'export']);
 
     Route::prefix('profiles')->group(function () {

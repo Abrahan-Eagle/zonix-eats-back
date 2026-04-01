@@ -26,6 +26,8 @@ return new class extends Migration
             $table->text('image')->nullable();
             $table->text('address')->nullable();
             
+            $table->enum('status', ['pending_review', 'approved', 'rejected', 'suspended'])->default('pending_review');
+            $table->text('rejection_reason')->nullable();
             $table->boolean('open')->default(false);
             $table->json('schedule')->nullable();
             // Campos de membresía y comisión

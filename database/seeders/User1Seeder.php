@@ -30,7 +30,6 @@ class User1Seeder extends Seeder
             'given_name' => 'abrahan',
             'family_name' => 'pulido',
             'profile_pic' => 'https://lh3.googleusercontent.com/a/ACg8ocIuLGJWAUiZXz3X-UKcCtla9yqtb8nK0sTu_33NkIv2O1x5d5-E=s96-c',
-            'AccessToken' => null,
             'completed_onboarding' => 1,
             'role' => 'users',
             'remember_token' => null,
@@ -64,7 +63,13 @@ class User1Seeder extends Seeder
 
         $this->command->info('Perfil para usuario 1 verificado.');
 
-        $operatorCode = OperatorCode::first();
+        $operatorCode = OperatorCode::whereIn('code', [412, '412', '0412'])->first();
+        if (!$operatorCode) {
+            $operatorCode = OperatorCode::create([
+                'name' => '0412',
+                'code' => 412,
+            ]);
+        }
         if ($operatorCode && !Phone::where('profile_id', $profile->id)->exists()) {
             Phone::create([
                 'profile_id' => $profile->id,
@@ -72,7 +77,6 @@ class User1Seeder extends Seeder
                 'number' => '4241234',
                 'is_primary' => true,
                 'status' => true,
-                'approved' => true,
             ]);
             $this->command->info('Teléfono para perfil 1 creado.');
         }

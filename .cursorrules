@@ -48,8 +48,8 @@ Cuando se termine un módulo o tarea:
 
 1. **Documentar:** Proponer y escribir (con aprobación del usuario) "Cambios recientes" en AGENTS.md/README, actualizar `docs/active_context.md` si la sesión lo amerita, y actualizar skills de dominio si aplica. Así el commit incluirá código + documentación.
 2. **Ejecutar tests** del proyecto (ej. `php artisan test` en backend).
-3. **Si los tests pasan:** Preguntar al usuario: *"Los tests pasaron. ¿Quieres que haga commit y push a la rama [ej. dev]?"* Solo si el usuario dice que sí, hacer commit y push a esa rama (incluyendo los archivos de documentación ya actualizados).
-4. **Después de actualizar la rama:** Preguntar: *"¿Quieres actualizar la rama main? (sí/no)"*. Si dice **sí**, hacer merge de la rama actual en `main` y push de `main`. Si dice **no**, no tocar `main`.
+3. **Si los tests pasan:** Preguntar al usuario: _"Los tests pasaron. ¿Quieres que haga commit y push a la rama [ej. dev]?"_ Solo si el usuario dice que sí, hacer commit y push a esa rama (incluyendo los archivos de documentación ya actualizados).
+4. **Después de actualizar la rama:** Preguntar: _"¿Quieres actualizar la rama main? (sí/no)"_. Si dice **sí**, hacer merge de la rama actual en `main` y push de `main`. Si dice **no**, no tocar `main`.
 5. Nunca asumir que debe subir o actualizar main; siempre preguntar y actuar según la respuesta del usuario.
 
 ### Convención de Respuesta
@@ -66,24 +66,26 @@ Cuando se termine un módulo o tarea:
 ## Recordatorios Rápidos (Ver AGENTS.md para detalles)
 
 ### Stack
+
 - **Laravel 10.x** / PHP 8.1+ / MySQL
 - **Sanctum** para autenticación
 - **Pusher + FCM** para eventos (NO WebSocket)
 
 ### Roles (6 — Terminología Estándar)
 
-| Código en BD       | Nombre Estándar   | Descripción |
-| ------------------ | ----------------- | ----------- |
-| `users`            | **Buyer**         | Comprador, Cliente |
-| `commerce`         | **Commerce**      | Comercio, Restaurante |
-| `delivery_company` | **Delivery Company** | Empresa que administra repartidores (motorizados) |
-| `delivery_agent`   | **Delivery Agent** | Repartidor vinculado a una empresa (`company_id` no nulo) |
-| `delivery`         | **Delivery**      | Repartidor autónomo (sin empresa, `company_id` nulo) |
-| `admin`            | **Admin**         | Administrador |
+| Código en BD       | Nombre Estándar      | Descripción                                               |
+| ------------------ | -------------------- | --------------------------------------------------------- |
+| `users`            | **Buyer**            | Comprador, Cliente                                        |
+| `commerce`         | **Commerce**         | Comercio, Restaurante                                     |
+| `delivery_company` | **Delivery Company** | Empresa que administra repartidores (motorizados)         |
+| `delivery_agent`   | **Delivery Agent**   | Repartidor vinculado a una empresa (`company_id` no nulo) |
+| `delivery`         | **Delivery**         | Repartidor autónomo (sin empresa, `company_id` nulo)      |
+| `admin`            | **Admin**            | Administrador                                             |
 
 Rutas `/api/delivery/*` permiten **delivery_agent** y **delivery** (motorizados).
 
 ### Patrón de Respuesta API
+
 ```php
 return response()->json([
     'success' => true|false,
@@ -93,6 +95,7 @@ return response()->json([
 ```
 
 ### Reglas Clave
+
 - Lógica de negocio en **Services**, NO en Controllers
 - SIEMPRE `with()` para eager loading (evitar N+1)
 - SIEMPRE Form Requests para validación
@@ -101,6 +104,7 @@ return response()->json([
 - SIEMPRE paginar listados
 
 ### Migraciones (norma obligatoria)
+
 - **NUNCA** crear migraciones tipo `add_*_to_*`, `change_*`, etc. para tablas que ya existen.
 - **Tabla nueva** → única migración `create_*_table`.
 - **Tabla existente que hay que actualizar** → **editar la migración create** de esa tabla (añadir/quitar columnas ahí). No crear una migración aparte "add" ni "change".
@@ -121,12 +125,13 @@ return response()->json([
 - **Requisitos para operar en Venezuela:** Si se discute lanzamiento, constitución legal, facturación, impuestos, permisos, datos personales, relación laboral con delivery, o cualquier tema regulatorio, **leer primero** `docs/REQUISITOS_OPERAR_VENEZUELA.md`. Incluye checklist de lanzamiento completo.
 
 ### Tests
+
 ```bash
-php artisan test                      # Todos (206+)
+php artisan test                      # Todos (269+)
 php artisan test --filter=NombreTest  # Específico
 ```
 
 ---
 
-**Última actualización:** 9 Marzo 2026
+**Última actualización:** 31 Marzo 2026
 **Para instrucciones completas:** Ver `AGENTS.md`

@@ -58,6 +58,7 @@ class CommerceFactory extends Factory
             'commission_percentage' => $this->faker->randomFloat(2, 5, 15), // 5% a 15%
             'cancellation_count' => $this->faker->numberBetween(0, 5),
             'last_cancellation_date' => $this->faker->optional(0.3)->dateTimeBetween('-6 months', 'now'),
+            'status' => 'approved',
         ];
     }
 

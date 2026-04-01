@@ -81,6 +81,11 @@
       "sourceType": "github",
       "computedHash": "4c6bf8fbd9a13d61e326ddeb210af5854fea3b253922a7981bd7718f3b765c08"
     },
+    "playwright-skill": {
+      "source": "lackeyjb/playwright-skill",
+      "sourceType": "github",
+      "computedHash": "3a284d9eee004bcbcf17f58a08550146021d43efb02c9f411d65cacca889fb25"
+    },
     "postgresql-table-design": {
       "source": "wshobson/agents",
       "sourceType": "github",
@@ -90,6 +95,11 @@
       "source": "wshobson/agents",
       "sourceType": "github",
       "computedHash": "a2cc64d28bbda77aeac8ec634ae38102a3b8d2314f3aa802811a44281c5d7838"
+    },
+    "qa-testing-playwright": {
+      "source": "vasilyu1983/ai-agents-public",
+      "sourceType": "github",
+      "computedHash": "21517e74a691204be335bbec72b9ab8d1c6a347751ef9407ee5c72380de70086"
     },
     "responsive-design": {
       "source": "wshobson/agents",

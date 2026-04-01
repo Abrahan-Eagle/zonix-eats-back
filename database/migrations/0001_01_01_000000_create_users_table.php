@@ -21,7 +21,6 @@ return new class extends Migration
             $table->string('given_name')->nullable(); // Agregar campo para el nombre dado
             $table->string('family_name')->nullable(); // Agregar campo para el apellido
             $table->string('profile_pic')->nullable(); // Agregar campo para la foto de perfil
-            $table->string('AccessToken')->nullable(); // Campo para guardar el token de acceso
             $table->boolean('completed_onboarding')->default(false);
             $table->enum('role', ['admin', 'users', 'commerce', 'delivery_company', 'delivery_agent', 'delivery'])->default('users');
             $table->rememberToken();

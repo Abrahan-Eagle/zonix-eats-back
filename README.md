@@ -71,25 +71,7 @@ Si intentas agregar un producto de "McDonald's":
 ✅ **Ventaja:** Un solo proceso de envío  
 ✅ **Ventaja:** Mejor experiencia de usuario (más simple)
 
-**Explicación:**
-Actualmente el carrito puede tener productos de diferentes comercios. Por ejemplo:
-
-- Producto A del Comercio 1
-- Producto B del Comercio 2
-- Producto C del Comercio 1
-
-**Opciones:**
-
-- **Opción A:** Permitir múltiples comercios (como Amazon, donde puedes comprar de diferentes vendedores)
-- **Opción B:** Solo un comercio por carrito (como Uber Eats, donde eliges un restaurante y solo productos de ese restaurante)
-
-**Decisión según mejores prácticas:**
-✅ **OPCIÓN B: Solo un comercio por carrito** (para MVP)
-
-- **Razón:** Simplifica el proceso de checkout
-- **Razón:** Cada comercio tiene su propio proceso de pago y envío
-- **Razón:** Mejor experiencia de usuario (más simple)
-- **Implementación:** Al agregar producto de diferente comercio, limpiar carrito anterior o mostrar advertencia
+**Decisión implementada: Solo un comercio por carrito** (uni-commerce, como Uber Eats). Al agregar un producto de otro comercio, el sistema limpia el carrito anterior y muestra advertencia. Simplifica checkout, pago y envío por orden.
 
 **Lógica de Implementación:**
 
@@ -351,12 +333,14 @@ foreach ($requiredFields as $field) {
 
 #### 👤 ROL: USERS (Standard: **Buyer**)
 
-| Nivel | Código en BD | Nombre Estándar | Alias aceptados            |
-| ----- | ------------ | --------------- | -------------------------- |
-| 0     | `users`      | **Buyer**       | Comprador, Cliente         |
-| 1     | `commerce`   | **Commerce**    | Comercio, Restaurante      |
-| 2     | `delivery`   | **Delivery**    | Delivery Agent, Repartidor |
-| 3     | `admin`      | **Admin**       | Administrador              |
+| Codigo en BD       | Nombre Estandar     | Descripcion                                           |
+| ------------------ | ------------------- | ----------------------------------------------------- |
+| `users`            | **Buyer**           | Comprador, Cliente                                    |
+| `commerce`         | **Commerce**        | Comercio, Restaurante                                 |
+| `delivery_company` | **Delivery Company**| Empresa que administra repartidores                   |
+| `delivery_agent`   | **Delivery Agent**  | Repartidor vinculado a empresa (company_id no nulo)   |
+| `delivery`         | **Delivery**        | Repartidor autonomo (sin empresa, company_id nulo)    |
+| `admin`            | **Admin**           | Administrador                                         |
 
 **Autenticación:**
 
@@ -398,7 +382,7 @@ foreach ($requiredFields as $field) {
 - `phones[]` - Múltiples teléfonos (tabla `phones`)
     - `number`, `operator_code_id`, `is_primary`, `status`, `approved`
 - `documents[]` - Documentos (tabla `documents`)
-    - `type` (ci, passport, rif, neighborhood_association), `number_ci`, `front_image`, `issued_at`, `expires_at`, `approved`, `status`
+    - `type` (ci, rif), `number_ci`, `rif_number`, `taxDomicile`, `front_image`, `approved`, `status`
 - `user_locations[]` - Historial de ubicaciones (tabla `user_locations`)
     - `latitude`, `longitude`, `accuracy`, `altitude`, `speed`, `heading`, `address`
 - `fcm_device_token` - Token para notificaciones push
@@ -464,7 +448,7 @@ foreach ($requiredFields as $field) {
 
 **Del Comercio (Commerce):** 7. `commerce.image` - Imagen del comercio/logo 8. `commerce.phone` - Teléfono del comercio (adicional al del perfil) 9. `commerce.address` - Dirección del comercio (adicional al del perfil) 10. `commerce.open` - Si está abierto (boolean, default: false) 11. `commerce.schedule` - Horario de atención (json)
 
-**Relaciones (Múltiples registros):** 12. `addresses[]` - Múltiples direcciones (tabla `addresses`) - `street`, `house_number`, `postal_code`, `latitude`, `longitude`, `city_id`, `status` 13. `phones[]` - Múltiples teléfonos (tabla `phones`) - `number`, `operator_code_id`, `is_primary`, `status`, `approved` 14. `documents[]` - Documentos (tabla `documents`) - `type` (ci, passport, rif, neighborhood_association) - `number_ci`, `RECEIPT_N`, `sky` - `rif_url`, `taxDomicile`, `commune_register`, `community_rif` - `front_image`, `issued_at`, `expires_at`, `approved`, `status`
+**Relaciones (Múltiples registros):** 12. `addresses[]` - Múltiples direcciones (tabla `addresses`) - `street`, `house_number`, `postal_code`, `latitude`, `longitude`, `city_id`, `status` 13. `phones[]` - Múltiples teléfonos (tabla `phones`) - `number`, `operator_code_id`, `is_primary`, `status`, `approved` 14. `documents[]` - Documentos (tabla `documents`) - `type` (ci, rif) - `number_ci`, `rif_number`, `taxDomicile` - `front_image`, `approved`, `status`
 
 **Sistema:** 15. `fcm_device_token` - Token para notificaciones push 16. `notification_preferences` - Preferencias de notificaciones (json)
 
@@ -535,10 +519,9 @@ foreach ($requiredFields as $field) {
 - `phones[]` - Múltiples teléfonos (tabla `phones`)
     - `number`, `operator_code_id`, `is_primary`, `status`, `approved`
 - `documents[]` - Documentos (tabla `documents`)
-    - `type` (ci, passport, rif, neighborhood_association)
-    - `number_ci`, `RECEIPT_N`, `sky`
-    - `rif_url`, `taxDomicile`, `commune_register`, `community_rif`
-    - `front_image`, `issued_at`, `expires_at`, `approved`, `status`
+    - `type` (ci, rif)
+    - `number_ci`, `rif_number`, `taxDomicile`
+    - `front_image`, `approved`, `status`
 
 **Sistema:**
 

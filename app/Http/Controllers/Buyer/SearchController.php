@@ -19,6 +19,7 @@ class SearchController extends Controller
     {
         try {
             $query = Commerce::with(['products', 'reviews'])
+                ->where('status', 'approved')
                 ->where('is_active', true)
                 ->where('is_open', true);
 
@@ -303,7 +304,8 @@ class SearchController extends Controller
             }
 
             // Sugerencias de restaurantes
-            $restaurantSuggestions = Commerce::where('is_active', true)
+            $restaurantSuggestions = Commerce::where('status', 'approved')
+                ->where('is_active', true)
                 ->where('name', 'LIKE', "%{$searchTerm}%")
                 ->limit(5)
                 ->pluck('name');

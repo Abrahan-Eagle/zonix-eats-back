@@ -62,6 +62,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::get('/commerces', [CommerceController::class, 'index']);
     Route::get('/commerces/{id}', [CommerceController::class, 'show']);
     Route::put('/commerces/{id}/status', [CommerceController::class, 'updateStatus']);
+    Route::put('/commerces/{id}/toggle-open', [CommerceController::class, 'toggleOpen']);
 
     // Delivery companies
     Route::get('/delivery-companies', [DeliveryCompanyController::class, 'index']);

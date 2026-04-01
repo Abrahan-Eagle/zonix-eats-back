@@ -18,23 +18,26 @@
 | **Base de Datos**        | MySQL                                              |
 | **Versión**              | 1.0.0                                              |
 | **Estado**               | ✅ MVP Completado - En desarrollo activo           |
-| **Endpoints**            | 233+ rutas REST                                    |
-| **Controladores**        | 54                                                 |
-| **Modelos**              | 35                                                 |
-| **Migraciones**          | 51                                                 |
+| **Endpoints**            | 290 rutas REST                                     |
+| **Controladores**        | 82                                                 |
+| **Modelos**              | 41                                                 |
+| **Migraciones**          | 55                                                 |
 | **Tests**                | 269 pasaron ✅, 0 fallaron                         |
 | **Seguridad**            | Sanctum + RBAC + Rate Limiting + Upload validation |
-| **Última actualización** | 20 Marzo 2026                                      |
+| **Última actualización** | 31 Marzo 2026                                      |
 
 ### Cambios recientes (documentar aquí los avances)
 
+- **31 Mar 2026:** Corrección integral de bugs (backend): (1) `AddressController` (Profiles) ahora valida acceso por dueño también para direcciones de comercio (`commerce_id`) y evita reasignar `profile_id` por usuarios no-admin en update, (2) `DocumentController` con hardening anti-IDOR en `store/show/update/destroy` (owner/admin), y update flexible sin exigir `type/profile_id` cuando ya existe documento, (3) `ProfileController` bloquea `createCommerce/createDeliveryAgent/createDeliveryCompany` si `user_id` no coincide con el usuario autenticado (403), (4) `Buyer/AddressController` alineado al esquema canónico (`street/house_number/city_id`) con compatibilidad para payload legacy. Certificación: `php artisan test` completo 279 OK.
+- **31 Mar 2026:** Cierre módulo Onboarding Buyer+Commerce (backend): (1) hardening de ownership en `ProfileController` y `AddressController` (solo dueño o admin en perfiles/direcciones compartidas), (2) `addCommerceToProfile` ahora rechaza perfiles ajenos (403), (3) contrato `profile_id` alineado en direcciones/documentos (canónico `profiles.id`, con fallback legacy), (4) pruebas de certificación reforzadas con casos de ownership (`ProfileControllerTest`, nuevo `AddressControllerTest`). Verificación: `php artisan test` 272 OK.
+- **31 Mar 2026:** Diagnóstico y remediación: (1) Alineación estados de orden — `DeliveryAssignmentService` ya no asigna `'assigned'` a `orders.status` (crea `order_delivery`); `OrderTrackingController` y `OrderNotificationSubscriber` remapeados a enum canónico (`pending_payment, paid, processing, shipped, delivered, cancelled`). (2) Validación uploads en `CommercePromotionController` (image|mimes|max:5120). (3) Métricas AGENTS.md actualizadas a conteos reales (290 rutas, 82 controllers, 41 modelos, 55 migraciones). (4) Frontend: modelo Order default corregido a `'pending_payment'`, getters alineados; ~18 deps muertas eliminadas de pubspec; catches vacíos reemplazados con debugPrint en 10 servicios.
 - **20 Mar 2026:** Jarvis — Backlog producto/técnico persistido en `docs/active_context.md` (sección **Backlog candidato (no implementado)** + **Prioridad sugerida** para siguiente iteración; espejo en frontend). Sin cambios de código; referencia para implementar después con OK explícito.
 - **20 Mar 2026:** Cierre tareas pendientes Delivery Model: orders.delivery_company_id; al marcar shipped (delivery) se asigna empresa y Job auto-asignación (agente más cercano + timeout 60s + notificación company); GET /api/delivery-company/orders/pending; evento OrderPendingAssignment y canal company.{id}; calculateDeliveryFee acepta commerce_id; frontend tab Pendientes + flujo asignar, checkout con delivery_fee calculado (API), UI payout % agente y default % empresa. Tests backend 269 OK, frontend 250 OK.
 - **20 Mar 2026:** Plan Delivery Model Rebuild (FASE 0-5): Rutas `/api/delivery/*` solo para delivery_agent/delivery; DeliveryController consolidado; CompanyController: POST/PATCH agents, payout, settings, available-agents, assign; DeliveryFeeService y POST /api/buyer/delivery-fee/calculate; FCM para delivery; pantalla Agregar agente. FASE 4 (doble pago) cancelada.
 - **19 Mar 2026:** Subida a dev: reorganización de seeders (movidos de `database/seeders/_archive/` a `database/seeders/`), nuevo `NotificationService.php` y listener `OrderNotificationSubscriber`, ajustes en Events (OrderStatusChanged, NotificationCreated), BroadcastingController, rutas y migraciones. `.gitignore`: añadidos `venv_scraper/` y `pendrive_badblocks_result.txt` (proyecto/archivo ajeno); eliminado del repo el archivo local `pendrive_badblocks_result.txt`. Tests 269 OK.
 - **9 Mar 2026:** Módulo Exportar datos: ruta `GET /api/profile/export` (auth:sanctum, cualquier rol) para que commerce y otros roles puedan exportar; ExportController.getProfileDataForExport defensivo con `$profile` null (evita error en usuarios sin perfil buyer); frontend usa esa URL y descarga real (archivo JSON/TXT + Share.shareXFiles para guardar/compartir); formato TXT corregido (ciudad como nombre, activity_type en actividad).
 - **6 Mar 2026:** Tests: MultiRoleSimulationTest corrige assert (API devuelve `data.status` → assertJsonPath); migración `add_context_and_entity_fks_to_phones_table` en `down()` evita dropForeign/dropIndex en SQLite para que `php artisan test` pase (MySQL sin cambios).
-- **6 Mar 2026:** Norma Migraciones: documentada en `.cursorrules` y AGENTS.md. No crear migraciones add_* ni change_*; tablas existentes se actualizan editando la migración create correspondiente.
+- **6 Mar 2026:** Norma Migraciones: documentada en `.cursorrules` y AGENTS.md. No crear migraciones add*\* ni change*\*; tablas existentes se actualizan editando la migración create correspondiente.
 - **6 Mar 2026:** Módulo demo/seed: `operator_codes`: columna `code` como entero (migración create), `name` como string; OperatorCodeSeeder con 412, 414, 424, 416, 426. ZonixDemoSeeder: zonas Valencia/Carabobo (El Socorro, Los Chorritos, Mayorista, etc.), user 6 fijo (Wistremiro/commerce), direcciones y user_locations de users 1 y 6 en El Socorro; docblock con grafo de conexiones entre roles (buyer→orden→commerce→delivery_agent→delivery_company, reviews, disputes). Migraciones consolidadas (edición de creates, eliminación de add/change sobrantes).
 - **6 Mar 2026:** Módulo Documents: solo tipos `ci` y `rif`; tabla depurada (migración elimina RECEIPT_N, sky, rif_url, commune_register, community_rif; enum type restringido a ci/rif). Campos útiles: number_ci, rif_number (formato Venezuela J-19217553-0), taxDomicile, front_image, approved, status. Estado aprobado: documento verificado o pendiente de verificación (campo `approved`). Tests: DocumentControllerTest.
 - **6 Mar 2026:** Documentado en AGENTS.md: Profile como entidad principal; Users 1:1 con Profile; teléfonos/documentos/direcciones pertenecen al perfil (`profile_id`).
@@ -129,7 +132,7 @@ Use estas skills para patrones detallados bajo demanda:
 | `zonix-realtime-events` | Pusher, FCM, broadcasting, canales     | [.agents/skills/zonix-realtime-events/SKILL.md](.agents/skills/zonix-realtime-events/SKILL.md) |
 | `zonix-api-patterns`    | Response format, roles, middleware     | [.agents/skills/zonix-api-patterns/SKILL.md](.agents/skills/zonix-api-patterns/SKILL.md)       |
 | `context-updater`       | Resumir sesión en docs/active_context  | [.agents/skills/context-updater/SKILL.md](.agents/skills/context-updater/SKILL.md)             |
-| `documentar-avances`   | Proponer texto para Cambios recientes | [.agents/skills/documentar-avances/SKILL.md](.agents/skills/documentar-avances/SKILL.md)     |
+| `documentar-avances`    | Proponer texto para Cambios recientes  | [.agents/skills/documentar-avances/SKILL.md](.agents/skills/documentar-avances/SKILL.md)       |
 
 ---
 
@@ -137,32 +140,32 @@ Use estas skills para patrones detallados bajo demanda:
 
 Al realizar estas acciones, SIEMPRE invocar la skill correspondiente PRIMERO:
 
-| Acción                                | Skill                             |
-| ------------------------------------- | --------------------------------- |
-| Crear/modificar controladores o rutas | `laravel-specialist`              |
-| Crear/modificar modelos Eloquent      | `laravel-specialist`              |
-| Diseñar nuevos endpoints API          | `api-design-principles`           |
+| Acción                                | Skill                                                      |
+| ------------------------------------- | ---------------------------------------------------------- |
+| Crear/modificar controladores o rutas | `laravel-specialist`                                       |
+| Crear/modificar modelos Eloquent      | `laravel-specialist`                                       |
+| Diseñar nuevos endpoints API          | `api-design-principles`                                    |
 | Crear migraciones de BD               | `mysql-best-practices` + **norma Migraciones** (ver abajo) |
-| Optimizar queries o agregar índices   | `mysql-best-practices`            |
-| Agregar autenticación o autorización  | `security`                        |
-| Implementar validaciones de seguridad | `security-requirement-extraction` |
-| Refactorizar código existente         | `architecture-patterns`           |
-| Crear o modificar tests               | `test-driven-development`         |
-| Debuggear un error                    | `systematic-debugging`            |
-| Revisar código de un PR               | `code-review-excellence`          |
-| Manejar errores y excepciones         | `error-handling-patterns`         |
-| Implementar lógica de pagos           | `zonix-payments` (custom)         |
-| Trabajar con estados/flujo de órdenes | `zonix-order-lifecycle` (custom)  |
-| Calcular distancias, rutas, o zonas   | `zonix-delivery-system` (custom)  |
-| Implementar eventos o broadcasting    | `zonix-realtime-events` (custom)  |
-| Crear endpoints o response format     | `zonix-api-patterns` (custom)     |
-| Optimizar queries SQL o usar EXPLAIN  | `sql-optimization-patterns`       |
-| Modificar views Blade o Bootstrap     | `frontend-design`                 |
-| Hacer git commit                      | `git-commit`                      |
-| Crear/modificar GitHub Actions CI/CD  | `github-actions-templates`        |
-| Crear nuevas skills para el proyecto  | `skill-creator`                   |
-| Cerrar sesión con cambios relevantes  | `context-updater` (actualizar docs/active_context.md) |
-| Finalizar tarea y documentar avances | `documentar-avances` (proponer Cambios recientes)     |
+| Optimizar queries o agregar índices   | `mysql-best-practices`                                     |
+| Agregar autenticación o autorización  | `security`                                                 |
+| Implementar validaciones de seguridad | `security-requirement-extraction`                          |
+| Refactorizar código existente         | `architecture-patterns`                                    |
+| Crear o modificar tests               | `test-driven-development`                                  |
+| Debuggear un error                    | `systematic-debugging`                                     |
+| Revisar código de un PR               | `code-review-excellence`                                   |
+| Manejar errores y excepciones         | `error-handling-patterns`                                  |
+| Implementar lógica de pagos           | `zonix-payments` (custom)                                  |
+| Trabajar con estados/flujo de órdenes | `zonix-order-lifecycle` (custom)                           |
+| Calcular distancias, rutas, o zonas   | `zonix-delivery-system` (custom)                           |
+| Implementar eventos o broadcasting    | `zonix-realtime-events` (custom)                           |
+| Crear endpoints o response format     | `zonix-api-patterns` (custom)                              |
+| Optimizar queries SQL o usar EXPLAIN  | `sql-optimization-patterns`                                |
+| Modificar views Blade o Bootstrap     | `frontend-design`                                          |
+| Hacer git commit                      | `git-commit`                                               |
+| Crear/modificar GitHub Actions CI/CD  | `github-actions-templates`                                 |
+| Crear nuevas skills para el proyecto  | `skill-creator`                                            |
+| Cerrar sesión con cambios relevantes  | `context-updater` (actualizar docs/active_context.md)      |
+| Finalizar tarea y documentar avances  | `documentar-avances` (proponer Cambios recientes)          |
 
 ### Norma Migraciones (obligatoria)
 
@@ -184,9 +187,9 @@ Al realizar estas acciones, SIEMPRE invocar la skill correspondiente PRIMERO:
 5. **Solo hacer commits locales** cuando se realicen cambios
 6. **El usuario prueba primero** y da la orden cuando está seguro
 7. **Skills personalizadas (`zonix-*`)**: Los agentes pueden proponer crear o actualizar skills nuevas SOLO cuando detecten patrones repetitivos o reglas de negocio importantes que aún no estén cubiertas. Siempre deben:
-   - Explicar por qué la skill es necesaria.
-   - Describir brevemente el contenido propuesto.
-   - Pedir tu aprobación antes de crear/editar la skill.
+    - Explicar por qué la skill es necesaria.
+    - Describir brevemente el contenido propuesto.
+    - Pedir tu aprobación antes de crear/editar la skill.
 
 ---
 
@@ -214,4 +217,4 @@ Para no sobrecargar este archivo, el detalle por tema está en [docs/agents/](do
 ---
 
 **Documentación completa de lógica de negocio:** Ver `README.md`
-**Última actualización:** 19 Marzo 2026
+**Última actualización:** 31 Marzo 2026

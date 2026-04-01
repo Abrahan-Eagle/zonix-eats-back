@@ -14,7 +14,9 @@ class RestaurantService
      */
     public function getAllRestaurants($perPage = 15)
     {
-        return Commerce::with(['profile', 'addresses', 'businessTypeRelation'])->paginate($perPage);
+        return Commerce::where('status', 'approved')
+            ->with(['profile', 'addresses', 'businessTypeRelation'])
+            ->paginate($perPage);
     }
 
     /**

@@ -118,7 +118,7 @@ class DeliveryCaraboboSeeder extends Seeder
             $orderUpdates['delivery_latitude'] = 10.125277;
             $orderUpdates['delivery_longitude'] = -68.051191;
         }
-        if ($order->status !== 'shipped' && $order->status !== 'out_for_delivery') {
+        if ($order->status !== 'shipped') {
             $orderUpdates['status'] = 'shipped';
         }
         if (!empty($orderUpdates)) {
