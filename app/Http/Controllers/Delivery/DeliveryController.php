@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class DeliveryController extends Controller
 {
@@ -97,11 +98,26 @@ class DeliveryController extends Controller
         try {
             Log::debug('[DeliveryAPI] getAvailableOrders entrada', $this->deliveryLogContext());
 
-            $availableOrders = Order::with(['commerce', 'profile.user', 'orderItems.product'])
+            $deliveryAgent = $this->getAuthAgent();
+            if (! $deliveryAgent) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Delivery agent not found',
+                ], 404);
+            }
+
+            $availableOrdersQuery = Order::with(['commerce', 'profile.user', 'orderItems.product'])
                 ->whereIn('status', ['processing', 'shipped'])
                 ->whereDoesntHave('orderDelivery')
-                ->orderBy('created_at', 'desc')
-                ->get();
+                ->orderBy('created_at', 'desc');
+
+            if ($deliveryAgent->company_id) {
+                $availableOrdersQuery->where('delivery_company_id', $deliveryAgent->company_id);
+            } else {
+                $availableOrdersQuery->whereNull('delivery_company_id');
+            }
+
+            $availableOrders = $availableOrdersQuery->get();
 
             Log::info('[DeliveryAPI] getAvailableOrders OK', $this->deliveryLogContext([
                 'count' => $availableOrders->count(),
@@ -749,8 +765,8 @@ class DeliveryController extends Controller
     {
         try {
             $request->validate([
-                'latitude' => 'required|numeric',
-                'longitude' => 'required|numeric',
+                'latitude' => 'required|numeric|between:-90,90',
+                'longitude' => 'required|numeric|between:-180,180',
             ]);
 
             $deliveryAgent = $this->getAuthAgent();
@@ -787,12 +803,20 @@ class DeliveryController extends Controller
                 'agent_id' => $deliveryAgent->id,
                 'lat' => $request->latitude,
                 'lng' => $request->longitude,
+                'event_code' => 'DELIVERY_LOCATION_UPDATE_OK',
+                'occurred_at' => now()->toISOString(),
             ]));
 
             return response()->json([
                 'success' => true,
                 'message' => 'Location updated successfully',
             ]);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Datos de ubicacion invalidos',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             Log::error('Error updating location: '.$e->getMessage());
 

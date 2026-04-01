@@ -26,7 +26,10 @@ class DeliveryControllerTest extends TestCase
         
         $this->deliveryUser = User::factory()->create(['role' => 'delivery']);
         $this->profile = Profile::factory()->create(['user_id' => $this->deliveryUser->id]);
-        $this->deliveryAgent = DeliveryAgent::factory()->create(['profile_id' => $this->profile->id]);
+        $this->deliveryAgent = DeliveryAgent::factory()->create([
+            'profile_id' => $this->profile->id,
+            'company_id' => null,
+        ]);
         
         Sanctum::actingAs($this->deliveryUser);
     }
@@ -110,6 +113,51 @@ class DeliveryControllerTest extends TestCase
         $this->deliveryAgent->refresh();
         $this->assertEquals(-12.0464, $this->deliveryAgent->current_latitude);
         $this->assertEquals(-77.0428, $this->deliveryAgent->current_longitude);
+    }
+
+    public function test_update_location_rejects_out_of_range_coordinates()
+    {
+        $response = $this->postJson('/api/delivery/location/update', [
+            'latitude' => 100.0464,
+            'longitude' => -200.0428,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['latitude', 'longitude']);
+    }
+
+    public function test_company_agent_sees_only_orders_from_its_company()
+    {
+        $companyA = \App\Models\DeliveryCompany::factory()->create();
+        $companyB = \App\Models\DeliveryCompany::factory()->create();
+
+        $this->deliveryAgent->update(['company_id' => $companyA->id]);
+
+        $commerce = Commerce::factory()->create(['open' => true]);
+        Order::factory()->create([
+            'status' => 'shipped',
+            'commerce_id' => $commerce->id,
+            'delivery_company_id' => $companyA->id,
+        ]);
+        Order::factory()->create([
+            'status' => 'processing',
+            'commerce_id' => $commerce->id,
+            'delivery_company_id' => $companyB->id,
+        ]);
+        Order::factory()->create([
+            'status' => 'processing',
+            'commerce_id' => $commerce->id,
+            'delivery_company_id' => null,
+        ]);
+
+        $response = $this->getJson('/api/delivery/available-orders');
+
+        $response->assertStatus(200)
+            ->assertJson(['success' => true]);
+
+        $data = $response->json('data');
+        $this->assertCount(1, $data);
+        $this->assertEquals($companyA->id, $data[0]['delivery_company_id']);
     }
 
     public function test_get_statistics()
