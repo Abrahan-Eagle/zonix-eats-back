@@ -96,6 +96,7 @@ class DeliveryController extends Controller
     public function getAvailableOrders()
     {
         try {
+            $perPage = max(1, min((int) request()->input('per_page', 15), 100));
             Log::debug('[DeliveryAPI] getAvailableOrders entrada', $this->deliveryLogContext());
 
             $deliveryAgent = $this->getAuthAgent();
@@ -117,7 +118,7 @@ class DeliveryController extends Controller
                 $availableOrdersQuery->whereNull('delivery_company_id');
             }
 
-            $availableOrders = $availableOrdersQuery->get();
+            $availableOrders = $availableOrdersQuery->paginate($perPage);
 
             Log::info('[DeliveryAPI] getAvailableOrders OK', $this->deliveryLogContext([
                 'count' => $availableOrders->count(),
@@ -125,7 +126,13 @@ class DeliveryController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $availableOrders,
+                'data' => $availableOrders->items(),
+                'pagination' => [
+                    'current_page' => $availableOrders->currentPage(),
+                    'per_page' => $availableOrders->perPage(),
+                    'total' => $availableOrders->total(),
+                    'last_page' => $availableOrders->lastPage(),
+                ],
             ]);
         } catch (\Exception $e) {
             Log::error('Error fetching available orders: '.$e->getMessage());
@@ -143,6 +150,7 @@ class DeliveryController extends Controller
     public function index()
     {
         try {
+            $perPage = max(1, min((int) request()->input('per_page', 15), 100));
             $agent = $this->getAuthAgent();
             if (! $agent) {
                 return response()->json([
@@ -156,11 +164,17 @@ class DeliveryController extends Controller
             })
                 ->with(['commerce.addresses', 'profile.user', 'orderItems.product', 'orderDelivery'])
                 ->orderBy('created_at', 'desc')
-                ->get();
+                ->paginate($perPage);
 
             return response()->json([
                 'success' => true,
-                'data' => $orders,
+                'data' => $orders->items(),
+                'pagination' => [
+                    'current_page' => $orders->currentPage(),
+                    'per_page' => $orders->perPage(),
+                    'total' => $orders->total(),
+                    'last_page' => $orders->lastPage(),
+                ],
             ]);
         } catch (\Exception $e) {
             Log::error('[DeliveryAPI] index excepción: '.$e->getMessage(), $this->deliveryLogContext());
@@ -289,6 +303,7 @@ class DeliveryController extends Controller
     public function getAssignedOrders($deliveryAgentId)
     {
         try {
+            $perPage = max(1, min((int) request()->input('per_page', 15), 100));
             if (! $this->canAccessAgent($deliveryAgentId)) {
                 return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
             }
@@ -298,9 +313,18 @@ class DeliveryController extends Controller
                     $query->where('agent_id', $deliveryAgentId);
                 })
                 ->orderBy('created_at', 'desc')
-                ->get();
+                ->paginate($perPage);
 
-            return response()->json(['success' => true, 'data' => $assignedOrders]);
+            return response()->json([
+                'success' => true,
+                'data' => $assignedOrders->items(),
+                'pagination' => [
+                    'current_page' => $assignedOrders->currentPage(),
+                    'per_page' => $assignedOrders->perPage(),
+                    'total' => $assignedOrders->total(),
+                    'last_page' => $assignedOrders->lastPage(),
+                ],
+            ]);
         } catch (\Exception $e) {
             Log::error('Error fetching assigned orders: '.$e->getMessage());
 
@@ -1054,6 +1078,7 @@ class DeliveryController extends Controller
 
             $startDate = $request->input('start_date');
             $endDate = $request->input('end_date');
+            $perPage = max(1, min((int) $request->input('per_page', 50), 100));
 
             $query = OrderDelivery::where('agent_id', $deliveryAgentId)
                 ->where('status', 'delivered');
@@ -1066,13 +1091,14 @@ class DeliveryController extends Controller
                 $query->where('created_at', '<=', $endDate);
             }
 
-            $deliveries = $query->with('order')->get();
+            $deliveries = $query->with('order')->paginate($perPage);
+            $deliveriesCollection = collect($deliveries->items());
 
-            $totalEarnings = $deliveries->sum('delivery_fee');
-            $totalDeliveries = $deliveries->count();
+            $totalEarnings = $deliveriesCollection->sum('delivery_fee');
+            $totalDeliveries = $deliveriesCollection->count();
 
             $deliveryTimes = [];
-            foreach ($deliveries as $delivery) {
+            foreach ($deliveriesCollection as $delivery) {
                 if ($delivery->order && $delivery->order->created_at && $delivery->updated_at) {
                     $deliveryTimes[] = $delivery->updated_at->diffInMinutes($delivery->order->created_at);
                 }
@@ -1109,10 +1135,16 @@ class DeliveryController extends Controller
                     'today_earnings' => $todayEarnings,
                     'weekly_earnings' => $weeklyEarnings,
                     'monthly_earnings' => $monthlyEarnings,
-                    'delivery_fees' => $deliveries->pluck('delivery_fee')->toArray(),
-                    'delivery_dates' => $deliveries->pluck('updated_at')->map(function ($date) {
+                    'delivery_fees' => $deliveriesCollection->pluck('delivery_fee')->toArray(),
+                    'delivery_dates' => $deliveriesCollection->pluck('updated_at')->map(function ($date) {
                         return $date->toIso8601String();
                     })->toArray(),
+                    'pagination' => [
+                        'current_page' => $deliveries->currentPage(),
+                        'per_page' => $deliveries->perPage(),
+                        'total' => $deliveries->total(),
+                        'last_page' => $deliveries->lastPage(),
+                    ],
                 ],
             ]);
         } catch (\Exception $e) {
@@ -1128,9 +1160,10 @@ class DeliveryController extends Controller
     /**
      * Get delivery routes for a delivery agent
      */
-    public function getRoutes($deliveryAgentId, RouteCalculationService $routing)
+    public function getRoutes($deliveryAgentId, RouteCalculationService $routing, Request $request)
     {
         try {
+            $perPage = max(1, min((int) $request->input('per_page', 20), 100));
             if (! $this->canAccessAgent($deliveryAgentId)) {
                 return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
             }
@@ -1140,10 +1173,10 @@ class DeliveryController extends Controller
                     $q->where('agent_id', $deliveryAgentId)
                         ->whereIn('status', ['assigned', 'picked_up', 'in_transit']);
                 })
-                ->get();
+                ->paginate($perPage);
 
             $routes = [];
-            foreach ($assignedOrders as $index => $order) {
+            foreach ($assignedOrders->items() as $index => $order) {
                 $commerceLat = $order->commerce?->latitude;
                 $commerceLng = $order->commerce?->longitude;
                 $customerLat = $order->delivery_latitude;
@@ -1183,7 +1216,16 @@ class DeliveryController extends Controller
                 ];
             }
 
-            return response()->json(['success' => true, 'data' => $routes]);
+            return response()->json([
+                'success' => true,
+                'data' => $routes,
+                'pagination' => [
+                    'current_page' => $assignedOrders->currentPage(),
+                    'per_page' => $assignedOrders->perPage(),
+                    'total' => $assignedOrders->total(),
+                    'last_page' => $assignedOrders->lastPage(),
+                ],
+            ]);
         } catch (\Exception $e) {
             Log::error('Error fetching delivery routes: '.$e->getMessage());
 

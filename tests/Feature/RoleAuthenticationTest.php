@@ -458,4 +458,19 @@ class RoleAuthenticationTest extends TestCase
 
         $response->assertStatus(422);
     }
+
+    public function test_registration_rejects_admin_role_from_public_endpoint()
+    {
+        $userData = [
+            'name' => 'Evil Admin',
+            'email' => 'evil-admin@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role' => 'admin'
+        ];
+
+        $response = $this->postJson('/api/auth/register', $userData);
+
+        $response->assertStatus(422);
+    }
 } 

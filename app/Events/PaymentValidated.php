@@ -41,10 +41,20 @@ class PaymentValidated implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
-        return [
+        $this->order->loadMissing('profile');
+        $userId = $this->order->profile?->user_id;
+
+        $channels = [
             new PrivateChannel('orders.' . $this->order->id),
-            new PrivateChannel('user.' . $this->order->user_id),
             new PrivateChannel('commerce.' . $this->order->commerce_id),
+        ];
+
+        if ($userId) {
+            $channels[] = new PrivateChannel('user.' . $userId);
+        }
+
+        return [
+            ...$channels,
         ];
     }
 

@@ -10,9 +10,9 @@
 *(La skill **context-updater** rellena esta sección al final de sesiones con cambios relevantes. Si está vacía, no hay resumen pendiente.)*
 
 - **Fecha:** 1 Abril 2026
-- **Resumen:** Cierre del módulo Disputas, Reembolsos y Soporte en backend con remanentes críticos completados: deprecación faseada de rutas legacy de pagos/reembolsos (headers estándar de deprecación + fase configurable + telemetría de uso), métricas SLA avanzadas de disputas (`p95/p99`, backlog por tramos 6h/12h/24h/72h) y alertado automático fino para admins mediante comando scheduler con deduplicación.
-- **Áreas tocadas:** `config/zonix.php`, `app/Http/Controllers/Buyer/PaymentController.php`, `app/Http/Controllers/Admin/DisputeController.php`, `app/Services/DisputeObservabilityService.php`, `app/Console/Commands/EmitDisputeSlaAlertsCommand.php`, `app/Console/Kernel.php`, `tests/Feature/OrderPaymentTest.php`, `tests/Feature/DisputeControllerTest.php`, `AGENTS.md`.
-- **Próximos pasos sugeridos:** Reflejar `p95/p99` y el nivel de alerta SLA en `AdminDisputesPage` (frontend) para cierre visual integral del módulo; luego ejecutar validación E2E cruzada backend+frontend y, con tu OK, proceder a commit.
+- **Resumen:** Hardening global transversal de cierre aplicado en backend: auth pública endurecida (registro sin rol `admin` y verificación real de token Google fuera de testing), corrección de canal realtime en `PaymentValidated` para buyer vía `profile.user_id`, y paginación operativa en listados delivery críticos con límites seguros. Se cerró regresión completa con suite backend íntegra en verde.
+- **Áreas tocadas:** `app/Http/Controllers/Authenticator/AuthController.php`, `app/Events/PaymentValidated.php`, `app/Http/Controllers/Delivery/DeliveryController.php`, `tests/Feature/RoleAuthenticationTest.php`, `AGENTS.md`.
+- **Próximos pasos sugeridos:** Mantener monitoreo de uso de rutas legacy y, en una fase controlada, retirar alias/paths legacy restantes tras confirmar cero consumo en métricas.
 
 ---
 
