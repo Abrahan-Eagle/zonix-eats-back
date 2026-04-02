@@ -1244,7 +1244,7 @@ class ZonixDemoSeeder extends Seeder
                 ['order_id' => $order->id, 'reported_by_type' => Profile::class, 'reported_by_id' => $order->profile_id],
                 [
                     'reported_against_type' => Commerce::class,
-                    'reported_against_id' => $order->commerce->profile_id,
+                    'reported_against_id' => $order->commerce_id,
                     'type' => $d['type'],
                     'description' => $d['desc'],
                     'status' => $d['status'],

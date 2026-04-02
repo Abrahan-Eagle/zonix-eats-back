@@ -10,6 +10,9 @@ use App\Models\DeliveryAgent;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
+ * Factory de disputas: morph `reported_against` debe usar la PK del modelo destino
+ * (Profile → profiles.id, Commerce → commerces.id, DeliveryAgent → delivery_agents.id).
+ *
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Dispute>
  */
 class DisputeFactory extends Factory
@@ -23,21 +26,18 @@ class DisputeFactory extends Factory
      */
     public function definition(): array
     {
-        // Para disputes, generalmente se reporta desde un Profile
-        // pero puede ser contra Commerce o DeliveryAgent (a través de sus profile_id)
         $reportedByProfile = Profile::factory();
         $reportedAgainstType = $this->faker->randomElement([Profile::class, Commerce::class, DeliveryAgent::class]);
-        
-        // Si es contra Commerce o DeliveryAgent, necesitamos obtener su profile_id
+
         $reportedAgainstId = null;
         if ($reportedAgainstType === Profile::class) {
             $reportedAgainstId = Profile::factory();
         } elseif ($reportedAgainstType === Commerce::class) {
             $commerce = Commerce::factory()->create();
-            $reportedAgainstId = $commerce->profile_id;
+            $reportedAgainstId = $commerce->id;
         } else { // DeliveryAgent
             $agent = DeliveryAgent::factory()->create();
-            $reportedAgainstId = $agent->profile_id;
+            $reportedAgainstId = $agent->id;
         }
         
         return [

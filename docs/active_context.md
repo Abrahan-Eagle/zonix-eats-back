@@ -9,10 +9,10 @@
 
 *(La skill **context-updater** rellena esta sección al final de sesiones con cambios relevantes. Si está vacía, no hay resumen pendiente.)*
 
-- **Fecha:** 1 Abril 2026
-- **Resumen:** Cierre de hardening P0 backend completado: se blindó ownership en todos los endpoints legacy de pagos del buyer para impedir IDOR (pago/reembolso/receipt sobre órdenes ajenas), y se retiró exposición de rutas `/api/test/*` fuera de entornos `local/testing`. Se añadió regresión de seguridad en `OrderPaymentTest` para asegurar rechazo de órdenes de terceros con legacy processing activo.
-- **Áreas tocadas:** `app/Http/Controllers/Buyer/PaymentController.php`, `routes/api/common.php`, `tests/Feature/OrderPaymentTest.php`, `AGENTS.md`.
-- **Próximos pasos sugeridos:** mantener telemetría de uso de rutas legacy y planificar apagado definitivo del procesamiento legacy tras ventana de observación sin consumo.
+- **Fecha:** 2 Abril 2026
+- **Resumen:** Cierre factories/seeders — disputas demo: `ZonixDemoSeeder` y `DisputeFactory` alineados al contrato polimórfico (`reported_against_id` = PK de Commerce/ DeliveryAgent según tipo; docblock en factory). `AGENTS.md` actualizado.
+- **Áreas tocadas:** `database/seeders/ZonixDemoSeeder.php`, `database/factories/DisputeFactory.php`, `AGENTS.md`.
+- **Próximos pasos sugeridos:** commit cuando apruebes; suite completa `php artisan test` si preparas release.
 
 ---
 
