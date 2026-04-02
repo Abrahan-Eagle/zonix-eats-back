@@ -18,9 +18,15 @@ class DeliveryOrderTest extends TestCase
     {
         $user = User::factory()->create(['role' => 'delivery']);
         $profile = Profile::factory()->create(['user_id' => $user->id]);
-        $delivery = DeliveryAgent::factory()->create(['profile_id' => $profile->id]);
+        $delivery = DeliveryAgent::factory()->create([
+            'profile_id' => $profile->id,
+            'company_id' => null,
+        ]);
         \App\Models\Order::query()->delete();
-        $order = Order::factory()->create(['status' => 'shipped']);
+        $order = Order::factory()->create([
+            'status' => 'shipped',
+            'delivery_company_id' => null,
+        ]);
         $this->actingAs($user, 'sanctum');
 
         // Listar órdenes asignadas (vacío, aún no aceptó ninguna)
