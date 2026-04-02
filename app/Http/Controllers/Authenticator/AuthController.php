@@ -50,31 +50,69 @@ class AuthController extends Controller
             // Hardening: en runtime normal exigimos token Google verificable.
             // En testing mantenemos compatibilidad con payload mock para no romper suite.
             if (! app()->environment('testing')) {
-                $idToken = $validatedData['token'] ?? null;
-                if (! is_string($idToken) || trim($idToken) === '') {
+                $googleToken = $validatedData['token'] ?? null;
+                if (! is_string($googleToken) || trim($googleToken) === '') {
+                    Log::warning('google_auth_rejected_missing_token', [
+                        'ip' => $request->ip(),
+                        'has_data_email' => isset($validatedData['data']['email']),
+                    ]);
                     return response()->json([
                         'status' => false,
                         'message' => 'Google token is required',
                     ], 422);
                 }
-                $tokenInfo = $this->verifyGoogleIdToken($idToken);
+
+                $tokenInfo = $this->verifyGoogleIdToken($googleToken);
+                $tokenSource = 'id_token';
                 if (! $tokenInfo) {
+                    $tokenInfo = $this->verifyGoogleAccessTokenUserInfo($googleToken);
+                    $tokenSource = $tokenInfo ? 'access_token' : 'none';
+                }
+                if (! $tokenInfo) {
+                    Log::warning('google_auth_rejected_invalid_token', [
+                        'ip' => $request->ip(),
+                        'token_len' => strlen($googleToken),
+                    ]);
                     return response()->json([
                         'status' => false,
                         'message' => 'Invalid Google token',
                     ], 401);
                 }
-                if (($tokenInfo['email_verified'] ?? 'false') !== 'true') {
+                if (! $this->isGoogleEmailVerified($tokenInfo['email_verified'] ?? null)) {
+                    Log::warning('google_auth_rejected_unverified_email', [
+                        'ip' => $request->ip(),
+                        'token_source' => $tokenSource,
+                    ]);
                     return response()->json([
                         'status' => false,
                         'message' => 'Google email is not verified',
                     ], 401);
                 }
                 if (isset($validatedData['data']['email']) && ($validatedData['data']['email'] !== ($tokenInfo['email'] ?? null))) {
+                    Log::warning('google_auth_rejected_email_mismatch', [
+                        'ip' => $request->ip(),
+                        'has_request_email' => true,
+                        'token_has_email' => isset($tokenInfo['email']),
+                    ]);
                     return response()->json([
                         'status' => false,
                         'message' => 'Google token/email mismatch',
                     ], 401);
+                }
+
+                // Canonicalizar datos sensibles desde Google verificado para evitar confiar en payload cliente.
+                $validatedData['data'] = array_merge($validatedData['data'] ?? [], [
+                    'email' => $tokenInfo['email'] ?? ($validatedData['data']['email'] ?? null),
+                    'name' => $tokenInfo['name'] ?? ($validatedData['data']['name'] ?? null),
+                    'sub' => $tokenInfo['sub'] ?? ($validatedData['data']['sub'] ?? null),
+                    'picture' => $tokenInfo['picture'] ?? ($validatedData['data']['picture'] ?? null),
+                ]);
+
+                if ($tokenSource === 'access_token') {
+                    Log::warning('google_auth_access_token_fallback_used', [
+                        'ip' => $request->ip(),
+                        'has_email' => isset($tokenInfo['email']),
+                    ]);
                 }
             }
             
@@ -287,6 +325,10 @@ class AuthController extends Controller
 
             $expectedAudience = env('GOOGLE_CLIENT_ID');
             if ($expectedAudience && (($payload['aud'] ?? null) !== $expectedAudience)) {
+                Log::warning('google_token_verification_audience_mismatch', [
+                    'expected_aud_suffix' => substr($expectedAudience, -12),
+                    'received_aud_suffix' => isset($payload['aud']) ? substr((string) $payload['aud'], -12) : null,
+                ]);
                 return null;
             }
 
@@ -295,6 +337,45 @@ class AuthController extends Controller
             Log::warning('google_token_verification_failed', ['message' => $e->getMessage()]);
             return null;
         }
+    }
+
+    private function verifyGoogleAccessTokenUserInfo(string $accessToken): ?array
+    {
+        try {
+            $response = Http::timeout(5)
+                ->withToken($accessToken)
+                ->get('https://www.googleapis.com/oauth2/v3/userinfo');
+            if (! $response->ok()) {
+                return null;
+            }
+
+            $payload = $response->json();
+            if (! is_array($payload)) {
+                return null;
+            }
+
+            return $payload;
+        } catch (\Throwable $e) {
+            Log::warning('google_access_token_verification_failed', ['message' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    private function isGoogleEmailVerified(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            return strtolower($value) === 'true' || $value === '1';
+        }
+
+        if (is_int($value)) {
+            return $value === 1;
+        }
+
+        return false;
     }
 
     /**
