@@ -43,6 +43,7 @@ use App\Models\User;
 use App\Models\UserLocation;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 /**
@@ -53,6 +54,11 @@ use Illuminate\Support\Facades\Hash;
  *
  * Geolocalización: Venezuela, Carabobo, Valencia. Sectores: El Socorro, Los Chorritos, Mayorista, Bella Florida,
  * San Diego, Santa Rosa.
+ *
+ * --- Tras el seed completo: cuentas "día 1" para E2E ---
+ * Al final se ejecuta cleanDemoForFlowTesting(): elimina órdenes y notificaciones del perfil de user 1 (buyer principal)
+ * y vacía su carrito. El marketplace sigue activo (buyers 2–5, otros agentes, comercios). Jarvis (user 17) queda sin
+ * OrderDelivery en demo porque solo estaba asignado a órdenes de ese comprador.
  *
  * --- Simulación con 4 usuarios reales (Google) ---
  * Los ids 1, 6, 16 y 17 son usuarios reales para pruebas: login con Google, password null, datos y foto reales.
@@ -75,8 +81,8 @@ use Illuminate\Support\Facades\Hash;
  * --- Repartidores y órdenes (array $agents tras seedDelivery: 10 con empresa + 1 independiente al final) ---
  * - agents[0]: Jarvis (user 17), agents[1]: Pedro (user 18); agents[2..9]: repartidores demo misma empresa.
  * - agents[10]: Miguel independiente (company_id null) — no confundir con índice [2].
- * Órdenes: comprador principal (índice 0 en $users['users']) cubre estados (pending_payment…cancelled); +3 shipped sin OrderDelivery
- * (Disponibles repartidor + pestaña Asignar empresa); reparto repartido entre Jarvis, Pedro y Miguel donde aplica.
+ * Órdenes: el seed genera filas para el comprador principal y luego cleanDemoForFlowTesting() las elimina (E2E “día 1”).
+ * Otros buyers y agentes conservan órdenes demo: shipped con/sin agente (Disponibles + Asignar empresa), Pedro, más agentes, independiente.
  *
  * --- Grafo de relaciones (probar cada app con estos vínculos) ---
  * - Buyer → Order → Commerce (Wistremiro = commerces[0]) → Products / PaymentMethods / Posts.
@@ -188,6 +194,8 @@ class ZonixDemoSeeder extends Seeder
         $this->seedPostLikes($users);
         $this->seedDeliveryZones();
         $this->seedChatMessages();
+
+        $this->cleanDemoForFlowTesting();
 
         $this->command->info('ZonixDemoSeeder: finalizado.');
     }
@@ -1680,6 +1688,35 @@ class ZonixDemoSeeder extends Seeder
                     ]
                 );
             }
+        }
+    }
+
+
+
+    /**
+     * Deja el buyer principal (user 1) sin historial de pedidos ni ítems en carrito para recorrer el flujo como primer uso.
+     * Jarvis (user 17) queda sin entregas en seed: en seedOrders solo tenía OrderDelivery en órdenes de buyer 0.
+     * No vacía perfil, dirección, teléfono ni documentos.
+     */
+    private function cleanDemoForFlowTesting(): void
+    {
+        $profile1Id = Profile::where('user_id', 1)->value('id');
+        if (! $profile1Id) {
+            return;
+        }
+
+        $orderIds = Order::where('profile_id', $profile1Id)->pluck('id');
+        if ($orderIds->isNotEmpty()) {
+            DB::table('delivery_assignment_timeouts')->whereIn('order_id', $orderIds)->delete();
+        }
+        DB::table('order_idempotency_keys')->where('profile_id', $profile1Id)->delete();
+        Notification::where('profile_id', $profile1Id)->delete();
+
+        Order::where('profile_id', $profile1Id)->delete();
+
+        $cart = Cart::where('profile_id', $profile1Id)->first();
+        if ($cart) {
+            CartItem::where('cart_id', $cart->id)->delete();
         }
     }
 
