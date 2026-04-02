@@ -27,13 +27,18 @@ return new class extends Migration
             $table->enum('type', ['quality_issue', 'delivery_problem', 'payment_issue', 'other'])->default('other');
             $table->text('description');
             $table->enum('status', ['pending', 'in_review', 'resolved', 'closed'])->default('pending');
+            $table->enum('resolution', ['refund', 'penalty', 'warning', 'closed'])->nullable();
             $table->text('admin_notes')->nullable();
+            $table->foreignId('resolved_by_user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->json('resolution_metadata')->nullable();
             $table->timestamp('resolved_at')->nullable();
             $table->timestamps();
             
             // Índices
             $table->index('order_id');
             $table->index('status');
+            $table->index(['status', 'type', 'created_at'], 'disputes_status_type_created_at_idx');
+            $table->index(['reported_by_type', 'reported_by_id', 'status', 'created_at'], 'disputes_reported_by_status_created_at_idx');
             // Nota: morphs() ya crea índices automáticamente para reported_by y reported_against
         });
     }

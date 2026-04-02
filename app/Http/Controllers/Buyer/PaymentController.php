@@ -19,9 +19,21 @@ class PaymentController extends Controller
         $this->middleware(function ($request, $next) {
             /** @var \Illuminate\Http\JsonResponse $response */
             $response = $next($request);
+            $phase = (string) config('zonix.legacy_payments.phase', 'warn');
+            $sunset = (string) config('zonix.legacy_payments.sunset', 'Fri, 31 Jul 2026 23:59:59 GMT');
+            $replacement = (string) config('zonix.legacy_payments.replacement', '/api/buyer/orders/{id}/payment-info + /api/buyer/orders/{id}/payment-proof');
             $response->headers->set('X-API-Deprecated', 'true');
-            $response->headers->set('X-API-Replacement', '/api/buyer/orders/{id}/payment-info + /api/buyer/orders/{id}/payment-proof');
-            $response->headers->set('Sunset', 'Fri, 31 Jul 2026 23:59:59 GMT');
+            $response->headers->set('Deprecation', 'true');
+            $response->headers->set('X-API-Deprecation-Phase', $phase);
+            $response->headers->set('X-API-Replacement', $replacement);
+            $response->headers->set('Sunset', $sunset);
+
+            Log::warning('legacy_buyer_payment_endpoint_used', [
+                'path' => $request->path(),
+                'method' => $request->method(),
+                'user_id' => optional($request->user())->id,
+                'phase' => $phase,
+            ]);
             return $response;
         });
     }

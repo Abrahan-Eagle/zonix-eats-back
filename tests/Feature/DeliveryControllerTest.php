@@ -353,6 +353,27 @@ class DeliveryControllerTest extends TestCase
                  ->assertJson(['success' => true, 'message' => 'Issue reported successfully']);
     }
 
+    public function test_report_issue_requires_order_assigned_to_authenticated_agent()
+    {
+        $commerce = Commerce::factory()->create(['open' => true]);
+        $order = Order::factory()->create(['status' => 'shipped', 'commerce_id' => $commerce->id]);
+
+        $otherAgent = DeliveryAgent::factory()->create();
+        OrderDelivery::factory()->create([
+            'order_id' => $order->id,
+            'agent_id' => $otherAgent->id,
+            'status' => 'assigned',
+        ]);
+
+        $response = $this->postJson("/api/delivery/orders/{$order->id}/report-issue", [
+            'issue' => 'Wrong order',
+            'description' => 'The order was not assigned to me',
+        ]);
+
+        $response->assertStatus(403)
+            ->assertJsonPath('success', false);
+    }
+
     public function test_cannot_accept_already_assigned_order()
     {
         $commerce = Commerce::factory()->create(['open' => true]);

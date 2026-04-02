@@ -49,7 +49,10 @@ class DisputeFactory extends Factory
             'type' => $this->faker->randomElement(['quality_issue', 'delivery_problem', 'payment_issue', 'other']),
             'description' => $this->faker->paragraph(),
             'status' => $this->faker->randomElement(['pending', 'in_review', 'resolved', 'closed']),
+            'resolution' => $this->faker->optional(0.3)->randomElement(['refund', 'penalty', 'warning', 'closed']),
             'admin_notes' => $this->faker->optional(0.4)->paragraph(),
+            'resolved_by_user_id' => null,
+            'resolution_metadata' => null,
             'resolved_at' => $this->faker->optional(0.3)->dateTimeBetween('-1 month', 'now'),
         ];
     }
@@ -61,6 +64,7 @@ class DisputeFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'status' => 'resolved',
+            'resolution' => 'warning',
             'resolved_at' => $this->faker->dateTimeBetween('-1 month', 'now'),
         ]);
     }

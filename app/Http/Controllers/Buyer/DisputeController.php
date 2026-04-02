@@ -14,6 +14,7 @@ class DisputeController extends Controller
     {
         $user = Auth::user();
         $profile = $user->profile;
+        $perPage = max(1, min((int) $request->input('per_page', 15), 100));
 
         if (!$profile) {
             return response()->json(['success' => false, 'message' => 'Perfil no encontrado'], 404);
@@ -23,7 +24,7 @@ class DisputeController extends Controller
             ->where('reported_by_id', $profile->id)
             ->with(['order'])
             ->orderBy('created_at', 'desc')
-            ->paginate($request->get('per_page', 15));
+            ->paginate($perPage);
 
         return response()->json([
             'success' => true,

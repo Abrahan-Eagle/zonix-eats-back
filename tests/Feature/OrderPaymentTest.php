@@ -397,6 +397,8 @@ class OrderPaymentTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertHeader('X-API-Deprecated', 'true');
+        $response->assertHeader('Deprecation', 'true');
+        $response->assertHeader('X-API-Deprecation-Phase');
         $response->assertHeader('X-API-Replacement');
         $response->assertHeader('Sunset');
     }

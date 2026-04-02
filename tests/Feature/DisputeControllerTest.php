@@ -214,11 +214,44 @@ class DisputeControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.status', 'closed');
+            ->assertJsonPath('data.status', 'closed')
+            ->assertJsonPath('data.resolution', 'closed')
+            ->assertJsonPath('data.resolved_by_user_id', $admin->id);
 
         $dispute->refresh();
         $this->assertEquals('closed', $dispute->status);
+        $this->assertEquals('closed', $dispute->resolution);
+        $this->assertEquals($admin->id, $dispute->resolved_by_user_id);
+        $this->assertNotNull($dispute->resolution_metadata);
         $this->assertNotNull($dispute->resolved_at);
+        $this->assertDatabaseHas('notifications', [
+            'profile_id' => $this->buyerProfile->id,
+            'type' => 'dispute',
+        ]);
+    }
+
+    /** @test */
+    public function admin_cannot_resolve_dispute_that_is_already_resolved()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        Sanctum::actingAs($admin);
+
+        $dispute = Dispute::factory()->create([
+            'order_id' => $this->order->id,
+            'reported_by_type' => 'App\\Models\\Profile',
+            'reported_by_id' => $this->buyerProfile->id,
+            'type' => 'other',
+            'status' => 'resolved',
+            'resolved_at' => now()->subHour(),
+        ]);
+
+        $response = $this->postJson("/api/admin/disputes/{$dispute->id}/resolve", [
+            'resolution' => 'warning',
+            'admin_notes' => 'Intento de reprocesar una disputa resuelta.',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false);
     }
 
     /** @test */
@@ -231,7 +264,134 @@ class DisputeControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
-            ->assertJsonStructure(['data' => ['total', 'pending', 'in_review', 'resolved', 'closed']]);
+            ->assertJsonStructure(['data' => [
+                'total',
+                'pending',
+                'in_review',
+                'resolved',
+                'closed',
+                'avg_resolution_minutes',
+                'p95_resolution_minutes',
+                'p99_resolution_minutes',
+                'pending_older_than_6h',
+                'pending_older_than_12h',
+                'pending_older_than_24h',
+                'pending_older_than_72h',
+            ]]);
+    }
+
+    /** @test */
+    public function buyer_disputes_index_caps_per_page_to_100()
+    {
+        Sanctum::actingAs($this->buyer);
+
+        Dispute::factory()->count(120)->create([
+            'order_id' => $this->order->id,
+            'reported_by_type' => 'App\\Models\\Profile',
+            'reported_by_id' => $this->buyerProfile->id,
+            'type' => 'other',
+            'status' => 'pending',
+        ]);
+
+        $response = $this->getJson('/api/buyer/disputes?per_page=999');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('pagination.per_page', 100);
+    }
+
+    /** @test */
+    public function admin_disputes_index_caps_per_page_to_100()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        Sanctum::actingAs($admin);
+
+        Dispute::factory()->count(120)->create([
+            'order_id' => $this->order->id,
+            'reported_by_type' => 'App\\Models\\Profile',
+            'reported_by_id' => $this->buyerProfile->id,
+            'type' => 'other',
+            'status' => 'pending',
+        ]);
+
+        $response = $this->getJson('/api/admin/disputes?per_page=999');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('pagination.per_page', 100);
+    }
+
+    /** @test */
+    public function admin_can_resolve_dispute_with_refund_and_cancel_paid_order()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        Sanctum::actingAs($admin);
+
+        $this->order->update([
+            'status' => 'paid',
+            'payment_proof' => 'txn_test_001',
+            'payment_validated_at' => now()->subMinutes(10),
+        ]);
+
+        $dispute = Dispute::factory()->create([
+            'order_id' => $this->order->id,
+            'reported_by_type' => 'App\\Models\\Profile',
+            'reported_by_id' => $this->buyerProfile->id,
+            'type' => 'payment_issue',
+            'status' => 'pending',
+        ]);
+
+        $response = $this->postJson("/api/admin/disputes/{$dispute->id}/resolve", [
+            'resolution' => 'refund',
+            'admin_notes' => 'Se aprueba reembolso por incidencia validada.',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.status', 'resolved')
+            ->assertJsonPath('data.resolution', 'refund')
+            ->assertJsonPath('data.resolved_by_user_id', $admin->id);
+
+        $this->order->refresh();
+        $dispute->refresh();
+
+        $this->assertEquals('cancelled', $this->order->status);
+        $this->assertStringContainsString('Refund(admin dispute #'.$dispute->id.')', (string) $this->order->cancellation_reason);
+        $this->assertEquals('resolved', $dispute->status);
+        $this->assertEquals('refund', $dispute->resolution);
+    }
+
+    /** @test */
+    public function admin_cannot_resolve_dispute_with_refund_if_order_has_no_paid_proof()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        Sanctum::actingAs($admin);
+
+        $this->order->update([
+            'status' => 'pending_payment',
+            'payment_proof' => null,
+            'payment_validated_at' => null,
+        ]);
+
+        $dispute = Dispute::factory()->create([
+            'order_id' => $this->order->id,
+            'reported_by_type' => 'App\\Models\\Profile',
+            'reported_by_id' => $this->buyerProfile->id,
+            'type' => 'payment_issue',
+            'status' => 'pending',
+        ]);
+
+        $response = $this->postJson("/api/admin/disputes/{$dispute->id}/resolve", [
+            'resolution' => 'refund',
+            'admin_notes' => 'Intento de reembolso sin pago validado.',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false);
+
+        $this->order->refresh();
+        $dispute->refresh();
+
+        $this->assertEquals('pending_payment', $this->order->status);
+        $this->assertEquals('pending', $dispute->status);
     }
 
     /** @test */

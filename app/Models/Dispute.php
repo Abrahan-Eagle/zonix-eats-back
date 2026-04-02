@@ -22,11 +22,15 @@ class Dispute extends Model
         'type',
         'description',
         'status',
+        'resolution',
         'admin_notes',
+        'resolved_by_user_id',
+        'resolution_metadata',
         'resolved_at'
     ];
 
     protected $casts = [
+        'resolution_metadata' => 'array',
         'resolved_at' => 'datetime'
     ];
 
@@ -52,5 +56,10 @@ class Dispute extends Model
     public function reportedAgainst()
     {
         return $this->morphTo('reported_against');
+    }
+
+    public function resolvedByUser()
+    {
+        return $this->belongsTo(User::class, 'resolved_by_user_id');
     }
 }

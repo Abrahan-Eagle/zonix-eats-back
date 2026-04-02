@@ -85,4 +85,15 @@ return [
         'alert_dedupe_minutes' => (int) env('ZONIX_OBS_ALERT_DEDUPE_MINUTES', 30),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Legacy payments deprecation (buyer/payments/*)
+    |--------------------------------------------------------------------------
+    */
+    'legacy_payments' => [
+        'sunset' => env('ZONIX_LEGACY_PAYMENTS_SUNSET', 'Fri, 31 Jul 2026 23:59:59 GMT'),
+        'phase' => env('ZONIX_LEGACY_PAYMENTS_PHASE', 'warn'),
+        'replacement' => '/api/buyer/orders/{id}/payment-info + /api/buyer/orders/{id}/payment-proof',
+    ],
+
 ];

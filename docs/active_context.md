@@ -10,9 +10,9 @@
 *(La skill **context-updater** rellena esta sección al final de sesiones con cambios relevantes. Si está vacía, no hay resumen pendiente.)*
 
 - **Fecha:** 1 Abril 2026
-- **Resumen:** Módulo Tiempo Real y Notificaciones endurecido para cierre técnico 9.6/10 con base 10/10 por fases. Se consolidó contrato de eventos v1 en backend (`event_id`, `schema_version`, `occurred_at`) para eventos críticos (`OrderCreated`, `OrderStatusChanged`, `PaymentValidated`, `NotificationCreated`, `DeliveryLocationUpdated`, `OrderPendingAssignment`), se mantuvo seguridad de canales privados (incluyendo retiro del canal público de `OrderCreated`), y se reforzó observabilidad mínima con métricas/counters para auth broadcasting y emisión/fallo de notificaciones/FCM. También se amplió cobertura de validación en `WebSocketTest` para asegurar metadata contractual.
-- **Áreas tocadas:** `app/Events/OrderCreated.php`, `app/Events/OrderStatusChanged.php`, `app/Events/PaymentValidated.php`, `app/Events/NotificationCreated.php`, `app/Events/DeliveryLocationUpdated.php`, `app/Events/OrderPendingAssignment.php`, `app/Http/Controllers/BroadcastingController.php`, `app/Services/NotificationService.php`, `tests/Feature/WebSocketTest.php`, `AGENTS.md`.
-- **Próximos pasos sugeridos:** Conectar counters a alertado operativo (umbrales para auth denied, fallos FCM y degradación de conexión), y completar batería E2E de resiliencia (red inestable/background/terminated) para certificar 10/10 operativo en producción.
+- **Resumen:** Cierre del módulo Disputas, Reembolsos y Soporte en backend con remanentes críticos completados: deprecación faseada de rutas legacy de pagos/reembolsos (headers estándar de deprecación + fase configurable + telemetría de uso), métricas SLA avanzadas de disputas (`p95/p99`, backlog por tramos 6h/12h/24h/72h) y alertado automático fino para admins mediante comando scheduler con deduplicación.
+- **Áreas tocadas:** `config/zonix.php`, `app/Http/Controllers/Buyer/PaymentController.php`, `app/Http/Controllers/Admin/DisputeController.php`, `app/Services/DisputeObservabilityService.php`, `app/Console/Commands/EmitDisputeSlaAlertsCommand.php`, `app/Console/Kernel.php`, `tests/Feature/OrderPaymentTest.php`, `tests/Feature/DisputeControllerTest.php`, `AGENTS.md`.
+- **Próximos pasos sugeridos:** Reflejar `p95/p99` y el nivel de alerta SLA en `AdminDisputesPage` (frontend) para cierre visual integral del módulo; luego ejecutar validación E2E cruzada backend+frontend y, con tu OK, proceder a commit.
 
 ---
 

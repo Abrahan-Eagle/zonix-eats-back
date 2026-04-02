@@ -944,6 +944,17 @@ class DeliveryController extends Controller
                 return response()->json(['success' => false, 'message' => 'Delivery agent not found'], 404);
             }
 
+            $isAssignedToAgent = OrderDelivery::where('order_id', $order->id)
+                ->where('agent_id', $deliveryAgent->id)
+                ->exists();
+
+            if (! $isAssignedToAgent) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No autorizado para reportar incidencias de esta orden',
+                ], 403);
+            }
+
             Dispute::create([
                 'order_id' => $orderId,
                 'reported_by_type' => 'App\\Models\\DeliveryAgent',

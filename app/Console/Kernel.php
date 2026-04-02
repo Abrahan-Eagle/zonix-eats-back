@@ -13,6 +13,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         $schedule->command('zonix:observability-alerts-delivery')->everyFiveMinutes();
+        $schedule->command('zonix:observability-alerts-disputes')->everyFiveMinutes();
         $schedule->command('zonix:observability-snapshots-delivery')->hourly();
     }
 
