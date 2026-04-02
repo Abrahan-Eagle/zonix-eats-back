@@ -22,8 +22,8 @@ class DeliveryAgentSeeder extends Seeder
             for ($i = 0; $i < 3; $i++) {
                 $profile = Profile::factory()->create();
                 $profile->user->update(['role' => 'delivery_agent']);
-                
-                DeliveryAgent::factory()->create([
+
+                DeliveryAgent::factory()->companyManaged($company->id)->create([
                     'company_id' => $company->id,
                     'profile_id' => $profile->id,
                 ]);
@@ -34,8 +34,8 @@ class DeliveryAgentSeeder extends Seeder
         for ($i = 0; $i < 5; $i++) {
             $profile = Profile::factory()->create();
             $profile->user->update(['role' => 'delivery']);
-            
-            DeliveryAgent::factory()->create([
+
+            DeliveryAgent::factory()->independent()->create([
                 'company_id' => null, // Independiente / autónomo
                 'profile_id' => $profile->id,
             ]);

@@ -21,15 +21,27 @@ class OrderDeliverySeeder extends Seeder
             ->get();
         
         $agents = DeliveryAgent::where('working', true)->get();
-        
+
         if ($deliveryOrders->isEmpty() || $agents->isEmpty()) {
             $this->command->warn('No hay órdenes con delivery o agentes disponibles.');
             return;
         }
-        
+
         foreach ($deliveryOrders->take(15) as $order) {
-            $agent = $agents->random();
-            
+            $eligibleAgents = $agents->filter(function (DeliveryAgent $agent) use ($order) {
+                if ($order->delivery_company_id) {
+                    return (int) $agent->company_id === (int) $order->delivery_company_id;
+                }
+
+                return $agent->company_id === null;
+            });
+
+            if ($eligibleAgents->isEmpty()) {
+                continue;
+            }
+
+            $agent = $eligibleAgents->random();
+
             OrderDelivery::factory()->create([
                 'order_id' => $order->id,
                 'agent_id' => $agent->id,

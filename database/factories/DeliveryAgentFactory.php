@@ -20,9 +20,10 @@ class DeliveryAgentFactory extends Factory
     {
         $working = $this->faker->boolean(60);
         $status = $working ? 'activo' : $this->faker->randomElement(['inactivo', 'suspendido']);
-        
+
         return [
-            'company_id' => $this->faker->optional(0.5)->passthrough(DeliveryCompany::factory()), // 50% independientes
+            // Default estable: agente independiente. Usar states para agentes de empresa.
+            'company_id' => null,
             'profile_id' => Profile::factory(),
             'status' => $status,
             'working' => $working,
@@ -35,5 +36,19 @@ class DeliveryAgentFactory extends Factory
             'rejection_count' => $this->faker->numberBetween(0, 3),
             'last_rejection_date' => $this->faker->optional(0.2)->dateTimeBetween('-1 month', 'now'),
         ];
+    }
+
+    public function independent(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'company_id' => null,
+        ]);
+    }
+
+    public function companyManaged(?int $companyId = null): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'company_id' => $companyId ?? DeliveryCompany::factory(),
+        ]);
     }
 }

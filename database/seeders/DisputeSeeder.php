@@ -35,7 +35,7 @@ class DisputeSeeder extends Seeder
                     'reported_by_type' => Profile::class,
                     'reported_by_id' => $reportedBy->id,
                     'reported_against_type' => Commerce::class,
-                    'reported_against_id' => $order->commerce->profile_id,
+                    'reported_against_id' => $order->commerce_id,
                 ]);
             }
             
@@ -47,7 +47,7 @@ class DisputeSeeder extends Seeder
                         'reported_by_type' => Profile::class,
                         'reported_by_id' => $reportedBy->id,
                         'reported_against_type' => DeliveryAgent::class,
-                        'reported_against_id' => $order->orderDelivery->agent->profile_id,
+                        'reported_against_id' => $order->orderDelivery->agent_id,
                     ]);
                 }
             }

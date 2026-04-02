@@ -7,6 +7,7 @@ use Illuminate\Database\Seeder;
 use App\Models\Order;
 use App\Models\Profile;
 use App\Models\Commerce;
+use App\Models\DeliveryCompany;
 
 class OrderSeeder extends Seeder
 {
@@ -33,12 +34,18 @@ class OrderSeeder extends Seeder
             $commerce = $commerces->random();
             $status = collect($statuses)->random();
             $deliveryType = collect(['pickup', 'delivery'])->random();
-            
+
+            $deliveryCompanyId = null;
+            if ($deliveryType === 'delivery' && rand(0, 1) === 1) {
+                $deliveryCompanyId = DeliveryCompany::query()->inRandomOrder()->value('id');
+            }
+
             Order::factory()->create([
                 'profile_id' => $buyer->id,
                 'commerce_id' => $commerce->id,
                 'status' => $status,
                 'delivery_type' => $deliveryType,
+                'delivery_company_id' => $deliveryCompanyId,
             ]);
         }
         
