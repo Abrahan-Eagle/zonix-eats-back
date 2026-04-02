@@ -10,9 +10,9 @@
 *(La skill **context-updater** rellena esta sección al final de sesiones con cambios relevantes. Si está vacía, no hay resumen pendiente.)*
 
 - **Fecha:** 1 Abril 2026
-- **Resumen:** Hardening global transversal de cierre aplicado en backend: auth pública endurecida (registro sin rol `admin` y verificación real de token Google fuera de testing), corrección de canal realtime en `PaymentValidated` para buyer vía `profile.user_id`, y paginación operativa en listados delivery críticos con límites seguros. Se cerró regresión completa con suite backend íntegra en verde.
-- **Áreas tocadas:** `app/Http/Controllers/Authenticator/AuthController.php`, `app/Events/PaymentValidated.php`, `app/Http/Controllers/Delivery/DeliveryController.php`, `tests/Feature/RoleAuthenticationTest.php`, `AGENTS.md`.
-- **Próximos pasos sugeridos:** Mantener monitoreo de uso de rutas legacy y, en una fase controlada, retirar alias/paths legacy restantes tras confirmar cero consumo en métricas.
+- **Resumen:** Cierre de hardening P0 backend completado: se blindó ownership en todos los endpoints legacy de pagos del buyer para impedir IDOR (pago/reembolso/receipt sobre órdenes ajenas), y se retiró exposición de rutas `/api/test/*` fuera de entornos `local/testing`. Se añadió regresión de seguridad en `OrderPaymentTest` para asegurar rechazo de órdenes de terceros con legacy processing activo.
+- **Áreas tocadas:** `app/Http/Controllers/Buyer/PaymentController.php`, `routes/api/common.php`, `tests/Feature/OrderPaymentTest.php`, `AGENTS.md`.
+- **Próximos pasos sugeridos:** mantener telemetría de uso de rutas legacy y planificar apagado definitivo del procesamiento legacy tras ventana de observación sin consumo.
 
 ---
 

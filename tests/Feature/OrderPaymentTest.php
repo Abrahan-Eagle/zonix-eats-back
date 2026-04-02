@@ -428,6 +428,31 @@ class OrderPaymentTest extends TestCase
     }
 
     /** @test */
+    public function buyer_legacy_processing_rejects_orders_from_other_users()
+    {
+        putenv('LEGACY_PAYMENT_PROCESSING_ENABLED=true');
+        $_ENV['LEGACY_PAYMENT_PROCESSING_ENABLED'] = 'true';
+        $_SERVER['LEGACY_PAYMENT_PROCESSING_ENABLED'] = 'true';
+
+        $otherUser = User::factory()->create(['role' => 'users']);
+        $otherProfile = Profile::factory()->create(['user_id' => $otherUser->id]);
+        $foreignOrder = Order::factory()->create([
+            'profile_id' => $otherProfile->id,
+            'commerce_id' => $this->commerce->id,
+            'status' => 'pending_payment',
+        ]);
+
+        Sanctum::actingAs($this->user);
+        $response = $this->postJson('/api/buyer/payments/cash', [
+            'order_id' => $foreignOrder->id,
+            'amount' => 10.00,
+        ]);
+
+        $response->assertStatus(404)
+            ->assertJsonPath('success', false);
+    }
+
+    /** @test */
     public function commerce_can_update_order_status()
     {
         $commerceUser = User::factory()->create(['role' => 'commerce']);

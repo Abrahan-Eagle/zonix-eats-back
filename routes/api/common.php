@@ -111,19 +111,21 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/test/products', function () {
-        $products = \App\Models\Product::where('available', true)->get();
-        return response()->json($products);
+if (app()->environment(['local', 'testing'])) {
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/test/products', function () {
+            $products = \App\Models\Product::where('available', true)->get();
+            return response()->json($products);
+        });
+        Route::get('/test/auth', function () {
+            $user = \Illuminate\Support\Facades\Auth::user();
+            return response()->json([
+                'authenticated' => true,
+                'user_id' => $user->id,
+                'user_role' => $user->role,
+                'user_email' => $user->email,
+                'token_valid' => true,
+            ]);
+        });
     });
-    Route::get('/test/auth', function () {
-        $user = \Illuminate\Support\Facades\Auth::user();
-        return response()->json([
-            'authenticated' => true,
-            'user_id' => $user->id,
-            'user_role' => $user->role,
-            'user_email' => $user->email,
-            'token_valid' => true,
-        ]);
-    });
-});
+}

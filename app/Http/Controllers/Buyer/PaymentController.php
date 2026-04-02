@@ -13,6 +13,28 @@ use Illuminate\Support\Facades\DB;
 
 class PaymentController extends Controller
 {
+    private function resolveOwnedOrder(int $orderId): ?Order
+    {
+        $userId = auth()->id();
+        if (!$userId) {
+            return null;
+        }
+
+        return Order::where('id', $orderId)
+            ->whereHas('profile', function ($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })
+            ->first();
+    }
+
+    private function ownedOrderNotFoundResponse(): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'Orden no encontrada o no pertenece al usuario',
+        ], 404);
+    }
+
     public function __construct()
     {
         // Endpoints legacy: mantenemos compatibilidad temporal mientras migra el cliente.
@@ -154,7 +176,10 @@ class PaymentController extends Controller
         }
 
         try {
-            $order = Order::findOrFail($request->order_id);
+            $order = $this->resolveOwnedOrder((int) $request->order_id);
+            if (!$order) {
+                return $this->ownedOrderNotFoundResponse();
+            }
             $paymentGateway = $request->get('payment_gateway', 'stripe');
             
             // Procesar pago según la pasarela seleccionada
@@ -223,7 +248,10 @@ class PaymentController extends Controller
         }
 
         try {
-            $order = Order::findOrFail($request->order_id);
+            $order = $this->resolveOwnedOrder((int) $request->order_id);
+            if (!$order) {
+                return $this->ownedOrderNotFoundResponse();
+            }
             
             // Simular captura de pago de PayPal
             $paymentResult = $this->capturePayPalPayment($request->paypal_order_id);
@@ -286,7 +314,10 @@ class PaymentController extends Controller
         }
 
         try {
-            $order = Order::findOrFail($request->order_id);
+            $order = $this->resolveOwnedOrder((int) $request->order_id);
+            if (!$order) {
+                return $this->ownedOrderNotFoundResponse();
+            }
             
             // Simular verificación de pago de MercadoPago
             $paymentResult = $this->verifyMercadoPagoPayment($request->payment_id);
@@ -347,7 +378,10 @@ class PaymentController extends Controller
         }
 
         try {
-            $order = Order::findOrFail($request->order_id);
+            $order = $this->resolveOwnedOrder((int) $request->order_id);
+            if (!$order) {
+                return $this->ownedOrderNotFoundResponse();
+            }
             
             $order->update([
                 'payment_status' => 'pending_cash',
@@ -400,7 +434,10 @@ class PaymentController extends Controller
         }
 
         try {
-            $order = Order::findOrFail($request->order_id);
+            $order = $this->resolveOwnedOrder((int) $request->order_id);
+            if (!$order) {
+                return $this->ownedOrderNotFoundResponse();
+            }
             
             // Simular verificación de pago móvil
             $paymentResult = $this->verifyMobilePayment($request->all());
@@ -475,7 +512,10 @@ class PaymentController extends Controller
         }
 
         try {
-            $order = Order::findOrFail($request->order_id);
+            $order = $this->resolveOwnedOrder((int) $request->order_id);
+            if (!$order) {
+                return $this->ownedOrderNotFoundResponse();
+            }
             
             // Verificar que el pedido esté pagado
             if ($order->payment_status !== 'paid') {
@@ -535,8 +575,11 @@ class PaymentController extends Controller
     public function getPaymentReceipt($orderId): JsonResponse
     {
         try {
-            $order = Order::with(['profile', 'commerce', 'items.product'])
-                ->findOrFail($orderId);
+            $order = $this->resolveOwnedOrder((int) $orderId);
+            if (!$order) {
+                return $this->ownedOrderNotFoundResponse();
+            }
+            $order->load(['profile', 'commerce', 'items.product']);
 
             $receipt = [
                 'receipt_number' => 'RCP-' . str_pad($order->id, 8, '0', STR_PAD_LEFT),
