@@ -19,15 +19,16 @@
 | **Versión**              | 1.0.0                                              |
 | **Estado**               | ✅ MVP Completado - En desarrollo activo           |
 | **Endpoints**            | 290 rutas REST                                     |
-| **Controladores**        | 82                                                 |
+| **Controladores**        | 83                                                 |
 | **Modelos**              | 41                                                 |
 | **Migraciones**          | 55                                                 |
-| **Tests**                | 353 pasaron ✅, 0 fallaron                         |
+| **Tests**                | 355 pasaron ✅, 0 fallaron                         |
 | **Seguridad**            | Sanctum + RBAC + Rate Limiting + Upload validation |
 | **Última actualización** | 7 Abr 2026                                         |
 
 ### Cambios recientes (documentar aquí los avances)
 
+- **7 Abr 2026:** Cierre módulo **enlace web tienda (storefront)** — ruta web pública `GET /r/{commerce}` (`Web\Front\StorefrontLinkController`), vista `resources/views/front/storefront/commerce_link.blade.php` con intent de apertura `zonix://restaurant/{id}` y fallback; feature tests `tests/Feature/StorefrontLinkTest.php`. Complementa la app (QR / compartir enlace HTTP clicable en apps externas). Validación: `php artisan test --filter=StorefrontLinkTest` + suite completa en entorno local.
 - **7 Abr 2026:** Remediación plan **análisis forense técnico** (seguridad, datos, API, observabilidad, tests): mass assignment corregido en `Web\UserController` y `Web\RolePermission\RoleController`; CORS con orígenes explícitos documentados en `.env.example`; validación de pagos comercio/empresa en `DB::transaction` + `lockForUpdate`; UNIQUE `(order_id,type)` y `(profile_id,post_id)` en migraciones create; trait `ApiResponse` unificando envelope en perfiles/direcciones; logs sin query completa en `routes/api.php` y sin volcado de body en `ChatController`; `GET /api/admin/system-health` con ping BD/memoria/versiones (sin placeholders) + `GET /api/admin/realtime-metrics` exportando contadores `metrics:realtime:*`; unit tests `OrderStateMachineService`, `DeliveryFeeService`, `NotificationServiceMetricsTest`; tests Feature admin ampliados; `ProfileControllerTest` alineado al envelope `success/data/message`. Validación: `php artisan test` **353 OK** (1531 assertions).
 - **2 Abr 2026:** Cierre factories/seeders — módulo disputas (demo): `ZonixDemoSeeder::seedDisputes` usa `reported_against_id` = `commerce_id` (PK de `commerces`) alineado a `morphTo('reportedAgainst')`; `DisputeFactory` documenta contrato polimórfico (Profile/Commerce/DeliveryAgent con PK correcta por tipo) y elimina comentarios obsoletos sobre `profile_id`. Validación: `php artisan migrate:fresh --seed` OK + `php artisan test --filter=Dispute` (15 OK).
 - **1 Abr 2026:** Hardening transversal final (backend) — cierre de superficie crítica pendiente: (1) `Buyer/PaymentController` ahora valida ownership de orden en todos los endpoints legacy de pago/reembolso/comprobante (bloqueo de IDOR con respuesta 404 controlada), (2) rutas de diagnóstico `/api/test/*` encapsuladas a entornos `local/testing` en `routes/api/common.php` (no expuestas en runtime normal), (3) test de regresión de seguridad añadido en `OrderPaymentTest` para impedir procesamiento legacy sobre órdenes de terceros. Validación: `php artisan test --filter=OrderPaymentTest` (23 OK) + `RoleAuthenticationTest/WebSocketTest` en verde.

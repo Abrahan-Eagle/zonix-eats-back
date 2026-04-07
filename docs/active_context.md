@@ -10,9 +10,9 @@
 *(La skill **context-updater** rellena esta sección al final de sesiones con cambios relevantes. Si está vacía, no hay resumen pendiente.)*
 
 - **Fecha:** 7 Abril 2026
-- **Resumen:** Cierre remediación **análisis forense técnico** (backend): seguridad (mass assignment, CORS, pagos concurrentes), integridad BD (UNIQUE), `ApiResponse`, observabilidad (`system-health`, `realtime-metrics`), tests unitarios + ajuste `ProfileControllerTest` al envelope. Suite `php artisan test`: **353 OK**.
-- **Áreas tocadas:** `Web\UserController`, `RolePermission/RoleController`, `config/cors`, `Commerce/OrderController`, `DeliveryCompany/CompanyController`, migraciones `order_payments`/`post_likes`, `Http/Traits/ApiResponse`, `Profiles/*Controller`, `Chat/ChatController`, `routes/api.php`, `Admin/ReportController`, `routes/api/admin.php`, `tests/Unit/*`, `tests/Feature/AdminRoleTest`, `tests/Feature/ProfileControllerTest`, `AGENTS.md`.
-- **Próximos pasos sugeridos:** commit/push cuando apruebes; en frontend (repo aparte) ya modularizado `main.dart` + Semantics — `flutter test` verde.
+- **Resumen:** Cierre módulo **storefront / enlace web comercio**: `GET /r/{commerce}` + `StorefrontLinkController` + Blade `commerce_link` (redirect a `zonix://restaurant/{id}`); tests `StorefrontLinkTest`. En frontend (repo aparte): pantalla QR comercio, enlaces HTTP vía `APP_LINK_BASE_*`, fix `RestaurantDetailsPage.logoUrl` desde deep link. Coordinar `APP_LINK_BASE_*` en `.env` con la URL del backend para enlaces compartibles en dev/prod.
+- **Áreas tocadas:** `routes/web.php`, `app/Http/Controllers/Web/Front/StorefrontLinkController.php`, `resources/views/front/storefront/commerce_link.blade.php`, `tests/Feature/StorefrontLinkTest.php`, `AGENTS.md`. (Frontend: `commerce_share_qr_page.dart`, `commerce_dashboard_page.dart`, detalle restaurante.)
+- **Próximos pasos sugeridos:** commit/push cuando apruebes; ejecutar `php artisan test` tras `composer install` si el entorno no tiene `vendor/`; opcional futuro: buyer QR en shell / unificar permisos ubicación si molesta en UX.
 
 - **Fecha (histórico):** 2 Abril 2026
 - **Resumen:** Cierre factories/seeders — disputas demo: `ZonixDemoSeeder` y `DisputeFactory` alineados al contrato polimórfico (`reported_against_id` = PK de Commerce/ DeliveryAgent según tipo; docblock en factory). `AGENTS.md` actualizado.

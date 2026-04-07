@@ -71,6 +71,12 @@ Route::get('/clear', function() {
 // ============================================
 
 Route::get('/', [IndexController::class, 'index'])->name('front.home');
+
+// Enlace compartido desde la app móvil (QR / WhatsApp): http(s)://…/r/{commerceId}
+Route::get('/r/{commerce}', [\App\Http\Controllers\Web\Front\StorefrontLinkController::class, 'show'])
+    ->whereNumber('commerce')
+    ->name('front.storefront.commerce');
+
 Route::get('/sitemap.xml', [\App\Http\Controllers\Web\Front\SitemapController::class, 'index'])->name('sitemap');
 
 // Páginas legales
