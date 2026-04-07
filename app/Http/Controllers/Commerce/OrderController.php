@@ -8,6 +8,7 @@ use App\Models\DeliveryCompany;
 use App\Jobs\AutoAssignDeliveryJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Events\PaymentValidated;
 use App\Events\OrderStatusChanged;
@@ -206,13 +207,15 @@ class OrderController extends Controller
                 ], 422);
             }
 
-            $order = Order::findOrFail($id);
             /** @var \App\Models\User|null $user */
             $user = Auth::user();
             if (!$user) {
                 return response()->json(['error' => 'No autenticado'], 401);
             }
-            $user->load('profile.commerces');
+
+            return DB::transaction(function () use ($validated, $stateMachine, $id, $user) {
+            $order = Order::whereKey($id)->lockForUpdate()->firstOrFail();
+            $user->loadMissing('profile.commerces');
             $profile = $user->profile;
 
             // Verificar que el usuario es dueño del comercio de la orden
@@ -375,6 +378,8 @@ class OrderController extends Controller
                     'all_payments_validated' => $order->allPaymentsValidated(),
                 ],
             ]);
+
+            });
 
         } catch (\Exception $e) {
             Log::error('Error al validar el comprobante: ' . $e->getMessage());

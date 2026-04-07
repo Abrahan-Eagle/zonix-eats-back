@@ -13,9 +13,12 @@ use App\Models\Profile;
 use App\Models\State;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Traits\ApiResponse;
 
 class AddressController extends Controller
 {
+    use ApiResponse;
+
     private function isAdmin(Request $request): bool
     {
         return $request->user() && $request->user()->role === 'admin';
@@ -58,7 +61,7 @@ class AddressController extends Controller
         if (!$this->isAdmin($request)) {
             $authProfile = $this->authProfile($request);
             if (!$authProfile) {
-                return response()->json([], 200);
+                return $this->jsonSuccess([]);
             }
             $query->where(function ($q) use ($authProfile) {
                 $q->where('profile_id', $authProfile->id)
@@ -68,7 +71,8 @@ class AddressController extends Controller
             });
         }
         $addresses = $query->get();
-        return response()->json($addresses);
+
+        return $this->jsonSuccess($addresses);
     }
 
     /**
@@ -95,12 +99,7 @@ public function store(Request $request)
     ]);
 
     if ($validator->fails()) {
-        return response()->json([
-            'success' => false,
-            'data' => null,
-            'message' => 'Datos de dirección inválidos.',
-            'errors' => $validator->errors(),
-        ], 400);
+        return $this->jsonError('Datos de dirección inválidos.', 400, 'VALIDATION_ERROR', $validator->errors());
     }
 
     $statusx = 'notverified';
@@ -109,7 +108,7 @@ public function store(Request $request)
     if ($request->filled('commerce_id')) {
         $commerce = Commerce::findOrFail((int) $request->commerce_id);
         if (!$this->isAdmin($request) && (int) $commerce->profile_id !== (int) optional($this->authProfile($request))->id) {
-            return response()->json(['message' => 'No autorizado'], 403);
+            return $this->jsonForbidden();
         }
         $address = Address::create([
             'street' => $request->street,
@@ -123,14 +122,15 @@ public function store(Request $request)
             'role' => $request->role ?? 'commerce',
             'commerce_id' => $request->commerce_id,
         ]);
-        return response()->json(['message' => 'Address created successfully', 'address' => $address], 201);
+
+        return $this->jsonSuccess(['address' => $address], 'Address created successfully', 201);
     }
 
     // Dirección de persona (dueño, usuario, etc.): requiere profile_id.
     $profile = Profile::find((int) $request->profile_id)
         ?? Profile::where('user_id', (int) $request->profile_id)->firstOrFail();
     if (!$this->isAdmin($request) && (int) $profile->id !== (int) optional($this->authProfile($request))->id) {
-        return response()->json(['message' => 'No autorizado'], 403);
+        return $this->jsonForbidden();
     }
     $role = $request->role ?? $profile->user->role ?? null;
 
@@ -147,7 +147,7 @@ public function store(Request $request)
         'commerce_id' => null,
     ]);
 
-    return response()->json(['message' => 'Address created successfully', 'address' => $address], 201);
+    return $this->jsonSuccess(['address' => $address], 'Address created successfully', 201);
 }
 
 
@@ -159,12 +159,13 @@ public function store(Request $request)
     {
         $address = Address::with(['city.state.country', 'profile'])->find($id);
         if (!$address) {
-            return response()->json(['message' => 'Address not found'], 404);
+            return $this->jsonNotFound('Address not found');
         }
         if (!$this->canAccessAddress($request, $address)) {
-            return response()->json(['message' => 'No autorizado'], 403);
+            return $this->jsonForbidden();
         }
-        return response()->json($address);
+
+        return $this->jsonSuccess($address);
     }
 
     /**
@@ -176,10 +177,10 @@ public function store(Request $request)
         $address = Address::find($id);
 
         if (!$address) {
-            return response()->json(['message' => 'Address not found'], 404);
+            return $this->jsonNotFound('Address not found');
         }
         if (!$this->canAccessAddress($request, $address)) {
-            return response()->json(['message' => 'No autorizado'], 403);
+            return $this->jsonForbidden();
         }
 
         // Validar los datos de la solicitud
@@ -195,7 +196,7 @@ public function store(Request $request)
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 400);
+            return $this->jsonError('Error de validación', 400, 'VALIDATION_ERROR', $validator->errors());
         }
 
         // Actualizar la dirección
@@ -213,7 +214,7 @@ public function store(Request $request)
         // Guardar los cambios
         $address->save();
 
-        return response()->json(['message' => 'Address updated successfully', 'address' => $address]);
+        return $this->jsonSuccess(['address' => $address], 'Address updated successfully');
     }
 
     /**
@@ -225,16 +226,16 @@ public function store(Request $request)
         $address = Address::find($id);
 
         if (!$address) {
-            return response()->json(['message' => 'Address not found'], 404);
+            return $this->jsonNotFound('Address not found');
         }
         if (!$this->canAccessAddress($request, $address)) {
-            return response()->json(['message' => 'No autorizado'], 403);
+            return $this->jsonForbidden();
         }
 
         // Eliminar la dirección
         $address->delete();
 
-        return response()->json(['message' => 'Address deleted successfully']);
+        return $this->jsonSuccess(null, 'Address deleted successfully');
     }
 
 
@@ -243,7 +244,7 @@ public function getCountries(Request $request)
 {
     $countries = Country::get(['name', 'id']);
     Log::info('Países recuperados: ', $countries->toArray());
-    return response()->json($countries);
+    return $this->jsonSuccess($countries);
 }
 
 public function getState(Request $request)
@@ -254,7 +255,7 @@ public function getState(Request $request)
 
     $states = State::where("countries_id", $request->countries_id)->get(["name", "id"]);
     // return response()->json(['states' => $states]);
-    return response()->json($states);
+    return $this->jsonSuccess($states);
 }
 
 public function getCity(Request $request)
@@ -264,16 +265,17 @@ public function getCity(Request $request)
     ]);
 
     $cities = City::where("state_id", $request->state_id)->get(["name", "id"]);
-    return response()->json($cities);
+    return $this->jsonSuccess($cities);
 }
 
 public function getCityById($id)
 {
     $city = City::find($id);
     if (!$city) {
-        return response()->json(['message' => 'City not found'], 404);
+        return $this->jsonNotFound('City not found');
     }
-    return response()->json($city);
+
+    return $this->jsonSuccess($city);
 }
 
 }

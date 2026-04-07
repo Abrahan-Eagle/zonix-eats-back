@@ -11,9 +11,12 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Traits\ApiResponse;
 
 class ProfileController extends Controller
 {
+    use ApiResponse;
+
     private function isAdmin(Request $request): bool
     {
         return $request->user() && $request->user()->role === 'admin';
@@ -31,14 +34,15 @@ class ProfileController extends Controller
     {
         if ($this->isAdmin($request)) {
             $profiles = Profile::with(['user', 'addresses'])->get();
-            return response()->json($profiles);
+
+            return $this->jsonSuccess($profiles);
         }
 
         $profile = Profile::with(['user', 'addresses'])
             ->where('user_id', $request->user()->id)
             ->first();
 
-        return response()->json($profile ? [$profile] : []);
+        return $this->jsonSuccess($profile ? [$profile] : []);
     }
 
     /**
@@ -60,21 +64,24 @@ class ProfileController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 400);
+            return $this->jsonError('Error de validación', 400, 'VALIDATION_ERROR', $validator->errors());
         }
 
         if (!$this->isAdmin($request) && (int) $request->user_id !== (int) $request->user()->id) {
-            return response()->json(['message' => 'No autorizado'], 403);
+            return $this->jsonForbidden('No autorizado');
         }
 
                 // Verificar si ya existe un perfil para el usuario.
         $existingProfile = Profile::where('user_id', $request->user_id)->first();
 
         if ($existingProfile) {
-            return response()->json([
-                'message' => 'Ya existe un perfil asociado a este usuario.',
-                'profile' => $existingProfile
-            ], 409); // Código de estado HTTP 409: Conflicto
+            return $this->jsonError(
+                'Ya existe un perfil asociado a este usuario.',
+                409,
+                'PROFILE_ALREADY_EXISTS',
+                null,
+                ['profile' => $existingProfile]
+            );
         }
 
 
@@ -103,10 +110,7 @@ class ProfileController extends Controller
         // Crear el perfil.
         $profile = Profile::create($profileData);
 
-        return response()->json([
-            'message' => 'Perfil creado exitosamente.',
-            'profile' => $profile
-        ], 201);
+        return $this->jsonSuccess(['profile' => $profile], 'Perfil creado exitosamente.', 201);
     }
 
     /**
@@ -116,13 +120,14 @@ class ProfileController extends Controller
     {
         $user = $request->user();
         if (!$user) {
-            return response()->json(['message' => 'No autenticado'], 401);
+            return $this->jsonUnauthorized();
         }
         $profile = Profile::with(['user', 'addresses', 'commerce'])->where('user_id', $user->id)->first();
         if (!$profile) {
-            return response()->json(['message' => 'Perfil no encontrado'], 404);
+            return $this->jsonNotFound('Perfil no encontrado');
         }
-        return response()->json($profile);
+
+        return $this->jsonSuccess($profile);
     }
 
     /**
@@ -131,16 +136,17 @@ class ProfileController extends Controller
     public function show(Request $request, $id = null)
     {
         if ($id === null || $id === '' || (is_string($id) && trim($id) === '')) {
-            return response()->json(['message' => 'ID de perfil requerido'], 400);
+            return $this->jsonError('ID de perfil requerido', 400, 'PROFILE_ID_REQUIRED');
         }
         $profile = Profile::with(['user', 'addresses'])->find($id);
         if (!$profile) {
-            return response()->json(['message' => 'Perfil no encontrado'], 404);
+            return $this->jsonNotFound('Perfil no encontrado');
         }
         if (!$this->canAccessProfile($request, $profile)) {
-            return response()->json(['message' => 'No autorizado'], 403);
+            return $this->jsonForbidden();
         }
-        return response()->json($profile);
+
+        return $this->jsonSuccess($profile);
     }
 
     /**
@@ -151,7 +157,7 @@ class ProfileController extends Controller
         $user = $request->user();
         $profile = Profile::where('user_id', $user->id)->first();
         if (!$profile) {
-            return response()->json(['success' => false, 'message' => 'Perfil no encontrado'], 404);
+            return $this->jsonNotFound('Perfil no encontrado');
         }
 
         return $this->update($request, $profile->id);
@@ -162,7 +168,7 @@ class ProfileController extends Controller
     // Buscar el perfil por ID o devolver error 404.
     $profile = Profile::findOrFail($id);
     if (! $this->canAccessProfile($request, $profile)) {
-        return response()->json(['message' => 'No autorizado'], 403);
+        return $this->jsonForbidden();
     }
 
     // Validar los datos recibidos (date_of_birth nullable para perfiles sin fecha).
@@ -231,11 +237,10 @@ class ProfileController extends Controller
     // Guardar los cambios en el perfil
     $profile->save();
 
-    return response()->json([
-        'message' => 'Perfil actualizado exitosamente.',
+    return $this->jsonSuccess([
         'profile' => $profile,
-        'isSuccess' => true
-    ], 200);
+        'isSuccess' => true,
+    ], 'Perfil actualizado exitosamente.');
 }
 
 
@@ -247,10 +252,10 @@ class ProfileController extends Controller
         $profile = Profile::find($id);
 
         if (!$profile) {
-            return response()->json(['message' => 'Perfil no encontrado'], 404);
+            return $this->jsonNotFound('Perfil no encontrado');
         }
         if (! $this->canAccessProfile($request, $profile)) {
-            return response()->json(['message' => 'No autorizado'], 403);
+            return $this->jsonForbidden();
         }
 
         // Eliminar la imagen asociada si existe.
@@ -263,7 +268,7 @@ class ProfileController extends Controller
 
         $profile->delete();
 
-        return response()->json(['message' => 'Perfil eliminado exitosamente']);
+        return $this->jsonSuccess(null, 'Perfil eliminado exitosamente.');
     }
 
 
@@ -273,10 +278,10 @@ class ProfileController extends Controller
 
             $profile = Profile::where('user_id', $id)->first();
             if ($profile) {
-                return response()->json(['profileId' => $profile->id], 200);
-            } else {
-                return response()->json(['error' => 'User profile not found'], 404);
+                return $this->jsonSuccess(['profileId' => $profile->id]);
             }
+
+            return $this->jsonNotFound('User profile not found');
         }
 
     /**
@@ -299,20 +304,23 @@ class ProfileController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 400);
+            return $this->jsonError('Error de validación', 400, 'VALIDATION_ERROR', $validator->errors());
         }
         if (!$this->isAdmin($request) && (int) $request->user_id !== (int) $request->user()->id) {
-            return response()->json(['message' => 'No autorizado'], 403);
+            return $this->jsonForbidden();
         }
 
         // Verificar si ya existe un perfil para el usuario
         $existingProfile = Profile::where('user_id', $request->user_id)->first();
 
         if ($existingProfile) {
-            return response()->json([
-                'message' => 'Ya existe un perfil asociado a este usuario.',
-                'profile' => $existingProfile
-            ], 409);
+            return $this->jsonError(
+                'Ya existe un perfil asociado a este usuario.',
+                409,
+                'PROFILE_ALREADY_EXISTS',
+                null,
+                ['profile' => $existingProfile]
+            );
         }
 
         $profileData = $request->only([
@@ -354,14 +362,10 @@ class ProfileController extends Controller
 
         $deliveryAgent = \App\Models\DeliveryAgent::create($deliveryAgentData);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Delivery agent profile created successfully',
-            'data' => [
-                'profile' => $profile,
-                'delivery_agent' => $deliveryAgent
-            ]
-        ], 201);
+        return $this->jsonSuccess([
+            'profile' => $profile,
+            'delivery_agent' => $deliveryAgent,
+        ], 'Delivery agent profile created successfully', 201);
     }
 
     /**
@@ -388,19 +392,22 @@ class ProfileController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 400);
+            return $this->jsonError('Error de validación', 400, 'VALIDATION_ERROR', $validator->errors());
         }
         if (!$this->isAdmin($request) && (int) $request->user_id !== (int) $request->user()->id) {
-            return response()->json(['message' => 'No autorizado'], 403);
+            return $this->jsonForbidden();
         }
 
         // Verificar si ya existe un perfil para el usuario
         $existingProfile = Profile::where('user_id', $request->user_id)->first();
         if ($existingProfile) {
-            return response()->json([
-                'message' => 'Ya existe un perfil asociado a este usuario.',
-                'profile' => $existingProfile
-            ], 409);
+            return $this->jsonError(
+                'Ya existe un perfil asociado a este usuario.',
+                409,
+                'PROFILE_ALREADY_EXISTS',
+                null,
+                ['profile' => $existingProfile]
+            );
         }
 
         $profileData = $request->only([
@@ -438,22 +445,17 @@ class ProfileController extends Controller
             'open' => $request->is_open ?? false,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'id' => $commerce->id,
-                'business_name' => $commerce->business_name,
-                'description' => $commerce->description,
-                // La dirección principal del comercio se obtiene de addresses;
-                // por compatibilidad, devolvemos la que llegó en la petición.
-                'address' => $request->address,
-                'phone' => $commerce->phone,
-                'open' => $commerce->open,
-                'mobile_payment_id' => null, // Agregado para el test
-                'mobile_payment_bank' => null, // Agregado para el test
-                'mobile_payment_phone' => null // Agregado para el test
-            ]
-        ], 201);
+        return $this->jsonSuccess([
+            'id' => $commerce->id,
+            'business_name' => $commerce->business_name,
+            'description' => $commerce->description,
+            'address' => $request->address,
+            'phone' => $commerce->phone,
+            'open' => $commerce->open,
+            'mobile_payment_id' => null,
+            'mobile_payment_bank' => null,
+            'mobile_payment_phone' => null,
+        ], 'OK', 201);
     }
 
     /**
@@ -487,16 +489,13 @@ class ProfileController extends Controller
                 'errors' => $validator->errors()->toArray(),
                 'payload' => $request->only(['profile_id', 'business_name', 'tax_id']),
             ]);
-            return response()->json([
-                'message' => 'Datos no válidos.',
-                'errors' => $validator->errors(),
-            ], 400);
+            return $this->jsonError('Datos no válidos.', 400, 'VALIDATION_ERROR', $validator->errors());
         }
 
         try {
             $profile = Profile::findOrFail($request->profile_id);
             if (! $this->canAccessProfile($request, $profile)) {
-                return response()->json(['message' => 'No autorizado'], 403);
+                return $this->jsonForbidden();
             }
             $isFirstCommerce = $profile->commerces()->count() === 0;
 
@@ -520,24 +519,23 @@ class ProfileController extends Controller
 
             $this->notifyAdminsNewCommerce($commerce);
 
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'id' => $commerce->id,
-                    'business_name' => $commerce->business_name,
-                    'address' => $commerce->address,
-                    'open' => $commerce->open,
-                    'status' => $commerce->status,
-                ],
-            ], 201);
+            return $this->jsonSuccess([
+                'id' => $commerce->id,
+                'business_name' => $commerce->business_name,
+                'address' => $commerce->address,
+                'open' => $commerce->open,
+                'status' => $commerce->status,
+            ], 'Comercio creado.', 201);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('addCommerceToProfile: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
             ]);
-            return response()->json([
-                'message' => 'Error al crear el comercio.',
-                'error' => config('app.debug') ? $e->getMessage() : null,
-            ], 500);
+            return $this->jsonError(
+                'Error al crear el comercio.',
+                500,
+                'COMMERCE_CREATE_FAILED',
+                config('app.debug') ? ['exception' => $e->getMessage()] : null
+            );
         }
     }
 
@@ -581,20 +579,23 @@ class ProfileController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 400);
+            return $this->jsonError('Error de validación', 400, 'VALIDATION_ERROR', $validator->errors());
         }
         if (!$this->isAdmin($request) && (int) $request->user_id !== (int) $request->user()->id) {
-            return response()->json(['message' => 'No autorizado'], 403);
+            return $this->jsonForbidden();
         }
 
         // Verificar si ya existe un perfil para el usuario
         $existingProfile = Profile::where('user_id', $request->user_id)->first();
 
         if ($existingProfile) {
-            return response()->json([
-                'message' => 'Ya existe un perfil asociado a este usuario.',
-                'profile' => $existingProfile
-            ], 409);
+            return $this->jsonError(
+                'Ya existe un perfil asociado a este usuario.',
+                409,
+                'PROFILE_ALREADY_EXISTS',
+                null,
+                ['profile' => $existingProfile]
+            );
         }
 
         $profileData = $request->only([
@@ -629,14 +630,10 @@ class ProfileController extends Controller
             'active' => true,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Delivery company profile created successfully',
-            'data' => [
-                'profile' => $profile,
-                'delivery_company' => $deliveryCompany
-            ]
-        ], 201);
+        return $this->jsonSuccess([
+            'profile' => $profile,
+            'delivery_company' => $deliveryCompany,
+        ], 'Delivery company profile created successfully', 201);
     }
 
     /**

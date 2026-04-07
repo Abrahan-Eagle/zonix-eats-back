@@ -19,9 +19,26 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => env('CORS_ALLOWED_ORIGINS') 
-        ? explode(',', env('CORS_ALLOWED_ORIGINS')) 
-        : ['*'],
+    /*
+     * Orígenes permitidos (navegadores). No usar '*' con credenciales (Sanctum cookie/Authorization).
+     * En producción: CORS_ALLOWED_ORIGINS=https://tu-dominio.com,https://www.tu-dominio.com
+     * Si la variable no está definida: orígenes locales típicos (desarrollo), no '*'.
+     */
+    'allowed_origins' => (function () {
+        $raw = env('CORS_ALLOWED_ORIGINS');
+        if ($raw !== null && $raw !== '') {
+            return array_map('trim', explode(',', $raw));
+        }
+
+        return [
+            'http://localhost',
+            'http://127.0.0.1',
+            'http://localhost:8000',
+            'http://127.0.0.1:8000',
+            'http://localhost:5173',
+            'http://127.0.0.1:5173',
+        ];
+    })(),
 
     'allowed_origins_patterns' => [],
 
@@ -31,6 +48,17 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => true,
+    // Con Access-Control-Allow-Origin: * el navegador no envía credenciales; forzar false si hay comodín.
+    'supports_credentials' => (function () {
+        $raw = env('CORS_ALLOWED_ORIGINS');
+        if ($raw !== null && $raw !== '') {
+            $list = array_map('trim', explode(',', $raw));
+            if (in_array('*', $list, true)) {
+                return false;
+            }
+        }
+
+        return env('CORS_SUPPORTS_CREDENTIALS', true);
+    })(),
 
 ];

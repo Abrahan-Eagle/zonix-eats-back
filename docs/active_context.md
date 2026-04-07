@@ -9,10 +9,14 @@
 
 *(La skill **context-updater** rellena esta sección al final de sesiones con cambios relevantes. Si está vacía, no hay resumen pendiente.)*
 
-- **Fecha:** 2 Abril 2026
+- **Fecha:** 7 Abril 2026
+- **Resumen:** Cierre remediación **análisis forense técnico** (backend): seguridad (mass assignment, CORS, pagos concurrentes), integridad BD (UNIQUE), `ApiResponse`, observabilidad (`system-health`, `realtime-metrics`), tests unitarios + ajuste `ProfileControllerTest` al envelope. Suite `php artisan test`: **353 OK**.
+- **Áreas tocadas:** `Web\UserController`, `RolePermission/RoleController`, `config/cors`, `Commerce/OrderController`, `DeliveryCompany/CompanyController`, migraciones `order_payments`/`post_likes`, `Http/Traits/ApiResponse`, `Profiles/*Controller`, `Chat/ChatController`, `routes/api.php`, `Admin/ReportController`, `routes/api/admin.php`, `tests/Unit/*`, `tests/Feature/AdminRoleTest`, `tests/Feature/ProfileControllerTest`, `AGENTS.md`.
+- **Próximos pasos sugeridos:** commit/push cuando apruebes; en frontend (repo aparte) ya modularizado `main.dart` + Semantics — `flutter test` verde.
+
+- **Fecha (histórico):** 2 Abril 2026
 - **Resumen:** Cierre factories/seeders — disputas demo: `ZonixDemoSeeder` y `DisputeFactory` alineados al contrato polimórfico (`reported_against_id` = PK de Commerce/ DeliveryAgent según tipo; docblock en factory). `AGENTS.md` actualizado.
 - **Áreas tocadas:** `database/seeders/ZonixDemoSeeder.php`, `database/factories/DisputeFactory.php`, `AGENTS.md`.
-- **Próximos pasos sugeridos:** commit cuando apruebes; suite completa `php artisan test` si preparas release.
 
 ---
 

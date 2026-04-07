@@ -26,7 +26,7 @@ return new class extends Migration
             $table->string('rejection_reason', 500)->nullable();
             $table->timestamps();
 
-            $table->index(['order_id', 'type']);
+            $table->unique(['order_id', 'type']);
             $table->index(['payee_type', 'payee_id', 'validated_at']);
         });
     }

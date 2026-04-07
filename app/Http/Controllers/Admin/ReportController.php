@@ -11,6 +11,7 @@ use App\Models\Review;
 use App\Models\AdminAuditLog;
 use App\Services\DeliveryObservabilityService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -180,17 +181,61 @@ class ReportController extends Controller
 
     public function getSystemHealth()
     {
+        $pdoOk = false;
+        $dbPingMs = null;
+        try {
+            DB::connection()->getPdo();
+            $pdoOk = true;
+            $t0 = microtime(true);
+            DB::select('select 1');
+            $dbPingMs = round((microtime(true) - $t0) * 1000, 2);
+        } catch (\Throwable $e) {
+            $pdoOk = false;
+        }
+
         return response()->json([
-            'server_status' => 'healthy',
-            'database_status' => DB::connection()->getPdo() ? 'healthy' : 'unhealthy',
-            'api_status' => 'healthy',
-            'uptime' => '99.9%',
-            'response_time' => '120ms',
-            'active_connections' => User::whereNotNull('remember_token')->count(),
-            'memory_usage' => round(memory_get_usage(true) / 1024 / 1024, 2) . 'MB',
-            'last_backup' => now()->subDay()->toIso8601String(),
-            'security_alerts' => 0,
-            'performance_score' => 95,
+            'success' => true,
+            'message' => 'OK',
+            'data' => [
+                'server_status' => 'healthy',
+                'database_status' => $pdoOk ? 'healthy' : 'unhealthy',
+                'api_status' => 'healthy',
+                'database_ping_ms' => $dbPingMs,
+                'memory_usage_mb' => round(memory_get_usage(true) / 1024 / 1024, 2),
+                'php_version' => PHP_VERSION,
+                'laravel_version' => app()->version(),
+                'active_sessions_approx' => User::whereNotNull('remember_token')->count(),
+                'last_backup_at' => env('LAST_BACKUP_AT'),
+                'uptime_note' => 'El uptime del servidor no se mide en este endpoint; usar monitorización externa.',
+            ],
+        ]);
+    }
+
+    /**
+     * Exporta contadores de métricas en cache (Pusher auth, FCM, emisión de notificaciones).
+     */
+    public function getRealtimeMetricsSnapshot()
+    {
+        $keys = [
+            'metrics:realtime:notification_broadcast_emitted_total',
+            'metrics:realtime:fcm_sent_total',
+            'metrics:realtime:notification_emit_failed_total',
+            'metrics:realtime:fcm_skipped_no_token_total',
+            'metrics:realtime:fcm_skipped_preferences_total',
+            'metrics:realtime:fcm_failed_total',
+            'metrics:realtime:broadcast_auth_success_total',
+            'metrics:realtime:broadcast_auth_denied_total',
+            'metrics:realtime:broadcast_auth_error_total',
+        ];
+        $metrics = [];
+        foreach ($keys as $k) {
+            $metrics[$k] = (int) Cache::get($k, 0);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Métricas en cache (contadores; se reinician con flush de cache / deploy).',
+            'data' => $metrics,
         ]);
     }
 

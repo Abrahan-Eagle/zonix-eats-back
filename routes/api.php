@@ -10,7 +10,8 @@
 use Illuminate\Support\Facades\Log;
 
 if (config('app.debug')) {
-    Log::debug('🌐 Incoming API Request: ' . request()->method() . ' ' . request()->fullUrl(), [
+    // path() evita filtrar tokens/query sensibles en logs (fullUrl exponía credenciales en query).
+    Log::debug('🌐 Incoming API Request: ' . request()->method() . ' ' . request()->path(), [
         'ip' => request()->ip(),
         'agent' => request()->userAgent(),
     ]);

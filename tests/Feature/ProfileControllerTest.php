@@ -20,13 +20,17 @@ class ProfileControllerTest extends TestCase
 
     public function testIndex()
     {
+        Profile::factory()->create(['user_id' => $this->user->id]);
         $response = $this->actingAs($this->user, 'sanctum')
                         ->get('/api/profiles');
         $response->assertStatus(200)
                  ->assertJsonStructure([
-                     '*' => [
-                         'id', 'user_id', 'firstName', 'middleName', 'lastName', 'secondLastName', 'photo_users', 'date_of_birth', 'maritalStatus', 'sex'
-                     ]
+                     'success',
+                     'data' => [
+                         '*' => [
+                             'id', 'user_id', 'firstName', 'middleName', 'lastName', 'secondLastName', 'photo_users', 'date_of_birth', 'maritalStatus', 'sex',
+                         ],
+                     ],
                  ]);
     }
 
@@ -74,7 +78,7 @@ class ProfileControllerTest extends TestCase
         $response = $this->actingAs($this->user, 'sanctum')
                         ->get("/api/profiles/{$profile->id}");
         $response->assertStatus(200)
-                 ->assertJson(['id' => $profile->id]);
+                 ->assertJsonPath('data.id', $profile->id);
     }
 
     public function testUpdate()
@@ -100,7 +104,7 @@ class ProfileControllerTest extends TestCase
         $response = $this->actingAs($this->user, 'sanctum')
                         ->delete("/api/profiles/{$profile->id}");
         $response->assertStatus(200)
-                 ->assertJson(['message' => 'Perfil eliminado exitosamente']);
+                 ->assertJson(['message' => 'Perfil eliminado exitosamente.']);
     }
 
     /**

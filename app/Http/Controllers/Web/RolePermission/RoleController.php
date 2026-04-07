@@ -53,13 +53,17 @@ class RoleController extends Controller
 
   Gate::authorize('haveaccess', 'roles.create');
 
-  $request -> validate([
+  $validated = $request->validate([
   'name' => 'required|max:50|unique:roles,name',
   'slug' => 'required|max:50|unique:roles,slug',
   'full-access' => 'required|in:yes,no',
   ]);
 
-  $role = Role::create($request->all());
+  // Solo columnas del modelo Role ($fillable): name, description, permissions — nunca $request->all().
+  $role = Role::create([
+      'name' => $validated['name'],
+      'description' => $request->input('description'),
+  ]);
 
   // if ($request->get('permission')){
   //return $request->all();
@@ -124,13 +128,16 @@ class RoleController extends Controller
   {
   $this->authorize('haveaccess', 'roles.edit');
 
-  $request -> validate([
+  $validated = $request->validate([
   'name' => 'required|max:50|unique:roles,name,'. $role->id,
   'slug' => 'required|max:50|unique:roles,slug,'. $role->id,
   'full-access' => 'required|in:yes,no',
   ]);
 
-  $role->update($request->all());
+  $role->update([
+      'name' => $validated['name'],
+      'description' => $request->input('description'),
+  ]);
 
   // if ($request->get('permission')){
   //return $request->all();

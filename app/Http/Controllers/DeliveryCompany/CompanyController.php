@@ -859,64 +859,66 @@ class CompanyController extends Controller
                 return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
             }
 
-            $order = Order::find($orderId);
-            if (!$order || $order->delivery_company_id !== $company->id) {
-                return response()->json(['success' => false, 'message' => 'Orden no encontrada o no pertenece a tu empresa'], 404);
-            }
-            if ($order->status !== 'pending_payment') {
-                return response()->json(['success' => false, 'message' => 'Solo se puede validar pago de órdenes pendientes'], 400);
-            }
-
-            $deliveryPayment = $order->deliveryPayment;
-            if (!$deliveryPayment || !$deliveryPayment->payment_proof) {
-                return response()->json(['success' => false, 'message' => 'No hay comprobante de envío para validar'], 400);
-            }
-
-            $profile = Auth::user()->profile;
-
-            if ($request->is_valid) {
-                $deliveryPayment->update([
-                    'validated_at' => now(),
-                    'validated_by' => $profile->id,
-                    'rejected_at' => null,
-                    'rejection_reason' => null,
-                ]);
-
-                $order->refresh();
-                $order->load(['foodPayment', 'deliveryPayment']);
-                if ($order->allPaymentsValidated()) {
-                    $decision = app(OrderStateMachineService::class)->applyTransition(
-                        $order,
-                        'delivery_company',
-                        'paid',
-                        $profile->id,
-                        'delivery_company_payment_validation',
-                        'Todos los pagos validados'
-                    );
-                    if (!($decision['allowed'] ?? false)) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => $decision['message'] ?? 'No se pudo actualizar el estado de la orden',
-                            'error_code' => $decision['error_code'] ?? 'ORDER_INVALID_TRANSITION',
-                        ], (int) ($decision['http_status'] ?? 409));
-                    }
-                    $order->update(['payment_validated_at' => now()]);
-                    $message = 'Todos los pagos validados. Orden lista para preparar.';
-                } else {
-                    $message = 'Pago de envío validado. Pendiente: pago de comida.';
+            return DB::transaction(function () use ($request, $orderId, $company) {
+                $order = Order::whereKey($orderId)->lockForUpdate()->first();
+                if (!$order || $order->delivery_company_id !== $company->id) {
+                    return response()->json(['success' => false, 'message' => 'Orden no encontrada o no pertenece a tu empresa'], 404);
+                }
+                if ($order->status !== 'pending_payment') {
+                    return response()->json(['success' => false, 'message' => 'Solo se puede validar pago de órdenes pendientes'], 400);
                 }
 
-                event(new PaymentValidated($order->fresh(), true, $profile->id));
-            } else {
-                $deliveryPayment->update([
-                    'rejected_at' => now(),
-                    'rejection_reason' => $request->rejection_reason ?? 'Pago de envío rechazado',
-                ]);
-                $message = 'Pago de envío rechazado. El comprador puede re-subir el comprobante.';
-                event(new OrderStatusChanged($order->fresh()));
-            }
+                $deliveryPayment = $order->deliveryPayment;
+                if (!$deliveryPayment || !$deliveryPayment->payment_proof) {
+                    return response()->json(['success' => false, 'message' => 'No hay comprobante de envío para validar'], 400);
+                }
 
-            return response()->json(['success' => true, 'message' => $message]);
+                $profile = Auth::user()->profile;
+
+                if ($request->is_valid) {
+                    $deliveryPayment->update([
+                        'validated_at' => now(),
+                        'validated_by' => $profile->id,
+                        'rejected_at' => null,
+                        'rejection_reason' => null,
+                    ]);
+
+                    $order->refresh();
+                    $order->load(['foodPayment', 'deliveryPayment']);
+                    if ($order->allPaymentsValidated()) {
+                        $decision = app(OrderStateMachineService::class)->applyTransition(
+                            $order,
+                            'delivery_company',
+                            'paid',
+                            $profile->id,
+                            'delivery_company_payment_validation',
+                            'Todos los pagos validados'
+                        );
+                        if (!($decision['allowed'] ?? false)) {
+                            return response()->json([
+                                'success' => false,
+                                'message' => $decision['message'] ?? 'No se pudo actualizar el estado de la orden',
+                                'error_code' => $decision['error_code'] ?? 'ORDER_INVALID_TRANSITION',
+                            ], (int) ($decision['http_status'] ?? 409));
+                        }
+                        $order->update(['payment_validated_at' => now()]);
+                        $message = 'Todos los pagos validados. Orden lista para preparar.';
+                    } else {
+                        $message = 'Pago de envío validado. Pendiente: pago de comida.';
+                    }
+
+                    event(new PaymentValidated($order->fresh(), true, $profile->id));
+                } else {
+                    $deliveryPayment->update([
+                        'rejected_at' => now(),
+                        'rejection_reason' => $request->rejection_reason ?? 'Pago de envío rechazado',
+                    ]);
+                    $message = 'Pago de envío rechazado. El comprador puede re-subir el comprobante.';
+                    event(new OrderStatusChanged($order->fresh()));
+                }
+
+                return response()->json(['success' => true, 'message' => $message]);
+            });
         } catch (\Exception $e) {
             Log::error('[DeliveryCompanyAPI] validateDeliveryPayment error: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error al validar pago'], 500);

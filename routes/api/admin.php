@@ -18,6 +18,7 @@ Route::middleware(['auth:sanctum', 'role:admin', \App\Http\Middleware\AdminAudit
 
     Route::get('/statistics', [AdminReportController::class, 'getStatistics']);
     Route::get('/system-health', [AdminReportController::class, 'getSystemHealth']);
+    Route::get('/realtime-metrics', [AdminReportController::class, 'getRealtimeMetricsSnapshot']);
     Route::get('/analytics', [AdminReportController::class, 'getAnalytics']);
     Route::get('/delivery/observability/summary', [AdminReportController::class, 'getDeliveryObservabilitySummary']);
     Route::get('/delivery/observability/incidents', [AdminReportController::class, 'getDeliveryObservabilityIncidents']);

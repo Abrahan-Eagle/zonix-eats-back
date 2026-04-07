@@ -222,7 +222,8 @@ class ChatController extends Controller
             Log::warning('Chat sendMessage validation failed', [
                 'conversation_id' => $conversationId,
                 'errors' => $e->errors(),
-                'body_parsed' => $request->all(),
+                'payload_keys' => array_keys($request->all()),
+                'content_length' => strlen((string) $request->input('content', $request->input('body', $request->input('message', '')))),
                 'content_type' => $request->header('Content-Type'),
             ]);
             throw $e;

@@ -82,12 +82,13 @@ class UserController extends Controller
       */
      public function update(Request $request, User $user)
      {
-          $request->validate([
+          $validated = $request->validate([
                'name' => 'required|max:50|unique:users,name,' . $user->id,
                'email' => 'required|max:50|unique:users,email,' . $user->id,
           ]);
 
-          $user->update($request->all());
+          // Solo campos explícitos: evita mass assignment de role, password, etc. ($fillable en User).
+          $user->update($validated);
           $user->roles()->sync($request->get('roles'));
           return redirect()->route('users.index')->with('status_success', 'User updated successfully');
      }
