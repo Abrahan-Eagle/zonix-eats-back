@@ -22,12 +22,13 @@
 | **Controladores**        | 83                                                 |
 | **Modelos**              | 41                                                 |
 | **Migraciones**          | 55                                                 |
-| **Tests**                | 355 pasaron ✅, 0 fallaron                         |
+| **Tests**                | 364 pasaron ✅, 0 fallaron                         |
 | **Seguridad**            | Sanctum + RBAC + Rate Limiting + Upload validation |
-| **Última actualización** | 7 Abr 2026                                         |
+| **Última actualización** | 11 Abr 2026                                        |
 
 ### Cambios recientes (documentar aquí los avances)
 
+- **11 Abr 2026:** Cierre módulo **expiración automática `pending_payment`** — comando `zonix:expire-pending-payment-orders` (TTL desde `created_at` y/o desde `approved_for_payment_at` tras “aprobar para pagar”), configuración en `config/zonix.php` y variables `ZONIX_EXPIRE_PENDING_PAYMENT_*`, `ZONIX_PENDING_PAYMENT_MAX_AGE_MINUTES`, `ZONIX_PENDING_PAYMENT_AFTER_APPROVAL_MINUTES`, `ZONIX_EXPIRE_SKIP_IF_PROOF_PENDING` (por defecto no cancela por TTL si ya hay comprobante subido pendiente de validación del comercio; coherente con `order_payments` y campos legacy en `orders`). Lógica de filtro en scopes `Order::withoutAwaitingProofValidation`, `Order::wherePendingPaymentTtlExceeded`, `OrderPayment::awaitingCommerceValidation`. Agendado en `app/Console/Kernel.php` (cada minuto en `local`, cada 5 min en el resto; en prod hace falta cron `schedule:run`). **DX / IDE:** generados `_ide_helper.php` y `.phpstorm.meta.php` (`php artisan ide-helper:*`), script Composer `composer ide-helper`, `.vscode/settings.json` con rutas Intelephense. Tests: `tests/Feature/ExpirePendingPaymentOrdersTest.php`. Validación: `php artisan test` completo en verde (~364 tests).
 - **7 Abr 2026:** Cierre módulo **enlace web tienda (storefront)** — ruta web pública `GET /r/{commerce}` (`Web\Front\StorefrontLinkController`), vista `resources/views/front/storefront/commerce_link.blade.php` con intent de apertura `zonix://restaurant/{id}` y fallback; feature tests `tests/Feature/StorefrontLinkTest.php`. Complementa la app (QR / compartir enlace HTTP clicable en apps externas). Validación: `php artisan test --filter=StorefrontLinkTest` + suite completa en entorno local.
 - **7 Abr 2026:** Remediación plan **análisis forense técnico** (seguridad, datos, API, observabilidad, tests): mass assignment corregido en `Web\UserController` y `Web\RolePermission\RoleController`; CORS con orígenes explícitos documentados en `.env.example`; validación de pagos comercio/empresa en `DB::transaction` + `lockForUpdate`; UNIQUE `(order_id,type)` y `(profile_id,post_id)` en migraciones create; trait `ApiResponse` unificando envelope en perfiles/direcciones; logs sin query completa en `routes/api.php` y sin volcado de body en `ChatController`; `GET /api/admin/system-health` con ping BD/memoria/versiones (sin placeholders) + `GET /api/admin/realtime-metrics` exportando contadores `metrics:realtime:*`; unit tests `OrderStateMachineService`, `DeliveryFeeService`, `NotificationServiceMetricsTest`; tests Feature admin ampliados; `ProfileControllerTest` alineado al envelope `success/data/message`. Validación: `php artisan test` **353 OK** (1531 assertions).
 - **2 Abr 2026:** Cierre factories/seeders — módulo disputas (demo): `ZonixDemoSeeder::seedDisputes` usa `reported_against_id` = `commerce_id` (PK de `commerces`) alineado a `morphTo('reportedAgainst')`; `DisputeFactory` documenta contrato polimórfico (Profile/Commerce/DeliveryAgent con PK correcta por tipo) y elimina comentarios obsoletos sobre `profile_id`. Validación: `php artisan migrate:fresh --seed` OK + `php artisan test --filter=Dispute` (15 OK).
@@ -77,6 +78,16 @@ php artisan migrate:fresh --seed   # Reset completo
 
 # Servidor de desarrollo
 php artisan serve                  # Puerto 8000
+
+# Scheduler (obligatorio para tareas automáticas: zonix:expire-pending-payment-orders, alertas, etc.)
+# Sin esto, los comandos en app/Console/Kernel.php no se ejecutan solos.
+# Abrir otra terminal y dejar corriendo (recomendado; evita el timeout de Composer):
+php artisan schedule:work
+# Si usas `composer run schedule-work`, Composer corta el proceso padre a los 300s por defecto;
+# el worker puede seguir en segundo plano (verás logs “sueltos”). Usa:
+#   composer run schedule-work --timeout=0
+# Producción: una entrada cron por minuto (el propio Laravel decide cuándo dispara cada tarea):
+# * * * * * cd /ruta/al/proyecto && php artisan schedule:run >> /dev/null 2>&1
 
 # Tests
 php artisan test                   # Todos (269 tests)

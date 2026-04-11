@@ -24,6 +24,7 @@ class OrderFactory extends Factory
         $total = $this->faker->randomFloat(2, 10, 100);
         $deliveryFee = $deliveryType === 'delivery' ? $this->faker->randomFloat(2, 2, 15) : 0;
         $isPaidOrBeyond = in_array($status, ['paid', 'processing', 'shipped', 'delivered'], true);
+        $approvedForPayment = $status === 'pending_payment' ? $this->faker->boolean(50) : true;
 
         return [
             'profile_id' => Profile::factory(),
@@ -31,7 +32,10 @@ class OrderFactory extends Factory
             'delivery_company_id' => null,
             'delivery_type' => $deliveryType,
             'status' => $status,
-            'approved_for_payment' => $status === 'pending_payment' ? $this->faker->boolean(50) : true,
+            'approved_for_payment' => $approvedForPayment,
+            'approved_for_payment_at' => ($status === 'pending_payment' && $approvedForPayment)
+                ? $this->faker->dateTimeBetween('-3 days', 'now')
+                : null,
             'total' => $total,
             'delivery_fee' => $deliveryFee,
             'delivery_payment_amount' => $deliveryType === 'delivery' && in_array($status, ['shipped', 'delivered']) ? $deliveryFee : null,

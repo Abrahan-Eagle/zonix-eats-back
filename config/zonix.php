@@ -96,4 +96,27 @@ return [
         'replacement' => '/api/buyer/orders/{id}/payment-info + /api/buyer/orders/{id}/payment-proof',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Pedidos simultáneos (buyer): cuenta órdenes no entregadas ni canceladas.
+    | 0 = sin límite. Valores habituales: 5–7.
+    |--------------------------------------------------------------------------
+    */
+    'buyer_max_concurrent_open_orders' => (int) env('ZONIX_BUYER_MAX_CONCURRENT_OPEN_ORDERS', 7),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Caducidad automática: órdenes pending_payment sin pago (comando programado).
+    | max_age: desde created_at. after_approval: desde approved_for_payment_at (si existe).
+    | 0 desactiva esa regla. enabled=false desactiva el comando por completo.
+    |--------------------------------------------------------------------------
+    */
+    'expire_pending_payment' => [
+        'enabled' => filter_var(env('ZONIX_EXPIRE_PENDING_PAYMENT_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+        'max_age_minutes' => (int) env('ZONIX_PENDING_PAYMENT_MAX_AGE_MINUTES', 1440),
+        'after_approval_minutes' => (int) env('ZONIX_PENDING_PAYMENT_AFTER_APPROVAL_MINUTES', 60),
+        // No cancelar por TTL si ya hay comprobante subido y aún no fue validado/rechazado (comercio debe decidir).
+        'skip_if_proof_pending' => filter_var(env('ZONIX_EXPIRE_SKIP_IF_PROOF_PENDING', true), FILTER_VALIDATE_BOOLEAN),
+    ],
+
 ];

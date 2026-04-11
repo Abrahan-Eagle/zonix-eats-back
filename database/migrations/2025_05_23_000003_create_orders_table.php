@@ -20,6 +20,7 @@ return new class extends Migration
             $table->enum('delivery_type', ['pickup', 'delivery']);
             $table->enum('status', ['pending_payment', 'paid', 'processing', 'shipped', 'delivered', 'cancelled']);
             $table->boolean('approved_for_payment')->default(false);
+            $table->timestamp('approved_for_payment_at')->nullable();
             $table->decimal('total', 10, 2);
             $table->decimal('delivery_fee', 10, 2)->default(0); // Costo de delivery que paga el cliente
             $table->decimal('delivery_payment_amount', 10, 2)->nullable(); // Cantidad que recibe delivery (100% del delivery_fee)

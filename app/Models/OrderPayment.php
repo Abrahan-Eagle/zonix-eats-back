@@ -43,6 +43,16 @@ class OrderPayment extends Model
         return $this->belongsTo(PaymentMethod::class);
     }
 
+    /**
+     * Scope: comprobante subido y el comercio aún no valida ni rechaza (misma regla que {@see isPending()}).
+     */
+    public function scopeAwaitingCommerceValidation($query)
+    {
+        return $query->whereNotNull('payment_proof')
+            ->whereNull('validated_at')
+            ->whereNull('rejected_at');
+    }
+
     public function isValidated(): bool
     {
         return $this->validated_at !== null;
@@ -53,8 +63,9 @@ class OrderPayment extends Model
         return $this->rejected_at !== null;
     }
 
+    /** Comprobante presente y sin validar ni rechazar; coherente con {@see scopeAwaitingCommerceValidation()}. */
     public function isPending(): bool
     {
-        return $this->payment_proof !== null && !$this->isValidated() && !$this->isRejected();
+        return $this->payment_proof !== null && ! $this->isValidated() && ! $this->isRejected();
     }
 }

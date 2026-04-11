@@ -16,6 +16,7 @@ class Order extends Model
         'delivery_type',
         'status',
         'approved_for_payment',
+        'approved_for_payment_at',
         'total',
         'delivery_fee',
         'delivery_payment_amount',
@@ -47,6 +48,7 @@ class Order extends Model
         'cancellation_penalty' => 'decimal:2',
         'estimated_delivery_time' => 'integer',
         'approved_for_payment' => 'boolean',
+        'approved_for_payment_at' => 'datetime',
         'payment_validated_at' => 'datetime',
         'payment_proof_uploaded_at' => 'datetime',
         'agent_accepted_at' => 'datetime',
@@ -205,5 +207,44 @@ class Order extends Model
             }
         }
         return true;
+    }
+
+    /**
+     * Sin comprobante a la espera de decisión del comercio: ni columnas legacy en `orders` ni filas en `order_payments`.
+     * Usado por el comando de expiración cuando `skip_if_proof_pending` está activo.
+     */
+    public function scopeWithoutAwaitingProofValidation($query)
+    {
+        return $query
+            ->where(function ($legacy) {
+                $legacy->whereNull('payment_proof')
+                    ->orWhereNotNull('payment_validated_at');
+            })
+            ->whereDoesntHave('orderPayments', function ($q) {
+                $q->awaitingCommerceValidation();
+            });
+    }
+
+    /**
+     * Reglas de vencimiento por TTL para órdenes pending_payment (edad desde creación y/o desde approved_for_payment_at).
+     */
+    public function scopeWherePendingPaymentTtlExceeded($query, int $maxAgeMinutes, int $afterApprovalMinutes)
+    {
+        return $query->where(function ($q) use ($maxAgeMinutes, $afterApprovalMinutes) {
+            if ($maxAgeMinutes > 0 && $afterApprovalMinutes > 0) {
+                $q->where('created_at', '<', now()->subMinutes($maxAgeMinutes))
+                    ->orWhere(function ($q2) use ($afterApprovalMinutes) {
+                        $q2->where('approved_for_payment', true)
+                            ->whereNotNull('approved_for_payment_at')
+                            ->where('approved_for_payment_at', '<', now()->subMinutes($afterApprovalMinutes));
+                    });
+            } elseif ($maxAgeMinutes > 0) {
+                $q->where('created_at', '<', now()->subMinutes($maxAgeMinutes));
+            } else {
+                $q->where('approved_for_payment', true)
+                    ->whereNotNull('approved_for_payment_at')
+                    ->where('approved_for_payment_at', '<', now()->subMinutes($afterApprovalMinutes));
+            }
+        });
     }
 }

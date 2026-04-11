@@ -9,10 +9,14 @@
 
 *(La skill **context-updater** rellena esta sección al final de sesiones con cambios relevantes. Si está vacía, no hay resumen pendiente.)*
 
-- **Fecha:** 7 Abril 2026
-- **Resumen:** Cierre módulo **storefront / enlace web comercio**: `GET /r/{commerce}` + `StorefrontLinkController` + Blade `commerce_link` (redirect a `zonix://restaurant/{id}`); tests `StorefrontLinkTest`. En frontend (repo aparte): pantalla QR comercio, enlaces HTTP vía `APP_LINK_BASE_*`, fix `RestaurantDetailsPage.logoUrl` desde deep link. Coordinar `APP_LINK_BASE_*` en `.env` con la URL del backend para enlaces compartibles en dev/prod.
-- **Áreas tocadas:** `routes/web.php`, `app/Http/Controllers/Web/Front/StorefrontLinkController.php`, `resources/views/front/storefront/commerce_link.blade.php`, `tests/Feature/StorefrontLinkTest.php`, `AGENTS.md`. (Frontend: `commerce_share_qr_page.dart`, `commerce_dashboard_page.dart`, detalle restaurante.)
-- **Próximos pasos sugeridos:** commit/push cuando apruebes; ejecutar `php artisan test` tras `composer install` si el entorno no tiene `vendor/`; opcional futuro: buyer QR en shell / unificar permisos ubicación si molesta en UX.
+- **Fecha:** 11 Abril 2026
+- **Resumen:** Cierre módulo **expiración `pending_payment`**: comando `zonix:expire-pending-payment-orders`, TTL por creación y por `approved_for_payment_at`, flag `ZONIX_EXPIRE_SKIP_IF_PROOF_PENDING` (no expulsar al buyer si ya subió comprobante y el comercio no ha validado). Scopes en `Order` / `OrderPayment`; agenda en `Kernel` (1 min en `local`, 5 min otros entornos). **IDE:** `_ide_helper.php`, `.phpstorm.meta.php`, `composer ide-helper`, `.vscode/settings.json` — no modificar `vendor` manualmente; no usar `ide-helper:eloquent` (parchea Laravel en `vendor`).
+- **Áreas tocadas:** `app/Console/Commands/ExpirePendingPaymentOrdersCommand.php`, `app/Console/Kernel.php`, `config/zonix.php`, `.env.example`, `app/Models/Order.php`, `app/Models/OrderPayment.php`, `tests/Feature/ExpirePendingPaymentOrdersTest.php`, `_ide_helper.php`, `.phpstorm.meta.php`, `.vscode/settings.json`, `composer.json`, `AGENTS.md`.
+- **Próximos pasos sugeridos:** `composer ide-helper` tras `composer update` si el IDE pierde tipos; en prod definir cron `* * * * * php artisan schedule:run` y TTL definitivos en `.env`; commit/push cuando apruebes.
+
+- **Fecha (histórico):** 7 Abril 2026
+- **Resumen:** Cierre módulo **storefront / enlace web comercio**: `GET /r/{commerce}` + `StorefrontLinkController` + Blade `commerce_link` (redirect a `zonix://restaurant/{id}`); tests `StorefrontLinkTest`. En frontend (repo aparte): pantalla QR comercio, enlaces HTTP vía `APP_LINK_BASE_*`, fix `RestaurantDetailsPage.logoUrl` desde deep link.
+- **Áreas tocadas:** `routes/web.php`, `app/Http/Controllers/Web/Front/StorefrontLinkController.php`, `resources/views/front/storefront/commerce_link.blade.php`, `tests/Feature/StorefrontLinkTest.php`. (Frontend: `commerce_share_qr_page.dart`, `commerce_dashboard_page.dart`, detalle restaurante.)
 
 - **Fecha (histórico):** 2 Abril 2026
 - **Resumen:** Cierre factories/seeders — disputas demo: `ZonixDemoSeeder` y `DisputeFactory` alineados al contrato polimórfico (`reported_against_id` = PK de Commerce/ DeliveryAgent según tipo; docblock en factory). `AGENTS.md` actualizado.

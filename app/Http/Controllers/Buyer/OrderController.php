@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Events\OrderCreated;
 use App\Events\OrderStatusChanged;
+use App\Models\Order;
 use App\Services\NotificationService;
 use App\Services\OrderStateMachineService;
 
@@ -206,6 +207,25 @@ class OrderController extends Controller
                     400,
                     ['missing_field' => 'phone']
                 );
+            }
+
+            $maxOpen = (int) config('zonix.buyer_max_concurrent_open_orders', 7);
+            if ($maxOpen > 0) {
+                $openCount = Order::query()
+                    ->where('profile_id', $profile->id)
+                    ->whereNotIn('status', ['delivered', 'cancelled'])
+                    ->count();
+                if ($openCount >= $maxOpen) {
+                    return $this->errorResponse(
+                        'Has alcanzado el máximo de pedidos activos ('.$maxOpen.'). Cancela uno o espera a que finalice antes de crear otro.',
+                        'ORDER_MAX_CONCURRENT_OPEN',
+                        422,
+                        [
+                            'max_open_orders' => $maxOpen,
+                            'current_open_orders' => $openCount,
+                        ]
+                    );
+                }
             }
 
             $idempotencyKey = trim((string) $request->header('Idempotency-Key', ''));

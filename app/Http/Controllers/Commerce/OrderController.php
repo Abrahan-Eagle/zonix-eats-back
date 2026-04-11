@@ -446,6 +446,7 @@ class OrderController extends Controller
             // Permitir aprobar aunque ya haya comprobante (ej. comprador subió primero)
             $order->update([
                 'approved_for_payment' => true,
+                'approved_for_payment_at' => now(),
             ]);
 
             event(new OrderStatusChanged($order));

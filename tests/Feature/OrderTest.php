@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Models\Profile;
 use App\Models\Commerce;
+use App\Models\Order;
 use App\Models\Coupon;
 use App\Models\OperatorCode;
 use App\Models\Phone;
@@ -136,7 +137,7 @@ class OrderTest extends TestCase
         ]);
         $commerce = Commerce::factory()->create(['profile_id' => $profile->id, 'open' => true]);
 
-        \App\Models\Order::factory()->create([
+        Order::factory()->create([
             'profile_id' => $profile->id,
             'commerce_id' => $commerce->id,
         ]);
@@ -155,6 +156,59 @@ class OrderTest extends TestCase
                     'pagination' => ['current_page', 'last_page', 'per_page', 'total'],
                 ],
             ]);
+    }
+
+    public function test_buyer_cannot_create_order_when_max_concurrent_open_reached(): void
+    {
+        config(['zonix.buyer_max_concurrent_open_orders' => 2]);
+
+        $user = User::factory()->create(['role' => 'users']);
+        $profile = Profile::factory()->create([
+            'user_id' => $user->id,
+            'firstName' => 'Cliente',
+            'lastName' => 'Test',
+            'photo_users' => 'https://via.placeholder.com/150',
+            'status' => 'completeData',
+        ]);
+        $commerce = Commerce::factory()->create(['profile_id' => $profile->id, 'open' => true]);
+        $product = Product::factory()->create([
+            'commerce_id' => $commerce->id,
+            'available' => true,
+            'stock_quantity' => 10,
+        ]);
+        $operatorCode = OperatorCode::firstOrCreate(['code' => 412], ['name' => '0412']);
+        Phone::create([
+            'profile_id' => $profile->id,
+            'operator_code_id' => $operatorCode->id,
+            'number' => '1234567',
+            'is_primary' => true,
+            'status' => true,
+        ]);
+
+        Order::factory()->count(2)->create([
+            'profile_id' => $profile->id,
+            'commerce_id' => $commerce->id,
+            'status' => 'processing',
+        ]);
+
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->postJson('/api/buyer/orders', [
+            'commerce_id' => $commerce->id,
+            'products' => [
+                ['id' => $product->id, 'quantity' => 1],
+            ],
+            'delivery_type' => 'pickup',
+            'total' => $product->price,
+            'delivery_fee' => 0,
+            'delivery_address' => 'Calle 123',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('error_code', 'ORDER_MAX_CONCURRENT_OPEN')
+            ->assertJsonPath('max_open_orders', 2)
+            ->assertJsonPath('current_open_orders', 2);
     }
 
     public function test_create_order_is_idempotent_with_same_key()
