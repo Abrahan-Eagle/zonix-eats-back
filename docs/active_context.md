@@ -7,20 +7,16 @@
 
 ## Última actualización de contexto
 
-*(La skill **context-updater** rellena esta sección al final de sesiones con cambios relevantes. Si está vacía, no hay resumen pendiente.)*
+- **Fecha:** 12 Abril 2026
+- **Resumen:** Cierre de sesión — suite **`php artisan test`** en verde (369 tests). Ajuste en **`ExpirePendingPaymentOrdersTest::test_command_restores_stock_when_expiring`**: se simula la reserva de stock como en checkout (`decrement` tras crear el `OrderItem`; las factories no lo hacen solas) y la aserción final pasa a **7** tras expirar/cancelar, alineada al flujo real (sin falso 7→10). Flujo `OrderTest` (crear orden, comprobante, cancelar) verificado OK en entorno de desarrollo.
+- **Áreas tocadas:** `tests/Feature/ExpirePendingPaymentOrdersTest.php`
+- **Próximos pasos sugeridos:** Commit/push cuando apruebes; opcional: párrafo en **AGENTS.md** «Cambios recientes» si documentás el cierre en el mismo commit.
 
-- **Fecha:** 11 Abril 2026
-- **Resumen:** Cierre módulo **expiración `pending_payment`**: comando `zonix:expire-pending-payment-orders`, TTL por creación y por `approved_for_payment_at`, flag `ZONIX_EXPIRE_SKIP_IF_PROOF_PENDING` (no expulsar al buyer si ya subió comprobante y el comercio no ha validado). Scopes en `Order` / `OrderPayment`; agenda en `Kernel` (1 min en `local`, 5 min otros entornos). **IDE:** `_ide_helper.php`, `.phpstorm.meta.php`, `composer ide-helper`, `.vscode/settings.json` — no modificar `vendor` manualmente; no usar `ide-helper:eloquent` (parchea Laravel en `vendor`).
-- **Áreas tocadas:** `app/Console/Commands/ExpirePendingPaymentOrdersCommand.php`, `app/Console/Kernel.php`, `config/zonix.php`, `.env.example`, `app/Models/Order.php`, `app/Models/OrderPayment.php`, `tests/Feature/ExpirePendingPaymentOrdersTest.php`, `_ide_helper.php`, `.phpstorm.meta.php`, `.vscode/settings.json`, `composer.json`, `AGENTS.md`.
-- **Próximos pasos sugeridos:** `composer ide-helper` tras `composer update` si el IDE pierde tipos; en prod definir cron `* * * * * php artisan schedule:run` y TTL definitivos en `.env`; commit/push cuando apruebes.
+### Histórico (sesiones anteriores)
 
-- **Fecha (histórico):** 7 Abril 2026
-- **Resumen:** Cierre módulo **storefront / enlace web comercio**: `GET /r/{commerce}` + `StorefrontLinkController` + Blade `commerce_link` (redirect a `zonix://restaurant/{id}`); tests `StorefrontLinkTest`. En frontend (repo aparte): pantalla QR comercio, enlaces HTTP vía `APP_LINK_BASE_*`, fix `RestaurantDetailsPage.logoUrl` desde deep link.
-- **Áreas tocadas:** `routes/web.php`, `app/Http/Controllers/Web/Front/StorefrontLinkController.php`, `resources/views/front/storefront/commerce_link.blade.php`, `tests/Feature/StorefrontLinkTest.php`. (Frontend: `commerce_share_qr_page.dart`, `commerce_dashboard_page.dart`, detalle restaurante.)
-
-- **Fecha (histórico):** 2 Abril 2026
-- **Resumen:** Cierre factories/seeders — disputas demo: `ZonixDemoSeeder` y `DisputeFactory` alineados al contrato polimórfico (`reported_against_id` = PK de Commerce/ DeliveryAgent según tipo; docblock en factory). `AGENTS.md` actualizado.
-- **Áreas tocadas:** `database/seeders/ZonixDemoSeeder.php`, `database/factories/DisputeFactory.php`, `AGENTS.md`.
+- **11 Abril 2026:** Módulo **expiración `pending_payment`**: `zonix:expire-pending-payment-orders`, TTL creación / `approved_for_payment_at`, `ZONIX_EXPIRE_SKIP_IF_PROOF_PENDING`, scopes `Order` / `OrderPayment`, `Kernel`, helpers IDE (`_ide_helper.php`, `.phpstorm.meta.php`, `composer ide-helper`). Archivos: comando, `config/zonix.php`, `.env.example`, tests `ExpirePendingPaymentOrdersTest`, etc.
+- **7 Abril 2026:** **Storefront** `GET /r/{commerce}`, `StorefrontLinkController`, Blade + `StorefrontLinkTest`; frontend: QR comercio, `APP_LINK_BASE_*`.
+- **2 Abril 2026:** Factories/seeders disputas demo (`ZonixDemoSeeder`, `DisputeFactory`), `AGENTS.md`.
 
 ---
 

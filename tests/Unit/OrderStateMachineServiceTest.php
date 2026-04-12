@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Models\Order;
 use App\Services\OrderStateMachineService;
 use PHPUnit\Framework\TestCase;
 
@@ -49,5 +50,28 @@ class OrderStateMachineServiceTest extends TestCase
         $r = $this->svc->canTransition('commerce', 'paid', 'paid');
         $this->assertTrue($r['allowed']);
         $this->assertStringContainsString('idempot', strtolower($r['message']));
+    }
+
+    public function test_commerce_may_deliver_pickup_after_shipped_when_order_context_given(): void
+    {
+        $pickup = new Order(['delivery_type' => 'pickup']);
+        $r = $this->svc->canTransition('commerce', 'shipped', 'delivered', $pickup);
+        $this->assertTrue($r['allowed']);
+        $this->assertSame(200, $r['http_status']);
+    }
+
+    public function test_commerce_cannot_deliver_delivery_order_after_shipped(): void
+    {
+        $delivery = new Order(['delivery_type' => 'delivery']);
+        $r = $this->svc->canTransition('commerce', 'shipped', 'delivered', $delivery);
+        $this->assertFalse($r['allowed']);
+        $this->assertSame(409, $r['http_status']);
+    }
+
+    public function test_commerce_cannot_deliver_after_shipped_without_order_context(): void
+    {
+        $r = $this->svc->canTransition('commerce', 'shipped', 'delivered', null);
+        $this->assertFalse($r['allowed']);
+        $this->assertSame(409, $r['http_status']);
     }
 }

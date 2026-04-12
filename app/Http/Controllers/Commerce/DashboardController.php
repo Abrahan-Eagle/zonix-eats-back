@@ -72,6 +72,8 @@ class DashboardController extends Controller
                                 $itemsCount = 0;
                             }
                             
+                            $deliveryType = (string) ($order->delivery_type ?? 'pickup');
+
                             return [
                                 'id' => $order->id,
                                 'status' => $order->status,
@@ -79,8 +81,12 @@ class DashboardController extends Controller
                                 'customer_name' => $customerName,
                                 'created_at' => $order->created_at->toIso8601String(),
                                 'items_count' => $itemsCount,
+                                'delivery_type' => $deliveryType,
+                                'is_pickup' => $deliveryType === 'pickup',
                             ];
                         } catch (\Exception $e) {
+                            $deliveryType = (string) ($order->delivery_type ?? 'pickup');
+
                             return [
                                 'id' => $order->id,
                                 'status' => $order->status ?? 'unknown',
@@ -88,6 +94,8 @@ class DashboardController extends Controller
                                 'customer_name' => 'Cliente',
                                 'created_at' => $order->created_at ? $order->created_at->toIso8601String() : now()->toIso8601String(),
                                 'items_count' => 0,
+                                'delivery_type' => $deliveryType,
+                                'is_pickup' => $deliveryType === 'pickup',
                             ];
                         }
                     });

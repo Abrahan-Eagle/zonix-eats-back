@@ -53,4 +53,44 @@ class CommerceOrderTest extends TestCase
         $order->refresh();
         $this->assertEquals('processing', $order->status);
     }
+
+    public function test_commerce_can_set_delivered_on_pickup_order_after_shipped(): void
+    {
+        $user = User::factory()->create(['role' => 'commerce']);
+        $profile = Profile::factory()->create(['user_id' => $user->id]);
+        $commerce = Commerce::factory()->create(['profile_id' => $profile->id, 'open' => true]);
+        $order = Order::factory()->create([
+            'commerce_id' => $commerce->id,
+            'status' => 'shipped',
+            'delivery_type' => 'pickup',
+        ]);
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->putJson('/api/commerce/orders/'.$order->id.'/status', [
+            'status' => 'delivered',
+        ]);
+        $response->assertStatus(200)->assertJson(['success' => true]);
+        $order->refresh();
+        $this->assertSame('delivered', $order->status);
+    }
+
+    public function test_commerce_cannot_set_delivered_on_delivery_order_after_shipped(): void
+    {
+        $user = User::factory()->create(['role' => 'commerce']);
+        $profile = Profile::factory()->create(['user_id' => $user->id]);
+        $commerce = Commerce::factory()->create(['profile_id' => $profile->id, 'open' => true]);
+        $order = Order::factory()->create([
+            'commerce_id' => $commerce->id,
+            'status' => 'shipped',
+            'delivery_type' => 'delivery',
+        ]);
+        $this->actingAs($user, 'sanctum');
+
+        $response = $this->putJson('/api/commerce/orders/'.$order->id.'/status', [
+            'status' => 'delivered',
+        ]);
+        $response->assertStatus(409);
+        $order->refresh();
+        $this->assertSame('shipped', $order->status);
+    }
 } 

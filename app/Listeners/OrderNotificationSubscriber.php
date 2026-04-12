@@ -66,10 +66,15 @@ class OrderNotificationSubscriber
 
 
         if (isset($messages[$status])) {
+            $body = $messages[$status];
+            if ($status === 'shipped' && ($order->delivery_type ?? '') === 'pickup') {
+                $body = 'Tu pedido está listo para recoger en el comercio.';
+            }
+
             $this->notificationService->notify(
                 $profileId,
                 'Actualización de Pedido',
-                $messages[$status],
+                $body,
                 'order',
                 ['order_id' => (string)$order->id, 'status' => $status]
             );

@@ -167,8 +167,7 @@ class OrderController extends Controller
                 }
             }
 
-            // Emitir evento de cambio de estado
-            event(new \App\Events\OrderStatusChanged($order->fresh()));
+            $this->broadcastOrderStatusChanged($order);
 
             return response()->json(['success' => true, 'message' => 'Estado de la orden actualizado']);
         } catch (\Exception $e) {
@@ -318,7 +317,7 @@ class OrderController extends Controller
                     $message = 'Pago de comida validado. Pendiente: pago de envío.';
                 }
 
-                event(new PaymentValidated($order->fresh(), true, $profile->id));
+                $this->broadcastPaymentValidated($order, true, $profile->id);
                 Log::info('payment_food_validated', [
                     'order_id' => $order->id,
                     'validated_by' => $profile->id,
@@ -359,7 +358,7 @@ class OrderController extends Controller
                 }
                 
                 $message = 'Pago rechazado';
-                event(new OrderStatusChanged($order));
+                $this->broadcastOrderStatusChanged($order);
                 Log::warning('payment_food_rejected', [
                     'order_id' => $order->id,
                     'validated_by' => $profile->id,
@@ -382,10 +381,13 @@ class OrderController extends Controller
             });
 
         } catch (\Exception $e) {
-            Log::error('Error al validar el comprobante: ' . $e->getMessage());
+            Log::error('Error al validar el comprobante: ' . $e->getMessage(), [
+                'exception' => $e,
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al validar el comprobante: ' . $e->getMessage(),
+                'message' => 'No se pudo validar el comprobante. Intenta de nuevo o contacta soporte.',
                 'error_code' => 'PAYMENT_VALIDATION_FAILED',
             ], 500);
         }
@@ -449,7 +451,7 @@ class OrderController extends Controller
                 'approved_for_payment_at' => now(),
             ]);
 
-            event(new OrderStatusChanged($order));
+            $this->broadcastOrderStatusChanged($order);
 
             return response()->json([
                 'success' => true,
@@ -528,7 +530,7 @@ class OrderController extends Controller
                 ], $decision['http_status']);
             }
 
-            event(new OrderStatusChanged($order));
+            $this->broadcastOrderStatusChanged($order);
 
             return response()->json([
                 'success' => true,
@@ -578,6 +580,32 @@ class OrderController extends Controller
         } catch (\Exception $e) {
             Log::error('Error generando QR de recogida: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error interno'], 500);
+        }
+    }
+
+    private function broadcastOrderStatusChanged(Order $order): void
+    {
+        try {
+            event(new OrderStatusChanged($order->fresh()));
+        } catch (\Throwable $e) {
+            Log::warning('commerce_order_broadcast_failed', [
+                'event' => 'OrderStatusChanged',
+                'order_id' => $order->id,
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function broadcastPaymentValidated(Order $order, bool $isValidated, $validatedBy): void
+    {
+        try {
+            event(new PaymentValidated($order->fresh(), $isValidated, $validatedBy));
+        } catch (\Throwable $e) {
+            Log::warning('commerce_order_broadcast_failed', [
+                'event' => 'PaymentValidated',
+                'order_id' => $order->id,
+                'message' => $e->getMessage(),
+            ]);
         }
     }
 }

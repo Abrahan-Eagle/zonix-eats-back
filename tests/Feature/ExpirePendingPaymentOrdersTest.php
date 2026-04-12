@@ -120,12 +120,14 @@ class ExpirePendingPaymentOrdersTest extends TestCase
             'quantity' => 3,
             'unit_price' => $product->price,
         ]);
+        // Igual que en checkout: el stock se reserva al crear el pedido (las factories no lo hacen solas).
+        $product->decrement('stock_quantity', 3);
         $order->forceFill(['created_at' => now()->subHour()])->save();
 
         Artisan::call('zonix:expire-pending-payment-orders');
 
         $product->refresh();
-        $this->assertSame(10, (int) $product->stock_quantity);
+        $this->assertSame(7, (int) $product->stock_quantity);
         $order->refresh();
         $this->assertSame('cancelled', $order->status);
     }

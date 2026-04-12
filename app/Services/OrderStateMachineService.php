@@ -64,7 +64,10 @@ class OrderStateMachineService
         return in_array($status, self::VALID_STATUSES, true);
     }
 
-    public function canTransition(string $actorRole, string $fromStatus, string $toStatus): array
+    /**
+     * @param  Order|null  $order  Requerido para reglas contextuales (p. ej. recogida en tienda).
+     */
+    public function canTransition(string $actorRole, string $fromStatus, string $toStatus, ?Order $order = null): array
     {
         $from = $this->normalizeStatus($fromStatus);
         $to = $this->normalizeStatus($toStatus);
@@ -94,6 +97,17 @@ class OrderStateMachineService
 
         $allowedTargets = self::TRANSITIONS[$role][$from] ?? [];
         if (!in_array($to, $allowedTargets, true)) {
+            if ($this->allowsCommercePickupDelivered($role, $from, $to, $order)) {
+                return [
+                    'allowed' => true,
+                    'http_status' => 200,
+                    'error_code' => null,
+                    'message' => 'Transición permitida (recogida en tienda).',
+                    'from' => $from,
+                    'to' => $to,
+                ];
+            }
+
             return [
                 'allowed' => false,
                 'http_status' => 409,
@@ -114,6 +128,21 @@ class OrderStateMachineService
         ];
     }
 
+    /**
+     * El comercio puede pasar shipped → delivered solo para pedidos pickup (entrega en mostrador).
+     */
+    private function allowsCommercePickupDelivered(string $role, string $from, string $to, ?Order $order): bool
+    {
+        if ($role !== 'commerce' || $from !== 'shipped' || $to !== 'delivered') {
+            return false;
+        }
+        if ($order === null) {
+            return false;
+        }
+
+        return $order->delivery_type === 'pickup';
+    }
+
     public function applyTransition(
         Order $order,
         string $actorRole,
@@ -122,7 +151,7 @@ class OrderStateMachineService
         string $source = 'api',
         ?string $reason = null
     ): array {
-        $decision = $this->canTransition($actorRole, $order->status, $toStatus);
+        $decision = $this->canTransition($actorRole, $order->status, $toStatus, $order);
         if (!$decision['allowed']) {
             Log::warning('order_transition_rejected', [
                 'order_id' => $order->id,
