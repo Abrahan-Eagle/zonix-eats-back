@@ -19,6 +19,8 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <!-- Evita HTTP real a Pusher en tests (sync queue + OrderCreated → 500 por timeout) -->
+        <env name="BROADCAST_DRIVER" value="null"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_DRIVER" value="array"/>
         <!-- Tests con SQLite en memoria (no requiere MySQL). Para usar MySQL, defina DB_CONNECTION=mysql en .env.testing -->
