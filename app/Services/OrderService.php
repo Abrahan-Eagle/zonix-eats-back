@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\Commerce;
+use App\Models\DeliveryAgent;
 use App\Models\Order;
 use Illuminate\Support\Facades\Auth;
 
@@ -25,6 +27,14 @@ class OrderService
         return Order::where('profile_id', $profile->id)
             ->orderBy('created_at', 'desc')
             ->with('commerce', 'products', 'orderPayments')
+            ->withCount([
+                'reviews as restaurant_review_count' => function ($query) {
+                    $query->where('reviewable_type', Commerce::class);
+                },
+                'reviews as delivery_review_count' => function ($query) {
+                    $query->where('reviewable_type', DeliveryAgent::class);
+                },
+            ])
             ->paginate($perPage);
     }
 
@@ -47,6 +57,14 @@ class OrderService
         return Order::where('profile_id', $profile->id)
             ->where('id', $orderId)
             ->with(['products', 'commerce', 'orderPayments'])
+            ->withCount([
+                'reviews as restaurant_review_count' => function ($query) {
+                    $query->where('reviewable_type', Commerce::class);
+                },
+                'reviews as delivery_review_count' => function ($query) {
+                    $query->where('reviewable_type', DeliveryAgent::class);
+                },
+            ])
             ->first();
     }
 
