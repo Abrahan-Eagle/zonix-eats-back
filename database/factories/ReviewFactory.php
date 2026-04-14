@@ -2,10 +2,10 @@
 
 namespace Database\Factories;
 
-use App\Models\Review;
-use App\Models\Profile;
-use App\Models\Order;
 use App\Models\Commerce;
+use App\Models\Order;
+use App\Models\Profile;
+use App\Models\Review;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ReviewFactory extends Factory
@@ -15,13 +15,13 @@ class ReviewFactory extends Factory
     public function definition()
     {
         $reviewableType = $this->faker->randomElement([Commerce::class, \App\Models\DeliveryAgent::class]);
-        
+
         return [
             'profile_id' => Profile::factory(),
             'order_id' => Order::factory(),
             'reviewable_type' => $reviewableType,
-            'reviewable_id' => $reviewableType === Commerce::class 
-                ? Commerce::factory() 
+            'reviewable_id' => $reviewableType === Commerce::class
+                ? Commerce::factory()
                 : \App\Models\DeliveryAgent::factory(),
             'rating' => $this->faker->numberBetween(1, 5),
             'comment' => $this->faker->optional(0.8)->sentence(),
@@ -47,4 +47,4 @@ class ReviewFactory extends Factory
             ];
         });
     }
-} 
+}

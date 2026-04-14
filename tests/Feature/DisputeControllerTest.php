@@ -2,22 +2,25 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\Profile;
-use App\Models\Order;
 use App\Models\Commerce;
 use App\Models\Dispute;
+use App\Models\Order;
+use App\Models\Profile;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 class DisputeControllerTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $buyer;
+
     protected $buyerProfile;
+
     protected $commerce;
+
     protected $order;
 
     protected function setUp(): void

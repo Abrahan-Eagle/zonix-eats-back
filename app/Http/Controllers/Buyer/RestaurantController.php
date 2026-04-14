@@ -17,13 +17,13 @@ class RestaurantController extends Controller
 {
     /**
      * Servicio de restaurantes.
+     *
      * @var RestaurantService
      */
     protected $restaurantService;
 
     /**
      * Inyecta el servicio de restaurantes.
-     * @param RestaurantService $restaurantService
      */
     public function __construct(RestaurantService $restaurantService)
     {
@@ -32,7 +32,7 @@ class RestaurantController extends Controller
 
     /**
      * Listar todos los restaurantes.
-     * @param Request $request
+     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function index(Request $request)
@@ -63,19 +63,21 @@ class RestaurantController extends Controller
 
     /**
      * Mostrar detalles de un restaurante específico.
-     * @param int $id
+     *
+     * @param  int  $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function show($id)
     {
         $restaurant = $this->restaurantService->getCatalogVisibleRestaurantById($id);
-        if (!$restaurant) {
+        if (! $restaurant) {
             return response()->json([
                 'success' => false,
                 'data' => null,
                 'message' => 'Restaurante no encontrado',
             ], 404);
         }
+
         return response()->json([
             'success' => true,
             'data' => $restaurant,

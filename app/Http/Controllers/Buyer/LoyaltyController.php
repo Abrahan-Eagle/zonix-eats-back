@@ -3,12 +3,9 @@
 namespace App\Http\Controllers\Buyer;
 
 use App\Http\Controllers\Controller;
+use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\User;
-use App\Models\Profile;
-use App\Models\Order;
-use Illuminate\Support\Facades\DB;
 
 class LoyaltyController extends Controller
 {
@@ -27,10 +24,10 @@ class LoyaltyController extends Controller
         $totalSpent = Order::where('profile_id', $profile->id)
             ->where('status', 'delivered')
             ->sum('total');
-        
+
         // Calcular nivel de lealtad basado en gastos
         $loyaltyLevel = $this->calculateLoyaltyLevel($totalSpent);
-        
+
         return response()->json([
             'loyalty_level' => $loyaltyLevel['level'],
             'level_name' => $loyaltyLevel['name'],
@@ -38,7 +35,7 @@ class LoyaltyController extends Controller
             'completed_orders' => $completedOrders,
             'next_level_threshold' => $loyaltyLevel['next_threshold'],
             'spent_to_next_level' => $loyaltyLevel['next_threshold'] - $totalSpent,
-            'benefits' => $loyaltyLevel['benefits']
+            'benefits' => $loyaltyLevel['benefits'],
         ]);
     }
 
@@ -56,8 +53,8 @@ class LoyaltyController extends Controller
                     'Descuento 15% en todos los pedidos',
                     'Envío gratis siempre',
                     'Acceso prioritario a promociones',
-                    'Soporte VIP'
-                ]
+                    'Soporte VIP',
+                ],
             ];
         } elseif ($totalSpent >= 500) {
             return [
@@ -67,8 +64,8 @@ class LoyaltyController extends Controller
                 'benefits' => [
                     'Descuento 10% en todos los pedidos',
                     'Envío gratis en pedidos > $30',
-                    'Acceso a promociones exclusivas'
-                ]
+                    'Acceso a promociones exclusivas',
+                ],
             ];
         } elseif ($totalSpent >= 200) {
             return [
@@ -77,8 +74,8 @@ class LoyaltyController extends Controller
                 'next_threshold' => 500,
                 'benefits' => [
                     'Descuento 5% en todos los pedidos',
-                    'Envío gratis en pedidos > $50'
-                ]
+                    'Envío gratis en pedidos > $50',
+                ],
             ];
         } else {
             return [
@@ -86,8 +83,8 @@ class LoyaltyController extends Controller
                 'name' => 'Bronce',
                 'next_threshold' => 200,
                 'benefits' => [
-                    'Descuento 2% en todos los pedidos'
-                ]
+                    'Descuento 2% en todos los pedidos',
+                ],
             ];
         }
     }
@@ -104,35 +101,35 @@ class LoyaltyController extends Controller
             ->where('status', 'delivered')
             ->whereMonth('created_at', now()->month)
             ->sum('total');
-        
+
         $discounts = [
             [
                 'threshold' => 100,
                 'discount_percentage' => 5,
                 'achieved' => $monthlySpent >= 100,
                 'current_amount' => $monthlySpent,
-                'remaining' => max(0, 100 - $monthlySpent)
+                'remaining' => max(0, 100 - $monthlySpent),
             ],
             [
                 'threshold' => 300,
                 'discount_percentage' => 10,
                 'achieved' => $monthlySpent >= 300,
                 'current_amount' => $monthlySpent,
-                'remaining' => max(0, 300 - $monthlySpent)
+                'remaining' => max(0, 300 - $monthlySpent),
             ],
             [
                 'threshold' => 500,
                 'discount_percentage' => 15,
                 'achieved' => $monthlySpent >= 500,
                 'current_amount' => $monthlySpent,
-                'remaining' => max(0, 500 - $monthlySpent)
-            ]
+                'remaining' => max(0, 500 - $monthlySpent),
+            ],
         ];
-        
+
         return response()->json([
             'monthly_spent' => $monthlySpent,
             'discounts' => $discounts,
-            'current_discount' => $this->getCurrentDiscount($monthlySpent)
+            'current_discount' => $this->getCurrentDiscount($monthlySpent),
         ]);
     }
 
@@ -141,9 +138,16 @@ class LoyaltyController extends Controller
      */
     private function getCurrentDiscount($monthlySpent)
     {
-        if ($monthlySpent >= 500) return 15;
-        if ($monthlySpent >= 300) return 10;
-        if ($monthlySpent >= 100) return 5;
+        if ($monthlySpent >= 500) {
+            return 15;
+        }
+        if ($monthlySpent >= 300) {
+            return 10;
+        }
+        if ($monthlySpent >= 100) {
+            return 5;
+        }
+
         return 0;
     }
 
@@ -153,14 +157,14 @@ class LoyaltyController extends Controller
     public function generateReferralCode()
     {
         $user = Auth::user();
-        
-        $referralCode = 'REF_' . strtoupper(substr($user->name, 0, 3)) . $user->id;
-        
+
+        $referralCode = 'REF_'.strtoupper(substr($user->name, 0, 3)).$user->id;
+
         return response()->json([
             'referral_code' => $referralCode,
-            'referral_link' => url('/register?ref=' . $referralCode),
+            'referral_link' => url('/register?ref='.$referralCode),
             'rewards_earned' => 0, // Se implementaría con tabla de referidos
-            'total_referrals' => 0
+            'total_referrals' => 0,
         ]);
     }
 
@@ -170,29 +174,29 @@ class LoyaltyController extends Controller
     public function applyReferralCode(Request $request)
     {
         $request->validate([
-            'referral_code' => 'required|string|min:6'
+            'referral_code' => 'required|string|min:6',
         ]);
-        
+
         $user = Auth::user();
-        
+
         // Verificar si el código existe
         $referrerId = $this->getUserIdFromReferralCode($request->referral_code);
-        
-        if (!$referrerId) {
+
+        if (! $referrerId) {
             return response()->json(['error' => 'Código de referido inválido'], 400);
         }
-        
+
         if ($referrerId == $user->id) {
             return response()->json(['error' => 'No puedes referirte a ti mismo'], 400);
         }
-        
+
         // Aquí se aplicaría la lógica de recompensas por referido
         $reward = [
             'referrer_reward' => 500, // Puntos para quien refiere
             'referred_reward' => 200, // Puntos para quien es referido
-            'message' => 'Código de referido aplicado exitosamente'
+            'message' => 'Código de referido aplicado exitosamente',
         ];
-        
+
         return response()->json($reward);
     }
 
@@ -205,6 +209,7 @@ class LoyaltyController extends Controller
         if (preg_match('/REF_[A-Z]{3}(\d+)/', $code, $matches)) {
             return $matches[1];
         }
+
         return null;
     }
 
@@ -214,7 +219,7 @@ class LoyaltyController extends Controller
     public function getBenefitsHistory()
     {
         $user = Auth::user();
-        
+
         $benefits = [
             [
                 'id' => 1,
@@ -222,7 +227,7 @@ class LoyaltyController extends Controller
                 'description' => 'Descuento por nivel de lealtad',
                 'amount' => 5.00,
                 'applied_at' => now()->subDays(2)->toISOString(),
-                'order_id' => 123
+                'order_id' => 123,
             ],
             [
                 'id' => 2,
@@ -230,7 +235,7 @@ class LoyaltyController extends Controller
                 'description' => 'Descuento por volumen mensual',
                 'amount' => 10.00,
                 'applied_at' => now()->subDays(5)->toISOString(),
-                'order_id' => 120
+                'order_id' => 120,
             ],
             [
                 'id' => 3,
@@ -238,16 +243,16 @@ class LoyaltyController extends Controller
                 'description' => 'Recompensa por referido',
                 'amount' => 200,
                 'applied_at' => now()->subDays(10)->toISOString(),
-                'order_id' => null
-            ]
+                'order_id' => null,
+            ],
         ];
-        
+
         $totalBenefits = array_sum(array_column($benefits, 'amount'));
-        
+
         return response()->json([
             'benefits' => $benefits,
             'total_benefits' => $totalBenefits,
-            'total_count' => count($benefits)
+            'total_count' => count($benefits),
         ]);
     }
 
@@ -269,7 +274,7 @@ class LoyaltyController extends Controller
             ->sum('total');
 
         $loyaltyLevel = $this->calculateLoyaltyLevel($totalSpent);
-        
+
         return response()->json([
             'total_spent' => $totalSpent,
             'monthly_spent' => $monthlySpent,
@@ -279,7 +284,7 @@ class LoyaltyController extends Controller
             'loyalty_discount' => $loyaltyLevel['level'] * 2, // 2% por nivel
             'total_discount_earned' => $totalSpent * 0.05, // Estimado
             'referrals_count' => 0,
-            'referral_rewards' => 0
+            'referral_rewards' => 0,
         ]);
     }
 
@@ -301,7 +306,7 @@ class LoyaltyController extends Controller
             ->sum('total');
 
         $upcoming = [];
-        
+
         // Beneficios por nivel de lealtad
         if ($totalSpent < 200) {
             $upcoming[] = [
@@ -310,10 +315,10 @@ class LoyaltyController extends Controller
                 'description' => 'Descuento 5% en todos los pedidos',
                 'threshold' => 200,
                 'current' => $totalSpent,
-                'remaining' => 200 - $totalSpent
+                'remaining' => 200 - $totalSpent,
             ];
         }
-        
+
         // Beneficios por volumen mensual
         if ($monthlySpent < 100) {
             $upcoming[] = [
@@ -322,13 +327,13 @@ class LoyaltyController extends Controller
                 'description' => 'Descuento por gastar $100 en el mes',
                 'threshold' => 100,
                 'current' => $monthlySpent,
-                'remaining' => 100 - $monthlySpent
+                'remaining' => 100 - $monthlySpent,
             ];
         }
-        
+
         return response()->json([
             'upcoming_benefits' => $upcoming,
-            'total_upcoming' => count($upcoming)
+            'total_upcoming' => count($upcoming),
         ]);
     }
-} 
+}

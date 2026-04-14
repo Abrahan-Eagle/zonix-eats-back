@@ -4,9 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Address;
-use App\Models\BusinessType;
-use App\Models\Review;
 
 class Commerce extends Model
 {
@@ -82,6 +79,7 @@ class Commerce extends Model
                 ->orderByDesc('is_primary')
                 ->first();
         }
+
         return $commercePhone?->full_number ?? $this->profile?->phone;
     }
 

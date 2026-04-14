@@ -7,10 +7,10 @@ class TrackingService
     /**
      * Calcular distancia entre dos puntos usando la fórmula de Haversine.
      *
-     * @param float $lat1
-     * @param float $lon1
-     * @param float $lat2
-     * @param float $lon2
+     * @param  float  $lat1
+     * @param  float  $lon1
+     * @param  float  $lat2
+     * @param  float  $lon2
      * @return float Distancia en kilómetros
      */
     public function calculateDistance($lat1, $lon1, $lat2, $lon2)
@@ -32,8 +32,8 @@ class TrackingService
     /**
      * Calcular tiempo estimado de entrega.
      *
-     * @param float $distance Distancia en kilómetros
-     * @param string $vehicleType Tipo de vehículo (bike, car, motorcycle)
+     * @param  float  $distance  Distancia en kilómetros
+     * @param  string  $vehicleType  Tipo de vehículo (bike, car, motorcycle)
      * @return int Tiempo estimado en minutos
      */
     public function calculateEstimatedTime($distance, $vehicleType = 'bike')
@@ -46,40 +46,40 @@ class TrackingService
 
         $speed = $averageSpeeds[$vehicleType] ?? 15;
         $timeInHours = $distance / $speed;
-        
+
         // Agregar tiempo extra para tráfico, semáforos, etc.
         $timeInHours *= 1.3;
-        
+
         return (int) round($timeInHours * 60); // Convertir a minutos
     }
 
     /**
      * Generar coordenadas de ruta interpolada (linea recta sin ruido aleatorio).
      *
-     * @param float $startLat
-     * @param float $startLon
-     * @param float $endLat
-     * @param float $endLon
-     * @param int $steps Número de puntos intermedios
+     * @param  float  $startLat
+     * @param  float  $startLon
+     * @param  float  $endLat
+     * @param  float  $endLon
+     * @param  int  $steps  Número de puntos intermedios
      * @return array Array de coordenadas
      */
     public function generateRouteCoordinates($startLat, $startLon, $endLat, $endLon, $steps = 10)
     {
         $coordinates = [];
-        
+
         for ($i = 0; $i <= $steps; $i++) {
             $ratio = $i / $steps;
-            
+
             $lat = $startLat + ($endLat - $startLat) * $ratio;
             $lon = $startLon + ($endLon - $startLon) * $ratio;
-            
+
             $coordinates[] = [
                 'lat' => round($lat, 6),
                 'lng' => round($lon, 6),
                 'timestamp' => time() + ($i * 60), // Simular progreso en el tiempo
             ];
         }
-        
+
         return $coordinates;
     }
 
@@ -87,7 +87,7 @@ class TrackingService
      * Obtener información completa de tracking para una orden.
      * Solo usa coordenadas reales (BD/GPS). No inventa posiciones: si faltan, devuelve null y rutas vacías.
      *
-     * @param array $orderData commerce_lat/lon, delivery_lat/lon, customer_lat/lon (pueden ser null)
+     * @param  array  $orderData  commerce_lat/lon, delivery_lat/lon, customer_lat/lon (pueden ser null)
      * @return array
      */
     public function getOrderTracking($orderData)
@@ -165,4 +165,4 @@ class TrackingService
             'last_updated' => now()->toISOString(),
         ];
     }
-} 
+}

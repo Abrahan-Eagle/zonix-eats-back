@@ -2,11 +2,10 @@
 
 namespace Database\Factories;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use App\Models\User;
-
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
@@ -14,6 +13,7 @@ use App\Models\User;
 class UserFactory extends Factory
 {
     protected $model = User::class;
+
     /**
      * The current password being used by the factory.
      */
@@ -26,21 +26,23 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        $testing = app()->environment('testing');
+
         return [
             'name' => $this->faker->name(),
             'email' => $this->faker->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => Hash::make('password'),
-            'google_id' => $this->faker->boolean(70) ? Str::uuid() : null,
+            // En testing: sin google_id por defecto (evita colisiones raras en tests que asumen email/password).
+            'google_id' => $testing ? null : ($this->faker->boolean(70) ? Str::uuid() : null),
             'given_name' => $this->faker->firstName(),
             'family_name' => $this->faker->lastName(),
             'profile_pic' => $this->faker->imageUrl(),
-            'role' => $this->faker->randomElement(['admin', 'users', 'commerce', 'delivery_company', 'delivery_agent', 'delivery']),
-            'completed_onboarding' => $this->faker->boolean(80),
+            'role' => $testing ? 'users' : $this->faker->randomElement(['admin', 'users', 'commerce', 'delivery_company', 'delivery_agent', 'delivery']),
+            'completed_onboarding' => $testing ? true : $this->faker->boolean(80),
             'remember_token' => Str::random(10),
         ];
     }
-
 
     /**
      * Indicate that the model's email address should be unverified.
@@ -50,8 +52,7 @@ class UserFactory extends Factory
 
     // }
 
-
-     // Estados para diferentes roles
+    // Estados para diferentes roles
     public function admin(): Factory
     {
         return $this->state([
@@ -94,4 +95,3 @@ class UserFactory extends Factory
         ]);
     }
 }
-

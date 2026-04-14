@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Buyer;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class ActivityController extends Controller
@@ -28,7 +27,7 @@ class ActivityController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Datos de entrada inválidos',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
@@ -57,14 +56,14 @@ class ActivityController extends Controller
                     'last_page' => ceil($total / $limit),
                     'from' => $offset + 1,
                     'to' => min($offset + $limit, $total),
-                ]
+                ],
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener historial de actividad',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -82,14 +81,14 @@ class ActivityController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $stats
+                'data' => $stats,
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener estadísticas',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -108,7 +107,7 @@ class ActivityController extends Controller
                 'metadata' => [
                     'ip' => '192.168.1.100',
                     'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                    'location' => 'Madrid, España'
+                    'location' => 'Madrid, España',
                 ],
                 'created_at' => now()->subHours(2)->toISOString(),
                 'updated_at' => now()->subHours(2)->toISOString(),
@@ -122,7 +121,7 @@ class ActivityController extends Controller
                     'order_id' => 'ORD-001',
                     'total_amount' => 25.50,
                     'restaurant' => 'Restaurante Ejemplo',
-                    'items_count' => 3
+                    'items_count' => 3,
                 ],
                 'created_at' => now()->subDays(1)->toISOString(),
                 'updated_at' => now()->subDays(1)->toISOString(),
@@ -135,7 +134,7 @@ class ActivityController extends Controller
                 'metadata' => [
                     'updated_fields' => ['name', 'email'],
                     'previous_values' => ['Juan', 'juan@old.com'],
-                    'new_values' => ['Juan Carlos', 'juan@new.com']
+                    'new_values' => ['Juan Carlos', 'juan@new.com'],
                 ],
                 'created_at' => now()->subDays(2)->toISOString(),
                 'updated_at' => now()->subDays(2)->toISOString(),
@@ -149,7 +148,7 @@ class ActivityController extends Controller
                     'order_id' => 'ORD-001',
                     'rating' => 5,
                     'comment' => 'Excelente servicio y comida deliciosa',
-                    'restaurant' => 'Restaurante Ejemplo'
+                    'restaurant' => 'Restaurante Ejemplo',
                 ],
                 'created_at' => now()->subDays(3)->toISOString(),
                 'updated_at' => now()->subDays(3)->toISOString(),
@@ -162,7 +161,7 @@ class ActivityController extends Controller
                 'metadata' => [
                     'order_id' => 'ORD-002',
                     'cancellation_reason' => 'Cambio de planes',
-                    'refund_amount' => 15.75
+                    'refund_amount' => 15.75,
                 ],
                 'created_at' => now()->subDays(4)->toISOString(),
                 'updated_at' => now()->subDays(4)->toISOString(),
@@ -171,24 +170,24 @@ class ActivityController extends Controller
 
         // Filtrar por tipo de actividad
         if ($activityType) {
-            $activities = array_filter($activities, function($activity) use ($activityType) {
+            $activities = array_filter($activities, function ($activity) use ($activityType) {
                 return $activity['activity_type'] === $activityType;
             });
         }
 
         // Filtrar por fecha
         if ($startDate || $endDate) {
-            $activities = array_filter($activities, function($activity) use ($startDate, $endDate) {
+            $activities = array_filter($activities, function ($activity) use ($startDate, $endDate) {
                 $activityDate = \Carbon\Carbon::parse($activity['created_at']);
-                
+
                 if ($startDate && $activityDate < \Carbon\Carbon::parse($startDate)) {
                     return false;
                 }
-                
+
                 if ($endDate && $activityDate > \Carbon\Carbon::parse($endDate)) {
                     return false;
                 }
-                
+
                 return true;
             });
         }

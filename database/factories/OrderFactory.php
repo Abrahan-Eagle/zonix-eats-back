@@ -44,11 +44,34 @@ class OrderFactory extends Factory
             'cancelled_by' => $status === 'cancelled' ? $this->faker->randomElement(['user_id', 'commerce_id', 'admin_id']) : null,
             'estimated_delivery_time' => $deliveryType === 'delivery' ? $this->faker->numberBetween(15, 60) : null,
             'receipt_url' => $isPaidOrBeyond ? $this->faker->optional()->url() : null,
-            'payment_proof' => $status === 'pending_payment' ? null : ($this->faker->boolean(70) ? $this->faker->imageUrl() : null),
-            'payment_method' => $status !== 'pending_payment' ? $this->faker->randomElement(['cash', 'card', 'mobile_payment', 'bank_transfer']) : null,
-            'reference_number' => $status !== 'pending_payment' ? $this->faker->optional()->numerify('REF#######') : null,
-            'payment_validated_at' => $isPaidOrBeyond ? $this->faker->dateTimeBetween('-1 week', 'now') : null,
-            'payment_proof_uploaded_at' => $status !== 'pending_payment' ? $this->faker->optional()->dateTimeBetween('-1 week', 'now') : null,
+            // Usar el status *final* (tras merge en create()), no el $status aleatorio de arriba — si no,
+            // un override `status => pending_payment` podía dejar payment_proof no nulo y romper scopes (p. ej. expiración TTL).
+            'payment_proof' => function (array $attributes) {
+                $s = $attributes['status'] ?? 'pending_payment';
+
+                return $s === 'pending_payment' ? null : ($this->faker->boolean(70) ? $this->faker->imageUrl() : null);
+            },
+            'payment_method' => function (array $attributes) {
+                $s = $attributes['status'] ?? 'pending_payment';
+
+                return $s !== 'pending_payment' ? $this->faker->randomElement(['cash', 'card', 'mobile_payment', 'bank_transfer']) : null;
+            },
+            'reference_number' => function (array $attributes) {
+                $s = $attributes['status'] ?? 'pending_payment';
+
+                return $s !== 'pending_payment' ? $this->faker->optional()->numerify('REF#######') : null;
+            },
+            'payment_validated_at' => function (array $attributes) {
+                $s = $attributes['status'] ?? 'pending_payment';
+                $paidOrBeyond = in_array($s, ['paid', 'processing', 'shipped', 'delivered'], true);
+
+                return $paidOrBeyond ? $this->faker->dateTimeBetween('-1 week', 'now') : null;
+            },
+            'payment_proof_uploaded_at' => function (array $attributes) {
+                $s = $attributes['status'] ?? 'pending_payment';
+
+                return $s !== 'pending_payment' ? $this->faker->optional()->dateTimeBetween('-1 week', 'now') : null;
+            },
             'cancellation_reason' => $status === 'cancelled' ? $this->faker->sentence() : null,
             'delivery_address' => $deliveryType === 'delivery' ? $this->faker->address() : null,
             'delivery_latitude' => $deliveryType === 'delivery' ? $this->faker->latitude(10.0, 10.2) : null,

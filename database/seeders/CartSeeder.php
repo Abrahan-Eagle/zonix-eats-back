@@ -2,10 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\Cart;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 
 class CartSeeder extends Seeder
 {
@@ -15,12 +14,13 @@ class CartSeeder extends Seeder
     public function run(): void
     {
         $users = User::where('role', 'users')->with('profile')->get();
-        
+
         if ($users->isEmpty()) {
             $this->command->warn('No hay usuarios compradores para crear carritos.');
+
             return;
         }
-        
+
         $created = 0;
         foreach ($users->take(10) as $user) {
             $profile = $user->profile;
@@ -35,11 +35,11 @@ class CartSeeder extends Seeder
                 $created++;
             }
         }
-        
+
         if ($created === 0) {
             $this->command->warn('Ningún usuario comprador tiene perfil; no se crearon carritos.');
         }
-        
+
         $this->command->info('CartSeeder ejecutado exitosamente.');
     }
 }

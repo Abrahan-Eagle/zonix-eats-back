@@ -19,12 +19,12 @@ class DeliveryPayment extends Model
         'amount',
         'status',
         'paid_at',
-        'notes'
+        'notes',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
-        'paid_at' => 'datetime'
+        'paid_at' => 'datetime',
     ];
 
     /**

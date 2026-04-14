@@ -17,13 +17,14 @@ class StorePaymentMethodRequest extends FormRequest
     public function rules(): array
     {
         $currentYear = (int) date('Y');
+
         return [
             'type' => 'required|string|in:card,mobile_payment,cash,paypal,stripe,mercadopago,digital_wallet,bank_transfer,other',
             'bank_id' => 'nullable|exists:banks,id',
             'brand' => 'nullable|string|max:50',
             'last4' => 'nullable|string|size:4',
             'exp_month' => 'nullable|integer|between:1,12',
-            'exp_year' => 'nullable|integer|min:' . ($currentYear - 1),
+            'exp_year' => 'nullable|integer|min:'.($currentYear - 1),
             'cardholder_name' => 'nullable|string|max:255',
             'account_number' => 'nullable|string|max:50',
             'phone' => 'nullable|string|max:20',

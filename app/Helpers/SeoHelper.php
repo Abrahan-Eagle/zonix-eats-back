@@ -16,7 +16,7 @@ class SeoHelper
 
     public static function setTitle($title)
     {
-        self::$data['title'] = $title . ' | Zonix EATS';
+        self::$data['title'] = $title.' | Zonix EATS';
     }
 
     public static function setDescription($description)
@@ -52,7 +52,7 @@ class SeoHelper
         }
 
         // Fix image URL if relative
-        if (!filter_var(self::$data['image'], FILTER_VALIDATE_URL)) {
+        if (! filter_var(self::$data['image'], FILTER_VALIDATE_URL)) {
             self::$data['image'] = asset(self::$data['image']);
         }
 
@@ -62,7 +62,7 @@ class SeoHelper
     public static function jsonLd()
     {
         $data = self::meta();
-        
+
         $schema = [
             '@context' => 'https://schema.org',
             '@type' => 'WebSite',
@@ -71,9 +71,9 @@ class SeoHelper
             'description' => $data['description'],
             'potentialAction' => [
                 '@type' => 'SearchAction',
-                'target' => url('/') . '/search?q={search_term_string}',
-                'query-input' => 'required name=search_term_string'
-            ]
+                'target' => url('/').'/search?q={search_term_string}',
+                'query-input' => 'required name=search_term_string',
+            ],
         ];
 
         return json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
@@ -90,14 +90,15 @@ class SeoHelper
             'offers' => [
                 '@type' => 'Offer',
                 'price' => '0',
-                'priceCurrency' => 'USD'
+                'priceCurrency' => 'USD',
             ],
             'aggregateRating' => [
                 '@type' => 'AggregateRating',
                 'ratingValue' => '4.8',
-                'ratingCount' => '1250'
-            ]
+                'ratingCount' => '1250',
+            ],
         ];
+
         return json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
     }
 
@@ -112,16 +113,17 @@ class SeoHelper
             'sameAs' => [
                 'https://www.facebook.com/zonixeats',
                 'https://www.instagram.com/zonixeats',
-                'https://twitter.com/zonixeats'
+                'https://twitter.com/zonixeats',
             ],
             'contactPoint' => [
                 '@type' => 'ContactPoint',
                 'telephone' => '+58-412-1234567',
                 'contactType' => 'customer service',
                 'areaServed' => 'VE',
-                'availableLanguage' => 'es'
-            ]
+                'availableLanguage' => 'es',
+            ],
         ];
+
         return json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
     }
 
@@ -136,27 +138,28 @@ class SeoHelper
                     'name' => '¿Cuánto tarda en llegar mi pedido con Zonix Eats?',
                     'acceptedAnswer' => [
                         '@type' => 'Answer',
-                        'text' => 'El tiempo promedio de entrega en Zonix Eats es de 15 a 30 minutos, gracias a nuestra tecnología de despacho inteligente y flota de repartidores locales.'
-                    ]
+                        'text' => 'El tiempo promedio de entrega en Zonix Eats es de 15 a 30 minutos, gracias a nuestra tecnología de despacho inteligente y flota de repartidores locales.',
+                    ],
                 ],
                 [
                     '@type' => 'Question',
                     'name' => '¿Qué métodos de pago acepta Zonix Eats?',
                     'acceptedAnswer' => [
                         '@type' => 'Answer',
-                        'text' => 'Aceptamos pagos en Bolívares (Pago Móvil, Transferencia), Dólares (Efectivo, Zelle), PayPal y Tarjetas de Crédito/Débito internacionales.'
-                    ]
+                        'text' => 'Aceptamos pagos en Bolívares (Pago Móvil, Transferencia), Dólares (Efectivo, Zelle), PayPal y Tarjetas de Crédito/Débito internacionales.',
+                    ],
                 ],
                 [
                     '@type' => 'Question',
                     'name' => '¿En qué ciudades de Venezuela opera Zonix Eats?',
                     'acceptedAnswer' => [
                         '@type' => 'Answer',
-                        'text' => 'Actualmente operamos en Caracas, Maracaibo, Valencia, Barquisimeto y Lechería, expandiéndonos próximamente a más ciudades del país.'
-                    ]
-                ]
-            ]
+                        'text' => 'Actualmente operamos en Caracas, Maracaibo, Valencia, Barquisimeto y Lechería, expandiéndonos próximamente a más ciudades del país.',
+                    ],
+                ],
+            ],
         ];
+
         return json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
     }
 }

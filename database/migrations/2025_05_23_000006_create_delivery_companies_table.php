@@ -2,14 +2,14 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Crea tabla delivery_companies con nombres en inglés desde el inicio.
      * Consolidado: rename_spanish_fields_to_english (campos ya en inglés).
      */
@@ -40,15 +40,15 @@ return new class extends Migration
     {
         // Quitar FK desde phones.delivery_company_id antes de dropear delivery_companies
         if (Schema::hasTable('phones')) {
-             Schema::table('phones', function (Blueprint $table) {
-                 if (DB::getDriverName() !== 'sqlite') {
-                     try {
-                         $table->dropForeign(['delivery_company_id']);
-                     } catch (\Throwable $e) {
-                         // Si la FK ya no existe, continuar sin fallar el rollback
-                     }
-                 }
-             });
+            Schema::table('phones', function (Blueprint $table) {
+                if (DB::getDriverName() !== 'sqlite') {
+                    try {
+                        $table->dropForeign(['delivery_company_id']);
+                    } catch (\Throwable $e) {
+                        // Si la FK ya no existe, continuar sin fallar el rollback
+                    }
+                }
+            });
         }
 
         Schema::dropIfExists('delivery_companies');

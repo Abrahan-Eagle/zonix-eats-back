@@ -2,13 +2,12 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
+use App\Models\Commerce;
+use App\Models\DeliveryAgent;
 use App\Models\Dispute;
 use App\Models\Order;
 use App\Models\Profile;
-use App\Models\Commerce;
-use App\Models\DeliveryAgent;
+use Illuminate\Database\Seeder;
 
 class DisputeSeeder extends Seeder
 {
@@ -18,16 +17,17 @@ class DisputeSeeder extends Seeder
     public function run(): void
     {
         $orders = Order::whereIn('status', ['delivered', 'cancelled'])->get();
-        
+
         if ($orders->isEmpty()) {
             $this->command->warn('No hay órdenes para crear disputas.');
+
             return;
         }
-        
+
         // Crear algunas disputas
         foreach ($orders->take(5) as $order) {
             $reportedBy = $order->profile;
-            
+
             // Disputa contra comercio
             if (rand(0, 1)) {
                 Dispute::factory()->create([
@@ -38,7 +38,7 @@ class DisputeSeeder extends Seeder
                     'reported_against_id' => $order->commerce_id,
                 ]);
             }
-            
+
             // Disputa contra delivery (si tiene)
             if ($order->delivery_type === 'delivery' && $order->orderDelivery) {
                 if (rand(0, 1)) {
@@ -52,7 +52,7 @@ class DisputeSeeder extends Seeder
                 }
             }
         }
-        
+
         $this->command->info('DisputeSeeder ejecutado exitosamente.');
     }
 }

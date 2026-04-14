@@ -2,10 +2,10 @@
 
 namespace Database\Factories;
 
-use App\Models\CouponUsage;
 use App\Models\Coupon;
-use App\Models\Profile;
+use App\Models\CouponUsage;
 use App\Models\Order;
+use App\Models\Profile;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**

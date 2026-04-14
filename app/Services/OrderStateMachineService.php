@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 class OrderStateMachineService
 {
     public const ERROR_INVALID_TRANSITION = 'ORDER_INVALID_TRANSITION';
+
     public const ERROR_INVALID_STATUS = 'ORDER_INVALID_STATUS';
 
     private const VALID_STATUSES = [
@@ -56,6 +57,7 @@ class OrderStateMachineService
     public function normalizeStatus(string $status): string
     {
         $status = strtolower(trim($status));
+
         return self::ALIASES[$status] ?? $status;
     }
 
@@ -73,7 +75,7 @@ class OrderStateMachineService
         $to = $this->normalizeStatus($toStatus);
         $role = strtolower(trim($actorRole));
 
-        if (!$this->isValidStatus($from) || !$this->isValidStatus($to)) {
+        if (! $this->isValidStatus($from) || ! $this->isValidStatus($to)) {
             return [
                 'allowed' => false,
                 'http_status' => 422,
@@ -96,7 +98,7 @@ class OrderStateMachineService
         }
 
         $allowedTargets = self::TRANSITIONS[$role][$from] ?? [];
-        if (!in_array($to, $allowedTargets, true)) {
+        if (! in_array($to, $allowedTargets, true)) {
             if ($this->allowsCommercePickupDelivered($role, $from, $to, $order)) {
                 return [
                     'allowed' => true,
@@ -152,7 +154,7 @@ class OrderStateMachineService
         ?string $reason = null
     ): array {
         $decision = $this->canTransition($actorRole, $order->status, $toStatus, $order);
-        if (!$decision['allowed']) {
+        if (! $decision['allowed']) {
             Log::warning('order_transition_rejected', [
                 'order_id' => $order->id,
                 'actor_role' => $actorRole,
@@ -163,6 +165,7 @@ class OrderStateMachineService
                 'reason' => $reason,
                 'source' => $source,
             ]);
+
             return $decision;
         }
 

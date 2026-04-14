@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Promotion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 
 class CommercePromotionController extends Controller
 {
@@ -88,7 +87,7 @@ class CommercePromotionController extends Controller
             $baseUrl = config('app.env') === 'production'
                 ? config('app.url_production')
                 : config('app.url_local');
-            $data['image_url'] = $baseUrl . '/storage/' . $path;
+            $data['image_url'] = $baseUrl.'/storage/'.$path;
         }
 
         $promotion = Promotion::create($data);
@@ -135,14 +134,14 @@ class CommercePromotionController extends Controller
         if ($request->has('is_active')) {
             $data['is_active'] = $request->boolean('is_active');
         }
-        $data = array_filter($data, fn($v) => $v !== null);
+        $data = array_filter($data, fn ($v) => $v !== null);
 
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('promotions', 'public');
             $baseUrl = config('app.env') === 'production'
                 ? config('app.url_production')
                 : config('app.url_local');
-            $data['image_url'] = $baseUrl . '/storage/' . $path;
+            $data['image_url'] = $baseUrl.'/storage/'.$path;
         }
 
         $promotion->update($data);
@@ -167,6 +166,7 @@ class CommercePromotionController extends Controller
         }
 
         $promotion->delete();
+
         return response()->json(['success' => true]);
     }
 
@@ -183,7 +183,8 @@ class CommercePromotionController extends Controller
             abort(403, 'No tienes acceso a esta promoción');
         }
 
-        $promotion->update(['is_active' => !$promotion->is_active]);
+        $promotion->update(['is_active' => ! $promotion->is_active]);
+
         return response()->json([
             'success' => true,
             'data' => $promotion->fresh(),

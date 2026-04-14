@@ -2,14 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
-use App\Models\Review;
-use App\Models\Profile;
-use App\Models\Order;
 use App\Models\Commerce;
 use App\Models\DeliveryAgent;
-use App\Models\OrderDelivery;
+use App\Models\Order;
+use App\Models\Review;
+use Illuminate\Database\Seeder;
 
 class ReviewSeeder extends Seeder
 {
@@ -17,12 +14,13 @@ class ReviewSeeder extends Seeder
     {
         // Crear reviews para comercios
         $orders = Order::where('status', 'delivered')->get();
-        
+
         if ($orders->isEmpty()) {
             $this->command->warn('No hay órdenes entregadas para crear reviews.');
+
             return;
         }
-        
+
         foreach ($orders->take(10) as $order) {
             Review::factory()->forCommerce()->create([
                 'profile_id' => $order->profile_id,
@@ -31,18 +29,19 @@ class ReviewSeeder extends Seeder
                 'reviewable_id' => $order->commerce_id,
             ]);
         }
-        
+
         // Crear reviews para delivery agents
         $deliveryOrders = Order::where('delivery_type', 'delivery')
             ->where('status', 'delivered')
             ->whereHas('orderDelivery')
             ->get();
-            
+
         if ($deliveryOrders->isEmpty()) {
             $this->command->warn('No hay órdenes con delivery entregadas para crear reviews.');
+
             return;
         }
-            
+
         $deliveryComments = [
             '¡Muy rápido y la comida llegó caliente!',
             'Excelente servicio, muy amable el repartidor.',
@@ -65,7 +64,7 @@ class ReviewSeeder extends Seeder
                 $i++;
             }
         }
-        
+
         $this->command->info('ReviewSeeder ejecutado exitosamente.');
     }
 }

@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
 use App\Models\Post;
 use App\Models\PostLike;
+use App\Models\Profile;
+use App\Models\User;
 use App\Services\PostService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use App\Models\Profile;
+use Tests\TestCase;
 
 class PostServiceTest extends TestCase
 {
@@ -19,7 +19,7 @@ class PostServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->postService = new PostService();
+        $this->postService = new PostService;
     }
 
     public function test_get_posts_with_search_filter()
@@ -87,4 +87,4 @@ class PostServiceTest extends TestCase
         $this->assertTrue($favorites->contains($post2));
         $this->assertFalse($favorites->contains($post3));
     }
-} 
+}

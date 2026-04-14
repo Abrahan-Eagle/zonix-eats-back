@@ -1,12 +1,12 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Admin\UserController as AdminUserController;
-use App\Http\Controllers\Admin\ReportController as AdminReportController;
+use App\Http\Controllers\Admin\CommerceController;
+use App\Http\Controllers\Admin\DeliveryCompanyController;
 use App\Http\Controllers\Admin\DeliverySettingsController;
 use App\Http\Controllers\Admin\DeliveryZoneController;
-use App\Http\Controllers\Admin\DeliveryCompanyController;
-use App\Http\Controllers\Admin\CommerceController;
+use App\Http\Controllers\Admin\ReportController as AdminReportController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
+use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum', 'role:admin', \App\Http\Middleware\AdminAuditMiddleware::class])->prefix('admin')->group(function () {
     Route::get('/users', [AdminUserController::class, 'index']);

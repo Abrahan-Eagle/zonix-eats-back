@@ -3,13 +3,10 @@
 namespace App\Http\Controllers\Buyer;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use App\Models\Address;
 use App\Models\City;
-use App\Models\Country;
-use App\Models\Profile;
-use App\Models\State;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
@@ -22,7 +19,7 @@ class AddressController extends Controller
     {
         try {
             $profile = auth()->user()->profile;
-            
+
             $addresses = Address::with('city')
                 ->where('profile_id', $profile->id)
                 ->orderBy('is_default', 'desc')
@@ -31,6 +28,7 @@ class AddressController extends Controller
 
             $addressesData = $addresses->map(function ($address) {
                 $cityName = $address->relationLoaded('city') && $address->city ? $address->city->name : null;
+
                 return [
                     'id' => $address->id,
                     'name' => $address->street ?? null,
@@ -44,19 +42,20 @@ class AddressController extends Controller
                     'longitude' => $address->longitude,
                     'is_default' => $address->is_default,
                     'delivery_instructions' => null,
-                    'formatted_address' => $this->formatAddress($address)
+                    'formatted_address' => $this->formatAddress($address),
                 ];
             });
 
             return response()->json([
                 'success' => true,
-                'data' => $addressesData
+                'data' => $addressesData,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting user addresses: ' . $e->getMessage());
+            Log::error('Error getting user addresses: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener las direcciones'
+                'message' => 'Error al obtener las direcciones',
             ], 500);
         }
     }
@@ -80,21 +79,21 @@ class AddressController extends Controller
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',
             'is_default' => 'boolean',
-            'delivery_instructions' => 'nullable|string|max:500'
+            'delivery_instructions' => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Datos inválidos',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
         try {
             $profile = auth()->user()->profile;
             $cityId = $this->resolveCityId($request);
-            if (!$cityId) {
+            if (! $cityId) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No se pudo resolver la ciudad con los datos enviados',
@@ -137,14 +136,15 @@ class AddressController extends Controller
                     'longitude' => $address->longitude,
                     'is_default' => $address->is_default,
                     'delivery_instructions' => null,
-                    'formatted_address' => $this->formatAddress($address)
-                ]
+                    'formatted_address' => $this->formatAddress($address),
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error creating address: ' . $e->getMessage());
+            Log::error('Error creating address: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al crear la dirección'
+                'message' => 'Error al crear la dirección',
             ], 500);
         }
     }
@@ -168,14 +168,14 @@ class AddressController extends Controller
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',
             'is_default' => 'boolean',
-            'delivery_instructions' => 'nullable|string|max:500'
+            'delivery_instructions' => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Datos inválidos',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -185,7 +185,7 @@ class AddressController extends Controller
                 ->where('profile_id', $profile->id)
                 ->firstOrFail();
             $cityId = $this->resolveCityId($request);
-            if (!$cityId) {
+            if (! $cityId) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No se pudo resolver la ciudad con los datos enviados',
@@ -226,14 +226,15 @@ class AddressController extends Controller
                     'longitude' => $address->longitude,
                     'is_default' => $address->is_default,
                     'delivery_instructions' => null,
-                    'formatted_address' => $this->formatAddress($address)
-                ]
+                    'formatted_address' => $this->formatAddress($address),
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error updating address: ' . $e->getMessage());
+            Log::error('Error updating address: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al actualizar la dirección'
+                'message' => 'Error al actualizar la dirección',
             ], 500);
         }
     }
@@ -255,7 +256,7 @@ class AddressController extends Controller
                 if ($totalAddresses === 1) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'No puedes eliminar la única dirección disponible'
+                        'message' => 'No puedes eliminar la única dirección disponible',
                     ], 400);
                 }
             }
@@ -267,7 +268,7 @@ class AddressController extends Controller
                 $newDefault = Address::where('profile_id', $profile->id)
                     ->orderBy('created_at', 'desc')
                     ->first();
-                
+
                 if ($newDefault) {
                     $newDefault->update(['is_default' => true]);
                 }
@@ -275,13 +276,14 @@ class AddressController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Dirección eliminada exitosamente'
+                'message' => 'Dirección eliminada exitosamente',
             ]);
         } catch (\Exception $e) {
-            Log::error('Error deleting address: ' . $e->getMessage());
+            Log::error('Error deleting address: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al eliminar la dirección'
+                'message' => 'Error al eliminar la dirección',
             ], 500);
         }
     }
@@ -306,13 +308,14 @@ class AddressController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Dirección establecida como predeterminada'
+                'message' => 'Dirección establecida como predeterminada',
             ]);
         } catch (\Exception $e) {
-            Log::error('Error setting default address: ' . $e->getMessage());
+            Log::error('Error setting default address: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al establecer la dirección predeterminada'
+                'message' => 'Error al establecer la dirección predeterminada',
             ], 500);
         }
     }
@@ -324,15 +327,15 @@ class AddressController extends Controller
     {
         try {
             $profile = auth()->user()->profile;
-            
+
             $address = Address::where('profile_id', $profile->id)
                 ->where('is_default', true)
                 ->first();
 
-            if (!$address) {
+            if (! $address) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No hay dirección predeterminada'
+                    'message' => 'No hay dirección predeterminada',
                 ], 404);
             }
 
@@ -351,14 +354,15 @@ class AddressController extends Controller
                     'longitude' => $address->longitude,
                     'is_default' => $address->is_default,
                     'delivery_instructions' => null,
-                    'formatted_address' => $this->formatAddress($address)
-                ]
+                    'formatted_address' => $this->formatAddress($address),
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting default address: ' . $e->getMessage());
+            Log::error('Error getting default address: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener la dirección predeterminada'
+                'message' => 'Error al obtener la dirección predeterminada',
             ], 500);
         }
     }
@@ -373,7 +377,7 @@ class AddressController extends Controller
             $address->street,
             $address->house_number,
             $cityName,
-            $address->postal_code
+            $address->postal_code,
         ]);
 
         return implode(', ', $parts);
@@ -385,7 +389,7 @@ class AddressController extends Controller
             return (int) $request->city_id;
         }
 
-        if (!$request->filled('city')) {
+        if (! $request->filled('city')) {
             return null;
         }
 
@@ -403,4 +407,4 @@ class AddressController extends Controller
 
         return optional($cityQuery->first())->id;
     }
-} 
+}

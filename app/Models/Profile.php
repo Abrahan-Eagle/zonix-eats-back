@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Model;
  * Modelo Profile: almacena información extendida de los usuarios (datos personales, empresa, etc.).
  * Relacionado con User y otras entidades.
  */
-
 class Profile extends Model
 {
     use HasFactory;
@@ -30,7 +29,7 @@ class Profile extends Model
         'status',
         'address',
         'fcm_device_token',
-        'notification_preferences'
+        'notification_preferences',
         // Nota: business_name, business_type, tax_id están en Commerce
         // Nota: vehicle_type, license_number están en DeliveryAgent
     ];
@@ -45,7 +44,6 @@ class Profile extends Model
      * Atributos dinámicos (accessors) que deben incluirse en las respuestas JSON.
      */
     protected $appends = ['phone'];
-
 
     /**
      * Relación con ubicaciones del usuario
@@ -118,10 +116,6 @@ class Profile extends Model
         return $this->hasMany(Review::class);
     }
 
-
-
-
-
     /**
      * Relación uno a muchos con el modelo Address
      */
@@ -149,6 +143,7 @@ class Profile extends Model
             ->where('is_primary', true)
             ->where('status', true)
             ->first();
+
         return $primary ? $primary->full_number : null;
     }
 

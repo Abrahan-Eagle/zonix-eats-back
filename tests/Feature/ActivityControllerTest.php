@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Tests\TestCase;
 
 class ActivityControllerTest extends TestCase
 {
@@ -37,7 +37,7 @@ class ActivityControllerTest extends TestCase
                         'metadata',
                         'created_at',
                         'updated_at',
-                    ]
+                    ],
                 ],
                 'pagination' => [
                     'current_page',
@@ -46,7 +46,7 @@ class ActivityControllerTest extends TestCase
                     'last_page',
                     'from',
                     'to',
-                ]
+                ],
             ]);
     }
 
@@ -58,7 +58,7 @@ class ActivityControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson([
-                'success' => true
+                'success' => true,
             ]);
 
         $data = $response->json('data');
@@ -78,7 +78,7 @@ class ActivityControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson([
-                'success' => true
+                'success' => true,
             ]);
     }
 
@@ -122,7 +122,7 @@ class ActivityControllerTest extends TestCase
                     'activity_breakdown',
                     'most_active_day',
                     'average_activities_per_day',
-                ]
+                ],
             ]);
     }
 
@@ -145,7 +145,7 @@ class ActivityControllerTest extends TestCase
                 'pagination' => [
                     'current_page' => 2,
                     'per_page' => 5,
-                ]
+                ],
             ]);
     }
 }

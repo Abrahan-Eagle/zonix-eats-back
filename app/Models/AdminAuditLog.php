@@ -28,4 +28,3 @@ class AdminAuditLog extends Model
         'payload' => 'array',
     ];
 }
-

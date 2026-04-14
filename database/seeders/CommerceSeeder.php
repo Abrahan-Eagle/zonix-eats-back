@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Commerce;
 use App\Models\BusinessType;
+use App\Models\Commerce;
 use App\Models\Profile;
+use Illuminate\Database\Seeder;
 
 class CommerceSeeder extends Seeder
 {
@@ -20,7 +20,7 @@ class CommerceSeeder extends Seeder
         ['name' => 'Cafetería Los Chorritos',       'address' => 'Los Chorritos, Valencia',            'type' => 'Cafetería'],
         ['name' => 'Sushi Los Chorritos',           'address' => 'Los Chorritos, Valencia',            'type' => 'Sushi Bar'],
         ['name' => 'Panadería Los Chorritos',       'address' => 'Los Chorritos, Valencia',            'type' => 'Panadería'],
-        ['name' => 'Café San Diego',                'address' => 'Centro Comercial San Diego, Valencia','type' => 'Cafetería'],
+        ['name' => 'Café San Diego',                'address' => 'Centro Comercial San Diego, Valencia', 'type' => 'Cafetería'],
         ['name' => 'Restaurante San Diego Grill',   'address' => 'San Diego, Valencia',                'type' => 'Restaurant'],
         ['name' => 'Pizzería San Diego',            'address' => 'San Diego, Valencia',                'type' => 'Pizzería'],
         ['name' => 'Comedor San Diego Express',     'address' => 'San Diego, Valencia',                'type' => 'Comida Rápida'],

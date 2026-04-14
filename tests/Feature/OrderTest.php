@@ -2,17 +2,17 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\Profile;
 use App\Models\Commerce;
-use App\Models\Order;
 use App\Models\Coupon;
 use App\Models\OperatorCode;
+use App\Models\Order;
 use App\Models\Phone;
 use App\Models\Product;
-use Illuminate\Support\Facades\DB;
+use App\Models\Profile;
+use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -36,6 +36,9 @@ class OrderTest extends TestCase
         $product = Product::factory()->create([
             'commerce_id' => $commerce->id,
             'available' => true,
+            // Stock explícito: el factory usa stock aleatorio (0–100 o null); con qty 2 puede devolver 400 por stock.
+            'stock_quantity' => 100,
+            'price' => 12.50,
         ]);
         $operatorCode = OperatorCode::firstOrCreate(
             ['code' => 412],
@@ -50,16 +53,20 @@ class OrderTest extends TestCase
         ]);
         $this->actingAs($user, 'sanctum');
 
-        // Crear orden
+        $product->refresh();
+        $expectedTotal = round((float) $product->price * 2, 2);
+
+        // Crear orden (pickup: delivery_fee 0 explícito, mismo patrón que el resto de OrderTest)
         $response = $this->postJson('/api/buyer/orders', [
             'commerce_id' => $commerce->id,
             'products' => [
-                ['id' => $product->id, 'quantity' => 2]
+                ['id' => $product->id, 'quantity' => 2],
             ],
             'delivery_type' => 'pickup',
-            'total' => $product->price * 2,
+            'delivery_fee' => 0,
+            'total' => $expectedTotal,
             'notes' => 'Sin cebolla',
-            'delivery_address' => 'Calle 123'
+            'delivery_address' => 'Calle 123',
         ]);
         $response->assertStatus(201)->assertJson(['success' => true]);
         $orderId = $response->json('data.id');
@@ -69,14 +76,14 @@ class OrderTest extends TestCase
         $response = $this->postJson("/api/buyer/orders/{$orderId}/payment-proof", [
             'payment_proof' => $file,
             'payment_method' => 'mobile_payment',
-            'reference_number' => '123456'
+            'reference_number' => '123456',
         ]);
         $response->assertStatus(200)->assertJson(['success' => true]);
-        Storage::disk('public')->assertExists('payment_proofs/' . $file->hashName());
+        Storage::disk('public')->assertExists('payment_proofs/'.$file->hashName());
 
         // Cancelar orden
         $response = $this->postJson("/api/buyer/orders/{$orderId}/cancel", [
-            'reason' => 'Cambio de planes'
+            'reason' => 'Cambio de planes',
         ]);
         $response->assertStatus(200)->assertJson(['success' => true]);
     }
@@ -114,11 +121,11 @@ class OrderTest extends TestCase
         $response = $this->postJson('/api/buyer/orders', [
             'commerce_id' => $commerce->id,
             'products' => [
-                ['id' => $product->id, 'quantity' => 2]
+                ['id' => $product->id, 'quantity' => 2],
             ],
             'delivery_type' => 'pickup',
             'total' => $product->price * 2,
-            'delivery_address' => 'Calle 123'
+            'delivery_address' => 'Calle 123',
         ]);
 
         $response->assertStatus(400)
@@ -538,4 +545,4 @@ class OrderTest extends TestCase
                 ],
             ]);
     }
-} 
+}

@@ -23,4 +23,4 @@ class BankApiTest extends TestCase
         $this->assertEquals('Banco de Venezuela', $data[0]['name']);
         $this->assertEquals('Banesco', $data[1]['name']);
     }
-} 
+}

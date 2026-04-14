@@ -22,8 +22,8 @@ class RoleSeeder extends Seeder
                     'manage_commerces',
                     'manage_delivery',
                     'view_reports',
-                    'manage_system'
-                ]
+                    'manage_system',
+                ],
             ],
             [
                 'name' => 'users',
@@ -32,8 +32,8 @@ class RoleSeeder extends Seeder
                     'place_orders',
                     'view_orders',
                     'manage_profile',
-                    'write_reviews'
-                ]
+                    'write_reviews',
+                ],
             ],
             [
                 'name' => 'commerce',
@@ -42,8 +42,8 @@ class RoleSeeder extends Seeder
                     'manage_products',
                     'manage_orders',
                     'view_reports',
-                    'manage_profile'
-                ]
+                    'manage_profile',
+                ],
             ],
             [
                 'name' => 'delivery_company',
@@ -51,8 +51,8 @@ class RoleSeeder extends Seeder
                 'permissions' => [
                     'manage_agents',
                     'view_delivery_orders',
-                    'manage_profile'
-                ]
+                    'manage_profile',
+                ],
             ],
             [
                 'name' => 'delivery_agent',
@@ -60,8 +60,8 @@ class RoleSeeder extends Seeder
                 'permissions' => [
                     'accept_deliveries',
                     'update_delivery_status',
-                    'view_assigned_orders'
-                ]
+                    'view_assigned_orders',
+                ],
             ],
             [
                 'name' => 'delivery',
@@ -69,9 +69,9 @@ class RoleSeeder extends Seeder
                 'permissions' => [
                     'accept_deliveries',
                     'update_delivery_status',
-                    'view_assigned_orders'
-                ]
-            ]
+                    'view_assigned_orders',
+                ],
+            ],
         ];
 
         foreach ($roles as $role) {
@@ -81,4 +81,4 @@ class RoleSeeder extends Seeder
             );
         }
     }
-} 
+}

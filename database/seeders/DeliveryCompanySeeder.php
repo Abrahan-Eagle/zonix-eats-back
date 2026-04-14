@@ -2,11 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\DeliveryCompany;
 use App\Models\Profile;
-use App\Models\User;
+use Illuminate\Database\Seeder;
 
 class DeliveryCompanySeeder extends Seeder
 {
@@ -19,12 +17,12 @@ class DeliveryCompanySeeder extends Seeder
         for ($i = 0; $i < 3; $i++) {
             $profile = Profile::factory()->create();
             $profile->user->update(['role' => 'delivery_company']);
-            
+
             DeliveryCompany::factory()->create([
                 'profile_id' => $profile->id,
             ]);
         }
-        
+
         $this->command->info('DeliveryCompanySeeder ejecutado exitosamente.');
     }
 }

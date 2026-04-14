@@ -2524,6 +2524,14 @@ Authorization: Bearer {token}
 | POST   | `/api/chat/conversations/{id}/messages` | Enviar mensaje           | Sí   |
 | POST   | `/api/chat/conversations/{id}/read`     | Marcar como leído        | Sí   |
 
+**Superficies de API relacionadas (no duplicar lógica en clientes sin necesidad):**
+
+- **`/api/chat/*`** — Controlador principal `App\Http\Controllers\Chat\ChatController`: conversaciones por orden (todos los roles con acceso), mensajes, lectura, bloqueo de usuarios, búsqueda, registro FCM. Es la base del **`ChatService`** en Flutter.
+- **`/api/buyer/chat/*`** — `App\Http\Controllers\Buyer\ChatController`: rutas pensadas para el flujo **comprador** (mensajes por `orderId`, envío, no leídos, marcar leído). Conviven con el bloque anterior; elige una familia por pantalla y mantén consistencia.
+- **`GET/POST /api/buyer/orders/{orderId}/messages`** — Delegan en `Chat\ChatController` (mismo comportamiento que conversaciones/mensajes del bloque `/api/chat`).
+
+El archivo `App\Http\Controllers\ChatController` (namespace raíz) **no tiene rutas**; está deprecado en código. Ver `AGENTS.md` sección **Módulo Chat (API)**.
+
 ### 💳 Pagos
 
 | Método | Endpoint                | Descripción                 | Auth |

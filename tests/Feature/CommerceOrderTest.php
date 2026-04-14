@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\Profile;
 use App\Models\Commerce;
 use App\Models\Order;
+use App\Models\Profile;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -37,7 +37,7 @@ class CommerceOrderTest extends TestCase
         $this->assertCount(1, $response->json('data.items'));
 
         // Mostrar orden
-        $response = $this->getJson('/api/commerce/orders/' . $order->id);
+        $response = $this->getJson('/api/commerce/orders/'.$order->id);
         $response->assertStatus(200)->assertJsonStructure([
             'success',
             'message',
@@ -46,8 +46,8 @@ class CommerceOrderTest extends TestCase
         $this->assertEquals($order->id, $response->json('data.id'));
 
         // Actualizar estado de la orden
-        $response = $this->putJson('/api/commerce/orders/' . $order->id . '/status', [
-            'status' => 'processing'
+        $response = $this->putJson('/api/commerce/orders/'.$order->id.'/status', [
+            'status' => 'processing',
         ]);
         $response->assertStatus(200)->assertJson(['success' => true]);
         $order->refresh();
@@ -93,4 +93,4 @@ class CommerceOrderTest extends TestCase
         $order->refresh();
         $this->assertSame('shipped', $order->status);
     }
-} 
+}

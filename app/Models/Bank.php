@@ -21,4 +21,4 @@ class Bank extends Model
     {
         return $this->hasMany(PaymentMethod::class);
     }
-} 
+}

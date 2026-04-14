@@ -3,13 +3,12 @@
 namespace App\Http\Controllers\Payment;
 
 use App\Http\Controllers\Controller;
-use App\Models\PaymentMethod;
 use App\Models\Order;
+use App\Models\PaymentMethod;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
@@ -20,7 +19,7 @@ class PaymentController extends Controller
     {
         try {
             $user = Auth::user();
-            
+
             // Obtener métodos de pago del usuario directamente
             $userPaymentMethods = $user->paymentMethods()
                 ->where('is_active', true)
@@ -28,7 +27,7 @@ class PaymentController extends Controller
                 ->orderBy('is_default', 'desc')
                 ->orderBy('created_at', 'desc')
                 ->get();
-            
+
             // Si el usuario tiene un comercio, también obtener sus métodos de pago
             $commercePaymentMethods = collect();
             if ($user->profile && $user->profile->commerce) {
@@ -39,7 +38,7 @@ class PaymentController extends Controller
                     ->orderBy('created_at', 'desc')
                     ->get();
             }
-            
+
             // Combinar y formatear métodos de pago
             $paymentMethods = $userPaymentMethods->concat($commercePaymentMethods)->map(function ($method) {
                 return [
@@ -66,13 +65,14 @@ class PaymentController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $paymentMethods
+                'data' => $paymentMethods,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error fetching payment methods: ' . $e->getMessage());
+            Log::error('Error fetching payment methods: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error fetching payment methods'
+                'message' => 'Error fetching payment methods',
             ], 500);
         }
     }
@@ -85,7 +85,7 @@ class PaymentController extends Controller
         try {
             $user = Auth::user();
             $commerce = $user->profile->commerce ?? null;
-            if (!$commerce) {
+            if (! $commerce) {
                 return response()->json(['success' => false, 'message' => 'No es comercio'], 403);
             }
             $request->validate([
@@ -122,13 +122,15 @@ class PaymentController extends Controller
                 'is_default' => $request->input('is_default', false),
                 'is_active' => $request->input('is_active', true),
             ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Payment method added successfully',
-                'data' => $paymentMethod
+                'data' => $paymentMethod,
             ], 201);
         } catch (\Exception $e) {
-            \Log::error('Error al crear método de pago de comercio: ' . $e->getMessage());
+            \Log::error('Error al crear método de pago de comercio: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Error interno al crear método de pago'], 500);
         }
     }
@@ -144,17 +146,17 @@ class PaymentController extends Controller
                 'currency' => 'required|string|size:3',
                 'payment_method_id' => 'required|integer|exists:payment_methods,id',
                 'order_id' => 'required|integer|exists:orders,id',
-                'description' => 'required|string|max:255'
+                'description' => 'required|string|max:255',
             ]);
 
             $user = Auth::user();
             $order = Order::findOrFail($request->order_id);
-            
+
             // Verificar que la orden pertenece al usuario
             if ($order->profile_id !== $user->profile->id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No tienes permiso para pagar esta orden'
+                    'message' => 'No tienes permiso para pagar esta orden',
                 ], 403);
             }
 
@@ -162,7 +164,7 @@ class PaymentController extends Controller
             if ($order->payment_proof) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Esta orden ya ha sido pagada'
+                    'message' => 'Esta orden ya ha sido pagada',
                 ], 422);
             }
 
@@ -170,15 +172,15 @@ class PaymentController extends Controller
             if (abs($order->total - $request->amount) > 0.01) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'El monto no coincide con el total de la orden'
+                    'message' => 'El monto no coincide con el total de la orden',
                 ], 422);
             }
 
             // Obtener método de pago
             $paymentMethod = PaymentMethod::findOrFail($request->payment_method_id);
-            
+
             // Generar ID de transacción único
-            $transactionId = 'txn_' . time() . '_' . strtoupper(substr(md5($order->id . $user->id), 0, 8));
+            $transactionId = 'txn_'.time().'_'.strtoupper(substr(md5($order->id.$user->id), 0, 8));
 
             DB::beginTransaction();
             try {
@@ -187,7 +189,7 @@ class PaymentController extends Controller
                     'payment_method' => $paymentMethod->type,
                     'payment_proof' => $transactionId,
                     'payment_validated_at' => now(),
-                    'status' => 'paid'
+                    'status' => 'paid',
                 ]);
 
                 DB::commit();
@@ -211,23 +213,24 @@ class PaymentController extends Controller
                     'transaction_id' => $transactionId,
                     'order_id' => $order->id,
                     'amount' => $order->total,
-                    'user_id' => $user->id
+                    'user_id' => $user->id,
                 ]);
 
                 return response()->json([
                     'success' => true,
                     'message' => 'Payment processed successfully',
-                    'data' => $transaction
+                    'data' => $transaction,
                 ]);
             } catch (\Exception $e) {
                 DB::rollBack();
                 throw $e;
             }
         } catch (\Exception $e) {
-            Log::error('Error processing payment: ' . $e->getMessage());
+            Log::error('Error processing payment: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error processing payment: ' . $e->getMessage()
+                'message' => 'Error processing payment: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -240,11 +243,11 @@ class PaymentController extends Controller
         try {
             $user = Auth::user();
             $profileId = $user->profile->id ?? null;
-            
-            if (!$profileId) {
+
+            if (! $profileId) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No tienes un perfil asociado'
+                    'message' => 'No tienes un perfil asociado',
                 ], 403);
             }
 
@@ -280,7 +283,7 @@ class PaymentController extends Controller
                     'currency' => 'PEN', // Por defecto, puede ajustarse según necesidad
                     'status' => $order->status === 'delivered' ? 'completed' : ($order->status === 'cancelled' ? 'cancelled' : 'pending'),
                     'type' => 'payment',
-                    'description' => 'Order #' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
+                    'description' => 'Order #'.str_pad($order->id, 6, '0', STR_PAD_LEFT),
                     'transaction_id' => $order->payment_proof,
                     'payment_method' => $order->payment_method,
                     'order_id' => $order->id,
@@ -300,13 +303,14 @@ class PaymentController extends Controller
                     'last_page' => $orders->lastPage(),
                     'per_page' => $orders->perPage(),
                     'total' => $orders->total(),
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error fetching transaction history: ' . $e->getMessage());
+            Log::error('Error fetching transaction history: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error fetching transaction history'
+                'message' => 'Error fetching transaction history',
             ], 500);
         }
     }
@@ -319,21 +323,21 @@ class PaymentController extends Controller
         try {
             $request->validate([
                 'amount' => 'numeric|min:0.01',
-                'reason' => 'required|string|max:500'
+                'reason' => 'required|string|max:500',
             ]);
 
             $user = Auth::user();
-            
+
             // Buscar orden por transaction_id (payment_proof)
             $order = Order::where('payment_proof', $transactionId)
                 ->where('profile_id', $user->profile->id)
                 ->firstOrFail();
 
             // Verificar que la orden esté pagada
-            if (!$order->payment_proof || !$order->payment_validated_at) {
+            if (! $order->payment_proof || ! $order->payment_validated_at) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Esta orden no ha sido pagada'
+                    'message' => 'Esta orden no ha sido pagada',
                 ], 422);
             }
 
@@ -341,7 +345,7 @@ class PaymentController extends Controller
             if ($order->status === 'cancelled') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Esta orden ya ha sido cancelada'
+                    'message' => 'Esta orden ya ha sido cancelada',
                 ], 422);
             }
 
@@ -350,29 +354,29 @@ class PaymentController extends Controller
             if ($hoursSincePayment > 24) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Solo se pueden solicitar reembolsos dentro de las 24 horas posteriores al pago'
+                    'message' => 'Solo se pueden solicitar reembolsos dentro de las 24 horas posteriores al pago',
                 ], 422);
             }
 
             $refundAmount = $request->input('amount', $order->total);
-            
+
             // Verificar que el monto no exceda el total
             if ($refundAmount > $order->total) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'El monto del reembolso no puede exceder el total de la orden'
+                    'message' => 'El monto del reembolso no puede exceder el total de la orden',
                 ], 422);
             }
 
             DB::beginTransaction();
             try {
                 // Generar ID de reembolso único
-                $refundTransactionId = 'ref_' . time() . '_' . strtoupper(substr(md5($order->id . $user->id), 0, 8));
+                $refundTransactionId = 'ref_'.time().'_'.strtoupper(substr(md5($order->id.$user->id), 0, 8));
 
                 // Actualizar orden con información de reembolso
                 $order->update([
                     'status' => 'cancelled',
-                    'cancellation_reason' => 'Refund: ' . $request->reason,
+                    'cancellation_reason' => 'Refund: '.$request->reason,
                     'payment_proof' => $refundTransactionId, // Guardar ID de reembolso
                 ]);
 
@@ -388,9 +392,9 @@ class PaymentController extends Controller
                     'order_id' => $order->id,
                     'created_at' => now()->toIso8601String(),
                     'transaction_id' => $refundTransactionId,
-                    'description' => 'Refund for transaction #' . $transactionId,
+                    'description' => 'Refund for transaction #'.$transactionId,
                     'reason' => $request->reason,
-                    'estimated_processing_time' => '3-5 días hábiles'
+                    'estimated_processing_time' => '3-5 días hábiles',
                 ];
 
                 Log::info('Refund processed successfully', [
@@ -398,23 +402,24 @@ class PaymentController extends Controller
                     'original_transaction_id' => $transactionId,
                     'order_id' => $order->id,
                     'amount' => $refundAmount,
-                    'user_id' => $user->id
+                    'user_id' => $user->id,
                 ]);
 
                 return response()->json([
                     'success' => true,
                     'message' => 'Refund processed successfully',
-                    'data' => $refund
+                    'data' => $refund,
                 ]);
             } catch (\Exception $e) {
                 DB::rollBack();
                 throw $e;
             }
         } catch (\Exception $e) {
-            Log::error('Error processing refund: ' . $e->getMessage());
+            Log::error('Error processing refund: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error processing refund: ' . $e->getMessage()
+                'message' => 'Error processing refund: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -427,18 +432,18 @@ class PaymentController extends Controller
         try {
             $user = Auth::user();
             $profileId = $user->profile->id ?? null;
-            
-            if (!$profileId) {
+
+            if (! $profileId) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No tienes un perfil asociado'
+                    'message' => 'No tienes un perfil asociado',
                 ], 403);
             }
 
             $period = $request->input('period', 'month');
-            
+
             // Calcular fechas según período
-            $startDate = match($period) {
+            $startDate = match ($period) {
                 'week' => now()->subWeek(),
                 'month' => now()->subMonth(),
                 'year' => now()->subYear(),
@@ -478,7 +483,7 @@ class PaymentController extends Controller
                 ->where('payment_validated_at', '>=', $startDate)
                 ->count();
 
-            $paymentSuccessRate = ($successfulPayments + $failedPayments) > 0 
+            $paymentSuccessRate = ($successfulPayments + $failedPayments) > 0
                 ? round(($successfulPayments / ($successfulPayments + $failedPayments)) * 100, 2)
                 : 0;
 
@@ -497,7 +502,7 @@ class PaymentController extends Controller
                 ->whereYear('payment_validated_at', now()->subMonth()->year)
                 ->sum('total') ?? 0;
 
-            $monthlyGrowth = $lastMonthRevenue > 0 
+            $monthlyGrowth = $lastMonthRevenue > 0
                 ? round((($currentMonthRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100, 2)
                 : 0;
 
@@ -551,14 +556,15 @@ class PaymentController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $statistics
+                'data' => $statistics,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error fetching payment statistics: ' . $e->getMessage());
+            Log::error('Error fetching payment statistics: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error fetching payment statistics'
+                'message' => 'Error fetching payment statistics',
             ], 500);
         }
     }
-} 
+}

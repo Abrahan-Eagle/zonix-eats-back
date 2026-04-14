@@ -20,7 +20,7 @@ class CommerceListController extends Controller
     public function store(Request $request)
     {
         $profile = Auth::user()->profile;
-        if (!$profile) {
+        if (! $profile) {
             return response()->json([
                 'success' => false,
                 'message' => 'Perfil no encontrado',
@@ -37,7 +37,7 @@ class CommerceListController extends Controller
         ]);
 
         $scheduleValue = null;
-        if (!empty($data['schedule'])) {
+        if (! empty($data['schedule'])) {
             $decoded = json_decode($data['schedule'], true);
             $scheduleValue = is_array($decoded) ? $decoded : ['raw' => (string) $data['schedule']];
         }
@@ -69,7 +69,7 @@ class CommerceListController extends Controller
     public function index()
     {
         $profile = Auth::user()->profile;
-        if (!$profile) {
+        if (! $profile) {
             return response()->json([
                 'success' => false,
                 'message' => 'Perfil no encontrado',
@@ -103,6 +103,7 @@ class CommerceListController extends Controller
                 'ventas' => (int) ($ventasCounts[$commerce->id] ?? 0),
                 'productos' => (int) ($productCounts[$commerce->id] ?? 0),
             ];
+
             return $arr;
         });
 
@@ -119,7 +120,7 @@ class CommerceListController extends Controller
     public function setPrimary(Commerce $commerce)
     {
         $profile = Auth::user()->profile;
-        if (!$profile || !$profile->commerces()->where('id', $commerce->id)->exists()) {
+        if (! $profile || ! $profile->commerces()->where('id', $commerce->id)->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Comercio no encontrado o no pertenece al perfil',

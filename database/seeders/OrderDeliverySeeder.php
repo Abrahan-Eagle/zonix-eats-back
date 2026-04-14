@@ -2,11 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
+use App\Models\DeliveryAgent;
 use App\Models\Order;
 use App\Models\OrderDelivery;
-use App\Models\DeliveryAgent;
+use Illuminate\Database\Seeder;
 
 class OrderDeliverySeeder extends Seeder
 {
@@ -19,11 +18,12 @@ class OrderDeliverySeeder extends Seeder
             ->whereIn('status', ['paid', 'processing', 'shipped', 'delivered'])
             ->whereDoesntHave('orderDelivery')
             ->get();
-        
+
         $agents = DeliveryAgent::where('working', true)->get();
 
         if ($deliveryOrders->isEmpty() || $agents->isEmpty()) {
             $this->command->warn('No hay órdenes con delivery o agentes disponibles.');
+
             return;
         }
 
@@ -49,7 +49,7 @@ class OrderDeliverySeeder extends Seeder
                 'status' => collect(['assigned', 'in_transit', 'delivered'])->random(),
             ]);
         }
-        
+
         $this->command->info('OrderDeliverySeeder ejecutado exitosamente.');
     }
 }

@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Product;
-use App\Models\Commerce;
 use Illuminate\Support\Collection;
 
 /**
@@ -15,7 +14,7 @@ class ProductService
     /**
      * Obtener un producto por su ID.
      *
-     * @param int $id
+     * @param  int  $id
      * @return Product|null
      */
     public function getProductById($id)
@@ -30,7 +29,7 @@ class ProductService
      * - Producto disponible
      * - Comercio abierto y aprobado
      *
-     * @param int $id
+     * @param  int  $id
      * @return Product|null
      */
     public function getCatalogVisibleProductById($id)
@@ -48,7 +47,7 @@ class ProductService
     /**
      * Listar todos los productos de un comercio.
      *
-     * @param int $commerceId
+     * @param  int  $commerceId
      * @return Collection<Product>
      */
     public function getProductsByCommerce($commerceId)
@@ -58,8 +57,8 @@ class ProductService
 
     /**
      * Buscar productos disponibles (opcionalmente por nombre).
-     * 
-     * @param string|null $search
+     *
+     * @param  string|null  $search
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public function searchAvailableProducts($search = null, ?int $categoryId = null, int $perPage = 20)

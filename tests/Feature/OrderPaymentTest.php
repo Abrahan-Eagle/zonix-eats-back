@@ -2,26 +2,26 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Order;
 use App\Models\Commerce;
-use App\Models\Product;
-use App\Models\OrderItem;
+use App\Models\Order;
 use App\Models\OrderPayment;
+use App\Models\Product;
 use App\Models\Profile;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 class OrderPaymentTest extends TestCase
 {
     use RefreshDatabase, WithFaker;
 
     protected $user;
+
     protected $commerce;
+
     protected $product;
 
     protected function setUp(): void
@@ -38,7 +38,7 @@ class OrderPaymentTest extends TestCase
             'photo_users' => 'https://via.placeholder.com/150',
             'status' => 'completeData',
         ]);
-        
+
         // Crear comercio con perfil
         $commerceUser = User::factory()->create(['role' => 'commerce']);
         $commerceProfile = Profile::factory()->create(['user_id' => $commerceUser->id]);
@@ -48,6 +48,7 @@ class OrderPaymentTest extends TestCase
         $this->products = Product::factory()->count(3)->create([
             'commerce_id' => $this->commerce->id,
             'available' => true,
+            'stock_quantity' => 100,
         ]);
     }
 
@@ -63,28 +64,28 @@ class OrderPaymentTest extends TestCase
             'products' => [
                 [
                     'id' => $this->products[0]->id,
-                    'quantity' => 2
-                ]
+                    'quantity' => 2,
+                ],
             ],
-            'notes' => 'Test order'
+            'notes' => 'Test order',
         ];
 
         $response = $this->postJson('/api/buyer/orders', $orderData);
 
         $response->assertStatus(201)
-                 ->assertJsonStructure([
-                     'success',
-                     'data' => [
-                         'id',
-                         'profile_id',
-                         'commerce_id',
-                         'status',
-                         'total',
-                         'delivery_type',
-                         'notes',
-                         'created_at',
-                     ]
-                 ]);
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'id',
+                    'profile_id',
+                    'commerce_id',
+                    'status',
+                    'total',
+                    'delivery_type',
+                    'notes',
+                    'created_at',
+                ],
+            ]);
 
         $this->assertDatabaseHas('orders', [
             'profile_id' => $this->user->profile->id,
@@ -104,17 +105,17 @@ class OrderPaymentTest extends TestCase
             'products' => [
                 [
                     'id' => $this->products[0]->id,
-                    'quantity' => 2
-                ]
+                    'quantity' => 2,
+                ],
             ],
             'delivery_type' => 'pickup',
-            'notes' => 'Test order'
+            'notes' => 'Test order',
         ];
 
         $response = $this->postJson('/api/orders', $orderData);
 
         $response->assertStatus(422)
-                 ->assertJsonValidationErrors(['commerce_id']);
+            ->assertJsonValidationErrors(['commerce_id']);
     }
 
     /** @test */
@@ -127,8 +128,8 @@ class OrderPaymentTest extends TestCase
             'products' => [
                 [
                     'id' => 99999, // Producto inexistente
-                    'quantity' => 2
-                ]
+                    'quantity' => 2,
+                ],
             ],
             'delivery_type' => 'pickup',
             'total' => 20.00,
@@ -137,7 +138,7 @@ class OrderPaymentTest extends TestCase
         $response = $this->postJson('/api/orders', $orderData);
 
         $response->assertStatus(422)
-                 ->assertJsonValidationErrors(['products.0.id']);
+            ->assertJsonValidationErrors(['products.0.id']);
     }
 
     /** @test */
@@ -161,11 +162,11 @@ class OrderPaymentTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson(['success' => true]);
+            ->assertJson(['success' => true]);
 
         $this->assertDatabaseHas('orders', [
             'id' => $order->id,
-            'payment_proof' => 'payment_proofs/' . $file->hashName(),
+            'payment_proof' => 'payment_proofs/'.$file->hashName(),
             'payment_method' => 'pago_movil',
             'reference_number' => 'REF123456',
         ]);
@@ -191,7 +192,7 @@ class OrderPaymentTest extends TestCase
         ]);
 
         $response->assertStatus(400)
-                 ->assertJson(['message' => 'Solo puedes subir comprobante para órdenes pendientes de pago']);
+            ->assertJson(['message' => 'Solo puedes subir comprobante para órdenes pendientes de pago']);
     }
 
     /** @test */
@@ -215,13 +216,13 @@ class OrderPaymentTest extends TestCase
 
         $validationData = [
             'is_valid' => true,
-            'notes' => 'Payment validated successfully'
+            'notes' => 'Payment validated successfully',
         ];
 
         $response = $this->postJson("/api/commerce/orders/{$order->id}/validate-payment", $validationData);
 
         $response->assertStatus(200)
-                 ->assertJson(['success' => true]);
+            ->assertJson(['success' => true]);
 
         $this->assertDatabaseHas('orders', [
             'id' => $order->id,
@@ -345,7 +346,7 @@ class OrderPaymentTest extends TestCase
         $response = $this->postJson("/api/commerce/orders/{$order->id}/validate-payment", $validationData);
 
         $response->assertStatus(200)
-                 ->assertJson(['success' => true]);
+            ->assertJson(['success' => true]);
 
         $this->assertDatabaseHas('orders', [
             'id' => $order->id,
@@ -559,10 +560,10 @@ class OrderPaymentTest extends TestCase
             'products' => [
                 [
                     'id' => $this->products[0]->id,
-                    'quantity' => 2
-                ]
+                    'quantity' => 2,
+                ],
             ],
-            'notes' => 'Test order'
+            'notes' => 'Test order',
         ];
 
         $response = $this->postJson('/api/buyer/orders', $orderData);
@@ -570,12 +571,12 @@ class OrderPaymentTest extends TestCase
         $response->assertStatus(201);
 
         $orderId = $response->json('data.id');
-        
+
         $this->assertDatabaseHas('order_items', [
             'order_id' => $orderId,
             'product_id' => $this->products[0]->id,
             'quantity' => 2,
-            'unit_price' => $this->products[0]->price
+            'unit_price' => $this->products[0]->price,
         ]);
     }
 
@@ -591,11 +592,11 @@ class OrderPaymentTest extends TestCase
             'products' => [
                 [
                     'id' => $this->products[0]->id,
-                    'quantity' => 2
-                ]
+                    'quantity' => 2,
+                ],
             ],
             'delivery_address' => 'Test Delivery Address',
-            'notes' => 'Test order'
+            'notes' => 'Test order',
         ];
 
         $response = $this->postJson('/api/buyer/orders', $orderData);
@@ -604,6 +605,7 @@ class OrderPaymentTest extends TestCase
         $this->assertContains($response->status(), [201, 400]);
         if ($response->status() === 400) {
             $response->assertJsonPath('success', false);
+
             return;
         }
 
@@ -629,7 +631,7 @@ class OrderPaymentTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson(['success' => true]);
+            ->assertJson(['success' => true]);
 
         $this->assertDatabaseHas('orders', [
             'id' => $order->id,
@@ -654,6 +656,6 @@ class OrderPaymentTest extends TestCase
         ]);
 
         $response->assertStatus(400)
-                 ->assertJson(['message' => 'Solo puedes cancelar órdenes pendientes de pago']);
+            ->assertJson(['message' => 'Solo puedes cancelar órdenes pendientes de pago']);
     }
-} 
+}

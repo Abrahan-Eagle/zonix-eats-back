@@ -18,8 +18,14 @@ class DeliveryAgentFactory extends Factory
      */
     public function definition(): array
     {
-        $working = $this->faker->boolean(60);
-        $status = $working ? 'activo' : $this->faker->randomElement(['inactivo', 'suspendido']);
+        $testing = app()->environment('testing');
+        if ($testing) {
+            $working = true;
+            $status = 'activo';
+        } else {
+            $working = $this->faker->boolean(60);
+            $status = $working ? 'activo' : $this->faker->randomElement(['inactivo', 'suspendido']);
+        }
 
         return [
             // Default estable: agente independiente. Usar states para agentes de empresa.

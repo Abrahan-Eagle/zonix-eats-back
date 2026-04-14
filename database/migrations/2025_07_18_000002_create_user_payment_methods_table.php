@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('bank_id')->nullable()->constrained('banks')->onDelete('set null');
             $table->enum('type', [
-                'card', 'mobile_payment', 'cash', 'paypal', 'digital_wallet', 'bank_transfer', 'other'
+                'card', 'mobile_payment', 'cash', 'paypal', 'digital_wallet', 'bank_transfer', 'other',
             ]);
             $table->string('brand')->nullable(); // Visa, Mastercard, etc.
             $table->string('account_number')->nullable();
@@ -30,4 +30,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('user_payment_methods');
     }
-}; 
+};

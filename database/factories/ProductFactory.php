@@ -3,8 +3,8 @@
 namespace Database\Factories;
 
 use App\Models\Commerce;
-use Illuminate\Database\Eloquent\Factories\Factory;
 use App\Models\Product;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Product>
@@ -83,6 +83,8 @@ class ProductFactory extends Factory
             'https://www.themealdb.com/images/media/meals/1529446352.jpg', // White chocolate creme brulee
         ];
 
+        $testing = app()->environment('testing');
+
         return [
             'commerce_id' => Commerce::factory(),
             'category_id' => \App\Models\Category::inRandomOrder()->first()?->id,
@@ -90,8 +92,11 @@ class ProductFactory extends Factory
             'description' => $this->faker->paragraph(),
             'price' => $this->faker->randomFloat(2, 5, 50),
             'image' => $this->faker->randomElement($foodImages),
-            'available' => $this->faker->boolean(80),
-            'stock_quantity' => $this->faker->optional(0.6)->numberBetween(0, 100), // 60% con stock, 40% solo available
+            // En testing: disponible y con stock para evitar flakes en buyer/cart sin overrides explícitos.
+            'available' => $testing ? true : $this->faker->boolean(80),
+            'stock_quantity' => $testing
+                ? 100
+                : $this->faker->optional(0.6)->numberBetween(0, 100), // 60% con stock, 40% solo available
         ];
     }
 

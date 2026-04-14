@@ -17,21 +17,21 @@ class DeliveryAssignmentService
     /**
      * Asignar automáticamente un delivery a una orden.
      *
-     * @param int $orderId
+     * @param  int  $orderId
      * @return DeliveryAgent|null
      */
     public function assignDeliveryToOrder($orderId)
     {
         $order = Order::with(['commerce', 'delivery_address'])->find($orderId);
-        
-        if (!$order) {
+
+        if (! $order) {
             return null;
         }
 
         // Obtener delivery agents disponibles
         $availableAgents = DeliveryAgent::where('working', true)
-                                       ->where('status', 'active')
-                                       ->get();
+            ->where('status', 'active')
+            ->get();
 
         if ($availableAgents->isEmpty()) {
             return null;
@@ -57,9 +57,9 @@ class DeliveryAssignmentService
 
         if ($bestAgent) {
             \App\Models\OrderDelivery::create([
-                'order_id'     => $order->id,
-                'agent_id'     => $bestAgent->id,
-                'status'       => 'assigned',
+                'order_id' => $order->id,
+                'agent_id' => $bestAgent->id,
+                'status' => 'assigned',
                 'delivery_fee' => $order->delivery_fee ?? 0,
             ]);
 
@@ -75,16 +75,17 @@ class DeliveryAssignmentService
     /**
      * Liberar un delivery agent cuando completa una entrega.
      *
-     * @param int $agentId
+     * @param  int  $agentId
      * @return bool
      */
     public function releaseDeliveryAgent($agentId)
     {
         $agent = DeliveryAgent::find($agentId);
-        
+
         if ($agent) {
             $agent->working = true;
             $agent->save();
+
             return true;
         }
 
@@ -94,16 +95,16 @@ class DeliveryAssignmentService
     /**
      * Obtener delivery agents cercanos a una ubicación.
      *
-     * @param float $lat
-     * @param float $lng
-     * @param float $maxDistance Distancia máxima en km
+     * @param  float  $lat
+     * @param  float  $lng
+     * @param  float  $maxDistance  Distancia máxima en km
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public function getNearbyAgents($lat, $lng, $maxDistance = 10)
     {
         $agents = DeliveryAgent::where('working', true)
-                               ->where('status', 'active')
-                               ->get();
+            ->where('status', 'active')
+            ->get();
 
         $nearbyAgents = collect();
 
@@ -125,7 +126,7 @@ class DeliveryAssignmentService
     /**
      * Reasignar ordenes si un delivery agent no está disponible.
      *
-     * @param int $agentId
+     * @param  int  $agentId
      * @return array
      */
     public function reassignOrdersFromAgent($agentId)
@@ -142,7 +143,7 @@ class DeliveryAssignmentService
 
         foreach ($orders as $order) {
             $newAgent = $this->assignDeliveryToOrder($order->id);
-            
+
             if ($newAgent) {
                 $reassigned[] = [
                     'order_id' => $order->id,
@@ -154,4 +155,4 @@ class DeliveryAssignmentService
 
         return $reassigned;
     }
-} 
+}

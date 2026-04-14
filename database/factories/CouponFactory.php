@@ -21,13 +21,13 @@ class CouponFactory extends Factory
     public function definition(): array
     {
         $discountType = $this->faker->randomElement(['percentage', 'fixed']);
-        $discountValue = $discountType === 'percentage' 
-            ? $this->faker->numberBetween(5, 50) 
+        $discountValue = $discountType === 'percentage'
+            ? $this->faker->numberBetween(5, 50)
             : $this->faker->randomFloat(2, 5, 20);
-        
+
         $startDate = $this->faker->dateTimeBetween('-1 month', '+1 month');
         $endDate = $this->faker->dateTimeBetween($startDate, '+3 months');
-        
+
         return [
             'code' => strtoupper($this->faker->unique()->bothify('COUPON-####')),
             'title' => $this->faker->sentence(3),
@@ -35,8 +35,8 @@ class CouponFactory extends Factory
             'discount_type' => $discountType,
             'discount_value' => $discountValue,
             'minimum_order' => $this->faker->optional(0.6)->randomFloat(2, 10, 50) ?? 0, // Default 0 si es null
-            'maximum_discount' => $discountType === 'percentage' 
-                ? $this->faker->optional(0.5)->randomFloat(2, 10, 50) 
+            'maximum_discount' => $discountType === 'percentage'
+                ? $this->faker->optional(0.5)->randomFloat(2, 10, 50)
                 : null,
             'usage_limit' => $this->faker->optional(0.7)->numberBetween(10, 1000) ?? 1, // Default 1 si es null (según migración)
             'start_date' => $startDate,

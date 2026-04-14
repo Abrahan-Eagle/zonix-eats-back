@@ -2,15 +2,15 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
 use App\Models\Profile;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
-use Illuminate\Support\Facades\Hash;
-use Laravel\Sanctum\Sanctum;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
 {
@@ -29,24 +29,24 @@ class AuthenticationTest extends TestCase
         $response = $this->postJson('/api/auth/register', $userData);
 
         $response->assertStatus(201)
-                 ->assertJsonStructure([
-                     'success',
-                     'data' => [
-                         'user' => [
-                             'id',
-                             'name',
-                             'email',
-                             'role',
-                             'created_at'
-                         ],
-                         'token'
-                     ]
-                 ]);
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'user' => [
+                        'id',
+                        'name',
+                        'email',
+                        'role',
+                        'created_at',
+                    ],
+                    'token',
+                ],
+            ]);
 
         $this->assertDatabaseHas('users', [
             'email' => 'test@example.com',
             'google_id' => 'google_123456',
-            'role' => 'users'
+            'role' => 'users',
         ]);
     }
 
@@ -63,7 +63,7 @@ class AuthenticationTest extends TestCase
         $response = $this->postJson('/api/auth/register', $userData);
 
         $response->assertStatus(422)
-                 ->assertJsonValidationErrors(['email']);
+            ->assertJsonValidationErrors(['email']);
     }
 
     /** @test */
@@ -72,7 +72,7 @@ class AuthenticationTest extends TestCase
         $user = User::factory()->create([
             'google_id' => 'google_123456',
             'email' => 'test@example.com',
-            'role' => 'users'
+            'role' => 'users',
         ]);
 
         $loginData = [
@@ -84,13 +84,13 @@ class AuthenticationTest extends TestCase
         $response = $this->postJson('/api/auth/google', $loginData);
 
         $response->assertStatus(200)
-                 ->assertJsonStructure([
-                     'success',
-                     'data' => [
-                         'user',
-                         'token'
-                     ]
-                 ]);
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'user',
+                    'token',
+                ],
+            ]);
     }
 
     /** @test */
@@ -114,7 +114,7 @@ class AuthenticationTest extends TestCase
         // Verificar que el nombre se actualizó
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
-            'name' => 'Updated Name'
+            'name' => 'Updated Name',
         ]);
     }
 
@@ -127,7 +127,7 @@ class AuthenticationTest extends TestCase
         $response = $this->postJson('/api/auth/logout');
 
         $response->assertStatus(200)
-                 ->assertJson(['success' => true]);
+            ->assertJson(['success' => true]);
     }
 
     /** @test */
@@ -139,16 +139,16 @@ class AuthenticationTest extends TestCase
         $response = $this->getJson('/api/auth/user');
 
         $response->assertStatus(200)
-                 ->assertJsonStructure([
-                     'success',
-                     'data' => [
-                         'id',
-                         'name',
-                         'email',
-                         'role',
-                         'created_at'
-                     ]
-                 ]);
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'id',
+                    'name',
+                    'email',
+                    'role',
+                    'created_at',
+                ],
+            ]);
     }
 
     /** @test */
@@ -165,12 +165,12 @@ class AuthenticationTest extends TestCase
         $response = $this->putJson('/api/auth/user', $updateData);
 
         $response->assertStatus(200)
-                 ->assertJson(['success' => true]);
+            ->assertJson(['success' => true]);
 
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
             'name' => 'Updated Name',
-            'email' => 'updated@example.com'
+            'email' => 'updated@example.com',
         ]);
     }
 
@@ -205,20 +205,20 @@ class AuthenticationTest extends TestCase
         $response = $this->postJson('/api/profiles/commerce', $commerceData);
 
         $response->assertStatus(201)
-                 ->assertJsonStructure([
-                     'success',
-                     'data' => [
-                         'id',
-                         'business_name',
-                         'description',
-                         'address',
-                         'phone',
-                         'mobile_payment_bank',
-                         'mobile_payment_id',
-                         'mobile_payment_phone',
-                         'open'
-                     ]
-                 ]);
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'id',
+                    'business_name',
+                    'description',
+                    'address',
+                    'phone',
+                    'mobile_payment_bank',
+                    'mobile_payment_id',
+                    'mobile_payment_phone',
+                    'open',
+                ],
+            ]);
 
         $this->assertDatabaseHas('commerces', [
             'business_name' => 'Test Restaurant',
@@ -252,13 +252,13 @@ class AuthenticationTest extends TestCase
         $response = $this->postJson('/api/profiles/delivery-company', $deliveryData);
 
         $response->assertStatus(201)
-                 ->assertJsonStructure([
-                     'success',
-                     'data' => [
-                         'profile',
-                         'delivery_company'
-                     ]
-                 ]);
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'profile',
+                    'delivery_company',
+                ],
+            ]);
 
         $this->assertDatabaseHas('delivery_companies', [
             'name' => 'Test Delivery Company',
@@ -291,13 +291,13 @@ class AuthenticationTest extends TestCase
         $response = $this->postJson('/api/profiles/delivery-agent', $deliveryAgentData);
 
         $response->assertStatus(201)
-                 ->assertJsonStructure([
-                     'success',
-                     'data' => [
-                         'profile',
-                         'delivery_agent'
-                     ]
-                 ]);
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'profile',
+                    'delivery_agent',
+                ],
+            ]);
 
         $this->assertDatabaseHas('delivery_agents', [
             'vehicle_type' => 'motorcycle',
@@ -332,17 +332,17 @@ class AuthenticationTest extends TestCase
         $response = $this->postJson('/api/profiles/delivery-agent', $deliveryAgentData);
 
         $response->assertStatus(201)
-                 ->assertJsonStructure([
-                     'success',
-                     'data' => [
-                         'profile',
-                         'delivery_agent'
-                     ]
-                 ]);
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'profile',
+                    'delivery_agent',
+                ],
+            ]);
 
         $this->assertDatabaseHas('delivery_agents', [
             'vehicle_type' => 'motorcycle',
-            'company_id' => $company->id
+            'company_id' => $company->id,
         ]);
     }
 
@@ -414,7 +414,7 @@ class AuthenticationTest extends TestCase
 
         // Hacer una petición con el token válido
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token,
+            'Authorization' => 'Bearer '.$token,
         ])->getJson('/api/auth/user');
 
         $response->assertStatus(200);
@@ -429,19 +429,19 @@ class AuthenticationTest extends TestCase
         $response = $this->postJson('/api/auth/refresh');
 
         $response->assertStatus(200)
-                 ->assertJsonStructure([
-                     'success',
-                     'data' => [
-                         'token'
-                     ]
-                 ]);
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'token',
+                ],
+            ]);
     }
 
     /** @test */
     public function user_can_change_password()
     {
         $user = User::factory()->create([
-            'password' => Hash::make('oldpassword')
+            'password' => Hash::make('oldpassword'),
         ]);
         Sanctum::actingAs($user);
 
@@ -454,14 +454,14 @@ class AuthenticationTest extends TestCase
         $response = $this->putJson('/api/auth/password', $passwordData);
 
         $response->assertStatus(200)
-                 ->assertJson(['success' => true]);
+            ->assertJson(['success' => true]);
     }
 
     /** @test */
     public function user_cannot_change_password_with_wrong_current_password()
     {
         $user = User::factory()->create([
-            'password' => Hash::make('oldpassword')
+            'password' => Hash::make('oldpassword'),
         ]);
         Sanctum::actingAs($user);
 
@@ -474,6 +474,6 @@ class AuthenticationTest extends TestCase
         $response = $this->putJson('/api/auth/password', $passwordData);
 
         $response->assertStatus(422)
-                 ->assertJsonValidationErrors(['current_password']);
+            ->assertJsonValidationErrors(['current_password']);
     }
-} 
+}

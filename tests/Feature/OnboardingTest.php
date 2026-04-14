@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 class OnboardingTest extends TestCase
 {
@@ -24,7 +24,7 @@ class OnboardingTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson(['completed_onboarding' => 1]);
+            ->assertJson(['completed_onboarding' => 1]);
 
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
@@ -47,10 +47,10 @@ class OnboardingTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson([
-                     'completed_onboarding' => 1,
-                     'role' => 'commerce',
-                 ]);
+            ->assertJson([
+                'completed_onboarding' => 1,
+                'role' => 'commerce',
+            ]);
 
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
@@ -71,7 +71,7 @@ class OnboardingTest extends TestCase
         ]);
 
         $response->assertStatus(403)
-                 ->assertJson(['message' => 'No autorizado']);
+            ->assertJson(['message' => 'No autorizado']);
     }
 
     /** @test */
@@ -83,7 +83,7 @@ class OnboardingTest extends TestCase
         $response = $this->putJson("/api/onboarding/{$user->id}", []);
 
         $response->assertStatus(422)
-                 ->assertJsonValidationErrors(['completed_onboarding']);
+            ->assertJsonValidationErrors(['completed_onboarding']);
     }
 
     /** @test */

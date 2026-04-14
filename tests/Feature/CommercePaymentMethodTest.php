@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\Profile;
-use App\Models\Commerce;
 use App\Models\Bank;
+use App\Models\Commerce;
+use App\Models\Profile;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -29,7 +29,7 @@ class CommercePaymentMethodTest extends TestCase
             'phone' => '04141234567',
             'owner_name' => 'Comercio Prueba',
             'owner_id' => '12345678',
-            'is_default' => true
+            'is_default' => true,
         ]);
         $response->assertStatus(201)->assertJson(['success' => true]);
 
@@ -41,8 +41,8 @@ class CommercePaymentMethodTest extends TestCase
             'phone' => '04141234567',
             'owner_name' => 'Comercio Prueba',
             'owner_id' => '12345678',
-            'is_default' => false
+            'is_default' => false,
         ]);
         $response->assertStatus(422)->assertJson(['success' => false]);
     }
-} 
+}

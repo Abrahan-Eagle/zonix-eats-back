@@ -5,7 +5,6 @@ namespace App\Http\Controllers\WebSocket;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 
 class WebSocketController extends Controller
 {
@@ -25,14 +24,14 @@ class WebSocketController extends Controller
         }
 
         $timeout = $request->get('timeout', 30);
-        
+
         return response()->json([
             'success' => true,
             'data' => [
                 'connection_id' => uniqid('conn_'),
                 'timeout' => $timeout,
-                'timestamp' => now()->timestamp
-            ]
+                'timestamp' => now()->timestamp,
+            ],
         ]);
     }
 
@@ -43,7 +42,7 @@ class WebSocketController extends Controller
     {
         return response()->json([
             'success' => true,
-            'message' => 'Disconnected successfully'
+            'message' => 'Disconnected successfully',
         ]);
     }
 
@@ -57,7 +56,7 @@ class WebSocketController extends Controller
         ]);
 
         $channel = $request->channel;
-        
+
         // Validar que el usuario puede suscribirse al canal
         if (str_starts_with($channel, 'App.Models.User.')) {
             $userId = str_replace('App.Models.User.', '', $channel);
@@ -69,7 +68,7 @@ class WebSocketController extends Controller
         return response()->json([
             'success' => true,
             'channel' => $channel,
-            'message' => 'Subscribed successfully'
+            'message' => 'Subscribed successfully',
         ]);
     }
 
@@ -85,7 +84,7 @@ class WebSocketController extends Controller
         return response()->json([
             'success' => true,
             'channel' => $request->channel,
-            'message' => 'Unsubscribed successfully'
+            'message' => 'Unsubscribed successfully',
         ]);
     }
 
@@ -107,14 +106,14 @@ class WebSocketController extends Controller
             return response()->json([
                 'success' => true,
                 'channel' => $channelName,
-                'socket_id' => $socketId
+                'socket_id' => $socketId,
             ]);
         }
 
         return response()->json([
             'success' => true,
             'channel' => $channelName,
-            'socket_id' => $socketId
+            'socket_id' => $socketId,
         ]);
     }
-} 
+}

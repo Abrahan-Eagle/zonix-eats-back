@@ -3,11 +3,9 @@
 namespace App\Http\Controllers\Buyer;
 
 use App\Http\Controllers\Controller;
+use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\User;
-use App\Models\Profile;
-use App\Models\Order;
 use Illuminate\Support\Facades\DB;
 
 class GamificationController extends Controller
@@ -19,7 +17,7 @@ class GamificationController extends Controller
     {
         $user = Auth::user();
         $profile = $user->profile;
-        
+
         // Calcular puntos basados en pedidos completados
         $completedOrders = Order::where('profile_id', $profile->id)
             ->where('status', 'delivered')
@@ -27,12 +25,12 @@ class GamificationController extends Controller
 
         $points = $completedOrders * 10; // 10 puntos por pedido
         $level = floor($points / 100) + 1; // 1 nivel por cada 100 puntos
-        
+
         return response()->json([
             'points' => $points,
             'level' => $level,
             'completed_orders' => $completedOrders,
-            'points_to_next_level' => 100 - ($points % 100)
+            'points_to_next_level' => 100 - ($points % 100),
         ]);
     }
 
@@ -56,7 +54,7 @@ class GamificationController extends Controller
                 'description' => '5% de descuento en tu próximo pedido',
                 'points_required' => 50,
                 'available' => $points >= 50,
-                'type' => 'discount'
+                'type' => 'discount',
             ],
             [
                 'id' => 2,
@@ -64,7 +62,7 @@ class GamificationController extends Controller
                 'description' => 'Envío gratis en tu próximo pedido',
                 'points_required' => 100,
                 'available' => $points >= 100,
-                'type' => 'free_shipping'
+                'type' => 'free_shipping',
             ],
             [
                 'id' => 3,
@@ -72,7 +70,7 @@ class GamificationController extends Controller
                 'description' => '10% de descuento en tu próximo pedido',
                 'points_required' => 200,
                 'available' => $points >= 200,
-                'type' => 'discount'
+                'type' => 'discount',
             ],
             [
                 'id' => 4,
@@ -80,13 +78,13 @@ class GamificationController extends Controller
                 'description' => 'Pedido gratis hasta $20',
                 'points_required' => 500,
                 'available' => $points >= 500,
-                'type' => 'free_order'
-            ]
+                'type' => 'free_order',
+            ],
         ];
-        
+
         return response()->json([
             'rewards' => $rewards,
-            'current_points' => $points
+            'current_points' => $points,
         ]);
     }
 
@@ -96,9 +94,9 @@ class GamificationController extends Controller
     public function redeemReward(Request $request)
     {
         $request->validate([
-            'reward_id' => 'required|integer'
+            'reward_id' => 'required|integer',
         ]);
-        
+
         $user = Auth::user();
         $profile = $user->profile;
 
@@ -111,29 +109,29 @@ class GamificationController extends Controller
             1 => ['points' => 50, 'type' => 'discount', 'value' => 5],
             2 => ['points' => 100, 'type' => 'free_shipping', 'value' => 0],
             3 => ['points' => 200, 'type' => 'discount', 'value' => 10],
-            4 => ['points' => 500, 'type' => 'free_order', 'value' => 20]
+            4 => ['points' => 500, 'type' => 'free_order', 'value' => 20],
         ];
-        
-        if (!isset($rewards[$request->reward_id])) {
+
+        if (! isset($rewards[$request->reward_id])) {
             return response()->json(['error' => 'Recompensa no válida'], 400);
         }
-        
+
         $reward = $rewards[$request->reward_id];
-        
+
         if ($points < $reward['points']) {
             return response()->json(['error' => 'Puntos insuficientes'], 400);
         }
-        
+
         // Aquí se generaría un código de descuento o se aplicaría la recompensa
-        $couponCode = 'REWARD_' . strtoupper(uniqid());
-        
+        $couponCode = 'REWARD_'.strtoupper(uniqid());
+
         return response()->json([
             'message' => 'Recompensa canjeada exitosamente',
             'coupon_code' => $couponCode,
             'reward_type' => $reward['type'],
             'reward_value' => $reward['value'],
             'points_used' => $reward['points'],
-            'remaining_points' => $points - $reward['points']
+            'remaining_points' => $points - $reward['points'],
         ]);
     }
 
@@ -152,7 +150,7 @@ class GamificationController extends Controller
         $totalSpent = Order::where('profile_id', $profile->id)
             ->where('status', 'delivered')
             ->sum('total');
-        
+
         $badges = [
             [
                 'id' => 1,
@@ -160,7 +158,7 @@ class GamificationController extends Controller
                 'description' => 'Completaste tu primer pedido',
                 'icon' => '🎉',
                 'unlocked' => $completedOrders >= 1,
-                'unlocked_at' => $completedOrders >= 1 ? now()->toISOString() : null
+                'unlocked_at' => $completedOrders >= 1 ? now()->toISOString() : null,
             ],
             [
                 'id' => 2,
@@ -168,7 +166,7 @@ class GamificationController extends Controller
                 'description' => 'Completaste 10 pedidos',
                 'icon' => '⭐',
                 'unlocked' => $completedOrders >= 10,
-                'unlocked_at' => $completedOrders >= 10 ? now()->toISOString() : null
+                'unlocked_at' => $completedOrders >= 10 ? now()->toISOString() : null,
             ],
             [
                 'id' => 3,
@@ -176,7 +174,7 @@ class GamificationController extends Controller
                 'description' => 'Completaste 50 pedidos',
                 'icon' => '👑',
                 'unlocked' => $completedOrders >= 50,
-                'unlocked_at' => $completedOrders >= 50 ? now()->toISOString() : null
+                'unlocked_at' => $completedOrders >= 50 ? now()->toISOString() : null,
             ],
             [
                 'id' => 4,
@@ -184,7 +182,7 @@ class GamificationController extends Controller
                 'description' => 'Gastaste más de $100',
                 'icon' => '💰',
                 'unlocked' => $totalSpent >= 100,
-                'unlocked_at' => $totalSpent >= 100 ? now()->toISOString() : null
+                'unlocked_at' => $totalSpent >= 100 ? now()->toISOString() : null,
             ],
             [
                 'id' => 5,
@@ -192,14 +190,14 @@ class GamificationController extends Controller
                 'description' => 'Gastaste más de $500',
                 'icon' => '💎',
                 'unlocked' => $totalSpent >= 500,
-                'unlocked_at' => $totalSpent >= 500 ? now()->toISOString() : null
-            ]
+                'unlocked_at' => $totalSpent >= 500 ? now()->toISOString() : null,
+            ],
         ];
-        
+
         return response()->json([
             'badges' => $badges,
             'total_badges' => count($badges),
-            'unlocked_badges' => count(array_filter($badges, fn($badge) => $badge['unlocked']))
+            'unlocked_badges' => count(array_filter($badges, fn ($badge) => $badge['unlocked'])),
         ]);
     }
 
@@ -223,10 +221,10 @@ class GamificationController extends Controller
             ->orderBy('points', 'desc')
             ->limit(20)
             ->get();
-        
+
         return response()->json([
             'leaderboard' => $leaderboard,
-            'user_position' => $this->getUserPosition()
+            'user_position' => $this->getUserPosition(),
         ]);
     }
 
@@ -250,7 +248,7 @@ class GamificationController extends Controller
             ->groupBy('users.id')
             ->having('points', '>', $userPoints)
             ->count() + 1;
-        
+
         return $position;
     }
 
@@ -272,9 +270,9 @@ class GamificationController extends Controller
         $totalSpent = Order::where('profile_id', $profile->id)
             ->where('status', 'delivered')
             ->sum('total');
-        
+
         $rewardsRedeemed = 0; // Esto se implementaría con una tabla de recompensas canjeadas
-        
+
         return response()->json([
             'total_points' => $points,
             'current_level' => $level,
@@ -282,7 +280,7 @@ class GamificationController extends Controller
             'total_spent' => $totalSpent,
             'rewards_redeemed' => $rewardsRedeemed,
             'points_to_next_level' => 100 - ($points % 100),
-            'level_progress' => ($points % 100) / 100 * 100
+            'level_progress' => ($points % 100) / 100 * 100,
         ]);
     }
-} 
+}

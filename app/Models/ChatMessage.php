@@ -16,11 +16,11 @@ class ChatMessage extends Model
         'recipient_type',
         'content',
         'type',
-        'read_at'
+        'read_at',
     ];
 
     protected $casts = [
-        'read_at' => 'datetime'
+        'read_at' => 'datetime',
     ];
 
     public function order()
@@ -32,4 +32,4 @@ class ChatMessage extends Model
     {
         return $this->belongsTo(Profile::class, 'sender_id');
     }
-} 
+}

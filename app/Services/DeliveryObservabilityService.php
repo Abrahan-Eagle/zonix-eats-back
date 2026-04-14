@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\DeliveryCompany;
 use App\Models\DeliveryAssignmentTimeout;
+use App\Models\DeliveryCompany;
 use App\Models\DeliveryObservabilitySnapshot;
 use App\Models\Order;
 use App\Models\OrderDelivery;
@@ -50,6 +50,7 @@ class DeliveryObservabilityService
                 if (! $orderAt || ! $assignedAt) {
                     return null;
                 }
+
                 return max(0, $orderAt->diffInMinutes($assignedAt));
             })
             ->filter(fn ($value) => $value !== null)
@@ -62,6 +63,7 @@ class DeliveryObservabilityService
                 if (! $orderAt || ! $assignedAt) {
                     return null;
                 }
+
                 return max(0, $orderAt->diffInMinutes($assignedAt));
             })
             ->filter(fn ($value) => $value !== null)
@@ -82,6 +84,7 @@ class DeliveryObservabilityService
                 if (! $orderAt || ! $deliveredAt) {
                     return null;
                 }
+
                 return max(0, $orderAt->diffInMinutes($deliveredAt));
             })
             ->filter(fn ($value) => $value !== null)
@@ -93,6 +96,7 @@ class DeliveryObservabilityService
                 if (! $orderAt || ! $deliveredAt) {
                     return null;
                 }
+
                 return max(0, $orderAt->diffInMinutes($deliveredAt));
             })
             ->filter(fn ($value) => $value !== null)
@@ -397,7 +401,7 @@ class DeliveryObservabilityService
     private function notifyAdmins(array $incidents): void
     {
         $dedupeMinutes = (int) config('zonix.observability.alert_dedupe_minutes', 30);
-        $cacheKey = 'obs:delivery:admin:alert:' . md5(json_encode(array_column($incidents, 'event_code')));
+        $cacheKey = 'obs:delivery:admin:alert:'.md5(json_encode(array_column($incidents, 'event_code')));
         if (Cache::has($cacheKey)) {
             return;
         }
@@ -424,12 +428,12 @@ class DeliveryObservabilityService
     private function notifyCompany(int $companyId, array $incidents): void
     {
         $company = DeliveryCompany::find($companyId);
-        if (!$company?->profile_id) {
+        if (! $company?->profile_id) {
             return;
         }
 
         $dedupeMinutes = (int) config('zonix.observability.alert_dedupe_minutes', 30);
-        $cacheKey = "obs:delivery:company:{$companyId}:alert:" . md5(json_encode(array_column($incidents, 'event_code')));
+        $cacheKey = "obs:delivery:company:{$companyId}:alert:".md5(json_encode(array_column($incidents, 'event_code')));
         if (Cache::has($cacheKey)) {
             return;
         }
@@ -486,9 +490,10 @@ class DeliveryObservabilityService
         $latencies = collect($incidentData['items'] ?? [])
             ->map(function ($incident) {
                 $occurredAt = $incident['occurred_at'] ?? null;
-                if (!$occurredAt) {
+                if (! $occurredAt) {
                     return null;
                 }
+
                 return Carbon::parse($occurredAt)->diffInSeconds(now());
             })
             ->filter(fn ($v) => $v !== null)

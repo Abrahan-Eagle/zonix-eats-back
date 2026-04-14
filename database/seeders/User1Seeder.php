@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\Profile;
-use App\Models\Phone;
 use App\Models\OperatorCode;
+use App\Models\Phone;
+use App\Models\Profile;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -64,13 +64,13 @@ class User1Seeder extends Seeder
         $this->command->info('Perfil para usuario 1 verificado.');
 
         $operatorCode = OperatorCode::whereIn('code', [412, '412', '0412'])->first();
-        if (!$operatorCode) {
+        if (! $operatorCode) {
             $operatorCode = OperatorCode::create([
                 'name' => '0412',
                 'code' => 412,
             ]);
         }
-        if ($operatorCode && !Phone::where('profile_id', $profile->id)->exists()) {
+        if ($operatorCode && ! Phone::where('profile_id', $profile->id)->exists()) {
             Phone::create([
                 'profile_id' => $profile->id,
                 'operator_code_id' => $operatorCode->id,

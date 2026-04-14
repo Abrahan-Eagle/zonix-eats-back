@@ -2,12 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use App\Models\Bank;
-use App\Models\PaymentMethod;
-use App\Models\Profile;
 use App\Models\Commerce;
 use App\Models\DeliveryAgent;
+use App\Models\Profile;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -29,7 +28,7 @@ class UnifiedPaymentMethodTest extends TestCase
             'phone' => '04141234567',
             'owner_name' => 'Juan Pérez',
             'owner_id' => '12345678',
-            'is_default' => true
+            'is_default' => true,
         ]);
         $response->assertStatus(201)->assertJson(['success' => true]);
         $id = $response->json('data.id');
@@ -42,7 +41,7 @@ class UnifiedPaymentMethodTest extends TestCase
         // Actualizar método de pago
         $response = $this->putJson("/api/payment-methods/$id", [
             'phone' => '04140000000',
-            'is_default' => false
+            'is_default' => false,
         ]);
         $response->assertStatus(200)->assertJson(['success' => true]);
         $this->assertEquals('04140000000', $response->json('data.phone'));
@@ -59,13 +58,13 @@ class UnifiedPaymentMethodTest extends TestCase
             'exp_month' => 12,
             'exp_year' => 2025,
             'cardholder_name' => 'Juan Pérez',
-            'is_default' => false
+            'is_default' => false,
         ]);
-        
+
         if ($response->status() !== 201) {
             dump($response->json());
         }
-        
+
         $response->assertStatus(201)->assertJson(['success' => true]);
 
         // Ahora sí desactivar el primer método de pago (soft delete)
@@ -90,7 +89,7 @@ class UnifiedPaymentMethodTest extends TestCase
             'exp_month' => 12,
             'exp_year' => 2025,
             'cardholder_name' => 'Comercio Test',
-            'is_default' => true
+            'is_default' => true,
         ]);
         $response->assertStatus(201)->assertJson(['success' => true]);
 
@@ -99,7 +98,7 @@ class UnifiedPaymentMethodTest extends TestCase
             'payable_type' => 'App\\Models\\Commerce',
             'payable_id' => $commerce->id,
             'type' => 'card',
-            'brand' => 'Visa'
+            'brand' => 'Visa',
         ]);
     }
 
@@ -118,7 +117,7 @@ class UnifiedPaymentMethodTest extends TestCase
             'account_number' => '01021234567890123456',
             'owner_name' => 'Repartidor Test',
             'owner_id' => '87654321',
-            'is_default' => true
+            'is_default' => true,
         ]);
         $response->assertStatus(201)->assertJson(['success' => true]);
 
@@ -127,7 +126,7 @@ class UnifiedPaymentMethodTest extends TestCase
             'payable_type' => 'App\\Models\\DeliveryAgent',
             'payable_id' => $deliveryAgent->id,
             'type' => 'bank_transfer',
-            'owner_name' => 'Repartidor Test'
+            'owner_name' => 'Repartidor Test',
         ]);
     }
 
@@ -143,7 +142,7 @@ class UnifiedPaymentMethodTest extends TestCase
             'bank_id' => $bank->id,
             'phone' => '04141234567',
             'owner_name' => 'Juan Pérez',
-            'is_default' => true
+            'is_default' => true,
         ]);
         $response->assertStatus(201);
 
@@ -153,7 +152,7 @@ class UnifiedPaymentMethodTest extends TestCase
             'bank_id' => $bank->id,
             'phone' => '04141234567',
             'owner_name' => 'Juan Pérez',
-            'is_default' => false
+            'is_default' => false,
         ]);
         $response->assertStatus(422)->assertJson(['success' => false]);
     }
@@ -170,7 +169,7 @@ class UnifiedPaymentMethodTest extends TestCase
             'bank_id' => $bank->id,
             'phone' => '04141234567',
             'owner_name' => 'Juan Pérez',
-            'is_default' => true
+            'is_default' => true,
         ]);
         $response->assertStatus(201);
         $id = $response->json('data.id');
@@ -184,11 +183,11 @@ class UnifiedPaymentMethodTest extends TestCase
     {
         $response = $this->getJson('/api/available-payment-methods');
         $response->assertStatus(200)->assertJson(['success' => true]);
-        
+
         $methods = $response->json('data');
         $this->assertIsArray($methods);
         $this->assertGreaterThan(0, count($methods));
-        
+
         // Verificar que tiene los campos esperados
         $firstMethod = $methods[0];
         $this->assertArrayHasKey('type', $firstMethod);
@@ -209,13 +208,13 @@ class UnifiedPaymentMethodTest extends TestCase
             'type' => 'card',
             'brand' => 'Visa',
             'is_active' => true,
-            'is_default' => true
+            'is_default' => true,
         ]);
 
         $inactiveMethod = $user->paymentMethods()->create([
             'type' => 'mobile_payment',
             'is_active' => false,
-            'is_default' => false
+            'is_default' => false,
         ]);
 
         // Verificar scope activo
@@ -233,4 +232,4 @@ class UnifiedPaymentMethodTest extends TestCase
         $this->assertCount(1, $cardMethods);
         $this->assertEquals($activeMethod->id, $cardMethods->first()->id);
     }
-} 
+}

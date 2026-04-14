@@ -23,20 +23,23 @@ class CommercePaymentMethodsDemoSeeder extends Seeder
     {
         $userId = (int) (env('PAYMENT_DEMO_USER_ID') ?? 1);
         $user = User::find($userId);
-        if (!$user) {
+        if (! $user) {
             $this->command->warn("Usuario con id {$userId} no existe en la tabla users.");
+
             return;
         }
 
         $profile = $user->profile;
-        if (!$profile) {
+        if (! $profile) {
             $this->command->warn("El usuario id {$userId} no tiene perfil. Crea el perfil primero.");
+
             return;
         }
 
         $commerce = $profile->getPrimaryCommerce();
-        if (!$commerce) {
+        if (! $commerce) {
             $this->command->warn("El usuario id {$userId} no tiene comercio asociado (perfil sin comercio).");
+
             return;
         }
 
@@ -112,8 +115,8 @@ class CommercePaymentMethodsDemoSeeder extends Seeder
         }
 
         $this->command->info(
-            'CommercePaymentMethodsDemoSeeder: 4 métodos de pago demo creados para usuario id ' . $userId
-            . ' → comercio id ' . $commerce->id . ' (' . $commerce->business_name . ').'
+            'CommercePaymentMethodsDemoSeeder: 4 métodos de pago demo creados para usuario id '.$userId
+            .' → comercio id '.$commerce->id.' ('.$commerce->business_name.').'
         );
     }
 }

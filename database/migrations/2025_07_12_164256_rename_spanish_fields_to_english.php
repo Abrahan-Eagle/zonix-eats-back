@@ -109,7 +109,7 @@ return new class extends Migration
         }
 
         // Add back estado column to orders
-        if (!Schema::hasColumn('orders', 'estado')) {
+        if (! Schema::hasColumn('orders', 'estado')) {
             Schema::table('orders', function (Blueprint $table) {
                 $table->string('estado')->default('pendiente')->after('status');
             });

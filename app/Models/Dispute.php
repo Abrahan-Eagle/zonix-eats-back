@@ -26,12 +26,12 @@ class Dispute extends Model
         'admin_notes',
         'resolved_by_user_id',
         'resolution_metadata',
-        'resolved_at'
+        'resolved_at',
     ];
 
     protected $casts = [
         'resolution_metadata' => 'array',
-        'resolved_at' => 'datetime'
+        'resolved_at' => 'datetime',
     ];
 
     /**

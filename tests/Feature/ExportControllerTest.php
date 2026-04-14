@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Support\Facades\Storage;
+use Tests\TestCase;
 
 class ExportControllerTest extends TestCase
 {
@@ -27,7 +27,7 @@ class ExportControllerTest extends TestCase
         $response = $this->actingAs($this->user)
             ->postJson('/api/user/export-data', [
                 'data_types' => ['profile', 'orders'],
-                'format' => 'json'
+                'format' => 'json',
             ]);
 
         $response->assertStatus(200)
@@ -42,7 +42,7 @@ class ExportControllerTest extends TestCase
                     'status',
                     'created_at',
                     'completed_at',
-                ]
+                ],
             ]);
     }
 
@@ -52,7 +52,7 @@ class ExportControllerTest extends TestCase
         $response = $this->actingAs($this->user)
             ->postJson('/api/user/export-data', [
                 'data_types' => ['invalid_type'],
-                'format' => 'json'
+                'format' => 'json',
             ]);
 
         $response->assertStatus(422)
@@ -65,7 +65,7 @@ class ExportControllerTest extends TestCase
         $response = $this->actingAs($this->user)
             ->postJson('/api/user/export-data', [
                 'data_types' => ['profile'],
-                'format' => 'invalid_format'
+                'format' => 'invalid_format',
             ]);
 
         $response->assertStatus(422)
@@ -92,7 +92,7 @@ class ExportControllerTest extends TestCase
                     'file_size',
                     'created_at',
                     'completed_at',
-                ]
+                ],
             ]);
     }
 
@@ -139,8 +139,8 @@ class ExportControllerTest extends TestCase
                         'file_size',
                         'created_at',
                         'completed_at',
-                    ]
-                ]
+                    ],
+                ],
             ]);
     }
 
@@ -161,14 +161,14 @@ class ExportControllerTest extends TestCase
             $response = $this->actingAs($this->user)
                 ->postJson('/api/user/export-data', [
                     'data_types' => ['profile'],
-                    'format' => $format
+                    'format' => $format,
                 ]);
 
             $response->assertStatus(200)
                 ->assertJson([
                     'data' => [
-                        'format' => $format
-                    ]
+                        'format' => $format,
+                    ],
                 ]);
         }
     }
@@ -181,14 +181,14 @@ class ExportControllerTest extends TestCase
         $response = $this->actingAs($this->user)
             ->postJson('/api/user/export-data', [
                 'data_types' => $dataTypes,
-                'format' => 'json'
+                'format' => 'json',
             ]);
 
         $response->assertStatus(200)
             ->assertJson([
                 'data' => [
-                    'data_types' => $dataTypes
-                ]
+                    'data_types' => $dataTypes,
+                ],
             ]);
     }
 }

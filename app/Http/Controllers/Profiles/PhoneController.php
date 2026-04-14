@@ -128,7 +128,7 @@ class PhoneController extends Controller
             if ($count >= self::MAX_PER_COMMERCE) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Has alcanzado el máximo de ' . self::MAX_PER_COMMERCE . ' teléfonos para este comercio.',
+                    'message' => 'Has alcanzado el máximo de '.self::MAX_PER_COMMERCE.' teléfonos para este comercio.',
                 ], 422);
             }
         }
@@ -149,7 +149,7 @@ class PhoneController extends Controller
             if ($count >= self::MAX_PER_DELIVERY_COMPANY) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Has alcanzado el máximo de ' . self::MAX_PER_DELIVERY_COMPANY . ' teléfonos para esta empresa.',
+                    'message' => 'Has alcanzado el máximo de '.self::MAX_PER_DELIVERY_COMPANY.' teléfonos para esta empresa.',
                 ], 422);
             }
         }
@@ -162,7 +162,7 @@ class PhoneController extends Controller
             if ($count >= self::MAX_PERSONAL) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Has alcanzado el máximo de ' . self::MAX_PERSONAL . ' teléfonos personales.',
+                    'message' => 'Has alcanzado el máximo de '.self::MAX_PERSONAL.' teléfonos personales.',
                 ], 422);
             }
         }

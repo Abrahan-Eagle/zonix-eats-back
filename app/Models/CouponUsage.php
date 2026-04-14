@@ -14,12 +14,12 @@ class CouponUsage extends Model
         'profile_id',
         'order_id',
         'discount_amount',
-        'used_at'
+        'used_at',
     ];
 
     protected $casts = [
         'discount_amount' => 'decimal:2',
-        'used_at' => 'datetime'
+        'used_at' => 'datetime',
     ];
 
     public function coupon()
@@ -36,4 +36,4 @@ class CouponUsage extends Model
     {
         return $this->belongsTo(Order::class);
     }
-} 
+}

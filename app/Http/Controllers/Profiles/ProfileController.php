@@ -3,15 +3,15 @@
 namespace App\Http\Controllers\Profiles;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\Profile;
-use App\Models\Phone;
+use App\Http\Traits\ApiResponse;
 use App\Models\OperatorCode;
+use App\Models\Phone;
+use App\Models\Profile;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use App\Http\Traits\ApiResponse;
+use Illuminate\Support\Facades\Validator;
 
 class ProfileController extends Controller
 {
@@ -67,11 +67,11 @@ class ProfileController extends Controller
             return $this->jsonError('Error de validación', 400, 'VALIDATION_ERROR', $validator->errors());
         }
 
-        if (!$this->isAdmin($request) && (int) $request->user_id !== (int) $request->user()->id) {
+        if (! $this->isAdmin($request) && (int) $request->user_id !== (int) $request->user()->id) {
             return $this->jsonForbidden('No autorizado');
         }
 
-                // Verificar si ya existe un perfil para el usuario.
+        // Verificar si ya existe un perfil para el usuario.
         $existingProfile = Profile::where('user_id', $request->user_id)->first();
 
         if ($existingProfile) {
@@ -84,10 +84,8 @@ class ProfileController extends Controller
             );
         }
 
-
-
         $profileData = $request->only([
-            'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex'
+            'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex',
         ]);
 
         // Establecer valores predeterminados para campos opcionales.
@@ -104,7 +102,7 @@ class ProfileController extends Controller
 
             // Guardar la nueva imagen en el disco público.
             $path = $request->file('photo_users')->store('profile_images', 'public');
-            $profileData['photo_users'] = $baseUrl . '/storage/' . $path; // Guarda la URL pública.
+            $profileData['photo_users'] = $baseUrl.'/storage/'.$path; // Guarda la URL pública.
         }
 
         // Crear el perfil.
@@ -119,11 +117,11 @@ class ProfileController extends Controller
     public function showCurrent(Request $request)
     {
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return $this->jsonUnauthorized();
         }
         $profile = Profile::with(['user', 'addresses', 'commerce'])->where('user_id', $user->id)->first();
-        if (!$profile) {
+        if (! $profile) {
             return $this->jsonNotFound('Perfil no encontrado');
         }
 
@@ -139,10 +137,10 @@ class ProfileController extends Controller
             return $this->jsonError('ID de perfil requerido', 400, 'PROFILE_ID_REQUIRED');
         }
         $profile = Profile::with(['user', 'addresses'])->find($id);
-        if (!$profile) {
+        if (! $profile) {
             return $this->jsonNotFound('Perfil no encontrado');
         }
-        if (!$this->canAccessProfile($request, $profile)) {
+        if (! $this->canAccessProfile($request, $profile)) {
             return $this->jsonForbidden();
         }
 
@@ -156,7 +154,7 @@ class ProfileController extends Controller
     {
         $user = $request->user();
         $profile = Profile::where('user_id', $user->id)->first();
-        if (!$profile) {
+        if (! $profile) {
             return $this->jsonNotFound('Perfil no encontrado');
         }
 
@@ -164,85 +162,83 @@ class ProfileController extends Controller
     }
 
     public function update(Request $request, $id)
-{
-    // Buscar el perfil por ID o devolver error 404.
-    $profile = Profile::findOrFail($id);
-    if (! $this->canAccessProfile($request, $profile)) {
-        return $this->jsonForbidden();
-    }
-
-    // Validar los datos recibidos (date_of_birth nullable para perfiles sin fecha).
-    $validatedData = $request->validate([
-        'firstName' => 'required|string|max:255',
-        'middleName' => 'nullable|string|max:255',
-        'lastName' => 'required|string|max:255',
-        'secondLastName' => 'nullable|string|max:255',
-        'photo_users' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
-        'date_of_birth' => 'nullable|date',
-        'maritalStatus' => 'required|in:married,divorced,single',
-        'sex' => 'required|in:F,M',
-    ]);
-
-    // Si no se envía date_of_birth, mantener la existente o usar valor por defecto para nombre de imagen
-    if (empty($validatedData['date_of_birth'])) {
-        $validatedData['date_of_birth'] = $profile->date_of_birth
-            ? $profile->date_of_birth->format('Y-m-d')
-            : '2000-01-01';
-    }
-
-    // Log para depurar la fecha recibida
-    Log::debug('Fecha recibida: ' . $validatedData['date_of_birth']);
-
-    // Obtener el nombre del perfil y la fecha de creación
-    $created_at = $profile->created_at->format('YmdHis');
-    $date_of_birth = Carbon::parse($validatedData['date_of_birth'])->format('Ymd');
-    $firstName = $validatedData['firstName'];
-    $lastName = $validatedData['lastName'];
-    $randomDigits = strtoupper(substr(md5(mt_rand()), 0, 7));  // Generar 7 caracteres aleatorios
-
-    // Establecer valores predeterminados para campos opcionales
-    $validatedData['middleName'] = $request->middleName ?? '';  // Asegurar que 'middleName' no sea null
-    $validatedData['secondLastName'] = $request->secondLastName ?? '';  // Asegurar que 'secondLastName' no sea null
-
-
-    // Crear el nuevo nombre de la imagen
-    $newImageName = "photo_users-{$created_at}-{$date_of_birth}-{$firstName}-{$lastName}-{$randomDigits}.jpg";
-
-    // Obtener la URL base según el entorno
-    $baseUrl = config('app.env') === 'production'
-        ? config('app.url_production')
-        : config('app.url_local');
-
-    // Mantener la URL de la foto anterior (si existe)
-    $photoUsersPath = $profile->photo_users;
-
-    // Actualizar los campos del perfil
-    $profile->fill($validatedData);
-
-    // Manejo del archivo (si se sube uno nuevo)
-    if ($request->hasFile('photo_users')) {
-        // Eliminar la imagen anterior si existe
-        if ($profile->photo_users) {
-            // Log de la imagen anterior desde la base de datos
-            Storage::disk('public')->delete(str_replace($baseUrl . '/storage/', '', $photoUsersPath));
-        } else {
-            Log::info('No hay imagen anterior para eliminar.');
+    {
+        // Buscar el perfil por ID o devolver error 404.
+        $profile = Profile::findOrFail($id);
+        if (! $this->canAccessProfile($request, $profile)) {
+            return $this->jsonForbidden();
         }
 
-        // Guardar la nueva imagen en el disco público
-        $path = $request->file('photo_users')->storeAs('profile_images', $newImageName, 'public');
-        $profile->photo_users = $baseUrl . '/storage/' . $path;
+        // Validar los datos recibidos (date_of_birth nullable para perfiles sin fecha).
+        $validatedData = $request->validate([
+            'firstName' => 'required|string|max:255',
+            'middleName' => 'nullable|string|max:255',
+            'lastName' => 'required|string|max:255',
+            'secondLastName' => 'nullable|string|max:255',
+            'photo_users' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
+            'date_of_birth' => 'nullable|date',
+            'maritalStatus' => 'required|in:married,divorced,single',
+            'sex' => 'required|in:F,M',
+        ]);
+
+        // Si no se envía date_of_birth, mantener la existente o usar valor por defecto para nombre de imagen
+        if (empty($validatedData['date_of_birth'])) {
+            $validatedData['date_of_birth'] = $profile->date_of_birth
+                ? $profile->date_of_birth->format('Y-m-d')
+                : '2000-01-01';
+        }
+
+        // Log para depurar la fecha recibida
+        Log::debug('Fecha recibida: '.$validatedData['date_of_birth']);
+
+        // Obtener el nombre del perfil y la fecha de creación
+        $created_at = $profile->created_at->format('YmdHis');
+        $date_of_birth = Carbon::parse($validatedData['date_of_birth'])->format('Ymd');
+        $firstName = $validatedData['firstName'];
+        $lastName = $validatedData['lastName'];
+        $randomDigits = strtoupper(substr(md5(mt_rand()), 0, 7));  // Generar 7 caracteres aleatorios
+
+        // Establecer valores predeterminados para campos opcionales
+        $validatedData['middleName'] = $request->middleName ?? '';  // Asegurar que 'middleName' no sea null
+        $validatedData['secondLastName'] = $request->secondLastName ?? '';  // Asegurar que 'secondLastName' no sea null
+
+        // Crear el nuevo nombre de la imagen
+        $newImageName = "photo_users-{$created_at}-{$date_of_birth}-{$firstName}-{$lastName}-{$randomDigits}.jpg";
+
+        // Obtener la URL base según el entorno
+        $baseUrl = config('app.env') === 'production'
+            ? config('app.url_production')
+            : config('app.url_local');
+
+        // Mantener la URL de la foto anterior (si existe)
+        $photoUsersPath = $profile->photo_users;
+
+        // Actualizar los campos del perfil
+        $profile->fill($validatedData);
+
+        // Manejo del archivo (si se sube uno nuevo)
+        if ($request->hasFile('photo_users')) {
+            // Eliminar la imagen anterior si existe
+            if ($profile->photo_users) {
+                // Log de la imagen anterior desde la base de datos
+                Storage::disk('public')->delete(str_replace($baseUrl.'/storage/', '', $photoUsersPath));
+            } else {
+                Log::info('No hay imagen anterior para eliminar.');
+            }
+
+            // Guardar la nueva imagen en el disco público
+            $path = $request->file('photo_users')->storeAs('profile_images', $newImageName, 'public');
+            $profile->photo_users = $baseUrl.'/storage/'.$path;
+        }
+
+        // Guardar los cambios en el perfil
+        $profile->save();
+
+        return $this->jsonSuccess([
+            'profile' => $profile,
+            'isSuccess' => true,
+        ], 'Perfil actualizado exitosamente.');
     }
-
-    // Guardar los cambios en el perfil
-    $profile->save();
-
-    return $this->jsonSuccess([
-        'profile' => $profile,
-        'isSuccess' => true,
-    ], 'Perfil actualizado exitosamente.');
-}
-
 
     /**
      * Eliminar un perfil.
@@ -251,7 +247,7 @@ class ProfileController extends Controller
     {
         $profile = Profile::find($id);
 
-        if (!$profile) {
+        if (! $profile) {
             return $this->jsonNotFound('Perfil no encontrado');
         }
         if (! $this->canAccessProfile($request, $profile)) {
@@ -263,7 +259,7 @@ class ProfileController extends Controller
             $baseUrl = config('app.env') === 'production'
                 ? config('app.url_production')
                 : config('app.url_local');
-            Storage::disk('public')->delete(str_replace($baseUrl . '/storage/', '', $profile->photo_users));
+            Storage::disk('public')->delete(str_replace($baseUrl.'/storage/', '', $profile->photo_users));
         }
 
         $profile->delete();
@@ -271,18 +267,17 @@ class ProfileController extends Controller
         return $this->jsonSuccess(null, 'Perfil eliminado exitosamente.');
     }
 
+    // En tu controlador (UserController)
+    public function getProfileId($id)
+    {
 
-// En tu controlador (UserController)
-        public function getProfileId($id)
-        {
-
-            $profile = Profile::where('user_id', $id)->first();
-            if ($profile) {
-                return $this->jsonSuccess(['profileId' => $profile->id]);
-            }
-
-            return $this->jsonNotFound('User profile not found');
+        $profile = Profile::where('user_id', $id)->first();
+        if ($profile) {
+            return $this->jsonSuccess(['profileId' => $profile->id]);
         }
+
+        return $this->jsonNotFound('User profile not found');
+    }
 
     /**
      * Crear un perfil de delivery agent.
@@ -306,7 +301,7 @@ class ProfileController extends Controller
         if ($validator->fails()) {
             return $this->jsonError('Error de validación', 400, 'VALIDATION_ERROR', $validator->errors());
         }
-        if (!$this->isAdmin($request) && (int) $request->user_id !== (int) $request->user()->id) {
+        if (! $this->isAdmin($request) && (int) $request->user_id !== (int) $request->user()->id) {
             return $this->jsonForbidden();
         }
 
@@ -324,7 +319,7 @@ class ProfileController extends Controller
         }
 
         $profileData = $request->only([
-            'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex'
+            'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex',
         ]);
 
         $profileData['middleName'] = $request->middleName ?? '';
@@ -337,7 +332,7 @@ class ProfileController extends Controller
                 ? config('app.url_production')
                 : config('app.url_local');
             $path = $request->file('photo_users')->store('profile_images', 'public');
-            $profileData['photo_users'] = $baseUrl . '/storage/' . $path;
+            $profileData['photo_users'] = $baseUrl.'/storage/'.$path;
         }
 
         // Crear el perfil
@@ -394,7 +389,7 @@ class ProfileController extends Controller
         if ($validator->fails()) {
             return $this->jsonError('Error de validación', 400, 'VALIDATION_ERROR', $validator->errors());
         }
-        if (!$this->isAdmin($request) && (int) $request->user_id !== (int) $request->user()->id) {
+        if (! $this->isAdmin($request) && (int) $request->user_id !== (int) $request->user()->id) {
             return $this->jsonForbidden();
         }
 
@@ -411,7 +406,7 @@ class ProfileController extends Controller
         }
 
         $profileData = $request->only([
-            'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex'
+            'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex',
         ]);
         $profileData['middleName'] = $request->middleName ?? '';
         $profileData['secondLastName'] = $request->secondLastName ?? '';
@@ -423,7 +418,7 @@ class ProfileController extends Controller
                 ? config('app.url_production')
                 : config('app.url_local');
             $path = $request->file('photo_users')->store('profile_images', 'public');
-            $profileData['photo_users'] = $baseUrl . '/storage/' . $path;
+            $profileData['photo_users'] = $baseUrl.'/storage/'.$path;
         }
 
         // Crear el perfil
@@ -489,6 +484,7 @@ class ProfileController extends Controller
                 'errors' => $validator->errors()->toArray(),
                 'payload' => $request->only(['profile_id', 'business_name', 'tax_id']),
             ]);
+
             return $this->jsonError('Datos no válidos.', 400, 'VALIDATION_ERROR', $validator->errors());
         }
 
@@ -527,9 +523,10 @@ class ProfileController extends Controller
                 'status' => $commerce->status,
             ], 'Comercio creado.', 201);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('addCommerceToProfile: ' . $e->getMessage(), [
+            \Illuminate\Support\Facades\Log::error('addCommerceToProfile: '.$e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return $this->jsonError(
                 'Error al crear el comercio.',
                 500,
@@ -555,7 +552,7 @@ class ProfileController extends Controller
                 );
             }
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('No se pudo notificar a admins: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::warning('No se pudo notificar a admins: '.$e->getMessage());
         }
     }
 
@@ -581,7 +578,7 @@ class ProfileController extends Controller
         if ($validator->fails()) {
             return $this->jsonError('Error de validación', 400, 'VALIDATION_ERROR', $validator->errors());
         }
-        if (!$this->isAdmin($request) && (int) $request->user_id !== (int) $request->user()->id) {
+        if (! $this->isAdmin($request) && (int) $request->user_id !== (int) $request->user()->id) {
             return $this->jsonForbidden();
         }
 
@@ -599,7 +596,7 @@ class ProfileController extends Controller
         }
 
         $profileData = $request->only([
-            'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex'
+            'user_id', 'firstName', 'lastName', 'date_of_birth', 'maritalStatus', 'sex',
         ]);
 
         $profileData['middleName'] = $request->middleName ?? '';
@@ -612,7 +609,7 @@ class ProfileController extends Controller
                 ? config('app.url_production')
                 : config('app.url_local');
             $path = $request->file('photo_users')->store('profile_images', 'public');
-            $profileData['photo_users'] = $baseUrl . '/storage/' . $path;
+            $profileData['photo_users'] = $baseUrl.'/storage/'.$path;
         }
 
         // Crear el perfil
@@ -647,6 +644,7 @@ class ProfileController extends Controller
                 'profile_id' => $profile->id,
                 'digits_count' => strlen($digits),
             ]);
+
             return;
         }
         $number = substr($digits, -7);
@@ -654,10 +652,11 @@ class ProfileController extends Controller
         $code3 = ltrim($code4, '0');
         $operatorCode = OperatorCode::where('code', $code4)->orWhere('code', $code3)->first()
             ?? OperatorCode::first();
-        if (!$operatorCode) {
+        if (! $operatorCode) {
             \Illuminate\Support\Facades\Log::warning("createPhoneForProfile: no se encontró código de operador para '{$phoneString}'.", [
                 'profile_id' => $profile->id,
             ]);
+
             return;
         }
         Phone::create([

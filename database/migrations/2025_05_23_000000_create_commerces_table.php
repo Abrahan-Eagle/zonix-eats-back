@@ -2,14 +2,14 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Crea tabla commerces con todos los campos consolidados de migraciones "add".
      * Agregado: tax_id (required según modelo de negocio).
      */
@@ -25,7 +25,7 @@ return new class extends Migration
             $table->string('tax_id')->nullable()->comment('Número de identificación tributaria (RUC, NIT, etc.) - Required según modelo');
             $table->text('image')->nullable();
             $table->text('address')->nullable();
-            
+
             $table->enum('status', ['pending_review', 'approved', 'rejected', 'suspended'])->default('pending_review');
             $table->text('rejection_reason')->nullable();
             $table->boolean('open')->default(false);
@@ -49,15 +49,15 @@ return new class extends Migration
     {
         // Quitar FK desde phones.commerce_id antes de dropear commerces
         if (Schema::hasTable('phones')) {
-             Schema::table('phones', function (Blueprint $table) {
-                 if (DB::getDriverName() !== 'sqlite') {
-                     try {
-                         $table->dropForeign(['commerce_id']);
-                     } catch (\Throwable $e) {
-                         // Si la FK ya no existe, continuar sin fallar el rollback
-                     }
-                 }
-             });
+            Schema::table('phones', function (Blueprint $table) {
+                if (DB::getDriverName() !== 'sqlite') {
+                    try {
+                        $table->dropForeign(['commerce_id']);
+                    } catch (\Throwable $e) {
+                        // Si la FK ya no existe, continuar sin fallar el rollback
+                    }
+                }
+            });
         }
 
         Schema::dropIfExists('commerces');

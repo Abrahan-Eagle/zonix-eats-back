@@ -13,7 +13,7 @@ class AuthController extends Controller
 {
     /**
      * Maneja la autenticación de usuario usando Google.
-     * @param Request $request
+     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function googleUser(Request $request)
@@ -39,7 +39,7 @@ class AuthController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'status' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -56,6 +56,7 @@ class AuthController extends Controller
                         'ip' => $request->ip(),
                         'has_data_email' => isset($validatedData['data']['email']),
                     ]);
+
                     return response()->json([
                         'status' => false,
                         'message' => 'Google token is required',
@@ -73,6 +74,7 @@ class AuthController extends Controller
                         'ip' => $request->ip(),
                         'token_len' => strlen($googleToken),
                     ]);
+
                     return response()->json([
                         'status' => false,
                         'message' => 'Invalid Google token',
@@ -83,6 +85,7 @@ class AuthController extends Controller
                         'ip' => $request->ip(),
                         'token_source' => $tokenSource,
                     ]);
+
                     return response()->json([
                         'status' => false,
                         'message' => 'Google email is not verified',
@@ -94,6 +97,7 @@ class AuthController extends Controller
                         'has_request_email' => true,
                         'token_has_email' => isset($tokenInfo['email']),
                     ]);
+
                     return response()->json([
                         'status' => false,
                         'message' => 'Google token/email mismatch',
@@ -115,7 +119,7 @@ class AuthController extends Controller
                     ]);
                 }
             }
-            
+
             // Manejar diferentes formatos de datos
             if (isset($validatedData['data'])) {
                 $data = $validatedData['data'];
@@ -129,10 +133,10 @@ class AuthController extends Controller
                 $name = $validatedData['name'] ?? null;
             }
 
-            if (!$email) {
+            if (! $email) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Email is required'
+                    'message' => 'Email is required',
                 ], 422);
             }
 
@@ -170,21 +174,21 @@ class AuthController extends Controller
                         'profile_pic' => $user->profile_pic,
                         'completed_onboarding' => $user->completed_onboarding,
                     ],
-                    'token' => $token
-                ]
+                    'token' => $token,
+                ],
             ], 200);
         } catch (\Throwable $th) {
             // Manejo de errores en caso de excepciones
             return response()->json([
                 'status' => false,
-                'message' => $th->getMessage()
+                'message' => $th->getMessage(),
             ], 500);
         }
     }
 
     /**
      * Cierra la sesión del usuario autenticado.
-     * @param Request $request
+     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function logout(Request $request)
@@ -194,13 +198,13 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'User logged out successfully'
+            'message' => 'User logged out successfully',
         ]);
     }
 
     /**
      * Devuelve la información del usuario autenticado.
-     * @param Request $request
+     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function getUser(Request $request)
@@ -220,12 +224,12 @@ class AuthController extends Controller
         if ($user->profile) {
             $data['profile_id'] = $user->profile->id;
         }
+
         return response()->json([
             'success' => true,
             'data' => $data,
         ]);
     }
-
 
     /**
      * Actualizar usuario: completed_onboarding y opcionalmente role (al final del onboarding).
@@ -245,7 +249,7 @@ class AuthController extends Controller
 
         // Guardar como entero 1 o 0 en BD (columna tinyint)
         $authUser->completed_onboarding = $validated['completed_onboarding'] ? 1 : 0;
-        if (!empty($validated['role'])) {
+        if (! empty($validated['role'])) {
             $authUser->role = $validated['role'];
         }
         $authUser->save();
@@ -267,7 +271,7 @@ class AuthController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'nullable|string|min:8|confirmed',
             'role' => 'required|string|in:users,commerce,delivery_company,delivery_agent,delivery',
-            'google_id' => 'nullable|string'
+            'google_id' => 'nullable|string',
         ]);
 
         $userData = [
@@ -303,8 +307,8 @@ class AuthController extends Controller
                     'completed_onboarding' => $user->completed_onboarding,
                     'created_at' => $user->created_at->toISOString(),
                 ],
-                'token' => $token
-            ]
+                'token' => $token,
+            ],
         ], 201);
     }
 
@@ -329,12 +333,14 @@ class AuthController extends Controller
                     'expected_aud_suffix' => substr($expectedAudience, -12),
                     'received_aud_suffix' => isset($payload['aud']) ? substr((string) $payload['aud'], -12) : null,
                 ]);
+
                 return null;
             }
 
             return $payload;
         } catch (\Throwable $e) {
             Log::warning('google_token_verification_failed', ['message' => $e->getMessage()]);
+
             return null;
         }
     }
@@ -357,6 +363,7 @@ class AuthController extends Controller
             return $payload;
         } catch (\Throwable $e) {
             Log::warning('google_access_token_verification_failed', ['message' => $e->getMessage()]);
+
             return null;
         }
     }
@@ -385,15 +392,15 @@ class AuthController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'password' => 'required|string'
+            'password' => 'required|string',
         ]);
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user || !password_verify($request->password, $user->password)) {
+        if (! $user || ! password_verify($request->password, $user->password)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid credentials'
+                'message' => 'Invalid credentials',
             ], 401);
         }
 
@@ -410,8 +417,8 @@ class AuthController extends Controller
                     'role' => $user->role,
                     'completed_onboarding' => $user->completed_onboarding,
                 ],
-                'token' => $token
-            ]
+                'token' => $token,
+            ],
         ]);
     }
 
@@ -421,11 +428,11 @@ class AuthController extends Controller
     public function updateProfile(Request $request)
     {
         $user = $request->user();
-        
+
         $request->validate([
             'name' => 'string|max:255',
-            'email' => 'string|email|max:255|unique:users,email,' . $user->id,
-            'profile_pic' => 'nullable|url'
+            'email' => 'string|email|max:255|unique:users,email,'.$user->id,
+            'profile_pic' => 'nullable|url',
         ]);
 
         $user->update($request->only(['name', 'email', 'profile_pic']));
@@ -440,7 +447,7 @@ class AuthController extends Controller
                 'role' => $user->role,
                 'profile_pic' => $user->profile_pic,
                 'completed_onboarding' => $user->completed_onboarding,
-            ]
+            ],
         ]);
     }
 
@@ -451,27 +458,27 @@ class AuthController extends Controller
     {
         $request->validate([
             'current_password' => 'required|string',
-            'new_password' => 'required|string|min:8|confirmed'
+            'new_password' => 'required|string|min:8|confirmed',
         ]);
 
         $user = $request->user();
 
-        if (!password_verify($request->current_password, $user->password)) {
+        if (! password_verify($request->current_password, $user->password)) {
             return response()->json([
                 'message' => 'The given data was invalid.',
                 'errors' => [
-                    'current_password' => ['The current password field is incorrect.']
-                ]
+                    'current_password' => ['The current password field is incorrect.'],
+                ],
             ], 422);
         }
 
         $user->update([
-            'password' => bcrypt($request->new_password)
+            'password' => bcrypt($request->new_password),
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Password changed successfully'
+            'message' => 'Password changed successfully',
         ]);
     }
 
@@ -481,10 +488,10 @@ class AuthController extends Controller
     public function refreshToken(Request $request)
     {
         $user = $request->user();
-        
+
         // Revocar token actual
         $user->tokens()->delete();
-        
+
         // Crear nuevo token
         $token = $user->createToken('AuthToken')->plainTextToken;
 
@@ -492,9 +499,8 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Token refreshed successfully',
             'data' => [
-                'token' => $token
-            ]
+                'token' => $token,
+            ],
         ]);
     }
-
 }

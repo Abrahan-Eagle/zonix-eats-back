@@ -22,7 +22,7 @@ class CommerceInvoice extends Model
         'due_date',
         'status',
         'paid_at',
-        'notes'
+        'notes',
     ];
 
     protected $casts = [
@@ -31,7 +31,7 @@ class CommerceInvoice extends Model
         'total' => 'decimal:2',
         'invoice_date' => 'date',
         'due_date' => 'date',
-        'paid_at' => 'datetime'
+        'paid_at' => 'datetime',
     ];
 
     /**

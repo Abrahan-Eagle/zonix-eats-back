@@ -12,11 +12,11 @@ class Role extends Model
     protected $fillable = [
         'name',
         'description',
-        'permissions'
+        'permissions',
     ];
 
     protected $casts = [
-        'permissions' => 'array'
+        'permissions' => 'array',
     ];
 
     /**
@@ -32,10 +32,10 @@ class Role extends Model
      */
     public function hasPermission($permission)
     {
-        if (!$this->permissions) {
+        if (! $this->permissions) {
             return false;
         }
-        
+
         return in_array($permission, $this->permissions);
     }
 
@@ -44,15 +44,16 @@ class Role extends Model
      */
     public function hasAnyPermission($permissions)
     {
-        if (!$this->permissions) {
+        if (! $this->permissions) {
             return false;
         }
-        
+
         foreach ($permissions as $permission) {
             if (in_array($permission, $this->permissions)) {
                 return true;
             }
         }
+
         return false;
     }
-} 
+}

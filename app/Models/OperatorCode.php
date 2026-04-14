@@ -9,7 +9,6 @@ class OperatorCode extends Model
 {
     use HasFactory;
 
-
     protected $table = 'operator_codes';
 
     // Ajuste en la clave foránea: 'user_id'
@@ -20,5 +19,4 @@ class OperatorCode extends Model
     {
         return $this->hasMany(Phone::class);
     }
-
 }

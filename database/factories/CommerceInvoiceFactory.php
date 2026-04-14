@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\CommerceInvoice;
 use App\Models\Commerce;
+use App\Models\CommerceInvoice;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -24,7 +24,7 @@ class CommerceInvoiceFactory extends Factory
         $commissionAmount = $this->faker->randomFloat(2, 100, 1000);
         $total = $membershipFee + $commissionAmount;
         $status = $this->faker->randomElement(['pending', 'paid', 'overdue']);
-        
+
         return [
             'commerce_id' => Commerce::factory(),
             'membership_fee' => $membershipFee,

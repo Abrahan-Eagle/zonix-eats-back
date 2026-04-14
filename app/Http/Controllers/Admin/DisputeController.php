@@ -11,9 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 class DisputeController extends Controller
 {
-    public function __construct(private NotificationService $notificationService)
-    {
-    }
+    public function __construct(private NotificationService $notificationService) {}
 
     public function index(Request $request)
     {
@@ -47,7 +45,7 @@ class DisputeController extends Controller
     {
         $dispute = Dispute::with(['order', 'reportedBy', 'reportedAgainst'])->find($id);
 
-        if (!$dispute) {
+        if (! $dispute) {
             return response()->json(['success' => false, 'message' => 'Disputa no encontrada'], 404);
         }
 

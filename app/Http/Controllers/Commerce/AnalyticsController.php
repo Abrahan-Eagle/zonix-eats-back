@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Commerce;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
-use App\Models\Product;
 use App\Models\Review;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,54 +19,54 @@ class AnalyticsController extends Controller
         try {
             /** @var \App\Models\User|null $user */
             $user = Auth::user();
-            if (!$user) {
+            if (! $user) {
                 return response()->json(['error' => 'No autenticado'], 401);
             }
             $user->load('profile.commerces');
             $profile = $user->profile;
             $commerce = $profile?->getPrimaryCommerce();
 
-            if (!$profile || !$commerce) {
+            if (! $profile || ! $commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
             $commerceId = $commerce->id;
 
             // Total de órdenes del comercio
             $totalOrders = Order::where('commerce_id', $commerceId)->count();
-            
+
             // Total de ingresos (solo órdenes entregadas)
             $totalRevenue = Order::where('commerce_id', $commerceId)
                 ->where('status', 'delivered')
                 ->sum('total');
-            
+
             // Valor promedio de orden
             $averageOrderValue = $totalOrders > 0 ? $totalRevenue / $totalOrders : 0;
-            
+
             // Total de clientes únicos
             $totalCustomers = Order::where('commerce_id', $commerceId)
                 ->distinct('profile_id')
                 ->count('profile_id');
-            
+
             // Clientes recurrentes (más de 1 orden)
             $repeatCustomers = Order::where('commerce_id', $commerceId)
                 ->select('profile_id', DB::raw('COUNT(*) as order_count'))
                 ->groupBy('profile_id')
                 ->having('order_count', '>', 1)
                 ->count();
-            
+
             // Tasa de crecimiento (comparar último mes con anterior)
             $currentMonthOrders = Order::where('commerce_id', $commerceId)
                 ->whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
                 ->count();
-            
+
             $lastMonthOrders = Order::where('commerce_id', $commerceId)
                 ->whereMonth('created_at', now()->subMonth()->month)
                 ->whereYear('created_at', now()->subMonth()->year)
                 ->count();
-            
-            $growthRate = $lastMonthOrders > 0 
-                ? (($currentMonthOrders - $lastMonthOrders) / $lastMonthOrders) * 100 
+
+            $growthRate = $lastMonthOrders > 0
+                ? (($currentMonthOrders - $lastMonthOrders) / $lastMonthOrders) * 100
                 : 0;
 
             // Promedio de calificación
@@ -93,12 +92,12 @@ class AnalyticsController extends Controller
                     'repeat_customers' => $repeatCustomers,
                     'average_rating' => round($avgRating, 1),
                     'orders_by_status' => $ordersByStatus,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error obteniendo analytics: ' . $e->getMessage()
+                'message' => 'Error obteniendo analytics: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -111,18 +110,18 @@ class AnalyticsController extends Controller
         try {
             /** @var \App\Models\User|null $user */
             $user = Auth::user();
-            if (!$user) {
+            if (! $user) {
                 return response()->json(['error' => 'No autenticado'], 401);
             }
             $user->load('profile.commerces');
             $profile = $user->profile;
             $commerce = $profile?->getPrimaryCommerce();
 
-            if (!$profile || !$commerce) {
+            if (! $profile || ! $commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
             $commerceId = $commerce->id;
-            
+
             $period = $request->input('period', 'month');
             $startDate = $request->input('start_date') ? date('Y-m-d', strtotime($request->input('start_date'))) : null;
             $endDate = $request->input('end_date') ? date('Y-m-d', strtotime($request->input('end_date'))) : null;
@@ -137,12 +136,12 @@ class AnalyticsController extends Controller
                     'daily' => $daily,
                     'monthly' => $monthly,
                     'by_product' => $byProduct,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error obteniendo revenue analytics: ' . $e->getMessage()
+                'message' => 'Error obteniendo revenue analytics: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -155,14 +154,14 @@ class AnalyticsController extends Controller
         try {
             /** @var \App\Models\User|null $user */
             $user = Auth::user();
-            if (!$user) {
+            if (! $user) {
                 return response()->json(['error' => 'No autenticado'], 401);
             }
             $user->load('profile.commerces');
             $profile = $user->profile;
             $commerce = $profile?->getPrimaryCommerce();
 
-            if (!$profile || !$commerce) {
+            if (! $profile || ! $commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
             $commerceId = $commerce->id;
@@ -177,12 +176,12 @@ class AnalyticsController extends Controller
                     'status_distribution' => $statusDistribution,
                     'orders_by_day' => $ordersByDay,
                     'peak_hours' => $peakHours,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error obteniendo order analytics: ' . $e->getMessage()
+                'message' => 'Error obteniendo order analytics: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -195,14 +194,14 @@ class AnalyticsController extends Controller
         try {
             /** @var \App\Models\User|null $user */
             $user = Auth::user();
-            if (!$user) {
+            if (! $user) {
                 return response()->json(['error' => 'No autenticado'], 401);
             }
             $user->load('profile.commerces');
             $profile = $user->profile;
             $commerce = $profile?->getPrimaryCommerce();
 
-            if (!$profile || !$commerce) {
+            if (! $profile || ! $commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
             $commerceId = $commerce->id;
@@ -215,12 +214,12 @@ class AnalyticsController extends Controller
                 'data' => [
                     'top_products' => $topProducts,
                     'by_category' => $productsByCategory,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error obteniendo product analytics: ' . $e->getMessage()
+                'message' => 'Error obteniendo product analytics: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -233,14 +232,14 @@ class AnalyticsController extends Controller
         try {
             /** @var \App\Models\User|null $user */
             $user = Auth::user();
-            if (!$user) {
+            if (! $user) {
                 return response()->json(['error' => 'No autenticado'], 401);
             }
             $user->load('profile.commerces');
             $profile = $user->profile;
             $commerce = $profile?->getPrimaryCommerce();
 
-            if (!$profile || !$commerce) {
+            if (! $profile || ! $commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
             $commerceId = $commerce->id;
@@ -253,12 +252,12 @@ class AnalyticsController extends Controller
                 'data' => [
                     'new_vs_returning' => $newVsReturning,
                     'top_customers' => $topCustomers,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error obteniendo customer analytics: ' . $e->getMessage()
+                'message' => 'Error obteniendo customer analytics: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -271,27 +270,27 @@ class AnalyticsController extends Controller
         try {
             /** @var \App\Models\User|null $user */
             $user = Auth::user();
-            if (!$user) {
+            if (! $user) {
                 return response()->json(['error' => 'No autenticado'], 401);
             }
             $user->load('profile.commerces');
             $profile = $user->profile;
             $commerce = $profile?->getPrimaryCommerce();
 
-            if (!$profile || !$commerce) {
+            if (! $profile || ! $commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
             $commerceId = $commerce->id;
 
             // Tiempo promedio de preparación (estimado basado en estados)
             $avgPreparationTime = $this->getAveragePreparationTime($commerceId);
-            
+
             // Tasa de aceptación de órdenes (todas las órdenes son aceptadas por defecto)
             $totalOrders = Order::where('commerce_id', $commerceId)->count();
             $acceptedOrders = Order::where('commerce_id', $commerceId)
                 ->whereIn('status', ['paid', 'processing', 'shipped', 'delivered'])
                 ->count();
-            
+
             $acceptanceRate = $totalOrders > 0 ? ($acceptedOrders / $totalOrders) * 100 : 0;
 
             // Satisfacción del cliente (promedio de reviews)
@@ -303,7 +302,7 @@ class AnalyticsController extends Controller
             $cancelledOrders = Order::where('commerce_id', $commerceId)
                 ->where('status', 'cancelled')
                 ->count();
-            
+
             $cancellationRate = $totalOrders > 0 ? ($cancelledOrders / $totalOrders) * 100 : 0;
 
             return response()->json([
@@ -313,12 +312,12 @@ class AnalyticsController extends Controller
                     'order_acceptance_rate' => round($acceptanceRate, 1),
                     'customer_satisfaction' => round($avgRating, 1),
                     'cancellation_rate' => round($cancellationRate, 1),
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error obteniendo performance analytics: ' . $e->getMessage()
+                'message' => 'Error obteniendo performance analytics: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -339,10 +338,10 @@ class AnalyticsController extends Controller
         $dailyData = $driver === 'mysql'
             ? $query->clone()->selectRaw('DATE(created_at) as date, SUM(total) as revenue, COUNT(*) as orders')
                 ->groupBy('date')->orderBy('date', 'desc')->limit(30)->get()
-            : $query->clone()->selectRaw("date(created_at) as date, SUM(total) as revenue, COUNT(*) as orders")
+            : $query->clone()->selectRaw('date(created_at) as date, SUM(total) as revenue, COUNT(*) as orders')
                 ->groupBy('date')->orderBy('date', 'desc')->limit(30)->get();
 
-        return $dailyData->map(function($item) {
+        return $dailyData->map(function ($item) {
             return [
                 'date' => $item->date,
                 'revenue' => round((float) $item->revenue, 2),
@@ -370,7 +369,7 @@ class AnalyticsController extends Controller
                 ->orderBy('year', 'desc')->orderBy('month', 'desc')->limit(12)->get();
         }
 
-        return $monthlyData->map(function($item) use ($months) {
+        return $monthlyData->map(function ($item) use ($months) {
             return [
                 'month' => $months[($item->month ?? 1) - 1],
                 'revenue' => round((float) $item->revenue, 2),
@@ -386,7 +385,7 @@ class AnalyticsController extends Controller
             ->join('products', 'order_items.product_id', '=', 'products.id')
             ->where('orders.commerce_id', $commerceId)
             ->where('orders.status', 'delivered')
-            ->select('products.id', 'products.name', 
+            ->select('products.id', 'products.name',
                 DB::raw('SUM(order_items.quantity * order_items.unit_price) as revenue'),
                 DB::raw('SUM(order_items.quantity) as quantity'))
             ->groupBy('products.id', 'products.name')
@@ -394,7 +393,7 @@ class AnalyticsController extends Controller
             ->limit(10)
             ->get();
 
-        return $productRevenue->map(function($item) {
+        return $productRevenue->map(function ($item) {
             return [
                 'id' => $item->id,
                 'name' => $item->name,
@@ -413,7 +412,7 @@ class AnalyticsController extends Controller
 
         $total = $statuses->sum('count');
 
-        return $statuses->map(function($item) use ($total) {
+        return $statuses->map(function ($item) use ($total) {
             return [
                 'status' => $item->status,
                 'count' => $item->count,
@@ -442,10 +441,10 @@ class AnalyticsController extends Controller
                 ->selectRaw("CASE cast(strftime('%w', created_at) as integer) WHEN 0 THEN 'Sunday' WHEN 1 THEN 'Monday' WHEN 2 THEN 'Tuesday' WHEN 3 THEN 'Wednesday' WHEN 4 THEN 'Thursday' WHEN 5 THEN 'Friday' WHEN 6 THEN 'Saturday' END as day, COUNT(*) as orders")
                 ->groupBy('day')
                 ->get();
-            $ordersByDay = $ordersByDay->sortBy(fn($i) => array_search($i->day ?? '', $orderDays))->values();
+            $ordersByDay = $ordersByDay->sortBy(fn ($i) => array_search($i->day ?? '', $orderDays))->values();
         }
 
-        return $ordersByDay->map(function($item) use ($dayNames) {
+        return $ordersByDay->map(function ($item) use ($dayNames) {
             return [
                 'day' => $dayNames[$item->day ?? ''] ?? $item->day ?? '',
                 'orders' => (int) $item->orders,
@@ -461,9 +460,10 @@ class AnalyticsController extends Controller
             : Order::where('commerce_id', $commerceId)->selectRaw("cast(strftime('%H', created_at) as integer) as hour, COUNT(*) as orders")->groupBy('hour')->orderByDesc('orders')->limit(5)->get();
 
         $total = $hours->sum('orders');
-        return $hours->map(function($item) use ($total) {
+
+        return $hours->map(function ($item) use ($total) {
             return [
-                'hour' => str_pad((string)($item->hour ?? 0), 2, '0', STR_PAD_LEFT) . ':00',
+                'hour' => str_pad((string) ($item->hour ?? 0), 2, '0', STR_PAD_LEFT).':00',
                 'orders' => (int) $item->orders,
                 'percentage' => $total > 0 ? round(($item->orders / $total) * 100, 1) : 0,
             ];
@@ -477,7 +477,7 @@ class AnalyticsController extends Controller
             ->join('products', 'order_items.product_id', '=', 'products.id')
             ->where('orders.commerce_id', $commerceId)
             ->where('orders.status', 'delivered')
-            ->select('products.id', 'products.name', 
+            ->select('products.id', 'products.name',
                 DB::raw('SUM(order_items.quantity) as sales'),
                 DB::raw('SUM(order_items.quantity * order_items.unit_price) as revenue'))
             ->groupBy('products.id', 'products.name')
@@ -485,7 +485,7 @@ class AnalyticsController extends Controller
             ->limit(10)
             ->get();
 
-        return $topProducts->map(function($item) {
+        return $topProducts->map(function ($item) {
             return [
                 'id' => $item->id,
                 'name' => $item->name,
@@ -507,12 +507,12 @@ class AnalyticsController extends Controller
         $totalCustomers = Order::where('commerce_id', $commerceId)
             ->distinct('profile_id')
             ->count('profile_id');
-        
+
         $newCustomers = Order::where('commerce_id', $commerceId)
             ->whereDate('created_at', '>=', now()->subDays(30))
             ->distinct('profile_id')
             ->count('profile_id');
-        
+
         $returningCustomers = $totalCustomers - $newCustomers;
 
         return [
@@ -533,10 +533,10 @@ class AnalyticsController extends Controller
             ->with(['profile.user'])
             ->get();
 
-        return $topCustomers->map(function($item) {
+        return $topCustomers->map(function ($item) {
             $profile = $item->profile;
-            $name = $profile ? trim(($profile->firstName ?? '') . ' ' . ($profile->lastName ?? '')) : 'Usuario';
-            
+            $name = $profile ? trim(($profile->firstName ?? '').' '.($profile->lastName ?? '')) : 'Usuario';
+
             return [
                 'id' => $item->profile_id,
                 'name' => $name ?: 'Usuario',

@@ -22,7 +22,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('profile_id')->references('id')->on('profiles')->onDelete('cascade');
-            
+
             // Índices de performance (consolidados desde add_performance_indexes)
             $table->index('profile_id', 'notifications_profile_id_index');
             $table->index(['profile_id', 'created_at'], 'notifications_profile_created_index');

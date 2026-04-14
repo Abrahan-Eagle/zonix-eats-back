@@ -4,8 +4,6 @@ namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
-use App\Models\Commerce;
-use App\Models\Product;
 
 class RestaurantControllerTest extends TestCase
 {
@@ -15,6 +13,7 @@ class RestaurantControllerTest extends TestCase
     {
         $user = \App\Models\User::factory()->create(['role' => 'users']);
         \Laravel\Sanctum\Sanctum::actingAs($user);
+
         return $user;
     }
 
@@ -31,7 +30,7 @@ class RestaurantControllerTest extends TestCase
                     'items',
                     'restaurants',
                     'data' => [
-                        '*' => ['id', 'profile_id', 'business_name','image', 'address', 'phone', 'open', 'schedule']
+                        '*' => ['id', 'profile_id', 'business_name', 'image', 'address', 'phone', 'open', 'schedule'],
                     ],
                     'pagination' => [
                         'current_page',
@@ -40,7 +39,7 @@ class RestaurantControllerTest extends TestCase
                         'last_page',
                     ],
                 ],
-                'message'
+                'message',
             ]);
     }
 
@@ -79,8 +78,8 @@ class RestaurantControllerTest extends TestCase
         ]);
         $response = $this->getJson("/api/buyer/restaurants/{$commerce->id}");
         $response->assertStatus(200)
-                 ->assertJsonPath('success', true)
-                 ->assertJsonPath('data.id', $commerce->id);
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.id', $commerce->id);
     }
 
     public function test_show_restaurant_not_found()

@@ -50,7 +50,7 @@ class StoreProductRequest extends FormRequest
             'image.mimes' => 'The image must be jpeg, png, jpg or gif',
             'image.max' => 'The image cannot exceed 5MB',
             'stock.integer' => 'The stock must be an integer',
-            'stock.min' => 'The stock cannot be negative'
+            'stock.min' => 'The stock cannot be negative',
         ];
     }
 }

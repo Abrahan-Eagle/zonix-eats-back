@@ -20,21 +20,21 @@ class PromotionFactory extends Factory
     public function definition(): array
     {
         $discountType = $this->faker->randomElement(['percentage', 'fixed']);
-        $discountValue = $discountType === 'percentage' 
-            ? $this->faker->numberBetween(5, 50) 
+        $discountValue = $discountType === 'percentage'
+            ? $this->faker->numberBetween(5, 50)
             : $this->faker->randomFloat(2, 5, 20);
-        
+
         $startDate = $this->faker->dateTimeBetween('-1 week', '+1 week');
         $endDate = $this->faker->dateTimeBetween($startDate, '+1 month');
-        
+
         return [
             'title' => $this->faker->sentence(3),
             'description' => $this->faker->paragraph(), // Siempre generar descripción (no es nullable)
             'discount_type' => $discountType,
             'discount_value' => $discountValue,
             'minimum_order' => $this->faker->optional(0.6)->randomFloat(2, 10, 50) ?? 0, // Default 0 si es null
-            'maximum_discount' => $discountType === 'percentage' 
-                ? $this->faker->optional(0.5)->randomFloat(2, 10, 50) 
+            'maximum_discount' => $discountType === 'percentage'
+                ? $this->faker->optional(0.5)->randomFloat(2, 10, 50)
                 : null,
             'image_url' => $this->faker->optional(0.7)->imageUrl(),
             'banner_url' => $this->faker->optional(0.5)->imageUrl(),

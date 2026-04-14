@@ -28,4 +28,4 @@ class OrderBroadcastTest extends TestCase
             return $event->order->id === $order->id && $event->order->status === 'delivered';
         });
     }
-} 
+}

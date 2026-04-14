@@ -9,7 +9,7 @@ class RestaurantService
     /**
      * Obtener todos los restaurantes (comercios).
      *
-     * @param int $perPage
+     * @param  int  $perPage
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
     public function getAllRestaurants($perPage = 15)
@@ -23,7 +23,7 @@ class RestaurantService
     /**
      * Obtener un restaurante específico por ID.
      *
-     * @param int $id
+     * @param  int  $id
      * @return Commerce|null
      */
     public function getRestaurantById($id)
@@ -38,7 +38,7 @@ class RestaurantService
      * - Comercio aprobado
      * - Comercio abierto
      *
-     * @param int $id
+     * @param  int  $id
      * @return Commerce|null
      */
     public function getCatalogVisibleRestaurantById($id)

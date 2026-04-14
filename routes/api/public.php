@@ -1,7 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Profiles\PhoneController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/operator-codes', [PhoneController::class, 'getOperatorCodes']);
 
@@ -9,4 +9,4 @@ Route::get('/available-payment-methods', [\App\Http\Controllers\PaymentMethodCon
 
 Route::get('/banks', [\App\Http\Controllers\BankController::class, 'index']);
 
-Route::get('/ping', fn() => response()->json(['message' => 'API funcionando']));
+Route::get('/ping', fn () => response()->json(['message' => 'API funcionando']));

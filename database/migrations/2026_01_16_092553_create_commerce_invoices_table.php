@@ -8,7 +8,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Crea tabla commerce_invoices para trackear facturas mensuales según modelo de negocio.
      * Cada factura incluye: membresía mensual + comisiones del mes.
      */
@@ -26,7 +26,7 @@ return new class extends Migration
             $table->timestamp('paid_at')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
-            
+
             // Índices
             $table->index('commerce_id');
             $table->index('status');

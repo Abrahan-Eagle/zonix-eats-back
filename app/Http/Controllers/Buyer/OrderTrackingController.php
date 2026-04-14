@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Buyer;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
+use App\Models\DeliveryAgent;
 use App\Models\Order;
 use App\Models\OrderDelivery;
-use App\Models\DeliveryAgent;
 use App\Models\Review;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -23,7 +23,7 @@ class OrderTrackingController extends Controller
             $profileId = auth()->user()?->profile?->id;
             $order = Order::with(['commerce', 'orderDelivery.agent.profile', 'items'])
                 ->findOrFail($orderId);
-            if (!$profileId || (int) $order->profile_id !== (int) $profileId) {
+            if (! $profileId || (int) $order->profile_id !== (int) $profileId) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Pedido no encontrado',
@@ -31,7 +31,7 @@ class OrderTrackingController extends Controller
             }
 
             $statusInfo = $this->getStatusInfo($order->status);
-            
+
             $trackingData = [
                 'order_id' => $order->id,
                 'status' => $order->status,
@@ -42,7 +42,7 @@ class OrderTrackingController extends Controller
                 'restaurant' => [
                     'name' => $order->commerce->name ?? 'Restaurante',
                     'address' => $order->commerce->address ?? 'N/A',
-                    'phone' => $order->commerce->phone ?? 'N/A'
+                    'phone' => $order->commerce->phone ?? 'N/A',
                 ],
                 'delivery_agent' => $order->orderDelivery?->agent ? [
                     'name' => $order->orderDelivery->agent->profile->firstName ?? 'Repartidor',
@@ -50,27 +50,28 @@ class OrderTrackingController extends Controller
                     'vehicle' => $order->orderDelivery->agent->vehicle_type ?? 'Moto',
                     'current_location' => [
                         'lat' => $order->orderDelivery->agent->current_latitude ?? 0,
-                        'lng' => $order->orderDelivery->agent->current_longitude ?? 0
-                    ]
+                        'lng' => $order->orderDelivery->agent->current_longitude ?? 0,
+                    ],
                 ] : null,
                 'order_details' => [
                     'total_items' => $order->items->count(),
                     'total_amount' => (float) $order->total,
                     'delivery_address' => $order->delivery_address,
-                    'special_instructions' => $order->notes ?? ''
+                    'special_instructions' => $order->notes ?? '',
                 ],
-                'timeline' => $this->generateTimeline($order)
+                'timeline' => $this->generateTimeline($order),
             ];
 
             return response()->json([
                 'success' => true,
-                'data' => $trackingData
+                'data' => $trackingData,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting order status: ' . $e->getMessage());
+            Log::error('Error getting order status: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener el estado del pedido'
+                'message' => 'Error al obtener el estado del pedido',
             ], 500);
         }
     }
@@ -85,7 +86,7 @@ class OrderTrackingController extends Controller
             $profileId = auth()->user()?->profile?->id;
             $order = Order::with('orderDelivery.agent.profile')
                 ->findOrFail($orderId);
-            if (!$profileId || (int) $order->profile_id !== (int) $profileId) {
+            if (! $profileId || (int) $order->profile_id !== (int) $profileId) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Pedido no encontrado',
@@ -93,15 +94,15 @@ class OrderTrackingController extends Controller
             }
 
             $agent = $order->orderDelivery?->agent;
-            if (!$agent) {
+            if (! $agent) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No hay repartidor asignado aún'
+                    'message' => 'No hay repartidor asignado aún',
                 ], 404);
             }
 
             $profile = $agent->profile;
-            $name = trim(($profile->firstName ?? '') . ' ' . ($profile->lastName ?? '')) ?: 'Repartidor';
+            $name = trim(($profile->firstName ?? '').' '.($profile->lastName ?? '')) ?: 'Repartidor';
 
             // Rating y reseñas desde tabla reviews (reviewable_type = DeliveryAgent)
             $reviewsQuery = Review::where('reviewable_type', 'App\Models\DeliveryAgent')
@@ -159,7 +160,7 @@ class OrderTrackingController extends Controller
                 'current_location' => [
                     'lat' => $agent->current_latitude !== null ? (float) $agent->current_latitude : null,
                     'lng' => $agent->current_longitude !== null ? (float) $agent->current_longitude : null,
-                    'updated_at' => $agent->last_location_update ?? now()
+                    'updated_at' => $agent->last_location_update ?? now(),
                 ],
                 'estimated_arrival' => $this->calculateEstimatedArrival($order),
                 'customer_location' => null,
@@ -174,13 +175,14 @@ class OrderTrackingController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $location
+                'data' => $location,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting delivery agent location: ' . $e->getMessage());
+            Log::error('Error getting delivery agent location: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener la ubicación del repartidor'
+                'message' => 'Error al obtener la ubicación del repartidor',
             ], 500);
         }
     }
@@ -207,38 +209,38 @@ class OrderTrackingController extends Controller
                 'title' => 'Pendiente de Pago',
                 'description' => 'Tu pedido fue creado. Sube el comprobante de pago.',
                 'icon' => 'hourglass_empty',
-                'color' => '#FFA726'
+                'color' => '#FFA726',
             ],
             'paid' => [
                 'title' => 'Pago Confirmado',
                 'description' => 'El comercio validó tu pago y procesará el pedido.',
                 'icon' => 'check_circle',
-                'color' => '#4CAF50'
+                'color' => '#4CAF50',
             ],
             'processing' => [
                 'title' => 'Preparando tu Pedido',
                 'description' => 'El restaurante está preparando tu comida.',
                 'icon' => 'restaurant',
-                'color' => '#2196F3'
+                'color' => '#2196F3',
             ],
             'shipped' => [
                 'title' => 'En Camino',
                 'description' => 'El repartidor está llevando tu pedido.',
                 'icon' => 'directions_car',
-                'color' => '#FF9800'
+                'color' => '#FF9800',
             ],
             'delivered' => [
                 'title' => 'Entregado',
                 'description' => 'Tu pedido ha sido entregado exitosamente.',
                 'icon' => 'done_all',
-                'color' => '#4CAF50'
+                'color' => '#4CAF50',
             ],
             'cancelled' => [
                 'title' => 'Cancelado',
                 'description' => 'Tu pedido ha sido cancelado.',
                 'icon' => 'cancel',
-                'color' => '#F44336'
-            ]
+                'color' => '#F44336',
+            ],
         ];
 
         return $statusMap[$status] ?? $statusMap['pending_payment'];
@@ -251,11 +253,11 @@ class OrderTrackingController extends Controller
     {
         $stepMap = [
             'pending_payment' => 1,
-            'paid'            => 2,
-            'processing'      => 3,
-            'shipped'         => 4,
-            'delivered'       => 5,
-            'cancelled'       => 0,
+            'paid' => 2,
+            'processing' => 3,
+            'shipped' => 4,
+            'delivered' => 5,
+            'cancelled' => 0,
         ];
 
         return $stepMap[$status] ?? 1;
@@ -325,7 +327,7 @@ class OrderTrackingController extends Controller
             }
 
             $currentStatus = (string) $order->status;
-            if (!isset($seen[$currentStatus])) {
+            if (! isset($seen[$currentStatus])) {
                 $info = $this->getStatusInfo($currentStatus);
                 $timeline[] = [
                     'status' => $currentStatus,
@@ -368,12 +370,12 @@ class OrderTrackingController extends Controller
             'description' => $currentInfo['description'],
             'timestamp' => $order->status_updated_at ?? $order->created_at,
             'completed' => true,
-            'icon' => $currentInfo['icon']
+            'icon' => $currentInfo['icon'],
         ];
 
         $futureStates = ['pending_payment', 'paid', 'processing', 'shipped', 'delivered'];
         $currentIndex = array_search($order->status, $futureStates);
-        
+
         if ($currentIndex !== false) {
             for ($i = $currentIndex + 1; $i < count($futureStates); $i++) {
                 $futureStatus = $futureStates[$i];
@@ -383,11 +385,11 @@ class OrderTrackingController extends Controller
                     'description' => $this->getStatusInfo($futureStatus)['description'],
                     'timestamp' => null,
                     'completed' => false,
-                    'icon' => $this->getStatusInfo($futureStatus)['icon']
+                    'icon' => $this->getStatusInfo($futureStatus)['icon'],
                 ];
             }
         }
 
         return $timeline;
     }
-} 
+}

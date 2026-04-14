@@ -8,9 +8,9 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Crea tabla delivery_agents con todos los campos consolidados y nombres en inglés.
-     * Consolidado: 
+     * Consolidado:
      * - rename_spanish_fields_to_english (campos ya en inglés: status, working)
      * - make_company_id_nullable (company_id nullable desde el inicio)
      * - make_vehicle_type_and_phone_nullable (ya nullable desde el inicio)

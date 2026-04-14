@@ -35,7 +35,7 @@ class OrderNotificationSubscriber
                 'Nuevo Pedido Recibido',
                 "Has recibido un nuevo pedido #{$orderNumber}.",
                 'commerce_order',
-                ['order_id' => (string)$order->id, 'order_number' => $order->order_number ?? (string)$order->id]
+                ['order_id' => (string) $order->id, 'order_number' => $order->order_number ?? (string) $order->id]
             );
         }
     }
@@ -51,11 +51,11 @@ class OrderNotificationSubscriber
 
         $messages = [
             'pending_payment' => 'Tu pedido fue creado. Por favor sube el comprobante de pago.',
-            'paid'            => 'Tu pago ha sido confirmado. El comercio procesará tu pedido.',
-            'processing'      => 'Tu pedido está siendo preparado.',
-            'shipped'         => 'Tu pedido va en camino.',
-            'delivered'       => '¡Pedido entregado! Esperamos que lo disfrutes.',
-            'cancelled'       => 'Tu pedido ha sido cancelado.',
+            'paid' => 'Tu pago ha sido confirmado. El comercio procesará tu pedido.',
+            'processing' => 'Tu pedido está siendo preparado.',
+            'shipped' => 'Tu pedido va en camino.',
+            'delivered' => '¡Pedido entregado! Esperamos que lo disfrutes.',
+            'cancelled' => 'Tu pedido ha sido cancelado.',
         ];
 
         Log::debug('OrderNotificationSubscriber: Handling OrderStatusChanged event', [
@@ -63,7 +63,6 @@ class OrderNotificationSubscriber
             'status' => $status,
             'has_message' => isset($messages[$status]),
         ]);
-
 
         if (isset($messages[$status])) {
             $body = $messages[$status];
@@ -76,7 +75,7 @@ class OrderNotificationSubscriber
                 'Actualización de Pedido',
                 $body,
                 'order',
-                ['order_id' => (string)$order->id, 'status' => $status]
+                ['order_id' => (string) $order->id, 'status' => $status]
             );
         }
 
@@ -102,7 +101,7 @@ class OrderNotificationSubscriber
                 'Pago Validado',
                 "El pago de tu pedido #{$orderNumber} ha sido validado correctamente.",
                 'order',
-                ['order_id' => (string)$order->id]
+                ['order_id' => (string) $order->id]
             );
         } else {
             // Si el pago es rechazado, el controlador suele pasar una razón opcional o podemos sacarla del pedido si se guardó
@@ -111,7 +110,7 @@ class OrderNotificationSubscriber
                 'Pago Rechazado',
                 "El comprobante de pago de tu pedido #{$orderNumber} ha sido rechazado.",
                 'order',
-                ['order_id' => (string)$order->id]
+                ['order_id' => (string) $order->id]
             );
         }
     }
@@ -119,7 +118,6 @@ class OrderNotificationSubscriber
     /**
      * Register the listeners for the subscriber.
      *
-     * @param  \Illuminate\Events\Dispatcher  $events
      * @return void
      */
     public function subscribe(Dispatcher $events): array

@@ -19,7 +19,7 @@ class UpdateProductRequest extends FormRequest
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
-     public function rules(): array
+    public function rules(): array
     {
         return [
             'name' => 'sometimes|required|string|max:255',
@@ -48,7 +48,7 @@ class UpdateProductRequest extends FormRequest
             'image.mimes' => 'The image must be jpeg, png, jpg or gif',
             'image.max' => 'The image cannot exceed 5MB',
             'stock.integer' => 'The stock must be an integer',
-            'stock.min' => 'The stock cannot be negative'
+            'stock.min' => 'The stock cannot be negative',
         ];
     }
 }

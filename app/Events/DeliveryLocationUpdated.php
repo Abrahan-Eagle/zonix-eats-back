@@ -2,9 +2,7 @@
 
 namespace App\Events;
 
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
@@ -16,12 +14,19 @@ class DeliveryLocationUpdated implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $orderId;
+
     public $deliveryAgentId;
+
     public $companyId;
+
     public $latitude;
+
     public $longitude;
+
     public $estimatedArrival;
+
     private string $eventId;
+
     private string $occurredAt;
 
     public function __construct($orderId, $deliveryAgentId, $latitude, $longitude, $estimatedArrival = null, $companyId = null)
@@ -39,15 +44,15 @@ class DeliveryLocationUpdated implements ShouldBroadcast
     public function broadcastOn(): array
     {
         $channels = [
-            new PrivateChannel('delivery.' . $this->deliveryAgentId),
+            new PrivateChannel('delivery.'.$this->deliveryAgentId),
         ];
 
         if ($this->orderId) {
-            $channels[] = new PrivateChannel('orders.' . $this->orderId);
+            $channels[] = new PrivateChannel('orders.'.$this->orderId);
         }
 
         if ($this->companyId) {
-            $channels[] = new PrivateChannel('company.' . $this->companyId);
+            $channels[] = new PrivateChannel('company.'.$this->companyId);
         }
 
         return $channels;
@@ -55,8 +60,6 @@ class DeliveryLocationUpdated implements ShouldBroadcast
 
     /**
      * Get the data to broadcast.
-     *
-     * @return array
      */
     public function broadcastWith(): array
     {
@@ -82,4 +85,4 @@ class DeliveryLocationUpdated implements ShouldBroadcast
     {
         return 'DeliveryLocationUpdated';
     }
-} 
+}

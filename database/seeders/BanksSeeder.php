@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Bank;
 
 class BanksSeeder extends Seeder
 {
@@ -49,4 +48,4 @@ class BanksSeeder extends Seeder
             \App\Models\Bank::updateOrCreate(['code' => $bank['code']], $bank);
         }
     }
-} 
+}

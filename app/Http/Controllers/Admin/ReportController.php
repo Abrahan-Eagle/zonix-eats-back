@@ -3,12 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
-use App\Models\Order;
-use App\Models\Commerce;
-use App\Models\Notification;
-use App\Models\Review;
 use App\Models\AdminAuditLog;
+use App\Models\Commerce;
+use App\Models\Order;
+use App\Models\Review;
+use App\Models\User;
 use App\Services\DeliveryObservabilityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -139,17 +138,17 @@ class ReportController extends Controller
                 'statistics' => '/api/admin/statistics',
                 'analytics' => '/api/admin/analytics',
                 'security-logs' => '/api/admin/security-logs',
-            ]
+            ],
         ]);
     }
 
     public function getStatistics()
     {
         $totalUsers = User::count();
-        $activeUsers = User::whereHas('profile', function($q) {
+        $activeUsers = User::whereHas('profile', function ($q) {
             $q->where('status', 'active');
         })->count();
-        $suspendedUsers = User::whereHas('profile', function($q) {
+        $suspendedUsers = User::whereHas('profile', function ($q) {
             $q->where('status', 'suspended');
         })->count();
 
@@ -246,15 +245,15 @@ class ReportController extends Controller
 
         $data = [];
 
-        if (!$metric || $metric === 'user_growth') {
+        if (! $metric || $metric === 'user_growth') {
             $data['user_growth'] = $this->getUserGrowthData($period);
         }
 
-        if (!$metric || $metric === 'revenue_growth') {
+        if (! $metric || $metric === 'revenue_growth') {
             $data['revenue_growth'] = $this->getRevenueGrowthData($period);
         }
 
-        if (!$metric || $metric === 'order_volume') {
+        if (! $metric || $metric === 'order_volume') {
             $data['order_volume'] = $this->getOrderVolumeData($period);
         }
 
@@ -263,11 +262,11 @@ class ReportController extends Controller
             ->groupBy('role')
             ->orderByDesc('count')
             ->get()
-            ->map(function($item) use ($totalUsers) {
+            ->map(function ($item) use ($totalUsers) {
                 return [
                     'role' => $item->role,
                     'count' => $item->count,
-                    'percentage' => round(($item->count / $totalUsers) * 100, 1)
+                    'percentage' => round(($item->count / $totalUsers) * 100, 1),
                 ];
             });
 
@@ -355,8 +354,8 @@ class ReportController extends Controller
             // Guardar en archivo de configuración o base de datos
             // Por ahora, guardamos en un archivo JSON en storage
             $settingsPath = storage_path('app/system_settings.json');
-            $currentSettings = file_exists($settingsPath) 
-                ? json_decode(file_get_contents($settingsPath), true) 
+            $currentSettings = file_exists($settingsPath)
+                ? json_decode(file_get_contents($settingsPath), true)
                 : [];
 
             $updatedSettings = array_merge($currentSettings, $request->only([
@@ -374,7 +373,7 @@ class ReportController extends Controller
 
             Log::info('System settings updated', [
                 'updated_by' => auth()->id(),
-                'settings' => $request->all()
+                'settings' => $request->all(),
             ]);
 
             return response()->json([
@@ -384,10 +383,11 @@ class ReportController extends Controller
                 'updated_at' => now()->toIso8601String(),
             ]);
         } catch (\Exception $e) {
-            Log::error('Error updating system settings: ' . $e->getMessage());
+            Log::error('Error updating system settings: '.$e->getMessage());
+
             return response()->json([
                 'status' => 'error',
-                'message' => 'Error actualizando configuración del sistema'
+                'message' => 'Error actualizando configuración del sistema',
             ], 500);
         }
     }
@@ -452,10 +452,11 @@ class ReportController extends Controller
                 'recipients_count' => $sentCount,
             ], 201);
         } catch (\Exception $e) {
-            Log::error('Error sending system notification: ' . $e->getMessage());
+            Log::error('Error sending system notification: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error enviando notificación: ' . $e->getMessage()
+                'message' => 'Error enviando notificación: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -465,7 +466,7 @@ class ReportController extends Controller
      */
     public function getReportedReviews(Request $request)
     {
-        if (!Schema::hasColumn('reviews', 'moderation_status')) {
+        if (! Schema::hasColumn('reviews', 'moderation_status')) {
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -489,8 +490,9 @@ class ReportController extends Controller
         $items = $reviews->getCollection()->map(function (Review $review) {
             $profile = $review->profile;
             $authorName = $profile
-                ? trim(($profile->firstName ?? '') . ' ' . ($profile->lastName ?? ''))
+                ? trim(($profile->firstName ?? '').' '.($profile->lastName ?? ''))
                 : 'Usuario';
+
             return [
                 'id' => $review->id,
                 'order_id' => $review->order_id,
@@ -532,7 +534,7 @@ class ReportController extends Controller
         ]);
 
         $review = Review::find($reviewId);
-        if (!$review) {
+        if (! $review) {
             return response()->json([
                 'success' => false,
                 'data' => null,
@@ -541,7 +543,7 @@ class ReportController extends Controller
             ], 404);
         }
 
-        if (!Schema::hasColumn('reviews', 'moderation_status')) {
+        if (! Schema::hasColumn('reviews', 'moderation_status')) {
             return response()->json([
                 'success' => false,
                 'data' => null,
@@ -553,7 +555,7 @@ class ReportController extends Controller
         $updatePayload = [
             'moderation_status' => $validated['action'],
         ];
-        if (Schema::hasColumn('reviews', 'reported_reason') && !empty($validated['reason'])) {
+        if (Schema::hasColumn('reviews', 'reported_reason') && ! empty($validated['reason'])) {
             $updatePayload['reported_reason'] = $validated['reason'];
         }
         $review->update($updatePayload);
@@ -572,16 +574,16 @@ class ReportController extends Controller
     {
         $days = $period === 'week' ? 7 : ($period === 'month' ? 30 : 90);
         $data = [];
-        
+
         for ($i = $days; $i >= 0; $i--) {
             $date = now()->subDays($i);
             $count = User::whereDate('created_at', '<=', $date)->count();
             $data[] = [
                 'date' => $date->format('Y-m-d'),
-                'value' => $count
+                'value' => $count,
             ];
         }
-        
+
         return $data;
     }
 
@@ -589,7 +591,7 @@ class ReportController extends Controller
     {
         $days = $period === 'week' ? 7 : ($period === 'month' ? 30 : 90);
         $data = [];
-        
+
         for ($i = $days; $i >= 0; $i--) {
             $date = now()->subDays($i);
             $revenue = Order::whereDate('created_at', $date)
@@ -597,10 +599,10 @@ class ReportController extends Controller
                 ->sum('total');
             $data[] = [
                 'date' => $date->format('Y-m-d'),
-                'value' => round($revenue, 2)
+                'value' => round($revenue, 2),
             ];
         }
-        
+
         return $data;
     }
 
@@ -608,16 +610,16 @@ class ReportController extends Controller
     {
         $days = $period === 'week' ? 7 : ($period === 'month' ? 30 : 90);
         $data = [];
-        
+
         for ($i = $days; $i >= 0; $i--) {
             $date = now()->subDays($i);
             $count = Order::whereDate('created_at', $date)->count();
             $data[] = [
                 'date' => $date->format('Y-m-d'),
-                'value' => $count
+                'value' => $count,
             ];
         }
-        
+
         return $data;
     }
 }

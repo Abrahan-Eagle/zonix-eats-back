@@ -92,8 +92,8 @@ class Order extends Model
     public function products()
     {
         return $this->belongsToMany(Product::class, 'order_items')
-                    ->withPivot('quantity', 'unit_price')
-                    ->withTimestamps();
+            ->withPivot('quantity', 'unit_price')
+            ->withTimestamps();
     }
 
     /**
@@ -197,15 +197,16 @@ class Order extends Model
             return true; // Legacy: sin order_payments, el commerce valida directamente
         }
         $food = $payments->firstWhere('type', 'food');
-        if ($food && !$food->isValidated()) {
+        if ($food && ! $food->isValidated()) {
             return false;
         }
         if ($this->delivery_type === 'delivery') {
             $delivery = $payments->firstWhere('type', 'delivery');
-            if ($delivery && !$delivery->isValidated()) {
+            if ($delivery && ! $delivery->isValidated()) {
                 return false;
             }
         }
+
         return true;
     }
 

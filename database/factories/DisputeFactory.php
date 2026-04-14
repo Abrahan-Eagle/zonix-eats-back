@@ -2,11 +2,11 @@
 
 namespace Database\Factories;
 
+use App\Models\Commerce;
+use App\Models\DeliveryAgent;
 use App\Models\Dispute;
 use App\Models\Order;
 use App\Models\Profile;
-use App\Models\Commerce;
-use App\Models\DeliveryAgent;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -39,7 +39,7 @@ class DisputeFactory extends Factory
             $agent = DeliveryAgent::factory()->create();
             $reportedAgainstId = $agent->id;
         }
-        
+
         return [
             'order_id' => Order::factory(),
             'reported_by_type' => Profile::class,

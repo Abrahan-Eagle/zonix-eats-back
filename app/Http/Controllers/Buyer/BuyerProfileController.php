@@ -39,12 +39,12 @@ class BuyerProfileController extends Controller
         ]);
 
         $profile->update($request->only([
-            'first_name', 'last_name', 'address'
+            'first_name', 'last_name', 'address',
         ]));
 
         return response()->json([
             'message' => 'Profile updated successfully',
-            'profile' => $profile->fresh()
+            'profile' => $profile->fresh(),
         ]);
     }
-} 
+}

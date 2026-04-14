@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
 use App\Services\TrackingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class TrackingServiceTest extends TestCase
 {
@@ -15,7 +15,7 @@ class TrackingServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->trackingService = new TrackingService();
+        $this->trackingService = new TrackingService;
     }
 
     public function test_calculate_distance()
@@ -107,4 +107,4 @@ class TrackingServiceTest extends TestCase
         $this->assertGreaterThan(0, $tracking['estimated_times']['to_customer']);
         $this->assertGreaterThan(0, $tracking['estimated_times']['total']);
     }
-} 
+}

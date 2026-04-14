@@ -17,13 +17,13 @@ class Product extends Model
         'price',
         'image',
         'available',
-        'stock_quantity'
+        'stock_quantity',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
         'available' => 'boolean',
-        'stock_quantity' => 'integer'
+        'stock_quantity' => 'integer',
     ];
 
     /**

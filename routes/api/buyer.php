@@ -1,11 +1,11 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Buyer\BuyerProfileController;
+use App\Http\Controllers\Buyer\CartController;
 use App\Http\Controllers\Buyer\OrderController as BuyerOrderController;
 use App\Http\Controllers\Buyer\RestaurantController;
-use App\Http\Controllers\Buyer\CartController;
 use App\Http\Controllers\Profiles\PhoneController;
+use Illuminate\Support\Facades\Route;
 
 Route::prefix('buyer')->middleware(['auth:sanctum', 'role:users'])->group(function () {
     Route::get('/profiles/{profile}', [BuyerProfileController::class, 'show']);

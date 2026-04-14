@@ -15,14 +15,16 @@ class CommerceDataController extends Controller
     protected function resolveCommerce(Request $request): ?\App\Models\Commerce
     {
         $profile = Auth::user()->profile;
-        if (!$profile) {
+        if (! $profile) {
             return null;
         }
         $commerceId = $request->query('commerce_id') ?? $request->header('X-Commerce-Id') ?? $request->input('commerce_id');
         if ($commerceId) {
             $commerce = $profile->commerces()->find($commerceId);
+
             return $commerce ?? $profile->getPrimaryCommerce();
         }
+
         return $profile->getPrimaryCommerce();
     }
 
@@ -33,12 +35,13 @@ class CommerceDataController extends Controller
     public function show(Request $request)
     {
         $commerce = $this->resolveCommerce($request);
-        if (!$commerce) {
+        if (! $commerce) {
             return response()->json([
                 'success' => false,
                 'message' => 'Comercio no encontrado para el usuario autenticado',
             ], 404);
         }
+
         return response()->json([
             'success' => true,
             'data' => $commerce,
@@ -52,7 +55,7 @@ class CommerceDataController extends Controller
     public function update(Request $request)
     {
         $commerce = $this->resolveCommerce($request);
-        if (!$commerce) {
+        if (! $commerce) {
             return response()->json([
                 'success' => false,
                 'message' => 'Comercio no encontrado para el usuario autenticado',
@@ -72,7 +75,7 @@ class CommerceDataController extends Controller
             $data['schedule'] = $decoded ?? ['raw' => $data['schedule']];
         }
 
-        $commerce->update(array_filter($data, fn($v) => $v !== null));
+        $commerce->update(array_filter($data, fn ($v) => $v !== null));
 
         return response()->json([
             'success' => true,
@@ -92,7 +95,7 @@ class CommerceDataController extends Controller
         ]);
 
         $commerce = $this->resolveCommerce($request);
-        if (!$commerce) {
+        if (! $commerce) {
             return response()->json([
                 'success' => false,
                 'message' => 'Comercio no encontrado para el usuario autenticado',
@@ -104,7 +107,7 @@ class CommerceDataController extends Controller
             $baseUrl = config('app.env') === 'production'
                 ? config('app.url_production')
                 : config('app.url_local');
-            $oldPath = str_replace($baseUrl . '/storage/', '', $commerce->image);
+            $oldPath = str_replace($baseUrl.'/storage/', '', $commerce->image);
             if ($oldPath && Storage::disk('public')->exists($oldPath)) {
                 Storage::disk('public')->delete($oldPath);
             }
@@ -117,7 +120,7 @@ class CommerceDataController extends Controller
             ? config('app.url_production')
             : config('app.url_local');
 
-        $imageUrl = $baseUrl . '/storage/' . $path;
+        $imageUrl = $baseUrl.'/storage/'.$path;
 
         $commerce->update(['image' => $imageUrl]);
 

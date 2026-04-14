@@ -22,14 +22,14 @@ class PrivacyController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $settings
+                'data' => $settings,
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener configuración',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -54,7 +54,7 @@ class PrivacyController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Datos de entrada inválidos',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
@@ -75,14 +75,14 @@ class PrivacyController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Configuración actualizada correctamente',
-                'data' => $updatedSettings
+                'data' => $updatedSettings,
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al actualizar configuración',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -101,14 +101,14 @@ class PrivacyController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $policy
+                'data' => $policy,
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener política',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -127,14 +127,14 @@ class PrivacyController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $terms
+                'data' => $terms,
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener términos',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -164,15 +164,15 @@ class PrivacyController extends Controller
     private function updateMockPrivacySettings($userId, $updates)
     {
         $currentSettings = $this->getMockPrivacySettings($userId);
-        
+
         foreach ($updates as $key => $value) {
             if (array_key_exists($key, $currentSettings)) {
                 $currentSettings[$key] = $value;
             }
         }
-        
+
         $currentSettings['updated_at'] = now()->toISOString();
-        
+
         return $currentSettings;
     }
 
@@ -181,7 +181,7 @@ class PrivacyController extends Controller
      */
     private function getPrivacyPolicyContent()
     {
-        return "
+        return '
         <h1>Política de Privacidad</h1>
         
         <h2>1. Información que recopilamos</h2>
@@ -218,7 +218,7 @@ class PrivacyController extends Controller
         
         <h2>6. Contacto</h2>
         <p>Si tienes preguntas sobre esta política de privacidad, contáctanos en privacy@zonix-eats.com</p>
-        ";
+        ';
     }
 
     /**
@@ -226,7 +226,7 @@ class PrivacyController extends Controller
      */
     private function getTermsOfServiceContent()
     {
-        return "
+        return '
         <h1>Términos de Servicio</h1>
         
         <h2>1. Aceptación de los términos</h2>
@@ -258,6 +258,6 @@ class PrivacyController extends Controller
         
         <h2>10. Contacto</h2>
         <p>Para preguntas sobre estos términos, contáctanos en legal@zonix-eats.com</p>
-        ";
+        ';
     }
 }

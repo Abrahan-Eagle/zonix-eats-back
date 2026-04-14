@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Profile;
-use App\Models\Product;
 use App\Models\Commerce;
+use App\Models\Product;
+use App\Models\Profile;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 class EcommerceFlowTest extends TestCase
 {
@@ -35,7 +35,9 @@ class EcommerceFlowTest extends TestCase
             'commerce_id' => $commerce->id,
             'available' => true,
             'stock_quantity' => 10,
+            'price' => 22.50,
         ]);
+        $product->refresh();
 
         // Listar restaurantes
         $this->getJson('/api/buyer/restaurants')->assertStatus(200);
@@ -49,7 +51,7 @@ class EcommerceFlowTest extends TestCase
         // Agregar producto al carrito
         $this->postJson('/api/buyer/cart/add', [
             'product_id' => $product->id,
-            'quantity' => 2
+            'quantity' => 2,
         ])->assertStatus(200);
 
         // Ver carrito
@@ -58,12 +60,13 @@ class EcommerceFlowTest extends TestCase
         // Crear orden
         $orderData = [
             'products' => [
-                ['id' => $product->id, 'quantity' => 2]
+                ['id' => $product->id, 'quantity' => 2],
             ],
             'commerce_id' => $commerce->id,
             'delivery_type' => 'delivery',
-            'total' => $product->price * 2,
-            'delivery_address' => 'Calle Falsa 123'
+            'delivery_fee' => 0,
+            'total' => round((float) $product->price * 2, 2),
+            'delivery_address' => 'Calle Falsa 123',
         ];
         $this->postJson('/api/buyer/orders', $orderData)
             ->assertStatus(201)

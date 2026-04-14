@@ -15,16 +15,16 @@ class IndexController extends Controller
     {
         \App\Helpers\SeoHelper::setTitle('Tu comida favorita en minutos');
         \App\Helpers\SeoHelper::setDescription(
-            'Pide comida a domicilio de tus restaurantes favoritos en Caracas, Maracaibo, Valencia y más. ' .
+            'Pide comida a domicilio de tus restaurantes favoritos en Caracas, Maracaibo, Valencia y más. '.
             'Los mejores precios y delivery rápido con Zonix EATS.'
         );
 
         $schema = [
             'app' => \App\Helpers\SeoHelper::generateAppSchema(),
             'organization' => \App\Helpers\SeoHelper::generateOrganizationSchema(),
-            'faq' => \App\Helpers\SeoHelper::generateFaqSchema()
+            'faq' => \App\Helpers\SeoHelper::generateFaqSchema(),
         ];
-        
+
         return view('front.welcome', compact('schema'));
     }
 }

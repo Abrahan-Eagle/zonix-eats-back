@@ -87,7 +87,7 @@ class CommerceController extends Controller
                     ['commerce_id' => (string) $commerce->id, 'status' => $request->status]
                 );
             } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning('No se pudo notificar al commerce: ' . $e->getMessage());
+                \Illuminate\Support\Facades\Log::warning('No se pudo notificar al commerce: '.$e->getMessage());
             }
         }
 

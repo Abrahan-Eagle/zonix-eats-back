@@ -23,7 +23,7 @@ class Promotion extends Model
         'end_date',
         'terms_conditions',
         'priority',
-        'is_active'
+        'is_active',
     ];
 
     protected $casts = [
@@ -32,11 +32,11 @@ class Promotion extends Model
         'maximum_discount' => 'decimal:2',
         'start_date' => 'datetime',
         'end_date' => 'datetime',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
     ];
 
     public function commerce()
     {
         return $this->belongsTo(Commerce::class);
     }
-} 
+}

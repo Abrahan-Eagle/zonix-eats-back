@@ -1,9 +1,10 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Commerce\DashboardController;
 use App\Http\Controllers\Commerce\OrderController as CommerceOrderController;
 use App\Http\Controllers\Commerce\ProductController;
-use App\Http\Controllers\Commerce\DashboardController;
+use Illuminate\Support\Facades\Route;
+
 Route::middleware(['auth:sanctum', 'role:commerce'])->prefix('commerce')->group(function () {
     Route::get('/commerces', [\App\Http\Controllers\Commerce\CommerceListController::class, 'index']);
     Route::post('/commerces', [\App\Http\Controllers\Commerce\CommerceListController::class, 'store']);

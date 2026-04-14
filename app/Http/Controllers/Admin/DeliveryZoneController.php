@@ -22,13 +22,13 @@ class DeliveryZoneController extends Controller
         $paginator = $query->orderBy('name')->paginate($perPage);
 
         return response()->json([
-            'success'    => true,
-            'data'       => $paginator->items(),
+            'success' => true,
+            'data' => $paginator->items(),
             'pagination' => [
                 'current_page' => $paginator->currentPage(),
-                'per_page'     => $paginator->perPage(),
-                'total'        => $paginator->total(),
-                'last_page'    => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
             ],
         ]);
     }
@@ -36,14 +36,14 @@ class DeliveryZoneController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'             => 'required|string|max:255',
-            'center_latitude'  => 'required|numeric|between:-90,90',
+            'name' => 'required|string|max:255',
+            'center_latitude' => 'required|numeric|between:-90,90',
             'center_longitude' => 'required|numeric|between:-180,180',
-            'radius'           => 'required|numeric|min:0.01',
-            'delivery_fee'     => 'required|numeric|min:0',
-            'delivery_time'    => 'required|integer|min:1',
-            'is_active'        => 'boolean',
-            'description'      => 'nullable|string|max:1000',
+            'radius' => 'required|numeric|min:0.01',
+            'delivery_fee' => 'required|numeric|min:0',
+            'delivery_time' => 'required|integer|min:1',
+            'is_active' => 'boolean',
+            'description' => 'nullable|string|max:1000',
         ]);
 
         $zone = DeliveryZone::create($validated);
@@ -51,7 +51,7 @@ class DeliveryZoneController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Zona de delivery creada.',
-            'data'    => $zone,
+            'data' => $zone,
         ], 201);
     }
 
@@ -61,7 +61,7 @@ class DeliveryZoneController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $zone,
+            'data' => $zone,
         ]);
     }
 
@@ -70,14 +70,14 @@ class DeliveryZoneController extends Controller
         $zone = DeliveryZone::findOrFail($id);
 
         $validated = $request->validate([
-            'name'             => 'sometimes|required|string|max:255',
-            'center_latitude'  => 'sometimes|required|numeric|between:-90,90',
+            'name' => 'sometimes|required|string|max:255',
+            'center_latitude' => 'sometimes|required|numeric|between:-90,90',
             'center_longitude' => 'sometimes|required|numeric|between:-180,180',
-            'radius'           => 'sometimes|required|numeric|min:0.01',
-            'delivery_fee'     => 'sometimes|required|numeric|min:0',
-            'delivery_time'    => 'sometimes|required|integer|min:1',
-            'is_active'        => 'boolean',
-            'description'      => 'nullable|string|max:1000',
+            'radius' => 'sometimes|required|numeric|min:0.01',
+            'delivery_fee' => 'sometimes|required|numeric|min:0',
+            'delivery_time' => 'sometimes|required|integer|min:1',
+            'is_active' => 'boolean',
+            'description' => 'nullable|string|max:1000',
         ]);
 
         $zone->update($validated);
@@ -85,7 +85,7 @@ class DeliveryZoneController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Zona de delivery actualizada.',
-            'data'    => $zone,
+            'data' => $zone,
         ]);
     }
 

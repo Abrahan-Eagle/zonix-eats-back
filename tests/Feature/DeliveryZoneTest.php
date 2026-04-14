@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 use App\Models\DeliveryZone;
-use Laravel\Sanctum\Sanctum;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 class DeliveryZoneTest extends TestCase
 {
@@ -60,7 +60,7 @@ class DeliveryZoneTest extends TestCase
         $data = $response->json('data');
         $this->assertIsArray($data);
         $this->assertCount(2, $data); // Solo las zonas activas
-        
+
         // Verificar que las zonas activas están presentes
         $zoneNames = collect($data)->pluck('name')->toArray();
         $this->assertContains('Zona Centro', $zoneNames);
@@ -108,7 +108,7 @@ class DeliveryZoneTest extends TestCase
         ]);
 
         $activeZones = DeliveryZone::active()->get();
-        
+
         $this->assertCount(1, $activeZones);
         $this->assertEquals('Zona Activa', $activeZones->first()->name);
     }

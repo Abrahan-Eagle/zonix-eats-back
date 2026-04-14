@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\CartItem;
 use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\Product;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;

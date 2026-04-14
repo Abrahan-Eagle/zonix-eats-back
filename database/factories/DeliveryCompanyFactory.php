@@ -17,13 +17,15 @@ class DeliveryCompanyFactory extends Factory
      */
     public function definition(): array
     {
+        $testing = app()->environment('testing');
+
         return [
             'profile_id' => Profile::factory(),
             'name' => $this->faker->company,
             'tax_id' => $this->faker->unique()->numerify('J-########-#'),
             'address' => $this->faker->address,
             'image' => $this->faker->optional(0.7)->imageUrl(),
-            'open' => $this->faker->boolean(80),
+            'open' => $testing ? true : $this->faker->boolean(80),
             'schedule' => [
                 'monday' => ['open' => '00:00', 'close' => '23:59'],
                 'tuesday' => ['open' => '00:00', 'close' => '23:59'],
@@ -33,7 +35,7 @@ class DeliveryCompanyFactory extends Factory
                 'saturday' => ['open' => '00:00', 'close' => '23:59'],
                 'sunday' => ['open' => '00:00', 'close' => '23:59'],
             ],
-            'active' => $this->faker->boolean(80),
+            'active' => $testing ? true : $this->faker->boolean(80),
             'status' => 'approved',
         ];
     }

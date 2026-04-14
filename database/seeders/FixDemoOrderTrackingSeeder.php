@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\Address;
 use App\Models\City;
 use App\Models\Order;
-use App\Models\OrderDelivery;
 use Illuminate\Database\Seeder;
 
 /**
@@ -25,16 +24,19 @@ class FixDemoOrderTrackingSeeder extends Seeder
 {
     /** El Socorro - C. las Torres, Valencia 2001, Carabobo (destino del usuario) */
     private const EL_SOCORRO_LAT = 10.125277;
+
     private const EL_SOCORRO_LNG = -68.051191;
 
     /** Repartidor - Av. Bolívar Sur, Valencia 2001, Carabobo */
     private const DELIVERY_LAT = 10.159739;
+
     private const DELIVERY_LNG = -68.000354;
 
     /** IDs de órdenes de demo a corregir (env: ZONIX_SEEDER_DEMO_ORDER_IDS = 4,5) */
     private function demoOrderIds(): array
     {
         $ids = env('ZONIX_SEEDER_DEMO_ORDER_IDS', '4,5');
+
         return array_map('intval', array_filter(explode(',', $ids)));
     }
 
@@ -51,7 +53,8 @@ class FixDemoOrderTrackingSeeder extends Seeder
             ->get();
 
         if ($orders->isEmpty()) {
-            $this->command->warn('FixDemoOrderTrackingSeeder: no hay órdenes de demo con delivery (ids: ' . implode(', ', $orderIds) . '). El mapa usará los datos que tenga cada orden.');
+            $this->command->warn('FixDemoOrderTrackingSeeder: no hay órdenes de demo con delivery (ids: '.implode(', ', $orderIds).'). El mapa usará los datos que tenga cada orden.');
+
             return;
         }
 
@@ -61,13 +64,13 @@ class FixDemoOrderTrackingSeeder extends Seeder
             $this->fixOrderDeliveryCoords($order);
         }
 
-        $this->command->info('FixDemoOrderTrackingSeeder: destino C. las Torres (El Socorro) y repartidor en Av. Bolívar Sur aplicados a órdenes ' . implode(', ', $orders->pluck('id')->toArray()) . '.');
+        $this->command->info('FixDemoOrderTrackingSeeder: destino C. las Torres (El Socorro) y repartidor en Av. Bolívar Sur aplicados a órdenes '.implode(', ', $orders->pluck('id')->toArray()).'.');
     }
 
     private function fixCustomerAddress(Order $order): void
     {
         $profile = $order->profile;
-        if (!$profile) {
+        if (! $profile) {
             return;
         }
 
@@ -97,7 +100,7 @@ class FixDemoOrderTrackingSeeder extends Seeder
     private function fixDeliveryAgentPosition(Order $order): void
     {
         $agent = $order->orderDelivery?->agent;
-        if (!$agent) {
+        if (! $agent) {
             return;
         }
 

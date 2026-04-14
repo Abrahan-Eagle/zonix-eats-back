@@ -15,8 +15,9 @@ class User1NotificationsSeeder extends Seeder
     public function run(): void
     {
         $profile = Profile::where('user_id', 1)->first();
-        if (!$profile) {
+        if (! $profile) {
             $this->command->warn('No existe perfil para usuario 1. Ejecuta User1Seeder primero.');
+
             return;
         }
 
@@ -62,6 +63,6 @@ class User1NotificationsSeeder extends Seeder
             ]);
         }
 
-        $this->command->info('Notificaciones para usuario 1 (perfil ' . $profile->id . ') creadas.');
+        $this->command->info('Notificaciones para usuario 1 (perfil '.$profile->id.') creadas.');
     }
 }

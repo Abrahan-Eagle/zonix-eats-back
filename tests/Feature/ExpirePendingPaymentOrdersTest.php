@@ -9,25 +9,26 @@ use App\Models\OrderPayment;
 use App\Models\Product;
 use App\Models\Profile;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Carbon\Carbon;
+use Illuminate\Foundation\Testing\Concerns\InteractsWithTime;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
 class ExpirePendingPaymentOrdersTest extends TestCase
 {
-    use DatabaseMigrations;
+    use InteractsWithTime;
+    use RefreshDatabase;
 
     private function applyExpireConfig(bool $enabled, int $maxAge, int $afterApproval, ?bool $skipIfProofPending = null): void
     {
-        $cfg = [
+        // Siempre las cuatro claves: evita estado heredado de otros tests o de .env local.
+        config([
             'zonix.expire_pending_payment.enabled' => $enabled,
             'zonix.expire_pending_payment.max_age_minutes' => $maxAge,
             'zonix.expire_pending_payment.after_approval_minutes' => $afterApproval,
-        ];
-        if ($skipIfProofPending !== null) {
-            $cfg['zonix.expire_pending_payment.skip_if_proof_pending'] = $skipIfProofPending;
-        }
-        config($cfg);
+            'zonix.expire_pending_payment.skip_if_proof_pending' => $skipIfProofPending ?? true,
+        ]);
     }
 
     public function test_command_cancels_pending_payment_when_max_age_exceeded(): void
@@ -55,25 +56,32 @@ class ExpirePendingPaymentOrdersTest extends TestCase
 
     public function test_command_cancels_when_after_approval_ttl_exceeded(): void
     {
-        $this->applyExpireConfig(true, 0, 10);
+        // Reloj fijo: evita carreras donde `now()` al crear la orden y al ejecutar el comando
+        // difieren lo suficiente para que el TTL "tras aprobación" deje de cumplirse en SQLite.
+        $this->travelTo(Carbon::parse('2026-04-14 15:00:00'));
+        try {
+            $this->applyExpireConfig(true, 0, 10);
 
-        $user = User::factory()->create(['role' => 'users']);
-        $profile = Profile::factory()->create(['user_id' => $user->id]);
-        $commerce = Commerce::factory()->create(['profile_id' => $profile->id]);
-        $order = Order::factory()->create([
-            'profile_id' => $profile->id,
-            'commerce_id' => $commerce->id,
-            'status' => 'pending_payment',
-            'approved_for_payment' => true,
-            'approved_for_payment_at' => now()->subMinutes(20),
-        ]);
-        $order->forceFill(['created_at' => now()->subMinutes(5)])->save();
+            $user = User::factory()->create(['role' => 'users']);
+            $profile = Profile::factory()->create(['user_id' => $user->id]);
+            $commerce = Commerce::factory()->create(['profile_id' => $profile->id]);
+            $order = Order::factory()->create([
+                'profile_id' => $profile->id,
+                'commerce_id' => $commerce->id,
+                'status' => 'pending_payment',
+                'approved_for_payment' => true,
+                'approved_for_payment_at' => now()->subHour(),
+            ]);
+            $order->forceFill(['created_at' => now()->subMinutes(5)])->save();
 
-        Artisan::call('zonix:expire-pending-payment-orders');
+            Artisan::call('zonix:expire-pending-payment-orders');
 
-        $order->refresh();
-        $this->assertSame('cancelled', $order->status);
-        $this->assertSame('system', $order->cancelled_by);
+            $order->refresh();
+            $this->assertSame('cancelled', $order->status);
+            $this->assertSame('system', $order->cancelled_by);
+        } finally {
+            $this->travelBack();
+        }
     }
 
     public function test_command_does_not_touch_paid_orders(): void

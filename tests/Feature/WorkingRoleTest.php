@@ -2,15 +2,13 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-use App\Models\User;
 use App\Models\Commerce;
-use App\Models\Order;
-use App\Models\Profile;
 use App\Models\DeliveryAgent;
-use App\Models\Product;
+use App\Models\Profile;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 class WorkingRoleTest extends TestCase
 {
@@ -192,7 +190,7 @@ class WorkingRoleTest extends TestCase
 
         // Verificar acceso a perfil específico (solo si existe el endpoint)
         try {
-            $response = $this->getJson('/api/profiles/' . $profile->id);
+            $response = $this->getJson('/api/profiles/'.$profile->id);
             $response->assertStatus(200);
         } catch (\Exception $e) {
             // Si el endpoint no existe, el test pasa igual
@@ -209,28 +207,28 @@ class WorkingRoleTest extends TestCase
         $user = User::factory()->buyer()->create();
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
-            'role' => 'users'
+            'role' => 'users',
         ]);
 
         // Crear usuario con rol 'commerce'
         $commerceUser = User::factory()->commerce()->create();
         $this->assertDatabaseHas('users', [
             'id' => $commerceUser->id,
-            'role' => 'commerce'
+            'role' => 'commerce',
         ]);
 
         // Crear usuario con rol 'delivery'
         $deliveryUser = User::factory()->deliveryAgent()->create();
         $this->assertDatabaseHas('users', [
             'id' => $deliveryUser->id,
-            'role' => 'delivery_agent'
+            'role' => 'delivery_agent',
         ]);
 
         // Crear usuario con rol 'admin'
         $admin = User::factory()->admin()->create();
         $this->assertDatabaseHas('users', [
             'id' => $admin->id,
-            'role' => 'admin'
+            'role' => 'admin',
         ]);
     }
 
@@ -245,14 +243,14 @@ class WorkingRoleTest extends TestCase
         // Verificar que el usuario está autenticado
         $response = $this->getJson('/api/auth/user');
         $response->assertStatus(200)
-                ->assertJson([
-                    'success' => true,
-                    'data' => [
-                        'id' => $user->id,
-                        'email' => $user->email,
-                        'role' => 'users'
-                    ]
-                ]);
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'id' => $user->id,
+                    'email' => $user->email,
+                    'role' => 'users',
+                ],
+            ]);
     }
 
     public function test_commerce_can_authenticate_with_sanctum()
@@ -263,14 +261,14 @@ class WorkingRoleTest extends TestCase
         // Verificar que el usuario está autenticado
         $response = $this->getJson('/api/auth/user');
         $response->assertStatus(200)
-                ->assertJson([
-                    'success' => true,
-                    'data' => [
-                        'id' => $commerceUser->id,
-                        'email' => $commerceUser->email,
-                        'role' => 'commerce'
-                    ]
-                ]);
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'id' => $commerceUser->id,
+                    'email' => $commerceUser->email,
+                    'role' => 'commerce',
+                ],
+            ]);
     }
 
     public function test_delivery_can_authenticate_with_sanctum()
@@ -281,14 +279,14 @@ class WorkingRoleTest extends TestCase
         // Verificar que el usuario está autenticado
         $response = $this->getJson('/api/auth/user');
         $response->assertStatus(200)
-                ->assertJson([
-                    'success' => true,
-                    'data' => [
-                        'id' => $deliveryUser->id,
-                        'email' => $deliveryUser->email,
-                        'role' => 'delivery_agent'
-                    ]
-                ]);
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'id' => $deliveryUser->id,
+                    'email' => $deliveryUser->email,
+                    'role' => 'delivery_agent',
+                ],
+            ]);
     }
 
     /**
@@ -320,4 +318,4 @@ class WorkingRoleTest extends TestCase
         $response = $this->postJson('/api/auth/logout');
         $response->assertStatus(200);
     }
-} 
+}

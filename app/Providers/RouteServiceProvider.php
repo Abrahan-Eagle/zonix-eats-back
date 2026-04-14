@@ -27,19 +27,19 @@ class RouteServiceProvider extends ServiceProvider
         // Rate limiting general para API (configurable desde .env)
         $apiLimit = env('API_RATE_LIMIT', 60);
         RateLimiter::for('api', function (Request $request) use ($apiLimit) {
-            return Limit::perMinute((int)$apiLimit)->by($request->user()?->id ?: $request->ip());
+            return Limit::perMinute((int) $apiLimit)->by($request->user()?->id ?: $request->ip());
         });
 
         // Rate limiting para autenticación (configurable; 10 por minuto en desarrollo para evitar 429 en login/Google)
         $authLimit = env('AUTH_RATE_LIMIT', 10);
         RateLimiter::for('auth', function (Request $request) use ($authLimit) {
-            return Limit::perMinute((int)$authLimit)->by($request->ip());
+            return Limit::perMinute((int) $authLimit)->by($request->ip());
         });
 
         // Rate limiting para creación de recursos
         $createLimit = env('CREATE_RATE_LIMIT', 10);
         RateLimiter::for('create', function (Request $request) use ($createLimit) {
-            return Limit::perMinute((int)$createLimit)->by($request->user()?->id ?: $request->ip());
+            return Limit::perMinute((int) $createLimit)->by($request->user()?->id ?: $request->ip());
         });
 
         $this->routes(function () {

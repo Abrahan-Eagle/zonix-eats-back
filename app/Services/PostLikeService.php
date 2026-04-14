@@ -10,7 +10,7 @@ class PostLikeService
     /**
      * Dar like a un post.
      *
-     * @param int $postId
+     * @param  int  $postId
      * @return void
      */
     public function like($postId)
@@ -24,7 +24,7 @@ class PostLikeService
     /**
      * Quitar like a un post.
      *
-     * @param int $postId
+     * @param  int  $postId
      * @return void
      */
     public function unlike($postId)

@@ -3,14 +3,14 @@
 namespace App\Http\Controllers\Buyer;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
+use App\Models\DeliveryAgent;
 use App\Models\Order;
 use App\Models\Review;
-use App\Models\DeliveryAgent;
 use Illuminate\Database\QueryException;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 
 class ReviewController extends Controller
@@ -32,11 +32,13 @@ class ReviewController extends Controller
             'message' => $message,
             'error_code' => $errorCode,
         ];
-        if (!empty($errors)) {
+        if (! empty($errors)) {
             $payload['errors'] = $errors;
         }
+
         return response()->json($payload, $status);
     }
+
     /**
      * Calificar restaurante
      */
@@ -59,7 +61,7 @@ class ReviewController extends Controller
 
         try {
             $order = Order::findOrFail($request->order_id);
-            
+
             // Verificar que el pedido pertenece al usuario
             if ($order->profile_id !== auth()->user()->profile->id) {
                 return $this->errorResponse(
@@ -117,14 +119,16 @@ class ReviewController extends Controller
                     409
                 );
             }
-            Log::error('Error rating restaurant query: ' . $e->getMessage());
+            Log::error('Error rating restaurant query: '.$e->getMessage());
+
             return $this->errorResponse(
                 'Error al enviar la calificación',
                 'REVIEWS_CREATE_ERROR',
                 500
             );
         } catch (\Exception $e) {
-            Log::error('Error rating restaurant: ' . $e->getMessage());
+            Log::error('Error rating restaurant: '.$e->getMessage());
+
             return $this->errorResponse(
                 'Error al enviar la calificación',
                 'REVIEWS_CREATE_ERROR',
@@ -141,7 +145,7 @@ class ReviewController extends Controller
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|exists:orders,id',
             'rating' => 'required|integer|between:1,5',
-            'comment' => 'nullable|string|max:500'
+            'comment' => 'nullable|string|max:500',
         ]);
 
         if ($validator->fails()) {
@@ -155,7 +159,7 @@ class ReviewController extends Controller
 
         try {
             $order = Order::with('orderDelivery')->findOrFail($request->order_id);
-            
+
             // Verificar que el pedido pertenece al usuario
             if ($order->profile_id !== auth()->user()->profile->id) {
                 return $this->errorResponse(
@@ -175,7 +179,7 @@ class ReviewController extends Controller
             }
 
             // Verificar que hay un repartidor asignado
-            if (!$order->orderDelivery) {
+            if (! $order->orderDelivery) {
                 return $this->errorResponse(
                     'No hay repartidor asignado a este pedido',
                     'REVIEWS_DELIVERY_AGENT_NOT_ASSIGNED',
@@ -184,7 +188,7 @@ class ReviewController extends Controller
             }
 
             $deliveryAgentId = $order->orderDelivery?->agent_id;
-            if (!$deliveryAgentId) {
+            if (! $deliveryAgentId) {
                 return $this->errorResponse(
                     'No se pudo determinar el repartidor asignado',
                     'REVIEWS_DELIVERY_AGENT_NOT_FOUND',
@@ -232,14 +236,16 @@ class ReviewController extends Controller
                     409
                 );
             }
-            Log::error('Error rating delivery agent query: ' . $e->getMessage());
+            Log::error('Error rating delivery agent query: '.$e->getMessage());
+
             return $this->errorResponse(
                 'Error al enviar la calificación',
                 'REVIEWS_CREATE_ERROR',
                 500
             );
         } catch (\Exception $e) {
-            Log::error('Error rating delivery agent: ' . $e->getMessage());
+            Log::error('Error rating delivery agent: '.$e->getMessage());
+
             return $this->errorResponse(
                 'Error al enviar la calificación',
                 'REVIEWS_CREATE_ERROR',
@@ -263,7 +269,7 @@ class ReviewController extends Controller
             $reviewsData = $reviews->map(function ($review) {
                 $profile = $review->profile;
                 $customerName = $profile
-                    ? trim(($profile->firstName ?? '') . ' ' . ($profile->lastName ?? ''))
+                    ? trim(($profile->firstName ?? '').' '.($profile->lastName ?? ''))
                     : 'Cliente';
                 $customerName = $customerName !== '' ? $customerName : 'Cliente';
 
@@ -275,7 +281,7 @@ class ReviewController extends Controller
                     'photos' => [],
                     'customer_name' => $customerName,
                     'customer_avatar' => $profile?->photo_users,
-                    'created_at' => $review->created_at->format('d/m/Y H:i')
+                    'created_at' => $review->created_at->format('d/m/Y H:i'),
                 ];
             });
 
@@ -285,11 +291,12 @@ class ReviewController extends Controller
                     'current_page' => $reviews->currentPage(),
                     'last_page' => $reviews->lastPage(),
                     'per_page' => $reviews->perPage(),
-                    'total' => $reviews->total()
+                    'total' => $reviews->total(),
                 ],
             ], 'Reseñas obtenidas exitosamente');
         } catch (\Exception $e) {
-            Log::error('Error getting restaurant reviews: ' . $e->getMessage());
+            Log::error('Error getting restaurant reviews: '.$e->getMessage());
+
             return $this->errorResponse(
                 'Error al obtener las reseñas',
                 'REVIEWS_LIST_ERROR',
@@ -313,7 +320,7 @@ class ReviewController extends Controller
             $reviewsData = $reviews->map(function ($review) {
                 $profile = $review->profile;
                 $customerName = $profile
-                    ? trim(($profile->firstName ?? '') . ' ' . ($profile->lastName ?? ''))
+                    ? trim(($profile->firstName ?? '').' '.($profile->lastName ?? ''))
                     : 'Cliente';
                 $customerName = $customerName !== '' ? $customerName : 'Cliente';
 
@@ -324,7 +331,7 @@ class ReviewController extends Controller
                     'moderation_status' => Schema::hasColumn('reviews', 'moderation_status') ? $review->moderation_status : 'approved',
                     'customer_name' => $customerName,
                     'customer_avatar' => $profile?->photo_users,
-                    'created_at' => $review->created_at->format('d/m/Y H:i')
+                    'created_at' => $review->created_at->format('d/m/Y H:i'),
                 ];
             });
 
@@ -334,11 +341,12 @@ class ReviewController extends Controller
                     'current_page' => $reviews->currentPage(),
                     'last_page' => $reviews->lastPage(),
                     'per_page' => $reviews->perPage(),
-                    'total' => $reviews->total()
+                    'total' => $reviews->total(),
                 ],
             ], 'Reseñas obtenidas exitosamente');
         } catch (\Exception $e) {
-            Log::error('Error getting delivery agent reviews: ' . $e->getMessage());
+            Log::error('Error getting delivery agent reviews: '.$e->getMessage());
+
             return $this->errorResponse(
                 'Error al obtener las reseñas',
                 'REVIEWS_LIST_ERROR',
@@ -366,7 +374,7 @@ class ReviewController extends Controller
         }
 
         $review = Review::find($reviewId);
-        if (!$review) {
+        if (! $review) {
             return $this->errorResponse(
                 'Reseña no encontrada',
                 'REVIEWS_NOT_FOUND',
@@ -387,7 +395,7 @@ class ReviewController extends Controller
         if (Schema::hasColumn('reviews', 'reported_by_profile_id')) {
             $updatePayload['reported_by_profile_id'] = auth()->user()?->profile?->id;
         }
-        if (!empty($updatePayload)) {
+        if (! empty($updatePayload)) {
             $review->update($updatePayload);
         }
 
@@ -410,4 +418,4 @@ class ReviewController extends Controller
             'rating' => round((float) $averageRating, 2),
         ]);
     }
-} 
+}

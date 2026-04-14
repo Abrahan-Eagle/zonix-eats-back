@@ -2,23 +2,22 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Profile;
 use App\Models\Commerce;
-use App\Models\Product;
-use App\Models\Order;
-use App\Models\OrderDelivery;
 use App\Models\DeliveryAgent;
 use App\Models\DeliveryCompany;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\Profile;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 /**
  * Test de Simulación Completa entre Roles
- * 
+ *
  * Este test simula un flujo completo de negocio donde interactúan todos los roles:
  * 1. USERS (Buyer) - Crea orden y sube comprobante de pago
  * 2. COMMERCE - Valida pago y prepara orden
@@ -30,15 +29,25 @@ class MultiRoleSimulationTest extends TestCase
     use RefreshDatabase;
 
     protected $buyer;
+
     protected $buyerProfile;
+
     protected $commerceUser;
+
     protected $commerceProfile;
+
     protected $commerce;
+
     protected $deliveryUser;
+
     protected $deliveryProfile;
+
     protected $deliveryAgent;
+
     protected $adminUser;
+
     protected $product1;
+
     protected $product2;
 
     protected function setUp(): void
@@ -48,7 +57,7 @@ class MultiRoleSimulationTest extends TestCase
         // Crear USERS (Buyer)
         $this->buyer = User::factory()->buyer()->create([
             'email' => 'buyer@test.com',
-            'name' => 'Juan Comprador'
+            'name' => 'Juan Comprador',
         ]);
         $this->buyerProfile = Profile::factory()->create([
             'user_id' => $this->buyer->id,
@@ -56,48 +65,48 @@ class MultiRoleSimulationTest extends TestCase
             'lastName' => 'Comprador',
             'address' => 'Calle Principal 123',
             'photo_users' => 'https://via.placeholder.com/150',
-            'status' => 'completeData'
+            'status' => 'completeData',
         ]);
 
         // Crear COMMERCE
         $this->commerceUser = User::factory()->commerce()->create([
             'email' => 'commerce@test.com',
-            'name' => 'Restaurante El Buen Sabor'
+            'name' => 'Restaurante El Buen Sabor',
         ]);
         $this->commerceProfile = Profile::factory()->create([
             'user_id' => $this->commerceUser->id,
             'firstName' => 'Restaurante',
             'lastName' => 'El Buen Sabor',
-            'status' => 'completeData'
+            'status' => 'completeData',
         ]);
         $this->commerce = Commerce::factory()->create([
             'profile_id' => $this->commerceProfile->id,
             'business_name' => 'El Buen Sabor',
-            'open' => true
+            'open' => true,
         ]);
 
         // Crear DELIVERY
         $this->deliveryUser = User::factory()->deliveryAgent()->create([
             'email' => 'delivery@test.com',
-            'name' => 'Carlos Repartidor'
+            'name' => 'Carlos Repartidor',
         ]);
         $this->deliveryProfile = Profile::factory()->create([
             'user_id' => $this->deliveryUser->id,
             'firstName' => 'Carlos',
             'lastName' => 'Repartidor',
-            'status' => 'completeData'
+            'status' => 'completeData',
         ]);
         $deliveryCompany = DeliveryCompany::factory()->create();
         $this->deliveryAgent = DeliveryAgent::factory()->create([
             'profile_id' => $this->deliveryProfile->id,
             'company_id' => $deliveryCompany->id,
-            'status' => 'activo'
+            'status' => 'activo',
         ]);
 
         // Crear ADMIN
         $this->adminUser = User::factory()->admin()->create([
             'email' => 'admin@test.com',
-            'name' => 'Admin Sistema'
+            'name' => 'Admin Sistema',
         ]);
 
         // Crear productos para el comercio
@@ -105,14 +114,16 @@ class MultiRoleSimulationTest extends TestCase
             'commerce_id' => $this->commerce->id,
             'name' => 'Hamburguesa Clásica',
             'price' => 15.99,
-            'available' => true
+            'available' => true,
+            'stock_quantity' => 50,
         ]);
 
         $this->product2 = Product::factory()->create([
             'commerce_id' => $this->commerce->id,
             'name' => 'Papas Fritas',
             'price' => 5.99,
-            'available' => true
+            'available' => true,
+            'stock_quantity' => 50,
         ]);
 
         Storage::fake('public');
@@ -140,13 +151,13 @@ class MultiRoleSimulationTest extends TestCase
         // 1.3 Buyer agrega productos al carrito
         $cartAddResponse1 = $this->postJson('/api/buyer/cart/add', [
             'product_id' => $this->product1->id,
-            'quantity' => 2
+            'quantity' => 2,
         ]);
         $cartAddResponse1->assertStatus(200);
 
         $cartAddResponse2 = $this->postJson('/api/buyer/cart/add', [
             'product_id' => $this->product2->id,
-            'quantity' => 1
+            'quantity' => 1,
         ]);
         $cartAddResponse2->assertStatus(200);
 
@@ -161,13 +172,13 @@ class MultiRoleSimulationTest extends TestCase
         $orderData = [
             'products' => [
                 ['id' => $this->product1->id, 'quantity' => 2],
-                ['id' => $this->product2->id, 'quantity' => 1]
+                ['id' => $this->product2->id, 'quantity' => 1],
             ],
             'commerce_id' => $this->commerce->id,
             'delivery_type' => 'delivery',
             'total' => $total,
             'delivery_address' => 'Calle Principal 123',
-            'notes' => 'Sin cebolla por favor'
+            'notes' => 'Sin cebolla por favor',
         ];
 
         $createOrderResponse = $this->postJson('/api/buyer/orders', $orderData);
@@ -178,8 +189,8 @@ class MultiRoleSimulationTest extends TestCase
                     'id',
                     'status',
                     'total',
-                    'commerce_id'
-                ]
+                    'commerce_id',
+                ],
             ]);
 
         $orderId = $createOrderResponse->json('data.id');
@@ -188,7 +199,7 @@ class MultiRoleSimulationTest extends TestCase
             'profile_id' => $this->buyerProfile->id,
             'commerce_id' => $this->commerce->id,
             'status' => 'pending_payment',
-            'total' => $total
+            'total' => $total,
         ]);
 
         // 1.6 Commerce aprueba la orden para pago
@@ -203,7 +214,7 @@ class MultiRoleSimulationTest extends TestCase
         $paymentResponse = $this->postJson("/api/buyer/orders/{$orderId}/payment-proof", [
             'payment_proof' => $paymentProof,
             'payment_method' => 'pago_movil',
-            'reference_number' => 'PM123456789'
+            'reference_number' => 'PM123456789',
         ]);
         $paymentResponse->assertStatus(200)
             ->assertJson(['success' => true]);
@@ -211,7 +222,7 @@ class MultiRoleSimulationTest extends TestCase
         $this->assertDatabaseHas('orders', [
             'id' => $orderId,
             'payment_method' => 'pago_movil',
-            'reference_number' => 'PM123456789'
+            'reference_number' => 'PM123456789',
         ]);
 
         // ============================================
@@ -230,8 +241,8 @@ class MultiRoleSimulationTest extends TestCase
                     'today_revenue',
                     'total_products',
                     'active_products',
-                    'recent_orders'
-                ]
+                    'recent_orders',
+                ],
             ]);
 
         // 2.2 Commerce ve la nueva orden pendiente
@@ -243,25 +254,25 @@ class MultiRoleSimulationTest extends TestCase
         // 2.3 Commerce valida el pago
         $validatePaymentResponse = $this->postJson("/api/commerce/orders/{$orderId}/validate-payment", [
             'is_valid' => true,
-            'notes' => 'Pago verificado correctamente'
+            'notes' => 'Pago verificado correctamente',
         ]);
         $validatePaymentResponse->assertStatus(200)
             ->assertJson(['success' => true]);
 
         $this->assertDatabaseHas('orders', [
             'id' => $orderId,
-            'status' => 'paid'
+            'status' => 'paid',
         ]);
 
         // 2.4 Commerce cambia estado a "processing"
         $updateStatusResponse = $this->putJson("/api/commerce/orders/{$orderId}/status", [
-            'status' => 'processing'
+            'status' => 'processing',
         ]);
         $updateStatusResponse->assertStatus(200);
 
         $this->assertDatabaseHas('orders', [
             'id' => $orderId,
-            'status' => 'processing'
+            'status' => 'processing',
         ]);
 
         // 2.5 Commerce ve sus analytics
@@ -269,18 +280,18 @@ class MultiRoleSimulationTest extends TestCase
         $analyticsOverviewResponse->assertStatus(200)
             ->assertJsonStructure([
                 'success',
-                'data'
+                'data',
             ]);
 
         // 2.6 Commerce marca como "shipped" (listo para delivery)
         $shipResponse = $this->putJson("/api/commerce/orders/{$orderId}/status", [
-            'status' => 'shipped'
+            'status' => 'shipped',
         ]);
         $shipResponse->assertStatus(200);
 
         $this->assertDatabaseHas('orders', [
             'id' => $orderId,
-            'status' => 'shipped'
+            'status' => 'shipped',
         ]);
 
         // ============================================
@@ -294,20 +305,20 @@ class MultiRoleSimulationTest extends TestCase
 
         // 3.2 Delivery acepta la orden (ya está en shipped)
         $acceptResponse = $this->postJson("/api/delivery/orders/{$orderId}/accept", [
-            'notes' => 'Entrega asignada en simulación'
+            'notes' => 'Entrega asignada en simulación',
         ]);
         $acceptResponse->assertStatus(200);
 
         $this->assertDatabaseHas('order_delivery', [
             'order_id' => $orderId,
             'agent_id' => $this->deliveryAgent->id,
-            'status' => 'assigned'
+            'status' => 'assigned',
         ]);
 
         // 3.3 La orden sigue en "shipped" (delivery asignado)
         $this->assertDatabaseHas('orders', [
             'id' => $orderId,
-            'status' => 'shipped'
+            'status' => 'shipped',
         ]);
 
         // 3.5 Delivery ve sus rutas de entrega (opcional, puede no estar implementado)
@@ -317,13 +328,13 @@ class MultiRoleSimulationTest extends TestCase
 
         // 3.6 Delivery marca orden como entregada
         $deliveredResponse = $this->patchJson("/api/delivery/orders/{$orderId}/status", [
-            'status' => 'delivered'
+            'status' => 'delivered',
         ]);
         $deliveredResponse->assertStatus(200);
 
         $this->assertDatabaseHas('orders', [
             'id' => $orderId,
-            'status' => 'delivered'
+            'status' => 'delivered',
         ]);
 
         // ============================================
@@ -383,7 +394,7 @@ class MultiRoleSimulationTest extends TestCase
         $adminAnalyticsResponse->assertStatus(200)
             ->assertJsonStructure([
                 'success',
-                'data'
+                'data',
             ]);
 
         // 5.5 Admin ve estadísticas de ingresos
@@ -398,7 +409,7 @@ class MultiRoleSimulationTest extends TestCase
         // VERIFICACIÓN FINAL: Estado de la Orden
         // ============================================
         $finalOrder = Order::with(['profile', 'commerce', 'items', 'orderDelivery.agent'])->find($orderId);
-        
+
         $this->assertNotNull($finalOrder);
         $this->assertEquals('delivered', $finalOrder->status);
         $this->assertEquals($this->buyerProfile->id, $finalOrder->profile_id);
@@ -418,7 +429,7 @@ class MultiRoleSimulationTest extends TestCase
         $order = Order::factory()->create([
             'profile_id' => $this->buyerProfile->id,
             'commerce_id' => $this->commerce->id,
-            'status' => 'paid'
+            'status' => 'paid',
         ]);
 
         // 1. Buyer solo puede ver sus propias órdenes
@@ -468,7 +479,7 @@ class MultiRoleSimulationTest extends TestCase
         $order = Order::factory()->create([
             'profile_id' => $this->buyerProfile->id,
             'commerce_id' => $this->commerce->id,
-            'status' => 'processing'
+            'status' => 'processing',
         ]);
 
         // 1. Buyer envía mensaje al comercio usando el endpoint de buyer/chat/send
@@ -476,7 +487,7 @@ class MultiRoleSimulationTest extends TestCase
             'order_id' => $order->id,
             'content' => '¿Cuánto tiempo falta para mi pedido?',
             'type' => 'text',
-            'recipient_type' => 'restaurant'
+            'recipient_type' => 'restaurant',
         ]);
         $buyerMessageResponse->assertStatus(200);
 
@@ -484,7 +495,7 @@ class MultiRoleSimulationTest extends TestCase
         $this->assertDatabaseHas('chat_messages', [
             'order_id' => $order->id,
             'content' => '¿Cuánto tiempo falta para mi pedido?',
-            'sender_id' => $this->buyerProfile->id
+            'sender_id' => $this->buyerProfile->id,
         ]);
 
         // 3. Verificar que el mensaje se puede recuperar (opcional, puede fallar si hay problemas con relaciones)
@@ -505,7 +516,7 @@ class MultiRoleSimulationTest extends TestCase
             'commerce_id' => $this->commerce->id,
             'status' => 'delivered',
             'total' => 50.00,
-            'created_at' => now()
+            'created_at' => now(),
         ]);
 
         // Commerce revisa sus analytics
@@ -516,7 +527,7 @@ class MultiRoleSimulationTest extends TestCase
         $overviewResponse->assertStatus(200)
             ->assertJsonStructure([
                 'success',
-                'data'
+                'data',
             ]);
 
         // Revenue

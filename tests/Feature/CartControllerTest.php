@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Profile;
-use App\Models\Product;
 use App\Models\Commerce;
+use App\Models\Product;
+use App\Models\Profile;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 class CartControllerTest extends TestCase
 {
@@ -19,7 +19,7 @@ class CartControllerTest extends TestCase
         $user = User::factory()->create(['role' => 'users']);
         Profile::factory()->create(['user_id' => $user->id]);
         Sanctum::actingAs($user);
-        
+
         // Crear comercio y producto (comercio abierto)
         $commerce = Commerce::factory()->create(['open' => true]);
         $product = Product::factory()->create([
@@ -27,15 +27,15 @@ class CartControllerTest extends TestCase
             'available' => true,
             'stock_quantity' => 5,
         ]);
-        
+
         $data = [
             'product_id' => $product->id,
-            'quantity' => 2
+            'quantity' => 2,
         ];
         $response = $this->postJson('/api/buyer/cart/add', $data);
         $response->assertStatus(200)
-                 ->assertJsonFragment(['message' => 'Producto agregado al carrito'])
-                 ->assertJsonStructure(['success', 'data' => ['items', 'notes'], 'message']);
+            ->assertJsonFragment(['message' => 'Producto agregado al carrito'])
+            ->assertJsonStructure(['success', 'data' => ['items', 'notes'], 'message']);
         $this->assertNotEmpty($response->json('data.items.0.line_id'));
     }
 
@@ -44,10 +44,10 @@ class CartControllerTest extends TestCase
         $user = User::factory()->create(['role' => 'users']);
         Profile::factory()->create(['user_id' => $user->id]);
         Sanctum::actingAs($user);
-        
+
         $response = $this->getJson('/api/buyer/cart');
         $response->assertStatus(200)
-                 ->assertJsonStructure(['success', 'data' => ['items', 'notes'], 'message']);
+            ->assertJsonStructure(['success', 'data' => ['items', 'notes'], 'message']);
     }
 
     public function test_rejects_add_to_cart_when_stock_is_insufficient()

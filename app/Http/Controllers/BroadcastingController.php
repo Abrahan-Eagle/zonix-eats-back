@@ -31,6 +31,7 @@ class BroadcastingController extends Controller
         if (is_array($result) && array_key_exists('auth', $result)) {
             Cache::increment('metrics:realtime:broadcast_auth_success_total');
             $result['shared_secret'] = $result['shared_secret'] ?? null;
+
             return response()->json($result);
         }
 
@@ -47,4 +48,4 @@ class BroadcastingController extends Controller
 
         return $result;
     }
-} 
+}

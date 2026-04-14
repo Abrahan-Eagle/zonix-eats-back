@@ -2,39 +2,40 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\Profile;
-use App\Models\Order;
 use App\Models\ChatMessage;
 use App\Models\Commerce;
-use App\Models\DeliveryAgent;
-use App\Models\OrderDelivery;
+use App\Models\Order;
+use App\Models\Profile;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 class ChatControllerTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $user;
+
     protected $profile;
+
     protected $commerce;
+
     protected $order;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->user = User::factory()->create(['role' => 'users']);
         $this->profile = Profile::factory()->create(['user_id' => $this->user->id]);
         $this->commerce = Commerce::factory()->create();
         $this->order = Order::factory()->create([
             'profile_id' => $this->profile->id,
             'commerce_id' => $this->commerce->id,
-            'status' => 'paid'
+            'status' => 'paid',
         ]);
-        
+
         Sanctum::actingAs($this->user);
     }
 
@@ -80,7 +81,7 @@ class ChatControllerTest extends TestCase
         $response->assertStatus(201);
         $data = $response->json();
         $this->assertEquals('Hello, this is a test message', $data['content']);
-        
+
         $this->assertDatabaseHas('chat_messages', [
             'order_id' => $this->order->id,
             'sender_id' => $this->profile->id,
@@ -102,7 +103,7 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJson(['marked' => true]);
-        
+
         // Verificar que los mensajes fueron marcados como leídos
         $this->assertDatabaseMissing('chat_messages', [
             'order_id' => $this->order->id,
@@ -135,7 +136,7 @@ class ChatControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJson(['deleted' => true]);
-        
+
         // Verificar que los mensajes fueron eliminados
         $this->assertDatabaseMissing('chat_messages', [
             'order_id' => $this->order->id,
@@ -209,7 +210,7 @@ class ChatControllerTest extends TestCase
         $commerceUser = User::factory()->create(['role' => 'commerce']);
         $commerceProfile = Profile::factory()->create(['user_id' => $commerceUser->id]);
         $this->commerce->update(['profile_id' => $commerceProfile->id]);
-        
+
         Sanctum::actingAs($commerceUser);
 
         ChatMessage::factory()->create([

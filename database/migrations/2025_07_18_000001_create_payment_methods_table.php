@@ -24,7 +24,7 @@ return new class extends Migration
             // bank_transfer: Transferencia bancaria
             // other: Otro método
             $table->enum('type', [
-                'card', 'mobile_payment', 'cash', 'paypal', 'stripe', 'mercadopago', 'digital_wallet', 'bank_transfer', 'other'
+                'card', 'mobile_payment', 'cash', 'paypal', 'stripe', 'mercadopago', 'digital_wallet', 'bank_transfer', 'other',
             ]);
             // Comunes
             $table->boolean('is_default')->default(false); // Si es el método principal
@@ -57,4 +57,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('payment_methods');
     }
-}; 
+};

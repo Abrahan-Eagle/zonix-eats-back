@@ -2,9 +2,9 @@
 
 namespace Database\Factories;
 
+use App\Models\DeliveryAgent;
 use App\Models\DeliveryPayment;
 use App\Models\Order;
-use App\Models\DeliveryAgent;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -22,7 +22,7 @@ class DeliveryPaymentFactory extends Factory
     public function definition(): array
     {
         $status = $this->faker->randomElement(['pending_payment_to_delivery', 'paid_to_delivery']);
-        
+
         return [
             'order_id' => Order::factory(),
             'delivery_agent_id' => DeliveryAgent::factory(),

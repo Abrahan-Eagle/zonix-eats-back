@@ -3,8 +3,8 @@
 namespace Database\Factories;
 
 use App\Models\Address;
-use App\Models\Profile;
 use App\Models\City;
+use App\Models\Profile;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -25,6 +25,7 @@ class AddressFactory extends Factory
         // Carabobo, Valencia Venezuela: lat 10.0-10.3, lng -68.2 a -67.5
         $lat = $this->faker->latitude(10.08, 10.28);
         $lng = $this->faker->longitude(-68.12, -67.55);
+
         return [
             'profile_id' => Profile::factory(),
             'city_id' => $city ? $city->id : 1,

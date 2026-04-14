@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Notification;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\Notification;
 use App\Events\NotificationCreated;
+use App\Http\Controllers\Controller;
+use App\Models\Notification;
 use App\Services\FirebaseService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -17,7 +17,7 @@ class NotificationController extends Controller
     {
         /** @var \App\Models\User|null $authUser */
         $authUser = Auth::user();
-        if (!$authUser) {
+        if (! $authUser) {
             return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
         }
         $authUser->load('profile');
@@ -25,6 +25,7 @@ class NotificationController extends Controller
         $notifications = Notification::where('profile_id', $profile->id)
             ->orderBy('created_at', 'desc')
             ->get();
+
         return response()->json(['success' => true, 'data' => $notifications]);
     }
 
@@ -33,7 +34,7 @@ class NotificationController extends Controller
     {
         /** @var \App\Models\User|null $authUser */
         $authUser = Auth::user();
-        if (!$authUser) {
+        if (! $authUser) {
             return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
         }
         $authUser->load('profile');
@@ -41,6 +42,7 @@ class NotificationController extends Controller
         $unreadCount = Notification::where('profile_id', $profile->id)
             ->whereNull('read_at')
             ->count();
+
         return response()->json([
             'success' => true,
             'data' => ['unread_count' => $unreadCount],
@@ -52,7 +54,7 @@ class NotificationController extends Controller
     {
         /** @var \App\Models\User|null $authUser */
         $authUser = Auth::user();
-        if (!$authUser) {
+        if (! $authUser) {
             return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
         }
         $authUser->load('profile');
@@ -62,6 +64,7 @@ class NotificationController extends Controller
             ->firstOrFail();
         $notification->read_at = now();
         $notification->save();
+
         return response()->json(['success' => true]);
     }
 
@@ -70,7 +73,7 @@ class NotificationController extends Controller
     {
         /** @var \App\Models\User|null $authUser */
         $authUser = Auth::user();
-        if (!$authUser) {
+        if (! $authUser) {
             return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
         }
         $authUser->load('profile');
@@ -100,7 +103,7 @@ class NotificationController extends Controller
     {
         /** @var \App\Models\User|null $authUser */
         $authUser = Auth::user();
-        if (!$authUser) {
+        if (! $authUser) {
             return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
         }
         $authUser->load('profile');
@@ -108,6 +111,7 @@ class NotificationController extends Controller
         Notification::where('profile_id', $profile->id)
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
+
         return response()->json(['success' => true]);
     }
 
@@ -116,7 +120,7 @@ class NotificationController extends Controller
     {
         /** @var \App\Models\User|null $authUser */
         $authUser = Auth::user();
-        if (!$authUser) {
+        if (! $authUser) {
             return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
         }
         $authUser->load('profile');
@@ -125,6 +129,7 @@ class NotificationController extends Controller
             ->where('profile_id', $profile->id)
             ->firstOrFail();
         $notification->delete();
+
         return response()->json(['success' => true]);
     }
 
@@ -136,7 +141,7 @@ class NotificationController extends Controller
         try {
             /** @var \App\Models\User|null $authUser */
             $authUser = Auth::user();
-            if (!$authUser) {
+            if (! $authUser) {
                 return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
             }
             $authUser->load('profile');
@@ -150,32 +155,33 @@ class NotificationController extends Controller
             ]);
 
             // Verificar que el usuario tenga device token
-            if (!$profile->fcm_device_token) {
+            if (! $profile->fcm_device_token) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Usuario no tiene device token registrado'
+                    'message' => 'Usuario no tiene device token registrado',
                 ], 400);
             }
 
             // Verificar preferencias de notificaciones
             $preferences = $profile->notification_preferences ?? [];
             $notificationType = $data['type'] ?? 'system';
-            
+
             // Verificar si el tipo de notificación está habilitado
-            $typeKey = $notificationType . '_notifications';
-            if (isset($preferences[$typeKey]) && !$preferences[$typeKey]) {
+            $typeKey = $notificationType.'_notifications';
+            if (isset($preferences[$typeKey]) && ! $preferences[$typeKey]) {
                 Log::info('Notificación bloqueada por preferencias del usuario', [
                     'profile_id' => $profile->id,
-                    'type' => $notificationType
+                    'type' => $notificationType,
                 ]);
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Este tipo de notificación está deshabilitado'
+                    'message' => 'Este tipo de notificación está deshabilitado',
                 ], 403);
             }
 
             // Enviar push notification usando FirebaseService
-            $firebaseService = new FirebaseService();
+            $firebaseService = new FirebaseService;
             $result = $firebaseService->sendToDevice(
                 $profile->fcm_device_token,
                 $data['title'],
@@ -202,22 +208,23 @@ class NotificationController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'Notificación push enviada',
-                    'data' => $notification
+                    'data' => $notification,
                 ]);
             } else {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Error al enviar notificación push'
+                    'message' => 'Error al enviar notificación push',
                 ], 500);
             }
         } catch (\Exception $e) {
             Log::error('Error enviando push notification', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al enviar notificación: ' . $e->getMessage()
+                'message' => 'Error al enviar notificación: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -230,7 +237,7 @@ class NotificationController extends Controller
         try {
             /** @var \App\Models\User|null $authUser */
             $authUser = Auth::user();
-            if (!$authUser) {
+            if (! $authUser) {
                 return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
             }
             $authUser->load('profile');
@@ -255,21 +262,22 @@ class NotificationController extends Controller
 
             // Obtener preferencias del usuario (si existen)
             $preferences = $profile->notification_preferences ?? [];
-            
+
             // Combinar con valores por defecto
             $settings = array_merge($defaultSettings, $preferences);
 
             return response()->json([
                 'success' => true,
-                'data' => $settings
+                'data' => $settings,
             ]);
         } catch (\Exception $e) {
             Log::error('Error obteniendo notification settings', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener configuración'
+                'message' => 'Error al obtener configuración',
             ], 500);
         }
     }
@@ -282,7 +290,7 @@ class NotificationController extends Controller
         try {
             /** @var \App\Models\User|null $authUser */
             $authUser = Auth::user();
-            if (!$authUser) {
+            if (! $authUser) {
                 return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
             }
             $authUser->load('profile');
@@ -305,10 +313,10 @@ class NotificationController extends Controller
 
             // Obtener preferencias actuales
             $currentPreferences = $profile->notification_preferences ?? [];
-            
+
             // Combinar con nuevas preferencias
             $updatedPreferences = array_merge($currentPreferences, $data);
-            
+
             // Actualizar en el perfil
             $profile->notification_preferences = $updatedPreferences;
             $profile->save();
@@ -316,16 +324,17 @@ class NotificationController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Configuración actualizada',
-                'data' => $updatedPreferences
+                'data' => $updatedPreferences,
             ]);
         } catch (\Exception $e) {
             Log::error('Error actualizando notification settings', [
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al actualizar configuración: ' . $e->getMessage()
+                'message' => 'Error al actualizar configuración: '.$e->getMessage(),
             ], 500);
         }
     }
-} 
+}

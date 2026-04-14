@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Address;
-use App\Models\Profile;
-use App\Models\Commerce;
 use App\Models\City;
+use App\Models\Commerce;
+use App\Models\Profile;
+use Illuminate\Database\Seeder;
 
 class AddressSeeder extends Seeder
 {
@@ -31,6 +31,7 @@ class AddressSeeder extends Seeder
         $profiles = Profile::all();
         if ($profiles->isEmpty()) {
             $this->command->warn('No hay perfiles para crear direcciones.');
+
             return;
         }
 
@@ -66,7 +67,7 @@ class AddressSeeder extends Seeder
                 ]);
             }
 
-            if (!$isCommerce && rand(0, 1)) {
+            if (! $isCommerce && rand(0, 1)) {
                 Address::factory()->create([
                     'profile_id' => $profile->id,
                     'is_default' => false,
@@ -86,7 +87,7 @@ class AddressSeeder extends Seeder
                 'profile_id' => null,
                 'role' => 'commerce',
                 'city_id' => $cityId,
-                'street' => $zone['street'] . ' - Local ' . ($commerceIndex % 5 + 1),
+                'street' => $zone['street'].' - Local '.($commerceIndex % 5 + 1),
                 'house_number' => fake()->buildingNumber(),
                 'postal_code' => fake()->postcode(),
                 'latitude' => $zone['lat'] + $jitter,

@@ -8,7 +8,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Crea tabla orders con todos los campos consolidados de migraciones "add".
      */
     public function up(): void
@@ -43,7 +43,7 @@ return new class extends Migration
             $table->string('pickup_token', 64)->nullable();
             $table->string('delivery_token', 64)->nullable();
             $table->timestamps();
-            
+
             // Índices de performance (consolidados desde add_performance_indexes)
             $table->index('status', 'orders_status_index');
             $table->index('created_at', 'orders_created_at_index');

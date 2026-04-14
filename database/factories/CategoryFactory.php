@@ -34,7 +34,7 @@ class CategoryFactory extends Factory
             'Almuerzos',
             'Cenas',
             'Snacks',
-            'Mariscos'
+            'Mariscos',
         ];
 
         return [

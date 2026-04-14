@@ -6,13 +6,17 @@ use App\Events\NewMessage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * @deprecated No está registrado en rutas. Mantener solo como referencia histórica.
+ *             Producción: {@see \App\Http\Controllers\Chat\ChatController} (`/api/chat/*`, `/api/buyer/orders/{orderId}/messages`).
+ *             Buyer legado por pedido: {@see \App\Http\Controllers\Buyer\ChatController} (`/api/buyer/chat/*`).
+ */
 class ChatController extends Controller
 {
     /**
      * Enviar un mensaje en el chat de una orden.
      *
-     * @param Request $request
-     * @param int $orderId
+     * @param  int  $orderId
      * @return \Illuminate\Http\JsonResponse
      */
     public function sendMessage(Request $request, $orderId)
@@ -22,7 +26,7 @@ class ChatController extends Controller
         ]);
 
         $user = Auth::user();
-        
+
         // Stub legacy: mismo contrato que Chat\ChatController (canal orders.{id})
         $profileId = (int) ($user->profile?->id ?? $user->id);
         event(new NewMessage(
@@ -45,7 +49,7 @@ class ChatController extends Controller
     /**
      * Obtener historial de mensajes de una orden.
      *
-     * @param int $orderId
+     * @param  int  $orderId
      * @return \Illuminate\Http\JsonResponse
      */
     public function getMessages($orderId)
@@ -59,4 +63,4 @@ class ChatController extends Controller
             'messages' => $messages,
         ]);
     }
-} 
+}

@@ -2,15 +2,15 @@
 
 namespace App\Jobs;
 
-use App\Models\Order;
 use App\Models\DeliveryAssignmentTimeout;
+use App\Models\Order;
 use App\Services\NotificationService;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Ejecutado 60 segundos después de intentar auto-asignar. Si la orden sigue sin repartidor, notifica a la empresa.
@@ -26,7 +26,7 @@ class AutoAssignTimeoutJob implements ShouldQueue
     public function handle(NotificationService $notificationService): void
     {
         $order = Order::with('deliveryCompany')->find($this->orderId);
-        if (!$order || !in_array($order->status, ['processing', 'shipped'])) {
+        if (! $order || ! in_array($order->status, ['processing', 'shipped'])) {
             return;
         }
         if ($order->orderDelivery) {
@@ -34,14 +34,14 @@ class AutoAssignTimeoutJob implements ShouldQueue
         }
 
         $company = $order->deliveryCompany;
-        if (!$company || !$company->profile_id) {
+        if (! $company || ! $company->profile_id) {
             return;
         }
 
         $notificationService->notify(
             $company->profile_id,
             'Orden pendiente de asignación',
-            "Nadie aceptó la orden #" . ($order->order_number ?? $order->id) . ". Asígnala manualmente.",
+            'Nadie aceptó la orden #'.($order->order_number ?? $order->id).'. Asígnala manualmente.',
             'order',
             ['order_id' => $order->id, 'action' => 'assign_order']
         );

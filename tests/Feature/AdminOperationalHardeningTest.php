@@ -89,4 +89,3 @@ class AdminOperationalHardeningTest extends TestCase
         $this->assertFalse((bool) ($errorLogs[0]['success'] ?? true));
     }
 }
-

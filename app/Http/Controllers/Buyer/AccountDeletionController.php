@@ -29,7 +29,7 @@ class AccountDeletionController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Datos de entrada inválidos',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422); // usar 422 para validaciones de formulario
             }
 
@@ -43,7 +43,7 @@ class AccountDeletionController extends Controller
             if ($existingRequest && $existingRequest['status'] === 'pending') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Ya tienes una solicitud de eliminación pendiente'
+                    'message' => 'Ya tienes una solicitud de eliminación pendiente',
                 ], 400);
             }
 
@@ -73,13 +73,13 @@ class AccountDeletionController extends Controller
                     'deletion_id' => $deletionRequest['id'],
                     'scheduled_for' => $deletionRequest['scheduled_for'],
                     'immediate' => $immediate,
-                ]
+                ],
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al solicitar eliminación',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -94,20 +94,20 @@ class AccountDeletionController extends Controller
             $confirmationCode = $request->input('confirmation_code');
             $password = $request->input('password');
 
-            if (!$confirmationCode || strlen($confirmationCode) !== 6) {
+            if (! $confirmationCode || strlen($confirmationCode) !== 6) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Código de confirmación inválido'
+                    'message' => 'Código de confirmación inválido',
                 ], 400);
             }
-            if (!Hash::check($password, $user->password)) {
+            if (! Hash::check($password, $user->password)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Contraseña incorrecta'
+                    'message' => 'Contraseña incorrecta',
                 ], 401);
             }
             // Forzar el mock a estado 'pending' antes de confirmar
-            if (!isset(self::$mockDeletionRequest[$user->id]) || self::$mockDeletionRequest[$user->id]['status'] !== 'pending') {
+            if (! isset(self::$mockDeletionRequest[$user->id]) || self::$mockDeletionRequest[$user->id]['status'] !== 'pending') {
                 self::$mockDeletionRequest[$user->id] = [
                     'id' => Str::uuid()->toString(),
                     'user_id' => $user->id,
@@ -125,30 +125,31 @@ class AccountDeletionController extends Controller
             if ($deletionRequest['confirmation_code'] !== $confirmationCode) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Código de confirmación inválido'
+                    'message' => 'Código de confirmación inválido',
                 ], 400);
             }
             if ($deletionRequest['status'] !== 'pending') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'La solicitud de eliminación no está pendiente'
+                    'message' => 'La solicitud de eliminación no está pendiente',
                 ], 400);
             }
             // Simular proceso de eliminación sin error
             self::$mockDeletionRequest[$user->id]['status'] = 'deleted';
+
             // No llamar a $this->processAccountDeletion($user) para evitar logout y errores en tests
             return response()->json([
                 'success' => true,
                 'message' => 'Cuenta eliminada correctamente',
                 'data' => [
                     'deleted_at' => now()->toISOString(),
-                ]
+                ],
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al confirmar eliminación',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -161,10 +162,10 @@ class AccountDeletionController extends Controller
         try {
             $user = Auth::user();
             $deletionRequest = self::$mockDeletionRequest[$user->id] ?? null;
-            if (!$deletionRequest || $deletionRequest['status'] !== 'pending') {
+            if (! $deletionRequest || $deletionRequest['status'] !== 'pending') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No hay una solicitud de eliminación pendiente'
+                    'message' => 'No hay una solicitud de eliminación pendiente',
                 ], 400);
             }
 
@@ -176,14 +177,14 @@ class AccountDeletionController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Solicitud de eliminación cancelada correctamente',
-                'data' => self::$mockDeletionRequest[$user->id]
+                'data' => self::$mockDeletionRequest[$user->id],
             ], 200);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al cancelar eliminación',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -207,14 +208,14 @@ class AccountDeletionController extends Controller
                     'scheduled_for' => $deletionRequest ? $deletionRequest['scheduled_for'] : null,
                     'reason' => $deletionRequest ? $deletionRequest['reason'] : null,
                     'immediate' => $deletionRequest ? $deletionRequest['immediate'] : false,
-                ]
+                ],
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener estado',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -244,12 +245,14 @@ class AccountDeletionController extends Controller
         try {
             $user = Auth::user();
             $this->processAccountDeletion($user);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Cuenta eliminada correctamente',
             ], 200);
         } catch (\Exception $e) {
-            Log::error('Error al eliminar cuenta: ' . $e->getMessage());
+            Log::error('Error al eliminar cuenta: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error al eliminar la cuenta',

@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Buyer;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use App\Models\Commerce;
 use App\Models\Category;
+use App\Models\Commerce;
 use App\Models\Product;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class SearchController extends Controller
@@ -63,10 +63,10 @@ class SearchController extends Controller
                 $searchTerm = trim((string) $request->search);
                 $query->where(function ($q) use ($searchTerm) {
                     $q->where('business_name', 'LIKE', "%{$searchTerm}%")
-                      ->orWhere('business_type', 'LIKE', "%{$searchTerm}%")
-                      ->orWhereHas('products', function ($productQuery) use ($searchTerm) {
-                          $productQuery->where('name', 'LIKE', "%{$searchTerm}%");
-                      });
+                        ->orWhere('business_type', 'LIKE', "%{$searchTerm}%")
+                        ->orWhereHas('products', function ($productQuery) use ($searchTerm) {
+                            $productQuery->where('name', 'LIKE', "%{$searchTerm}%");
+                        });
                 });
             }
 
@@ -159,7 +159,7 @@ class SearchController extends Controller
                     'minimum_order' => $restaurant->minimum_order ?? 0,
                     'is_open' => (bool) $restaurant->open,
                     'is_favorite' => in_array($restaurant->id, $favoriteIds, true),
-                    'total_products' => $restaurant->products->count()
+                    'total_products' => $restaurant->products->count(),
                 ];
 
                 // Agregar productos destacados
@@ -170,7 +170,7 @@ class SearchController extends Controller
                             'id' => $product->id,
                             'name' => $product->name,
                             'price' => (float) $product->price,
-                            'image_url' => $product->image
+                            'image_url' => $product->image,
                         ];
                     });
 
@@ -188,7 +188,7 @@ class SearchController extends Controller
                         'current_page' => $restaurants->currentPage(),
                         'last_page' => $restaurants->lastPage(),
                         'per_page' => $restaurants->perPage(),
-                        'total' => $restaurants->total()
+                        'total' => $restaurants->total(),
                     ],
                     'filters_applied' => [
                         'search' => $request->search,
@@ -199,8 +199,8 @@ class SearchController extends Controller
                         'max_price' => $request->max_price,
                         'min_rating' => $request->min_rating,
                         'sort_by' => $request->sort_by,
-                        'sort_order' => $request->sort_order
-                    ]
+                        'sort_order' => $request->sort_order,
+                    ],
                 ],
                 'message' => 'Restaurantes encontrados exitosamente',
             ]);
@@ -212,11 +212,12 @@ class SearchController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
-            Log::error('Error searching restaurants: ' . $e->getMessage());
+            Log::error('Error searching restaurants: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'Error al buscar restaurantes'
+                'message' => 'Error al buscar restaurantes',
             ], 500);
         }
     }
@@ -250,7 +251,7 @@ class SearchController extends Controller
                 $searchTerm = $request->search;
                 $query->where(function ($q) use ($searchTerm) {
                     $q->where('name', 'LIKE', "%{$searchTerm}%")
-                      ->orWhere('description', 'LIKE', "%{$searchTerm}%");
+                        ->orWhere('description', 'LIKE', "%{$searchTerm}%");
                 });
             }
 
@@ -320,8 +321,8 @@ class SearchController extends Controller
                     'commerce' => [
                         'id' => $product->commerce->id,
                         'name' => $product->commerce->business_name,
-                        'logo_url' => $product->commerce->image
-                    ]
+                        'logo_url' => $product->commerce->image,
+                    ],
                 ];
             });
 
@@ -336,7 +337,7 @@ class SearchController extends Controller
                         'current_page' => $products->currentPage(),
                         'last_page' => $products->lastPage(),
                         'per_page' => $products->perPage(),
-                        'total' => $products->total()
+                        'total' => $products->total(),
                     ],
                 ],
                 'message' => 'Productos encontrados exitosamente',
@@ -349,11 +350,12 @@ class SearchController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
-            Log::error('Error searching products: ' . $e->getMessage());
+            Log::error('Error searching products: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'Error al buscar productos'
+                'message' => 'Error al buscar productos',
             ], 500);
         }
     }
@@ -372,11 +374,12 @@ class SearchController extends Controller
                 'message' => 'Categorías obtenidas exitosamente',
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error getting categories: ' . $e->getMessage());
+            \Log::error('Error getting categories: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'Error al obtener las categorías'
+                'message' => 'Error al obtener las categorías',
             ], 500);
         }
     }
@@ -388,7 +391,7 @@ class SearchController extends Controller
     {
         try {
             $searchTerm = $request->search ?? '';
-            
+
             if (strlen($searchTerm) < 2) {
                 return response()->json([
                     'success' => true,
@@ -423,11 +426,12 @@ class SearchController extends Controller
                 'message' => 'Sugerencias obtenidas exitosamente',
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting search suggestions: ' . $e->getMessage());
+            Log::error('Error getting search suggestions: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'Error al obtener las sugerencias'
+                'message' => 'Error al obtener las sugerencias',
             ], 500);
         }
     }
@@ -438,8 +442,9 @@ class SearchController extends Controller
     private function isFavorite($commerceId): bool
     {
         $profile = auth()->user()->profile;
+
         return $profile->favorites()
             ->where('commerce_id', $commerceId)
             ->exists();
     }
-} 
+}

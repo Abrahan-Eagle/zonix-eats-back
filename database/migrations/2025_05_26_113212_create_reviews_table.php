@@ -8,7 +8,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Crea tabla reviews con campo 'comment' directamente (no 'comentario').
      * Agregado: order_id para validar que se califica después de orden entregada.
      */

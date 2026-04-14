@@ -3,15 +3,14 @@
 namespace App\Http\Controllers\Buyer;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use App\Models\Promotion;
 use App\Models\Coupon;
 use App\Models\Order;
-use App\Models\Profile;
+use App\Models\Promotion;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
 
 class PromotionController extends Controller
 {
@@ -41,19 +40,20 @@ class PromotionController extends Controller
                     'start_date' => $promotion->start_date->format('Y-m-d'),
                     'end_date' => $promotion->end_date->format('Y-m-d'),
                     'terms_conditions' => $promotion->terms_conditions,
-                    'is_applicable' => $this->isPromotionApplicable($promotion)
+                    'is_applicable' => $this->isPromotionApplicable($promotion),
                 ];
             });
 
             return response()->json([
                 'success' => true,
-                'data' => $promotionsData
+                'data' => $promotionsData,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting active promotions: ' . $e->getMessage());
+            Log::error('Error getting active promotions: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener las promociones'
+                'message' => 'Error al obtener las promociones',
             ], 500);
         }
     }
@@ -71,7 +71,7 @@ class PromotionController extends Controller
                 ->where('end_date', '>=', now())
                 ->where(function ($query) use ($profile) {
                     $query->where('is_public', true)
-                          ->orWhere('assigned_to_profile_id', $profile->id);
+                        ->orWhere('assigned_to_profile_id', $profile->id);
                 })
                 ->get();
 
@@ -94,19 +94,20 @@ class PromotionController extends Controller
                     'can_use' => $usageCount < $coupon->usage_limit,
                     'start_date' => $coupon->start_date->format('Y-m-d'),
                     'end_date' => $coupon->end_date->format('Y-m-d'),
-                    'terms_conditions' => $coupon->terms_conditions
+                    'terms_conditions' => $coupon->terms_conditions,
                 ];
             });
 
             return response()->json([
                 'success' => true,
-                'data' => $couponsData
+                'data' => $couponsData,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting available coupons: ' . $e->getMessage());
+            Log::error('Error getting available coupons: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener los cupones'
+                'message' => 'Error al obtener los cupones',
             ], 500);
         }
     }
@@ -118,14 +119,14 @@ class PromotionController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'code' => 'required|string|max:20',
-            'order_amount' => 'required|numeric|min:0'
+            'order_amount' => 'required|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Datos inválidos',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -140,20 +141,21 @@ class PromotionController extends Controller
                 ->where('end_date', '>=', now())
                 ->where(function ($query) use ($profile) {
                     $query->where('is_public', true)
-                          ->orWhere('assigned_to_profile_id', $profile->id);
+                        ->orWhere('assigned_to_profile_id', $profile->id);
                 })
                 ->first();
 
-            if (!$coupon) {
+            if (! $coupon) {
                 Log::info('coupon_validation_failed', [
                     'reason' => 'invalid_or_expired',
                     'profile_id' => $profile->id,
                     'code' => $code,
                     'order_amount' => $orderAmount,
                 ]);
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cupón no válido o expirado'
+                    'message' => 'Cupón no válido o expirado',
                 ], 404);
             }
 
@@ -170,9 +172,10 @@ class PromotionController extends Controller
                     'usage_count' => $usageCount,
                     'usage_limit' => (int) $coupon->usage_limit,
                 ]);
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Has alcanzado el límite de uso de este cupón'
+                    'message' => 'Has alcanzado el límite de uso de este cupón',
                 ], 400);
             }
 
@@ -185,9 +188,10 @@ class PromotionController extends Controller
                     'order_amount' => $orderAmount,
                     'minimum_order' => (float) $coupon->minimum_order,
                 ]);
+
                 return response()->json([
                     'success' => false,
-                    'message' => "Monto mínimo requerido: $" . number_format($coupon->minimum_order, 2)
+                    'message' => 'Monto mínimo requerido: $'.number_format($coupon->minimum_order, 2),
                 ], 400);
             }
 
@@ -205,14 +209,15 @@ class PromotionController extends Controller
                     'discount_value' => $coupon->discount_value,
                     'discount_amount' => $discount,
                     'final_amount' => $orderAmount - $discount,
-                    'terms_conditions' => $coupon->terms_conditions
-                ]
+                    'terms_conditions' => $coupon->terms_conditions,
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error validating coupon: ' . $e->getMessage());
+            Log::error('Error validating coupon: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al validar el cupón'
+                'message' => 'Error al validar el cupón',
             ], 500);
         }
     }
@@ -223,7 +228,7 @@ class PromotionController extends Controller
     public function applyCouponToOrder(Request $request): JsonResponse
     {
         $legacyEnabled = filter_var(env('ENABLE_LEGACY_APPLY_COUPON', false), FILTER_VALIDATE_BOOL);
-        if (!$legacyEnabled) {
+        if (! $legacyEnabled) {
             return response()->json([
                 'success' => false,
                 'message' => 'Este flujo está deprecado. Usa coupon_code en el checkout.',
@@ -233,14 +238,14 @@ class PromotionController extends Controller
 
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|exists:orders,id',
-            'coupon_id' => 'required|exists:coupons,id'
+            'coupon_id' => 'required|exists:coupons,id',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Datos inválidos',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -258,7 +263,7 @@ class PromotionController extends Controller
             if ($order->profile_id !== auth()->user()->profile->id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No tienes permisos para modificar este pedido'
+                    'message' => 'No tienes permisos para modificar este pedido',
                 ], 403);
             }
 
@@ -266,16 +271,16 @@ class PromotionController extends Controller
             if (DB::table('coupon_usages')->where('order_id', $order->id)->exists()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Este pedido ya tiene un cupón aplicado'
+                    'message' => 'Este pedido ya tiene un cupón aplicado',
                 ], 400);
             }
 
             // Validar cupón
             $validationResult = $this->validateCouponForOrder($coupon, $order);
-            if (!$validationResult['valid']) {
+            if (! $validationResult['valid']) {
                 return response()->json([
                     'success' => false,
-                    'message' => $validationResult['message']
+                    'message' => $validationResult['message'],
                 ], 400);
             }
 
@@ -294,7 +299,7 @@ class PromotionController extends Controller
                 'profile_id' => auth()->user()->profile->id,
                 'order_id' => $order->id,
                 'discount_amount' => $discount,
-                'used_at' => now()
+                'used_at' => now(),
             ]);
 
             return response()->json([
@@ -304,14 +309,15 @@ class PromotionController extends Controller
                     'order_id' => $order->id,
                     'coupon_code' => $coupon->code,
                     'discount_amount' => $discount,
-                    'new_total' => $order->total
-                ]
+                    'new_total' => $order->total,
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error applying coupon to order: ' . $e->getMessage());
+            Log::error('Error applying coupon to order: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al aplicar el cupón'
+                'message' => 'Error al aplicar el cupón',
             ], 500);
         }
     }
@@ -334,7 +340,7 @@ class PromotionController extends Controller
                     'coupon_usages.discount_amount',
                     'coupon_usages.used_at',
                     'orders.id as order_id',
-                    'orders.total as order_total'
+                    'orders.total as order_total',
                 ])
                 ->orderBy('coupon_usages.used_at', 'desc')
                 ->paginate(10);
@@ -347,15 +353,16 @@ class PromotionController extends Controller
                         'current_page' => $couponHistory->currentPage(),
                         'last_page' => $couponHistory->lastPage(),
                         'per_page' => $couponHistory->perPage(),
-                        'total' => $couponHistory->total()
-                    ]
-                ]
+                        'total' => $couponHistory->total(),
+                    ],
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting coupon history: ' . $e->getMessage());
+            Log::error('Error getting coupon history: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener el historial de cupones'
+                'message' => 'Error al obtener el historial de cupones',
             ], 500);
         }
     }
@@ -384,7 +391,7 @@ class PromotionController extends Controller
         if ($usageCount >= $coupon->usage_limit) {
             return [
                 'valid' => false,
-                'message' => 'Has alcanzado el límite de uso de este cupón'
+                'message' => 'Has alcanzado el límite de uso de este cupón',
             ];
         }
 
@@ -392,7 +399,7 @@ class PromotionController extends Controller
         if ((float) $order->total < (float) $coupon->minimum_order) {
             return [
                 'valid' => false,
-                'message' => "Monto mínimo requerido: $" . number_format($coupon->minimum_order, 2)
+                'message' => 'Monto mínimo requerido: $'.number_format($coupon->minimum_order, 2),
             ];
         }
 
@@ -406,9 +413,10 @@ class PromotionController extends Controller
     {
         if ($coupon->discount_type === 'percentage') {
             $discount = ($amount * $coupon->discount_value) / 100;
+
             return min($discount, $coupon->maximum_discount ?? $discount);
         } else {
             return min($coupon->discount_value, $amount);
         }
     }
-} 
+}

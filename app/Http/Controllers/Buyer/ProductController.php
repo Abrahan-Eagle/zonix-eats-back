@@ -16,13 +16,13 @@ class ProductController extends Controller
 {
     /**
      * Servicio de productos.
+     *
      * @var ProductService
      */
     protected $productService;
 
     /**
      * Inyecta el servicio de productos.
-     * @param ProductService $productService
      */
     public function __construct(ProductService $productService)
     {
@@ -31,37 +31,39 @@ class ProductController extends Controller
 
     /**
      * Mostrar detalles de un producto específico.
-     * @param int $id
+     *
+     * @param  int  $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function show($id)
     {
         try {
             $product = $this->productService->getCatalogVisibleProductById($id);
-            if (!$product) {
+            if (! $product) {
                 return response()->json([
                     'success' => false,
                     'data' => null,
-                    'message' => 'Producto no encontrado'
+                    'message' => 'Producto no encontrado',
                 ], 404);
             }
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $product,
-                'message' => 'Producto encontrado exitosamente'
+                'message' => 'Producto encontrado exitosamente',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'Error al obtener el producto'
+                'message' => 'Error al obtener el producto',
             ], 500);
         }
     }
 
     /**
      * Listar productos disponibles para el comprador.
+     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function index(Request $request)
@@ -99,13 +101,13 @@ class ProductController extends Controller
                         'total' => $products->total(),
                     ],
                 ],
-                'message' => 'Productos obtenidos exitosamente'
+                'message' => 'Productos obtenidos exitosamente',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'Error al obtener productos'
+                'message' => 'Error al obtener productos',
             ], 500);
         }
     }

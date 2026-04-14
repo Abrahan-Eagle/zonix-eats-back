@@ -120,4 +120,3 @@ class AddressControllerTest extends TestCase
         ]);
     }
 }
-

@@ -2,9 +2,9 @@
 
 namespace Database\Factories;
 
+use App\Models\Commerce;
 use App\Models\Profile;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use App\Models\Commerce;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Commerce>
@@ -33,7 +33,8 @@ class CommerceFactory extends Factory
 
         $membershipType = $this->faker->randomElement(['basic', 'premium', 'enterprise']);
         $membershipFees = ['basic' => 50, 'premium' => 100, 'enterprise' => 200];
-        
+        $testing = app()->environment('testing');
+
         return [
             'profile_id' => Profile::factory(),
             'is_primary' => true,
@@ -42,7 +43,8 @@ class CommerceFactory extends Factory
             'tax_id' => $this->faker->numerify('J-########-#'),
             'image' => $this->faker->randomElement($restaurantImages),
             'address' => $this->faker->address,
-            'open' => $this->faker->boolean(70),
+            // En testing: abierto por defecto (listados buyer, pedidos). Tests de cerrado pasan open => false.
+            'open' => $testing ? true : $this->faker->boolean(70),
             'schedule' => [
                 'monday' => ['open' => '08:00', 'close' => '18:00'],
                 'tuesday' => ['open' => '08:00', 'close' => '18:00'],

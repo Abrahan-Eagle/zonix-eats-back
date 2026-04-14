@@ -16,7 +16,7 @@ class DisputeController extends Controller
         $profile = $user->profile;
         $perPage = max(1, min((int) $request->input('per_page', 15), 100));
 
-        if (!$profile) {
+        if (! $profile) {
             return response()->json(['success' => false, 'message' => 'Perfil no encontrado'], 404);
         }
 
@@ -48,7 +48,7 @@ class DisputeController extends Controller
             ->with(['order'])
             ->find($id);
 
-        if (!$dispute) {
+        if (! $dispute) {
             return response()->json(['success' => false, 'message' => 'Disputa no encontrada'], 404);
         }
 
@@ -66,7 +66,7 @@ class DisputeController extends Controller
         $user = Auth::user();
         $profile = $user->profile;
 
-        if (!$profile) {
+        if (! $profile) {
             return response()->json(['success' => false, 'message' => 'Perfil no encontrado'], 404);
         }
 
@@ -75,7 +75,7 @@ class DisputeController extends Controller
             ->whereIn('status', ['delivered', 'shipped', 'processing', 'paid'])
             ->first();
 
-        if (!$order) {
+        if (! $order) {
             return response()->json([
                 'success' => false,
                 'message' => 'Orden no encontrada o no elegible para disputa',

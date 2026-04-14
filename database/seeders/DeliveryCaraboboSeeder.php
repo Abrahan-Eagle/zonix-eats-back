@@ -46,7 +46,8 @@ class DeliveryCaraboboSeeder extends Seeder
     {
         $company = DeliveryCompany::first();
         if ($company) {
-            $this->command->info('Usando empresa de delivery existente: ' . ($company->name ?? $company->id));
+            $this->command->info('Usando empresa de delivery existente: '.($company->name ?? $company->id));
+
             return $company;
         }
         $profile = Profile::factory()->create();
@@ -55,7 +56,8 @@ class DeliveryCaraboboSeeder extends Seeder
             'profile_id' => $profile->id,
             'name' => 'Delivery Carabobo Express',
         ]);
-        $this->command->info('Creada empresa: ' . $company->name);
+        $this->command->info('Creada empresa: '.$company->name);
+
         return $company;
     }
 
@@ -76,7 +78,7 @@ class DeliveryCaraboboSeeder extends Seeder
                 'working' => true,
                 'rating' => round(3.5 + (rand(0, 15) / 10), 1),
                 'vehicle_type' => ['motorcycle', 'motorcycle', 'car', 'bicycle'][$i % 4],
-                'license_number' => 'LIC-' . str_pad((string) ($i + 1), 5, '0', STR_PAD_LEFT),
+                'license_number' => 'LIC-'.str_pad((string) ($i + 1), 5, '0', STR_PAD_LEFT),
                 'current_latitude' => $lat + (rand(-50, 50) / 10000),
                 'current_longitude' => $lng + (rand(-50, 50) / 10000),
                 'last_location_update' => now(),
@@ -85,6 +87,7 @@ class DeliveryCaraboboSeeder extends Seeder
             $agents[$agent->id] = $agent;
         }
         $this->command->info('Creados 10 agentes de delivery en Carabobo.');
+
         return $agents;
     }
 
@@ -98,8 +101,9 @@ class DeliveryCaraboboSeeder extends Seeder
     {
         $demoOrderId = $this->demoOrderId();
         $order = Order::find($demoOrderId);
-        if (!$order) {
+        if (! $order) {
             $this->command->warn("Orden {$demoOrderId} no existe. No se asigna repartidor de prueba (configurar ZONIX_SEEDER_DEMO_ORDER_ID si aplica).");
+
             return;
         }
         OrderDelivery::where('order_id', $demoOrderId)->delete();
@@ -124,9 +128,9 @@ class DeliveryCaraboboSeeder extends Seeder
         if ($order->status !== 'shipped') {
             $orderUpdates['status'] = 'shipped';
         }
-        if (!empty($orderUpdates)) {
+        if (! empty($orderUpdates)) {
             $order->update($orderUpdates);
         }
-        $this->command->info("Orden {$demoOrderId} asignada al agente " . $agent->id . ' (repartidor simulado para mapa/ETA).');
+        $this->command->info("Orden {$demoOrderId} asignada al agente ".$agent->id.' (repartidor simulado para mapa/ETA).');
     }
 }

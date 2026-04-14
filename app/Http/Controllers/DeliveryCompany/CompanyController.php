@@ -2,19 +2,18 @@
 
 namespace App\Http\Controllers\DeliveryCompany;
 
+use App\Events\OrderStatusChanged;
+use App\Events\PaymentValidated;
 use App\Http\Controllers\Controller;
 use App\Models\DeliveryAgent;
 use App\Models\DeliveryCompany;
+use App\Models\OperatorCode;
 use App\Models\Order;
 use App\Models\OrderDelivery;
-use App\Models\OrderPayment;
-use App\Models\OperatorCode;
 use App\Models\Phone;
 use App\Models\Profile;
 use App\Models\Review;
 use App\Models\User;
-use App\Events\OrderStatusChanged;
-use App\Events\PaymentValidated;
 use App\Services\DeliveryFeeService;
 use App\Services\DeliveryObservabilityService;
 use App\Services\OrderStateMachineService;
@@ -31,9 +30,10 @@ class CompanyController extends Controller
     {
         $user = Auth::user();
         $profile = $user?->profile;
-        if (!$profile) {
+        if (! $profile) {
             return null;
         }
+
         return DeliveryCompany::where('profile_id', $profile->id)->first();
     }
 
@@ -49,7 +49,7 @@ class CompanyController extends Controller
     {
         try {
             $company = $this->getAuthCompany();
-            if (!$company) {
+            if (! $company) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No tienes una empresa de delivery registrada.',
@@ -61,7 +61,7 @@ class CompanyController extends Controller
 
             $activeAgents = $agents->where('working', true)->count();
 
-            $deliveredQuery = fn($period) => OrderDelivery::whereIn('agent_id', $agentIds)
+            $deliveredQuery = fn ($period) => OrderDelivery::whereIn('agent_id', $agentIds)
                 ->where('status', 'delivered');
 
             $todayDeliveries = (clone $deliveredQuery(null))->whereDate('updated_at', today())->count();
@@ -90,6 +90,7 @@ class CompanyController extends Controller
                             $addr = $company->profile?->addresses()
                                 ->whereNotNull('latitude')->whereNotNull('longitude')
                                 ->first();
+
                             return $addr ? [
                                 'latitude' => (float) $addr->latitude,
                                 'longitude' => (float) $addr->longitude,
@@ -109,7 +110,8 @@ class CompanyController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('[DeliveryCompanyAPI] dashboard error: ' . $e->getMessage());
+            Log::error('[DeliveryCompanyAPI] dashboard error: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Error al cargar dashboard'], 500);
         }
     }
@@ -121,7 +123,7 @@ class CompanyController extends Controller
     {
         try {
             $company = $this->getAuthCompany();
-            if (!$company) {
+            if (! $company) {
                 return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
             }
 
@@ -169,7 +171,7 @@ class CompanyController extends Controller
 
                 return [
                     'id' => $agent->id,
-                    'name' => trim(($profile->firstName ?? '') . ' ' . ($profile->lastName ?? '')),
+                    'name' => trim(($profile->firstName ?? '').' '.($profile->lastName ?? '')),
                     'photo' => $user->photo_users ?? null,
                     'phone' => $phone?->phone_number ?? null,
                     'status' => $agent->status,
@@ -199,7 +201,8 @@ class CompanyController extends Controller
 
             return response()->json(['success' => true, 'data' => $agents]);
         } catch (\Exception $e) {
-            Log::error('[DeliveryCompanyAPI] agents error: ' . $e->getMessage());
+            Log::error('[DeliveryCompanyAPI] agents error: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Error al listar agentes'], 500);
         }
     }
@@ -224,13 +227,13 @@ class CompanyController extends Controller
         }
 
         $company = $this->getAuthCompany();
-        if (!$company) {
+        if (! $company) {
             return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
         }
 
         try {
             $data = DB::transaction(function () use ($request, $company) {
-                $name = trim($request->firstName . ' ' . $request->lastName);
+                $name = trim($request->firstName.' '.$request->lastName);
                 $user = User::create([
                     'name' => $name,
                     'email' => $request->email,
@@ -270,11 +273,12 @@ class CompanyController extends Controller
                 'data' => [
                     'id' => $data['agent']->id,
                     'email' => $data['user']->email,
-                    'name' => trim($data['profile']->firstName . ' ' . $data['profile']->lastName),
+                    'name' => trim($data['profile']->firstName.' '.$data['profile']->lastName),
                 ],
             ], 201);
         } catch (\Exception $e) {
-            Log::error('[DeliveryCompanyAPI] storeAgent error: ' . $e->getMessage());
+            Log::error('[DeliveryCompanyAPI] storeAgent error: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Error al crear agente'], 500);
         }
     }
@@ -293,12 +297,12 @@ class CompanyController extends Controller
         }
 
         $company = $this->getAuthCompany();
-        if (!$company) {
+        if (! $company) {
             return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
         }
 
         $agent = DeliveryAgent::where('id', $id)->where('company_id', $company->id)->first();
-        if (!$agent) {
+        if (! $agent) {
             return response()->json(['success' => false, 'message' => 'Agente no pertenece a tu empresa'], 403);
         }
 
@@ -325,12 +329,12 @@ class CompanyController extends Controller
         }
 
         $company = $this->getAuthCompany();
-        if (!$company) {
+        if (! $company) {
             return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
         }
 
         $agent = DeliveryAgent::where('id', $id)->where('company_id', $company->id)->first();
-        if (!$agent) {
+        if (! $agent) {
             return response()->json(['success' => false, 'message' => 'Agente no pertenece a tu empresa'], 403);
         }
 
@@ -357,7 +361,7 @@ class CompanyController extends Controller
         }
 
         $company = $this->getAuthCompany();
-        if (!$company) {
+        if (! $company) {
             return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
         }
 
@@ -379,12 +383,12 @@ class CompanyController extends Controller
     public function availableAgentsForOrder($orderId)
     {
         $company = $this->getAuthCompany();
-        if (!$company) {
+        if (! $company) {
             return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
         }
 
         $order = Order::with(['commerce.addresses'])->find($orderId);
-        if (!$order || $order->status !== 'shipped') {
+        if (! $order || $order->status !== 'shipped') {
             return response()->json(['success' => false, 'message' => 'Orden no encontrada o no disponible para asignar'], 404);
         }
         if ($order->delivery_company_id !== $company->id) {
@@ -408,7 +412,8 @@ class CompanyController extends Controller
                 $hasActive = OrderDelivery::where('agent_id', $agent->id)
                     ->whereHas('order', fn ($q) => $q->whereIn('status', ['shipped']))
                     ->exists();
-                return !$hasActive;
+
+                return ! $hasActive;
             })
             ->map(function ($agent) use ($commerceLat, $commerceLng) {
                 $lat = $agent->current_latitude ?? $commerceLat;
@@ -422,9 +427,10 @@ class CompanyController extends Controller
                 $profile = $agent->profile;
                 $totalDeliveries = OrderDelivery::where('agent_id', $agent->id)->where('status', 'delivered')->count();
                 $avgRating = Review::where('reviewable_type', DeliveryAgent::class)->where('reviewable_id', $agent->id)->avg('rating') ?? 0;
+
                 return [
                     'id' => $agent->id,
-                    'name' => trim(($profile->firstName ?? '') . ' ' . ($profile->lastName ?? '')),
+                    'name' => trim(($profile->firstName ?? '').' '.($profile->lastName ?? '')),
                     'distance_km' => round($distanceKm, 2),
                     'vehicle_type' => $agent->vehicle_type,
                     'rating' => round($avgRating, 1),
@@ -446,18 +452,18 @@ class CompanyController extends Controller
         $request->validate(['agent_id' => 'required|exists:delivery_agents,id']);
 
         $company = $this->getAuthCompany();
-        if (!$company) {
+        if (! $company) {
             return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
         }
 
         $agent = DeliveryAgent::where('id', $request->agent_id)->where('company_id', $company->id)->first();
-        if (!$agent) {
+        if (! $agent) {
             return response()->json(['success' => false, 'message' => 'Agente no pertenece a tu empresa'], 403);
         }
 
         $result = DB::transaction(function () use ($orderId, $company, $agent) {
             $order = Order::where('id', $orderId)->lockForUpdate()->first();
-            if (!$order || $order->status !== 'shipped') {
+            if (! $order || $order->status !== 'shipped') {
                 return response()->json(['success' => false, 'message' => 'Orden no encontrada o no disponible'], 404);
             }
             if ((int) $order->delivery_company_id !== (int) $company->id) {
@@ -492,7 +498,7 @@ class CompanyController extends Controller
     public function observabilitySummary(DeliveryObservabilityService $observabilityService)
     {
         $company = $this->getAuthCompany();
-        if (!$company) {
+        if (! $company) {
             return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
         }
 
@@ -508,6 +514,7 @@ class CompanyController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Error observabilitySummary company: '.$e->getMessage(), ['company_id' => $company->id]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error obteniendo resumen de observabilidad',
@@ -518,7 +525,7 @@ class CompanyController extends Controller
     public function observabilityIncidents(Request $request, DeliveryObservabilityService $observabilityService)
     {
         $company = $this->getAuthCompany();
-        if (!$company) {
+        if (! $company) {
             return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
         }
 
@@ -538,6 +545,7 @@ class CompanyController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Error observabilityIncidents company: '.$e->getMessage(), ['company_id' => $company->id]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error obteniendo incidentes de observabilidad',
@@ -548,7 +556,7 @@ class CompanyController extends Controller
     public function observabilityIncidentOrders(Request $request, DeliveryObservabilityService $observabilityService)
     {
         $company = $this->getAuthCompany();
-        if (!$company) {
+        if (! $company) {
             return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
         }
 
@@ -567,6 +575,7 @@ class CompanyController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Error observabilityIncidentOrders company: '.$e->getMessage(), ['company_id' => $company->id]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error obteniendo ordenes de incidentes',
@@ -588,7 +597,7 @@ class CompanyController extends Controller
     public function observabilityHistory(Request $request, DeliveryObservabilityService $observabilityService)
     {
         $company = $this->getAuthCompany();
-        if (!$company) {
+        if (! $company) {
             return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
         }
 
@@ -607,6 +616,7 @@ class CompanyController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Error observabilityHistory company: '.$e->getMessage(), ['company_id' => $company->id]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error obteniendo historico de observabilidad',
@@ -625,7 +635,7 @@ class CompanyController extends Controller
         $code3 = ltrim($code4, '0');
         $operatorCode = OperatorCode::where('code', $code4)->orWhere('code', $code3)->first()
             ?? OperatorCode::first();
-        if (!$operatorCode) {
+        if (! $operatorCode) {
             return;
         }
         Phone::create([
@@ -644,7 +654,7 @@ class CompanyController extends Controller
     {
         try {
             $company = $this->getAuthCompany();
-            if (!$company) {
+            if (! $company) {
                 return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
             }
 
@@ -653,7 +663,7 @@ class CompanyController extends Controller
                 ->with(['profile.user', 'profile.phones'])
                 ->first();
 
-            if (!$agent) {
+            if (! $agent) {
                 return response()->json(['success' => false, 'message' => 'Agente no pertenece a tu empresa'], 403);
             }
 
@@ -666,11 +676,11 @@ class CompanyController extends Controller
                 ->where('reviewable_id', $agent->id)->avg('rating') ?? 0;
 
             $recentOrders = Order::with(['commerce'])
-                ->whereHas('orderDelivery', fn($q) => $q->where('agent_id', $agent->id))
+                ->whereHas('orderDelivery', fn ($q) => $q->where('agent_id', $agent->id))
                 ->orderBy('created_at', 'desc')
                 ->limit(10)
                 ->get()
-                ->map(fn($o) => [
+                ->map(fn ($o) => [
                     'id' => $o->id,
                     'order_number' => $o->order_number,
                     'commerce_name' => $o->commerce->business_name ?? '',
@@ -684,7 +694,7 @@ class CompanyController extends Controller
                 'success' => true,
                 'data' => [
                     'id' => $agent->id,
-                    'name' => trim(($profile->firstName ?? '') . ' ' . ($profile->lastName ?? '')),
+                    'name' => trim(($profile->firstName ?? '').' '.($profile->lastName ?? '')),
                     'photo' => $user->photo_users ?? null,
                     'phone' => $profile?->phones?->first()?->phone_number,
                     'status' => $agent->status,
@@ -699,7 +709,8 @@ class CompanyController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('[DeliveryCompanyAPI] agentDetail error: ' . $e->getMessage());
+            Log::error('[DeliveryCompanyAPI] agentDetail error: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Error al obtener detalle del agente'], 500);
         }
     }
@@ -711,7 +722,7 @@ class CompanyController extends Controller
     {
         try {
             $company = $this->getAuthCompany();
-            if (!$company) {
+            if (! $company) {
                 return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
             }
 
@@ -721,7 +732,7 @@ class CompanyController extends Controller
             }
 
             $query = Order::with(['commerce', 'orderItems.product', 'orderDelivery.agent.profile'])
-                ->whereHas('orderDelivery', fn($q) => $q->whereIn('agent_id', $agentIds));
+                ->whereHas('orderDelivery', fn ($q) => $q->whereIn('agent_id', $agentIds));
 
             if ($request->filled('status')) {
                 $statuses = explode(',', $request->input('status'));
@@ -732,7 +743,8 @@ class CompanyController extends Controller
 
             return response()->json(['success' => true, 'data' => $orders]);
         } catch (\Exception $e) {
-            Log::error('[DeliveryCompanyAPI] orders error: ' . $e->getMessage());
+            Log::error('[DeliveryCompanyAPI] orders error: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Error al listar órdenes'], 500);
         }
     }
@@ -744,7 +756,7 @@ class CompanyController extends Controller
     {
         try {
             $company = $this->getAuthCompany();
-            if (!$company) {
+            if (! $company) {
                 return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
             }
 
@@ -758,7 +770,8 @@ class CompanyController extends Controller
 
             return response()->json(['success' => true, 'data' => $orders]);
         } catch (\Exception $e) {
-            Log::error('[DeliveryCompanyAPI] pendingOrders error: ' . $e->getMessage());
+            Log::error('[DeliveryCompanyAPI] pendingOrders error: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Error al listar órdenes pendientes'], 500);
         }
     }
@@ -770,13 +783,13 @@ class CompanyController extends Controller
     {
         try {
             $company = $this->getAuthCompany();
-            if (!$company) {
+            if (! $company) {
                 return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
             }
 
             $agentIds = $this->getAgentIds($company);
 
-            $baseQuery = fn() => OrderDelivery::whereIn('agent_id', $agentIds)->where('status', 'delivered');
+            $baseQuery = fn () => OrderDelivery::whereIn('agent_id', $agentIds)->where('status', 'delivered');
 
             $todayEarnings = (clone $baseQuery())->whereDate('updated_at', today())->sum('delivery_fee');
             $weekEarnings = (clone $baseQuery())->whereBetween('updated_at', [now()->startOfWeek(), now()->endOfWeek()])->sum('delivery_fee');
@@ -789,9 +802,10 @@ class CompanyController extends Controller
                 ->map(function ($agent) {
                     $profile = $agent->profile;
                     $delivered = OrderDelivery::where('agent_id', $agent->id)->where('status', 'delivered');
+
                     return [
                         'agent_id' => $agent->id,
-                        'name' => trim(($profile->firstName ?? '') . ' ' . ($profile->lastName ?? '')),
+                        'name' => trim(($profile->firstName ?? '').' '.($profile->lastName ?? '')),
                         'deliveries' => (clone $delivered)->count(),
                         'earnings' => round((clone $delivered)->sum('delivery_fee'), 2),
                     ];
@@ -808,7 +822,8 @@ class CompanyController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('[DeliveryCompanyAPI] earnings error: ' . $e->getMessage());
+            Log::error('[DeliveryCompanyAPI] earnings error: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Error al obtener ganancias'], 500);
         }
     }
@@ -820,7 +835,7 @@ class CompanyController extends Controller
     {
         try {
             $company = $this->getAuthCompany();
-            if (!$company) {
+            if (! $company) {
                 return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
             }
 
@@ -829,16 +844,17 @@ class CompanyController extends Controller
                 ->where('status', 'pending_payment')
                 ->whereHas('orderPayments', function ($q) {
                     $q->where('type', 'delivery')
-                      ->whereNotNull('payment_proof')
-                      ->whereNull('validated_at')
-                      ->whereNull('rejected_at');
+                        ->whereNotNull('payment_proof')
+                        ->whereNull('validated_at')
+                        ->whereNull('rejected_at');
                 })
                 ->orderBy('created_at', 'desc')
                 ->paginate(20);
 
             return response()->json(['success' => true, 'data' => $orders]);
         } catch (\Exception $e) {
-            Log::error('[DeliveryCompanyAPI] pendingPaymentOrders error: ' . $e->getMessage());
+            Log::error('[DeliveryCompanyAPI] pendingPaymentOrders error: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Error al listar órdenes'], 500);
         }
     }
@@ -855,13 +871,13 @@ class CompanyController extends Controller
             ]);
 
             $company = $this->getAuthCompany();
-            if (!$company) {
+            if (! $company) {
                 return response()->json(['success' => false, 'message' => 'Empresa no encontrada'], 404);
             }
 
             return DB::transaction(function () use ($request, $orderId, $company) {
                 $order = Order::whereKey($orderId)->lockForUpdate()->first();
-                if (!$order || $order->delivery_company_id !== $company->id) {
+                if (! $order || $order->delivery_company_id !== $company->id) {
                     return response()->json(['success' => false, 'message' => 'Orden no encontrada o no pertenece a tu empresa'], 404);
                 }
                 if ($order->status !== 'pending_payment') {
@@ -869,7 +885,7 @@ class CompanyController extends Controller
                 }
 
                 $deliveryPayment = $order->deliveryPayment;
-                if (!$deliveryPayment || !$deliveryPayment->payment_proof) {
+                if (! $deliveryPayment || ! $deliveryPayment->payment_proof) {
                     return response()->json(['success' => false, 'message' => 'No hay comprobante de envío para validar'], 400);
                 }
 
@@ -894,7 +910,7 @@ class CompanyController extends Controller
                             'delivery_company_payment_validation',
                             'Todos los pagos validados'
                         );
-                        if (!($decision['allowed'] ?? false)) {
+                        if (! ($decision['allowed'] ?? false)) {
                             return response()->json([
                                 'success' => false,
                                 'message' => $decision['message'] ?? 'No se pudo actualizar el estado de la orden',
@@ -920,7 +936,8 @@ class CompanyController extends Controller
                 return response()->json(['success' => true, 'message' => $message]);
             });
         } catch (\Exception $e) {
-            Log::error('[DeliveryCompanyAPI] validateDeliveryPayment error: ' . $e->getMessage());
+            Log::error('[DeliveryCompanyAPI] validateDeliveryPayment error: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Error al validar pago'], 500);
         }
     }

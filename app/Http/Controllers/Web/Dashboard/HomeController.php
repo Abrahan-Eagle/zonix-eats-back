@@ -3,9 +3,10 @@
 namespace App\Http\Controllers\Web\Dashboard;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\User;
 use App\Models\Role;
+use App\Models\User;
+use Illuminate\Http\Request;
+
 // use App\Models\Order;
 
 class HomeController extends Controller
@@ -45,7 +46,6 @@ class HomeController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
@@ -79,7 +79,6 @@ class HomeController extends Controller
      * Toggle light/dark theme for the authenticated user.
      * Implementación basada en uniblockx
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request)
@@ -96,7 +95,7 @@ class HomeController extends Controller
             case '0':
                 $light = '1';
                 break;
-            
+
             default:
                 $light = '1';
                 break;

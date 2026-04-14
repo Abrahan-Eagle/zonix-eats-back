@@ -3,16 +3,13 @@
 namespace App\Http\Controllers\Analytics;
 
 use App\Http\Controllers\Controller;
-use App\Models\Order;
-use App\Models\User;
 use App\Models\Commerce;
-use App\Models\Profile;
 use App\Models\DeliveryAgent;
-use App\Models\OrderDelivery;
+use App\Models\Order;
 use App\Models\Review;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
 
 class AnalyticsController extends Controller
 {
@@ -27,19 +24,19 @@ class AnalyticsController extends Controller
             $totalCustomers = User::where('role', 'users')->count();
             $totalDeliveries = Order::where('status', 'delivered')->count();
             $averageOrderValue = $totalOrders > 0 ? $totalRevenue / $totalOrders : 0;
-            
+
             // Customer satisfaction (promedio de reviews)
             $avgRating = Review::avg('rating') ?? 0;
-            
+
             // Delivery success rate
             $deliveredOrders = Order::where('status', 'delivered')->count();
             $deliverySuccessRate = $totalOrders > 0 ? ($deliveredOrders / $totalOrders) * 100 : 0;
-            
+
             // Active restaurants
             $activeRestaurants = Commerce::where('open', true)->count();
-            
+
             // Active delivery agents
-            $activeDeliveryAgents = DeliveryAgent::whereHas('profile', function($q) {
+            $activeDeliveryAgents = DeliveryAgent::whereHas('profile', function ($q) {
                 $q->where('status', 'active');
             })->count();
 
@@ -55,12 +52,12 @@ class AnalyticsController extends Controller
                     'delivery_success_rate' => round($deliverySuccessRate, 1),
                     'active_restaurants' => $activeRestaurants,
                     'active_delivery_agents' => $activeDeliveryAgents,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error obteniendo analytics: ' . $e->getMessage()
+                'message' => 'Error obteniendo analytics: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -85,12 +82,12 @@ class AnalyticsController extends Controller
                     'daily' => $daily,
                     'monthly' => $monthly,
                     'by_category' => $byCategory,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error obteniendo revenue analytics: ' . $e->getMessage()
+                'message' => 'Error obteniendo revenue analytics: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -115,12 +112,12 @@ class AnalyticsController extends Controller
                     'status_distribution' => $statusDistribution,
                     'peak_hours' => $peakHours,
                     'delivery_times' => $deliveryTimes,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error obteniendo order analytics: ' . $e->getMessage()
+                'message' => 'Error obteniendo order analytics: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -141,12 +138,12 @@ class AnalyticsController extends Controller
                     'new_vs_returning' => $newVsReturning,
                     'top_customers' => $topCustomers,
                     'customer_segments' => $customerSegments,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error obteniendo customer analytics: ' . $e->getMessage()
+                'message' => 'Error obteniendo customer analytics: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -165,12 +162,12 @@ class AnalyticsController extends Controller
                 'data' => [
                     'top_performers' => $topPerformers,
                     'performance_metrics' => $performanceMetrics,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error obteniendo restaurant analytics: ' . $e->getMessage()
+                'message' => 'Error obteniendo restaurant analytics: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -189,12 +186,12 @@ class AnalyticsController extends Controller
                 'data' => [
                     'agent_performance' => $agentPerformance,
                     'delivery_zones' => $deliveryZones,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error obteniendo delivery analytics: ' . $e->getMessage()
+                'message' => 'Error obteniendo delivery analytics: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -213,12 +210,12 @@ class AnalyticsController extends Controller
                 'data' => [
                     'campaign_performance' => $campaignPerformance,
                     'customer_acquisition' => $customerAcquisition,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error obteniendo marketing analytics: ' . $e->getMessage()
+                'message' => 'Error obteniendo marketing analytics: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -258,12 +255,12 @@ class AnalyticsController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $report
+                'data' => $report,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error generando reporte: ' . $e->getMessage()
+                'message' => 'Error generando reporte: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -279,7 +276,7 @@ class AnalyticsController extends Controller
             $startDate = $request->input('start_date');
             $endDate = $request->input('end_date');
 
-            $query = match($dataType) {
+            $query = match ($dataType) {
                 'orders' => Order::with(['profile', 'commerce', 'orderItems.product']),
                 'revenue' => Order::where('status', 'delivered')->with(['profile', 'commerce']),
                 'customers' => User::where('role', 'users')->with('profile'),
@@ -297,24 +294,24 @@ class AnalyticsController extends Controller
             $data = $query->get();
 
             // Generar contenido según formato
-            $filename = 'analytics-export-' . $dataType . '-' . now()->format('Y-m-d-H-i-s') . '.' . $format;
-            $filepath = storage_path('app/exports/' . $filename);
-            
+            $filename = 'analytics-export-'.$dataType.'-'.now()->format('Y-m-d-H-i-s').'.'.$format;
+            $filepath = storage_path('app/exports/'.$filename);
+
             // Crear directorio si no existe
-            if (!file_exists(storage_path('app/exports'))) {
+            if (! file_exists(storage_path('app/exports'))) {
                 mkdir(storage_path('app/exports'), 0755, true);
             }
 
             if ($format === 'csv') {
                 $file = fopen($filepath, 'w');
-                
+
                 // Escribir headers según tipo de datos
                 if ($dataType === 'orders' && $data->count() > 0) {
                     fputcsv($file, ['ID', 'Cliente', 'Comercio', 'Total', 'Estado', 'Método de Pago', 'Fecha']);
                     foreach ($data as $order) {
                         fputcsv($file, [
                             $order->id,
-                            $order->profile->firstName . ' ' . $order->profile->lastName,
+                            $order->profile->firstName.' '.$order->profile->lastName,
                             $order->commerce->business_name ?? 'N/A',
                             $order->total,
                             $order->status,
@@ -327,7 +324,7 @@ class AnalyticsController extends Controller
                     foreach ($data as $order) {
                         fputcsv($file, [
                             $order->id,
-                            $order->profile->firstName . ' ' . $order->profile->lastName,
+                            $order->profile->firstName.' '.$order->profile->lastName,
                             $order->commerce->business_name ?? 'N/A',
                             $order->total,
                             $order->created_at->format('Y-m-d H:i:s'),
@@ -338,7 +335,7 @@ class AnalyticsController extends Controller
                     foreach ($data as $user) {
                         fputcsv($file, [
                             $user->id,
-                            $user->profile->firstName . ' ' . $user->profile->lastName ?? 'N/A',
+                            $user->profile->firstName.' '.$user->profile->lastName ?? 'N/A',
                             $user->email,
                             $user->profile->phone ?? 'N/A',
                             $user->created_at->format('Y-m-d H:i:s'),
@@ -357,7 +354,7 @@ class AnalyticsController extends Controller
                         ]);
                     }
                 }
-                
+
                 fclose($file);
             } else {
                 // Para otros formatos, retornar JSON
@@ -365,7 +362,7 @@ class AnalyticsController extends Controller
             }
 
             // Generar URL de descarga (en producción, esto sería una URL pública)
-            $downloadUrl = url('/api/admin/analytics/export/download/' . $filename);
+            $downloadUrl = url('/api/admin/analytics/export/download/'.$filename);
 
             return response()->json([
                 'success' => true,
@@ -374,12 +371,12 @@ class AnalyticsController extends Controller
                     'filename' => $filename,
                     'expires_at' => now()->addHours(24)->toIso8601String(),
                     'records_exported' => $data->count(),
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error exportando datos: ' . $e->getMessage()
+                'message' => 'Error exportando datos: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -390,12 +387,12 @@ class AnalyticsController extends Controller
     public function downloadExport($filename)
     {
         try {
-            $filepath = storage_path('app/exports/' . $filename);
-            
-            if (!file_exists($filepath)) {
+            $filepath = storage_path('app/exports/'.$filename);
+
+            if (! file_exists($filepath)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Archivo no encontrado'
+                    'message' => 'Archivo no encontrado',
                 ], 404);
             }
 
@@ -403,9 +400,10 @@ class AnalyticsController extends Controller
             $fileAge = now()->diffInHours(filemtime($filepath));
             if ($fileAge > 24) {
                 unlink($filepath); // Eliminar archivo antiguo
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'El archivo ha expirado'
+                    'message' => 'El archivo ha expirado',
                 ], 410);
             }
 
@@ -413,7 +411,7 @@ class AnalyticsController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error descargando archivo: ' . $e->getMessage()
+                'message' => 'Error descargando archivo: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -425,17 +423,17 @@ class AnalyticsController extends Controller
     {
         try {
             $activeOrders = Order::whereIn('status', ['paid', 'processing', 'shipped'])->count();
-            $activeDeliveryAgents = DeliveryAgent::whereHas('profile', function($q) {
+            $activeDeliveryAgents = DeliveryAgent::whereHas('profile', function ($q) {
                 $q->where('status', 'active');
             })->count();
             $onlineRestaurants = Commerce::where('open', true)->count();
-            
+
             $revenueToday = Order::whereDate('created_at', today())
                 ->where('status', 'delivered')
                 ->sum('total');
-            
+
             $ordersToday = Order::whereDate('created_at', today())->count();
-            
+
             // Calcular tiempo promedio de espera (compatible MySQL y SQLite)
             $driver = DB::connection()->getDriverName();
             if (strtolower((string) $driver) === 'mysql') {
@@ -449,14 +447,14 @@ class AnalyticsController extends Controller
                     ->get(['created_at', 'updated_at']);
                 $averageWaitTime = $waitOrders->isEmpty() ? 0 : $waitOrders->map(fn ($o) => $o->created_at->diffInMinutes($o->updated_at))->avg();
             }
-            
+
             // Calcular uptime del sistema basado en órdenes procesadas vs fallidas
             // (aproximación: si hay órdenes siendo procesadas, el sistema está activo)
             $totalOrdersLast24h = Order::where('created_at', '>=', now()->subDay())->count();
             $failedOrdersLast24h = Order::where('status', 'cancelled')
                 ->where('created_at', '>=', now()->subDay())
                 ->count();
-            $systemUptime = $totalOrdersLast24h > 0 
+            $systemUptime = $totalOrdersLast24h > 0
                 ? round((($totalOrdersLast24h - $failedOrdersLast24h) / $totalOrdersLast24h) * 100, 2)
                 : 99.8; // Si no hay órdenes, asumir sistema activo
 
@@ -471,12 +469,12 @@ class AnalyticsController extends Controller
                     'average_wait_time' => round($averageWaitTime, 1),
                     'system_uptime' => $systemUptime,
                     'last_updated' => now()->toIso8601String(),
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error obteniendo real-time analytics: ' . $e->getMessage()
+                'message' => 'Error obteniendo real-time analytics: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -491,7 +489,7 @@ class AnalyticsController extends Controller
             $avgDailyRevenue = Order::where('status', 'delivered')
                 ->whereDate('created_at', '>=', now()->subDays(30))
                 ->sum('total') / 30;
-            
+
             $avgDailyOrders = Order::whereDate('created_at', '>=', now()->subDays(30))
                 ->count() / 30;
 
@@ -518,12 +516,12 @@ class AnalyticsController extends Controller
                         'low_demand_days' => ['Lunes', 'Martes'],
                         'seasonal_trends' => [],
                     ],
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error obteniendo predictive analytics: ' . $e->getMessage()
+                'message' => 'Error obteniendo predictive analytics: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -542,7 +540,7 @@ class AnalyticsController extends Controller
             $period1Revenue = Order::where('status', 'delivered')
                 ->whereBetween('created_at', [$period1Start, $period1End])
                 ->sum('total');
-            
+
             $period2Revenue = Order::where('status', 'delivered')
                 ->whereBetween('created_at', [$period2Start, $period2End])
                 ->sum('total');
@@ -586,12 +584,12 @@ class AnalyticsController extends Controller
                         'change_percentage' => 0,
                         'trend' => 'stable',
                     ],
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error obteniendo comparative analytics: ' . $e->getMessage()
+                'message' => 'Error obteniendo comparative analytics: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -622,14 +620,14 @@ class AnalyticsController extends Controller
                 ->whereYear('created_at', now()->subMonth()->year)
                 ->sum('total') ?? 0;
 
-            $revenueGrowth = $lastMonthRevenue > 0 
+            $revenueGrowth = $lastMonthRevenue > 0
                 ? round((($currentMonthRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100, 2)
                 : 0;
 
             // Calcular profit_margin (aproximado: asumiendo 20% de costo operativo)
             // En producción real, esto vendría de una tabla de costos
             $estimatedCosts = $totalRevenue * 0.20; // 20% de costos estimados
-            $profitMargin = $totalRevenue > 0 
+            $profitMargin = $totalRevenue > 0
                 ? round((($totalRevenue - $estimatedCosts) / $totalRevenue) * 100, 2)
                 : 0;
 
@@ -654,7 +652,7 @@ class AnalyticsController extends Controller
             $failedOrdersLast24h = Order::where('status', 'cancelled')
                 ->where('created_at', '>=', now()->subDay())
                 ->count();
-            $systemUptime = $totalOrdersLast24h > 0 
+            $systemUptime = $totalOrdersLast24h > 0
                 ? round((($totalOrdersLast24h - $failedOrdersLast24h) / $totalOrdersLast24h) * 100, 2)
                 : 99.8;
 
@@ -664,7 +662,7 @@ class AnalyticsController extends Controller
                 ->groupBy('profile_id')
                 ->having('order_count', '>', 1)
                 ->count();
-            $customerRetentionRate = $totalCustomers > 0 
+            $customerRetentionRate = $totalCustomers > 0
                 ? round(($repeatCustomers / $totalCustomers) * 100, 2)
                 : 0;
 
@@ -675,13 +673,13 @@ class AnalyticsController extends Controller
                 ->whereYear('created_at', now()->year)
                 ->count();
             $estimatedMarketingCost = $newCustomersThisMonth * 10; // $10 por cliente estimado
-            $customerAcquisitionCost = $newCustomersThisMonth > 0 
+            $customerAcquisitionCost = $newCustomersThisMonth > 0
                 ? round($estimatedMarketingCost / $newCustomersThisMonth, 2)
                 : 0;
 
             // Calcular customer_lifetime_value (promedio de ingresos por cliente)
             $totalCustomersWithOrders = Order::distinct('profile_id')->count('profile_id');
-            $customerLifetimeValue = $totalCustomersWithOrders > 0 
+            $customerLifetimeValue = $totalCustomersWithOrders > 0
                 ? round($totalRevenue / $totalCustomersWithOrders, 2)
                 : 0;
 
@@ -689,7 +687,7 @@ class AnalyticsController extends Controller
             $promoters = Review::where('rating', '>=', 9)->count();
             $detractors = Review::where('rating', '<=', 6)->count();
             $totalReviews = Review::count();
-            $netPromoterScore = $totalReviews > 0 
+            $netPromoterScore = $totalReviews > 0
                 ? round((($promoters - $detractors) / $totalReviews) * 100, 2)
                 : 0;
 
@@ -700,7 +698,7 @@ class AnalyticsController extends Controller
             $lastMonthOrders = Order::whereMonth('created_at', now()->subMonth()->month)
                 ->whereYear('created_at', now()->subMonth()->year)
                 ->count();
-            $monthOverMonthGrowth = $lastMonthOrders > 0 
+            $monthOverMonthGrowth = $lastMonthOrders > 0
                 ? round((($currentMonthOrders - $lastMonthOrders) / $lastMonthOrders) * 100, 2)
                 : 0;
 
@@ -713,7 +711,7 @@ class AnalyticsController extends Controller
                 ->whereMonth('created_at', now()->subMonth()->month)
                 ->whereYear('created_at', now()->subMonth()->year)
                 ->count();
-            $newCustomerGrowth = $lastMonthNewCustomers > 0 
+            $newCustomerGrowth = $lastMonthNewCustomers > 0
                 ? round((($currentMonthNewCustomers - $lastMonthNewCustomers) / $lastMonthNewCustomers) * 100, 2)
                 : 0;
 
@@ -724,7 +722,7 @@ class AnalyticsController extends Controller
             $lastMonthRestaurants = Commerce::whereMonth('created_at', now()->subMonth()->month)
                 ->whereYear('created_at', now()->subMonth()->year)
                 ->count();
-            $restaurantGrowth = $lastMonthRestaurants > 0 
+            $restaurantGrowth = $lastMonthRestaurants > 0
                 ? round((($currentMonthRestaurants - $lastMonthRestaurants) / $lastMonthRestaurants) * 100, 2)
                 : 0;
 
@@ -735,7 +733,7 @@ class AnalyticsController extends Controller
             $lastMonthAgents = DeliveryAgent::whereMonth('created_at', now()->subMonth()->month)
                 ->whereYear('created_at', now()->subMonth()->year)
                 ->count();
-            $deliveryAgentGrowth = $lastMonthAgents > 0 
+            $deliveryAgentGrowth = $lastMonthAgents > 0
                 ? round((($currentMonthAgents - $lastMonthAgents) / $lastMonthAgents) * 100, 2)
                 : 0;
 
@@ -766,12 +764,12 @@ class AnalyticsController extends Controller
                         'restaurant_growth' => $restaurantGrowth,
                         'delivery_agent_growth' => $deliveryAgentGrowth,
                     ],
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error obteniendo KPI dashboard: ' . $e->getMessage()
+                'message' => 'Error obteniendo KPI dashboard: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -790,10 +788,10 @@ class AnalyticsController extends Controller
         $dailyData = $driver === 'mysql'
             ? $query->clone()->selectRaw('DATE(created_at) as date, SUM(total) as revenue, COUNT(*) as orders')
                 ->groupBy('date')->orderBy('date', 'desc')->limit(30)->get()
-            : $query->clone()->selectRaw("date(created_at) as date, SUM(total) as revenue, COUNT(*) as orders")
+            : $query->clone()->selectRaw('date(created_at) as date, SUM(total) as revenue, COUNT(*) as orders')
                 ->groupBy('date')->orderBy('date', 'desc')->limit(30)->get();
 
-        return $dailyData->map(function($item) {
+        return $dailyData->map(function ($item) {
             return [
                 'date' => $item->date,
                 'revenue' => round((float) $item->revenue, 2),
@@ -817,7 +815,8 @@ class AnalyticsController extends Controller
                 ->groupBy('year', 'month')
                 ->orderBy('year', 'desc')->orderBy('month', 'desc')->limit(12)->get();
         }
-        return $monthlyData->map(function($item) use ($months) {
+
+        return $monthlyData->map(function ($item) use ($months) {
             return [
                 'month' => $months[($item->month ?? 1) - 1],
                 'revenue' => round((float) $item->revenue, 2),
@@ -841,7 +840,7 @@ class AnalyticsController extends Controller
 
         $total = $statuses->sum('count');
 
-        return $statuses->map(function($item) use ($total) {
+        return $statuses->map(function ($item) use ($total) {
             return [
                 'status' => $item->status,
                 'count' => $item->count,
@@ -858,9 +857,10 @@ class AnalyticsController extends Controller
             : Order::selectRaw("cast(strftime('%H', created_at) as integer) as hour, COUNT(*) as orders")->groupBy('hour')->orderByDesc('orders')->limit(5)->get();
 
         $total = $hours->sum('orders');
-        return $hours->map(function($item) use ($total) {
+
+        return $hours->map(function ($item) use ($total) {
             return [
-                'hour' => str_pad((string)($item->hour ?? 0), 2, '0', STR_PAD_LEFT) . ':00',
+                'hour' => str_pad((string) ($item->hour ?? 0), 2, '0', STR_PAD_LEFT).':00',
                 'orders' => (int) $item->orders,
                 'percentage' => $total > 0 ? round(($item->orders / $total) * 100, 1) : 0,
             ];
@@ -885,22 +885,22 @@ class AnalyticsController extends Controller
                 ->selectRaw('TIMESTAMPDIFF(MINUTE, created_at, updated_at) as delivery_time')
                 ->get()->pluck('delivery_time');
         } else {
-            $deliveryTimes = $orders->map(fn($o) => $o->created_at->diffInMinutes($o->updated_at));
+            $deliveryTimes = $orders->map(fn ($o) => $o->created_at->diffInMinutes($o->updated_at));
         }
-        $deliveryTimes = $deliveryTimes->filter(fn($time) => $time > 0 && $time <= 120);
+        $deliveryTimes = $deliveryTimes->filter(fn ($time) => $time > 0 && $time <= 120);
 
         $average = $deliveryTimes->isNotEmpty() ? round($deliveryTimes->avg(), 1) : 0;
         $fastest = $deliveryTimes->isNotEmpty() ? round($deliveryTimes->min(), 1) : 0;
         $slowest = $deliveryTimes->isNotEmpty() ? round($deliveryTimes->max(), 1) : 0;
 
         $distribution = [
-            '0-15' => $deliveryTimes->filter(fn($t) => $t >= 0 && $t < 15)->count(),
-            '15-30' => $deliveryTimes->filter(fn($t) => $t >= 15 && $t < 30)->count(),
-            '30-45' => $deliveryTimes->filter(fn($t) => $t >= 30 && $t < 45)->count(),
-            '45-60' => $deliveryTimes->filter(fn($t) => $t >= 45 && $t < 60)->count(),
-            '60+' => $deliveryTimes->filter(fn($t) => $t >= 60)->count(),
+            '0-15' => $deliveryTimes->filter(fn ($t) => $t >= 0 && $t < 15)->count(),
+            '15-30' => $deliveryTimes->filter(fn ($t) => $t >= 15 && $t < 30)->count(),
+            '30-45' => $deliveryTimes->filter(fn ($t) => $t >= 30 && $t < 45)->count(),
+            '45-60' => $deliveryTimes->filter(fn ($t) => $t >= 45 && $t < 60)->count(),
+            '60+' => $deliveryTimes->filter(fn ($t) => $t >= 60)->count(),
         ];
-        
+
         return [
             'average' => $average,
             'fastest' => $fastest,
@@ -934,10 +934,10 @@ class AnalyticsController extends Controller
             ->with(['profile.user'])
             ->get();
 
-        return $topCustomers->map(function($item) {
+        return $topCustomers->map(function ($item) {
             $profile = $item->profile;
-            $name = $profile ? trim(($profile->firstName ?? '') . ' ' . ($profile->lastName ?? '')) : 'Usuario';
-            
+            $name = $profile ? trim(($profile->firstName ?? '').' '.($profile->lastName ?? '')) : 'Usuario';
+
             return [
                 'id' => $item->profile_id,
                 'name' => $name ?: 'Usuario',
@@ -963,7 +963,7 @@ class AnalyticsController extends Controller
             ->with(['commerce.profile'])
             ->get();
 
-        return $topRestaurants->map(function($item) {
+        return $topRestaurants->map(function ($item) {
             $commerce = $item->commerce;
             $avgRating = Review::where('reviewable_type', 'App\Models\Commerce')
                 ->where('reviewable_id', $item->commerce_id)
@@ -1006,27 +1006,27 @@ class AnalyticsController extends Controller
                 $averagePreparationTime = $allMin->isEmpty() ? (float) config('zonix.analytics.avg_preparation_fallback_minutes', 12.5) : $allMin->avg();
             }
         }
-        
+
         // Calcular tasa de aceptación de órdenes
         // Órdenes aceptadas = todas las que no están canceladas O fueron canceladas después de ser aceptadas
         $totalOrders = Order::whereDate('created_at', '>=', now()->subDays(30))->count();
-        
+
         $acceptedOrders = Order::whereDate('created_at', '>=', now()->subDays(30))
-            ->where(function($q) {
+            ->where(function ($q) {
                 // Órdenes que NO están canceladas (fueron aceptadas)
                 $q->where('status', '!=', 'cancelled')
                   // O están canceladas pero tenían payment_validated (fueron aceptadas primero)
-                  ->orWhere(function($subQ) {
-                      $subQ->where('status', 'cancelled')
-                           ->whereNotNull('payment_validated_at');
-                  });
+                    ->orWhere(function ($subQ) {
+                        $subQ->where('status', 'cancelled')
+                            ->whereNotNull('payment_validated_at');
+                    });
             })
             ->count();
-        
-        $orderAcceptanceRate = $totalOrders > 0 
+
+        $orderAcceptanceRate = $totalOrders > 0
             ? round(($acceptedOrders / $totalOrders) * 100, 1)
             : 0;
-        
+
         return [
             'average_preparation_time' => round($averagePreparationTime, 1),
             'average_rating' => round(Review::avg('rating') ?? 0, 1),
@@ -1041,8 +1041,8 @@ class AnalyticsController extends Controller
             ->limit(5)
             ->get();
 
-        return $agents->map(function($agent) {
-            $deliveries = Order::whereHas('orderDelivery', function($q) use ($agent) {
+        return $agents->map(function ($agent) {
+            $deliveries = Order::whereHas('orderDelivery', function ($q) use ($agent) {
                 $q->where('agent_id', $agent->id);
             })->where('status', 'delivered')->count();
 
@@ -1052,13 +1052,13 @@ class AnalyticsController extends Controller
 
             // Calcular ganancias reales sumando delivery_fee de las entregas
             $earnings = \App\Models\OrderDelivery::where('agent_id', $agent->id)
-                ->whereHas('order', function($q) {
+                ->whereHas('order', function ($q) {
                     $q->where('status', 'delivered');
                 })
                 ->sum('delivery_fee') ?? 0;
 
             $profile = $agent->profile;
-            $name = $profile ? trim(($profile->firstName ?? '') . ' ' . ($profile->lastName ?? '')) : 'Repartidor';
+            $name = $profile ? trim(($profile->firstName ?? '').' '.($profile->lastName ?? '')) : 'Repartidor';
 
             return [
                 'id' => $agent->id,

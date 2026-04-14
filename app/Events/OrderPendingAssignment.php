@@ -15,6 +15,7 @@ class OrderPendingAssignment implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     private string $eventId;
+
     private string $occurredAt;
 
     public function __construct(
@@ -26,12 +27,18 @@ class OrderPendingAssignment implements ShouldBroadcast
 
     public function broadcastOn(): array
     {
-        if (!$this->order->delivery_company_id) {
+        if (! $this->order->delivery_company_id) {
             return [];
         }
+
         return [
-            new PrivateChannel('company.' . $this->order->delivery_company_id),
+            new PrivateChannel('company.'.$this->order->delivery_company_id),
         ];
+    }
+
+    public function broadcastAs(): string
+    {
+        return 'OrderPendingAssignment';
     }
 
     public function broadcastWith(): array

@@ -47,7 +47,6 @@ return new class extends Migration
             ]);
         }
 
-
     }
 
     public function down(): void
@@ -55,4 +54,4 @@ return new class extends Migration
         // Eliminar todos los datos migrados
         DB::table('payment_methods')->truncate();
     }
-}; 
+};

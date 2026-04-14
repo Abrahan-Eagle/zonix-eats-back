@@ -7,13 +7,17 @@ use Tests\TestCase;
 class PusherConfigTest extends TestCase
 {
     /** @test */
-    public function pusher_broadcast_driver_is_configured()
+    public function broadcast_driver_in_testing_is_null_to_avoid_real_pusher_http()
     {
-        $this->assertSame('pusher', config('broadcasting.default'));
+        $driver = config('broadcasting.default');
+        $this->assertTrue(
+            $driver === null || $driver === 'null',
+            'phpunit debe desactivar broadcasting (BROADCAST_DRIVER null) para no llamar a Pusher en la suite'
+        );
     }
 
     /** @test */
-    public function pusher_credentials_are_present()
+    public function pusher_credentials_are_present_in_environment()
     {
         $this->assertNotEmpty(env('PUSHER_APP_ID'), 'PUSHER_APP_ID no está configurado');
         $this->assertNotEmpty(env('PUSHER_APP_KEY'), 'PUSHER_APP_KEY no está configurado');
@@ -32,4 +36,3 @@ class PusherConfigTest extends TestCase
         $this->assertEquals(env('PUSHER_APP_CLUSTER', 'mt1'), $connection['options']['cluster']);
     }
 }
-

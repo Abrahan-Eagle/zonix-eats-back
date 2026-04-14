@@ -10,11 +10,17 @@ use Illuminate\Support\Facades\Auth;
 class CartService
 {
     public const ERR_UNAUTHENTICATED = 1001;
+
     public const ERR_PROFILE_REQUIRED = 1002;
+
     public const ERR_INVALID_QUANTITY = 1003;
+
     public const ERR_PRODUCT_UNAVAILABLE = 1004;
+
     public const ERR_COMMERCE_CLOSED = 1005;
+
     public const ERR_OUT_OF_STOCK = 1006;
+
     public const ERR_LINE_NOT_FOUND = 1007;
 
     /**
@@ -26,20 +32,20 @@ class CartService
     private function getOrCreateCart()
     {
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             throw new \RuntimeException('Usuario no autenticado', self::ERR_UNAUTHENTICATED);
         }
         $profile = $user->profile;
-        if (!$profile) {
+        if (! $profile) {
             throw new \RuntimeException('Debe completar su perfil para usar el carrito', self::ERR_PROFILE_REQUIRED);
         }
+
         return Cart::getOrCreateForProfile($profile->id);
     }
 
     /**
      * Agregar un producto al carrito.
      *
-     * @param array $productData
      * @return array
      */
     public function addToCart(array $productData)
@@ -57,12 +63,12 @@ class CartService
         $product = Product::with('commerce')->findOrFail($productId);
 
         // Validar que producto está disponible
-        if (!$product->available) {
+        if (! $product->available) {
             throw new \RuntimeException('El producto no está disponible', self::ERR_PRODUCT_UNAVAILABLE);
         }
 
         // Validar que commerce está activo
-        if (!$product->commerce || !$product->commerce->open) {
+        if (! $product->commerce || ! $product->commerce->open) {
             throw new \RuntimeException('El comercio no está disponible', self::ERR_COMMERCE_CLOSED);
         }
 
@@ -126,14 +132,15 @@ class CartService
     public function getCart()
     {
         $cart = $this->getOrCreateCart();
+
         return $this->formatCartResponse($cart);
     }
 
     /**
      * Actualizar cantidad de un producto.
      *
-     * @param int $productId
-     * @param int $quantity
+     * @param  int  $productId
+     * @param  int  $quantity
      * @return array
      */
     public function updateQuantity($productId, $quantity, $lineId = null)
@@ -144,21 +151,21 @@ class CartService
         }
 
         $cart = $this->getOrCreateCart();
-        
+
         $query = CartItem::where('cart_id', $cart->id)->with('product');
-        if (!empty($lineId)) {
+        if (! empty($lineId)) {
             $query->where('line_id', $lineId);
         } else {
             $query->where('product_id', $productId);
         }
 
         $cartItem = $query->first();
-        if (!$cartItem) {
+        if (! $cartItem) {
             throw new \RuntimeException('Línea de carrito no encontrada', self::ERR_LINE_NOT_FOUND);
         }
 
         // Validar que producto sigue disponible (available Y stock_quantity)
-        if (!$cartItem->product->available) {
+        if (! $cartItem->product->available) {
             throw new \RuntimeException('El producto ya no está disponible', self::ERR_PRODUCT_UNAVAILABLE);
         }
 
@@ -178,7 +185,7 @@ class CartService
     /**
      * Remover un producto del carrito.
      *
-     * @param int $productId
+     * @param  int  $productId
      * @return array
      */
     public function removeFromCart($productId, $lineId = null)
@@ -186,7 +193,7 @@ class CartService
         $cart = $this->getOrCreateCart();
 
         $query = CartItem::where('cart_id', $cart->id);
-        if (!empty($lineId)) {
+        if (! empty($lineId)) {
             $query->where('line_id', $lineId);
         } else {
             $query->where('product_id', $productId);
@@ -199,7 +206,7 @@ class CartService
     /**
      * Agregar notas al carrito.
      *
-     * @param string $notes
+     * @param  string  $notes
      * @return array
      */
     public function addNotes($notes)
@@ -230,13 +237,12 @@ class CartService
      * Formatear la respuesta del carrito en el formato esperado por el frontend
      * Compatible con el formato anterior basado en Session
      *
-     * @param Cart $cart
      * @return array
      */
     private function formatCartResponse(Cart $cart)
     {
         $items = $cart->items()->with(['product.commerce', 'product.category'])->get();
-        
+
         // Validar que productos sigan disponibles y remover los que no
         $validItems = $items->filter(function ($item) {
             return $item->product && $item->product->available && $item->product->commerce && $item->product->commerce->open;
@@ -261,6 +267,7 @@ class CartService
     private function formatCartItem(CartItem $item): array
     {
         $product = $item->product;
+
         return [
             'id' => $product->id,
             'product_id' => $product->id,
@@ -286,6 +293,7 @@ class CartService
         }
 
         $normalizedNotes = mb_strtolower(trim(preg_replace('/\s+/', ' ', $notes)));
+
         return substr('p'.$productId.'-'.hash('sha256', $productId.'|'.$normalizedNotes), 0, 120);
     }
 }

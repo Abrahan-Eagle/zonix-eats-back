@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
 use App\Models\Profile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Tests\TestCase;
 
 class ProfileControllerTest extends TestCase
 {
@@ -18,23 +18,23 @@ class ProfileControllerTest extends TestCase
         $this->user = User::factory()->create(['role' => 'users']);
     }
 
-    public function testIndex()
+    public function test_index()
     {
         Profile::factory()->create(['user_id' => $this->user->id]);
         $response = $this->actingAs($this->user, 'sanctum')
-                        ->get('/api/profiles');
+            ->get('/api/profiles');
         $response->assertStatus(200)
-                 ->assertJsonStructure([
-                     'success',
-                     'data' => [
-                         '*' => [
-                             'id', 'user_id', 'firstName', 'middleName', 'lastName', 'secondLastName', 'photo_users', 'date_of_birth', 'maritalStatus', 'sex',
-                         ],
-                     ],
-                 ]);
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    '*' => [
+                        'id', 'user_id', 'firstName', 'middleName', 'lastName', 'secondLastName', 'photo_users', 'date_of_birth', 'maritalStatus', 'sex',
+                    ],
+                ],
+            ]);
     }
 
-    public function testStore()
+    public function test_store()
     {
         $data = [
             'user_id' => $this->user->id,
@@ -46,12 +46,12 @@ class ProfileControllerTest extends TestCase
         ];
 
         $response = $this->actingAs($this->user, 'sanctum')
-                        ->post('/api/profiles', $data);
+            ->post('/api/profiles', $data);
         $response->assertStatus(201)
-                 ->assertJson(['message' => 'Perfil creado exitosamente.']);
+            ->assertJson(['message' => 'Perfil creado exitosamente.']);
     }
 
-    public function testStoreSucceedsWithoutPhone()
+    public function test_store_succeeds_without_phone()
     {
         $data = [
             'user_id' => $this->user->id,
@@ -63,7 +63,7 @@ class ProfileControllerTest extends TestCase
         ];
 
         $response = $this->actingAs($this->user, 'sanctum')
-                        ->post('/api/profiles', $data);
+            ->post('/api/profiles', $data);
         $response->assertStatus(201);
         $this->assertDatabaseHas('profiles', [
             'user_id' => $this->user->id,
@@ -72,16 +72,16 @@ class ProfileControllerTest extends TestCase
         ]);
     }
 
-    public function testShow()
+    public function test_show()
     {
         $profile = Profile::factory()->create(['user_id' => $this->user->id]);
         $response = $this->actingAs($this->user, 'sanctum')
-                        ->get("/api/profiles/{$profile->id}");
+            ->get("/api/profiles/{$profile->id}");
         $response->assertStatus(200)
-                 ->assertJsonPath('data.id', $profile->id);
+            ->assertJsonPath('data.id', $profile->id);
     }
 
-    public function testUpdate()
+    public function test_update()
     {
         $profile = Profile::factory()->create(['user_id' => $this->user->id]);
         $data = [
@@ -93,18 +93,18 @@ class ProfileControllerTest extends TestCase
         ];
 
         $response = $this->actingAs($this->user, 'sanctum')
-                        ->post("/api/profiles/{$profile->id}", $data);
+            ->post("/api/profiles/{$profile->id}", $data);
         $response->assertStatus(200)
-                 ->assertJson(['message' => 'Perfil actualizado exitosamente.']);
+            ->assertJson(['message' => 'Perfil actualizado exitosamente.']);
     }
 
-    public function testDestroy()
+    public function test_destroy()
     {
         $profile = Profile::factory()->create(['user_id' => $this->user->id]);
         $response = $this->actingAs($this->user, 'sanctum')
-                        ->delete("/api/profiles/{$profile->id}");
+            ->delete("/api/profiles/{$profile->id}");
         $response->assertStatus(200)
-                 ->assertJson(['message' => 'Perfil eliminado exitosamente.']);
+            ->assertJson(['message' => 'Perfil eliminado exitosamente.']);
     }
 
     /**

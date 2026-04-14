@@ -3,9 +3,7 @@
 namespace App\Events;
 
 use App\Models\Order;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
@@ -17,7 +15,9 @@ class OrderCreated implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $order;
+
     private string $eventId;
+
     private string $occurredAt;
 
     /**
@@ -38,14 +38,12 @@ class OrderCreated implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('commerce.' . $this->order->commerce_id),
+            new PrivateChannel('commerce.'.$this->order->commerce_id),
         ];
     }
 
     /**
      * Get the data to broadcast.
-     *
-     * @return array
      */
     public function broadcastWith(): array
     {
@@ -54,7 +52,7 @@ class OrderCreated implements ShouldBroadcast
             'schema_version' => 'v1',
             'occurred_at' => $this->occurredAt,
             'order_id' => $this->order->id,
-            'order_number' => $this->order->orderNumber ?? 'ORD-' . $this->order->id,
+            'order_number' => $this->order->orderNumber ?? 'ORD-'.$this->order->id,
             'commerce_id' => $this->order->commerce_id,
             'user_id' => $this->order->user_id,
             'status' => $this->order->status,
@@ -71,4 +69,4 @@ class OrderCreated implements ShouldBroadcast
     {
         return 'OrderCreated';
     }
-} 
+}

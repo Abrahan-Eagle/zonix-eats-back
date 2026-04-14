@@ -6,10 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Models\Product;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Exception;
 
 class ProductController extends Controller
 {
@@ -22,8 +22,9 @@ class ProductController extends Controller
             $user = Auth::user();
             $profile = $user->profile;
             $commerce = $profile ? $profile->getPrimaryCommerce() : null;
-            if (!$commerce) {
+            if (! $commerce) {
                 \Log::error('No se encontró comercio para el usuario', ['user_id' => $user->id]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Comercio no encontrado para el usuario autenticado',
@@ -34,9 +35,9 @@ class ProductController extends Controller
             // Filtros de búsqueda
             if ($request->has('search')) {
                 $search = $request->get('search');
-                $query->where(function($q) use ($search) {
+                $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('description', 'like', "%{$search}%");
+                        ->orWhere('description', 'like', "%{$search}%");
                 });
             }
 
@@ -79,7 +80,7 @@ class ProductController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener productos',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -90,8 +91,9 @@ class ProductController extends Controller
             $user = Auth::user();
             $profile = $user->profile;
             $commerce = $profile ? $profile->getPrimaryCommerce() : null;
-            if (!$commerce) {
+            if (! $commerce) {
                 \Log::error('No se encontró comercio para el usuario', ['user_id' => $user->id]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Comercio no encontrado para el usuario autenticado',
@@ -119,14 +121,14 @@ class ProductController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Producto creado correctamente',
-                'data' => $product
+                'data' => $product,
             ], 201);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al crear producto',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -137,8 +139,9 @@ class ProductController extends Controller
             $user = Auth::user();
             $profile = $user->profile;
             $commerce = $profile ? $profile->getPrimaryCommerce() : null;
-            if (!$commerce) {
+            if (! $commerce) {
                 \Log::error('No se encontró comercio para el usuario', ['user_id' => $user->id]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Comercio no encontrado para el usuario autenticado',
@@ -149,14 +152,14 @@ class ProductController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Producto obtenido correctamente',
-                'data' => $product
+                'data' => $product,
             ], 200);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Producto no encontrado',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 404);
         }
     }
@@ -167,8 +170,9 @@ class ProductController extends Controller
             $user = Auth::user();
             $profile = $user->profile;
             $commerce = $profile ? $profile->getPrimaryCommerce() : null;
-            if (!$commerce) {
+            if (! $commerce) {
                 \Log::error('No se encontró comercio para el usuario', ['user_id' => $user->id]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Comercio no encontrado para el usuario autenticado',
@@ -199,14 +203,14 @@ class ProductController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Producto actualizado correctamente',
-                'data' => $product
+                'data' => $product,
             ], 200);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al actualizar producto',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -217,8 +221,9 @@ class ProductController extends Controller
             $user = Auth::user();
             $profile = $user->profile;
             $commerce = $profile ? $profile->getPrimaryCommerce() : null;
-            if (!$commerce) {
+            if (! $commerce) {
                 \Log::error('No se encontró comercio para el usuario', ['user_id' => $user->id]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Comercio no encontrado para el usuario autenticado',
@@ -235,14 +240,14 @@ class ProductController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Producto eliminado correctamente'
+                'message' => 'Producto eliminado correctamente',
             ], 200);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al eliminar producto',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -256,29 +261,30 @@ class ProductController extends Controller
             $user = Auth::user();
             $profile = $user->profile;
             $commerce = $profile ? $profile->getPrimaryCommerce() : null;
-            if (!$commerce) {
+            if (! $commerce) {
                 \Log::error('No se encontró comercio para el usuario', ['user_id' => $user->id]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Comercio no encontrado para el usuario autenticado',
                 ], 404);
             }
             $product = Product::where('commerce_id', $commerce->id)->findOrFail($id);
-            $product->update(['available' => !$product->available]);
+            $product->update(['available' => ! $product->available]);
 
             $message = $product->available ? 'Producto marcado como disponible' : 'Producto marcado como no disponible';
 
             return response()->json([
                 'success' => true,
                 'message' => $message,
-                'data' => $product
+                'data' => $product,
             ], 200);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al cambiar disponibilidad',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -291,7 +297,7 @@ class ProductController extends Controller
         try {
             $user = Auth::user();
             $commerce = $user->profile?->getPrimaryCommerce();
-            if (!$commerce) {
+            if (! $commerce) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Comercio no encontrado para el usuario autenticado',
@@ -311,14 +317,14 @@ class ProductController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Estadísticas obtenidas correctamente',
-                'data' => $stats
+                'data' => $stats,
             ], 200);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener estadísticas',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

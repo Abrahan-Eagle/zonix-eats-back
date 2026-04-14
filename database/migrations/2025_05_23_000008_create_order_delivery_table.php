@@ -8,7 +8,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Crea tabla order_delivery con campos en inglés desde el inicio.
      * Consolidado: rename_estado_envio_to_status, alter_status_column, y renombrado de campos en español.
      */

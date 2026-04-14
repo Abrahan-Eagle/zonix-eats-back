@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('delivery_agent_id')->constrained()->onDelete('cascade');
             $table->foreignId('bank_id')->nullable()->constrained('banks')->onDelete('set null');
             $table->enum('type', [
-                'card', 'mobile_payment', 'cash', 'paypal', 'digital_wallet', 'bank_transfer', 'other'
+                'card', 'mobile_payment', 'cash', 'paypal', 'digital_wallet', 'bank_transfer', 'other',
             ]);
             $table->string('brand')->nullable();
             $table->string('account_number')->nullable();
@@ -30,4 +30,4 @@ return new class extends Migration
     {
         Schema::dropIfExists('delivery_payment_methods');
     }
-}; 
+};

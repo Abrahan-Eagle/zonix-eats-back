@@ -12,7 +12,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasColumn('orders', 'delivery_company_id')) {
+        if (! Schema::hasColumn('orders', 'delivery_company_id')) {
             Schema::table('orders', function (Blueprint $table) {
                 $table->foreignId('delivery_company_id')->nullable()->after('commerce_id')
                     ->constrained('delivery_companies')->onDelete('set null');
@@ -23,7 +23,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (!Schema::hasColumn('orders', 'delivery_company_id')) {
+        if (! Schema::hasColumn('orders', 'delivery_company_id')) {
             return;
         }
         if (Schema::getConnection()->getDriverName() === 'sqlite') {

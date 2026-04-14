@@ -17,13 +17,13 @@ class CartController extends Controller
 {
     /**
      * Servicio de carrito.
+     *
      * @var CartService
      */
     protected $cartService;
 
     /**
      * Inyecta el servicio de carrito.
-     * @param CartService $cartService
      */
     public function __construct(CartService $cartService)
     {
@@ -32,7 +32,7 @@ class CartController extends Controller
 
     /**
      * Agregar un producto al carrito.
-     * @param \Illuminate\Http\Request $request
+     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function add(Request $request)
@@ -45,6 +45,7 @@ class CartController extends Controller
         ]);
         try {
             $cart = $this->cartService->addToCart($validated);
+
             return response()->json([
                 'success' => true,
                 'data' => $cart,
@@ -57,12 +58,14 @@ class CartController extends Controller
 
     /**
      * Mostrar el contenido del carrito.
+     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function show()
     {
         try {
             $cart = $this->cartService->getCart();
+
             return response()->json([
                 'success' => true,
                 'data' => $cart,
@@ -75,7 +78,7 @@ class CartController extends Controller
 
     /**
      * Actualizar cantidad de un producto en el carrito.
-     * @param \Illuminate\Http\Request $request
+     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function updateQuantity(Request $request)
@@ -85,13 +88,14 @@ class CartController extends Controller
             'quantity' => 'required|integer|min:1',
             'line_id' => 'nullable|string|max:120',
         ]);
-        
+
         try {
             $cart = $this->cartService->updateQuantity(
                 $validated['product_id'],
                 $validated['quantity'],
                 $validated['line_id'] ?? null
             );
+
             return response()->json([
                 'success' => true,
                 'data' => $cart,
@@ -104,7 +108,8 @@ class CartController extends Controller
 
     /**
      * Remover un producto del carrito.
-     * @param int $productId
+     *
+     * @param  int  $productId
      * @return \Illuminate\Http\JsonResponse
      */
     public function remove(Request $request, $productId)
@@ -112,6 +117,7 @@ class CartController extends Controller
         try {
             $lineId = $request->query('line_id');
             $cart = $this->cartService->removeFromCart($productId, $lineId);
+
             return response()->json([
                 'success' => true,
                 'data' => $cart,
@@ -124,7 +130,7 @@ class CartController extends Controller
 
     /**
      * Agregar notas al carrito.
-     * @param \Illuminate\Http\Request $request
+     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function addNotes(Request $request)
@@ -132,9 +138,10 @@ class CartController extends Controller
         $validated = $request->validate([
             'notes' => 'nullable|string|max:500',
         ]);
-        
+
         try {
             $cart = $this->cartService->addNotes($validated['notes']);
+
             return response()->json([
                 'success' => true,
                 'data' => $cart,
@@ -147,12 +154,14 @@ class CartController extends Controller
 
     /**
      * Limpiar el carrito completo.
+     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function clear()
     {
         try {
             $cart = $this->cartService->clearCart();
+
             return response()->json([
                 'success' => true,
                 'data' => $cart,

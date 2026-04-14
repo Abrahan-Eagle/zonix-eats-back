@@ -2,12 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePaymentMethodRequest;
 use App\Http\Requests\UpdatePaymentMethodRequest;
-use Illuminate\Http\Request;
-use App\Models\PaymentMethod;
-use App\Models\Bank;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -25,7 +21,7 @@ class PaymentMethodController extends Controller
     protected function getPayableOwner()
     {
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             return $user;
         }
 
@@ -41,6 +37,7 @@ class PaymentMethodController extends Controller
                         return $commerce;
                     }
                 }
+
                 return $profile->getPrimaryCommerce();
             }
 
@@ -54,12 +51,13 @@ class PaymentMethodController extends Controller
                 return $profile->deliveryCompany;
             }
         } catch (\Throwable $e) {
-            Log::warning('Error determinando payable owner para métodos de pago: ' . $e->getMessage());
+            Log::warning('Error determinando payable owner para métodos de pago: '.$e->getMessage());
         }
 
         // Fallback: usuario autenticado (rol users/admin)
         return $user;
     }
+
     /**
      * Obtener métodos de pago del usuario autenticado
      */
@@ -67,20 +65,21 @@ class PaymentMethodController extends Controller
     {
         try {
             $owner = $this->getPayableOwner();
-            if (!$owner || !method_exists($owner, 'paymentMethods')) {
+            if (! $owner || ! method_exists($owner, 'paymentMethods')) {
                 return response()->json(['success' => true, 'data' => []]);
             }
             $methods = $owner->paymentMethods()->with('bank')->active()->get();
 
             return response()->json([
                 'success' => true,
-                'data' => $methods
+                'data' => $methods,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error al obtener métodos de pago: ' . $e->getMessage());
+            Log::error('Error al obtener métodos de pago: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener métodos de pago'
+                'message' => 'Error al obtener métodos de pago',
             ], 500);
         }
     }
@@ -92,10 +91,10 @@ class PaymentMethodController extends Controller
     {
         try {
             $owner = $this->getPayableOwner();
-            if (!$owner || !method_exists($owner, 'paymentMethods')) {
+            if (! $owner || ! method_exists($owner, 'paymentMethods')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No se pudo determinar el propietario de los métodos de pago (perfil o comercio).'
+                    'message' => 'No se pudo determinar el propietario de los métodos de pago (perfil o comercio).',
                 ], 422);
             }
 
@@ -105,16 +104,16 @@ class PaymentMethodController extends Controller
             $exists = $owner->paymentMethods()
                 ->where('type', $data['type'])
                 ->where('bank_id', $data['bank_id'] ?? null)
-                ->where(function($q) use ($data) {
+                ->where(function ($q) use ($data) {
                     $q->where('account_number', $data['account_number'] ?? null)
-                      ->orWhere('phone', $data['phone'] ?? null)
-                      ->orWhere('email', $data['email'] ?? null);
+                        ->orWhere('phone', $data['phone'] ?? null)
+                        ->orWhere('email', $data['email'] ?? null);
                 })->exists();
 
             if ($exists) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Ya existe un método de pago igual registrado.'
+                    'message' => 'Ya existe un método de pago igual registrado.',
                 ], 422);
             }
 
@@ -127,15 +126,16 @@ class PaymentMethodController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $method->load('bank')
+                'data' => $method->load('bank'),
             ], 201);
 
         } catch (\Exception $e) {
-            Log::error('Error al crear método de pago: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
+            Log::error('Error al crear método de pago: '.$e->getMessage());
+            Log::error('Stack trace: '.$e->getTraceAsString());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al crear método de pago: ' . $e->getMessage()
+                'message' => 'Error al crear método de pago: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -147,10 +147,10 @@ class PaymentMethodController extends Controller
     {
         try {
             $owner = $this->getPayableOwner();
-            if (!$owner || !method_exists($owner, 'paymentMethods')) {
+            if (! $owner || ! method_exists($owner, 'paymentMethods')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No se pudo determinar el propietario de los métodos de pago.'
+                    'message' => 'No se pudo determinar el propietario de los métodos de pago.',
                 ], 422);
             }
             $method = $owner->paymentMethods()->findOrFail($id);
@@ -166,14 +166,15 @@ class PaymentMethodController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $method->load('bank')
+                'data' => $method->load('bank'),
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error al actualizar método de pago: ' . $e->getMessage());
+            Log::error('Error al actualizar método de pago: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al actualizar método de pago'
+                'message' => 'Error al actualizar método de pago',
             ], 500);
         }
     }
@@ -191,7 +192,7 @@ class PaymentMethodController extends Controller
             if ($method->is_default && $owner->paymentMethods()->active()->count() === 1) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No se puede desactivar el único método de pago disponible.'
+                    'message' => 'No se puede desactivar el único método de pago disponible.',
                 ], 422);
             }
 
@@ -203,14 +204,15 @@ class PaymentMethodController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Método de pago desactivado correctamente'
+                'message' => 'Método de pago desactivado correctamente',
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error al eliminar método de pago: ' . $e->getMessage());
+            Log::error('Error al eliminar método de pago: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al eliminar método de pago'
+                'message' => 'Error al eliminar método de pago',
             ], 500);
         }
     }
@@ -226,20 +228,21 @@ class PaymentMethodController extends Controller
 
             // Desactivar otros métodos por defecto
             $owner->paymentMethods()->update(['is_default' => false]);
-            
+
             // Activar este método como por defecto
             $method->update(['is_default' => true]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Método de pago establecido como predeterminado'
+                'message' => 'Método de pago establecido como predeterminado',
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error al establecer método por defecto: ' . $e->getMessage());
+            Log::error('Error al establecer método por defecto: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al establecer método por defecto'
+                'message' => 'Error al establecer método por defecto',
             ], 500);
         }
     }
@@ -256,56 +259,57 @@ class PaymentMethodController extends Controller
                     'name' => 'Tarjeta de Crédito/Débito',
                     'description' => 'Visa, MasterCard, American Express',
                     'icon' => 'credit_card',
-                    'enabled' => true
+                    'enabled' => true,
                 ],
                 [
                     'type' => 'mobile_payment',
                     'name' => 'Pago Móvil',
                     'description' => 'Pago a través de banca móvil',
                     'icon' => 'smartphone',
-                    'enabled' => true
+                    'enabled' => true,
                 ],
                 [
                     'type' => 'cash',
                     'name' => 'Efectivo',
                     'description' => 'Pago al momento de la entrega',
                     'icon' => 'money',
-                    'enabled' => true
+                    'enabled' => true,
                 ],
                 [
                     'type' => 'paypal',
                     'name' => 'PayPal',
                     'description' => 'Pago seguro con PayPal',
                     'icon' => 'paypal',
-                    'enabled' => true
+                    'enabled' => true,
                 ],
                 [
                     'type' => 'digital_wallet',
                     'name' => 'Billetera Digital',
                     'description' => 'Apple Pay, Google Pay, etc.',
                     'icon' => 'account_balance_wallet',
-                    'enabled' => true
+                    'enabled' => true,
                 ],
                 [
                     'type' => 'bank_transfer',
                     'name' => 'Transferencia Bancaria',
                     'description' => 'Transferencia directa a cuenta bancaria',
                     'icon' => 'account_balance',
-                    'enabled' => true
-                ]
+                    'enabled' => true,
+                ],
             ];
 
             return response()->json([
                 'success' => true,
-                'data' => $methods
+                'data' => $methods,
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Error al obtener métodos disponibles: ' . $e->getMessage());
+            Log::error('Error al obtener métodos disponibles: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener métodos disponibles'
+                'message' => 'Error al obtener métodos disponibles',
             ], 500);
         }
     }
-} 
+}

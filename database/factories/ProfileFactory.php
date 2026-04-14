@@ -13,6 +13,8 @@ class ProfileFactory extends Factory
 
     public function definition(): array
     {
+        $testing = app()->environment('testing');
+
         return [
             'user_id' => User::factory(),
             'firstName' => $this->faker->firstName,
@@ -23,7 +25,8 @@ class ProfileFactory extends Factory
             'date_of_birth' => $this->faker->date(),
             'maritalStatus' => $this->faker->randomElement(['married', 'divorced', 'single', 'widowed']),
             'sex' => $this->faker->randomElement(['F', 'M', 'O']),
-            'status' => $this->faker->randomElement(['completeData', 'incompleteData', 'notverified']),
+            // En testing: perfil "completo" por defecto (pedidos/checkout). Tests de incompleto pasan status explícito.
+            'status' => $testing ? 'completeData' : $this->faker->randomElement(['completeData', 'incompleteData', 'notverified']),
             'address' => $this->faker->address,
         ];
     }

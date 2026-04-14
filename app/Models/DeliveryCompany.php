@@ -49,6 +49,7 @@ class DeliveryCompany extends Model
             ->where('status', true)
             ->orderByDesc('is_primary')
             ->first();
+
         return $companyPhone?->full_number ?? $this->profile?->phone;
     }
 

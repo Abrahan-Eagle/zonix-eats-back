@@ -23,13 +23,13 @@ class DeliveryCompanyController extends Controller
         $paginator = $query->orderBy('id', 'desc')->paginate($perPage);
 
         return response()->json([
-            'success'    => true,
-            'data'       => $paginator->items(),
+            'success' => true,
+            'data' => $paginator->items(),
             'pagination' => [
                 'current_page' => $paginator->currentPage(),
-                'per_page'     => $paginator->perPage(),
-                'total'        => $paginator->total(),
-                'last_page'    => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
             ],
         ]);
     }
@@ -41,7 +41,7 @@ class DeliveryCompanyController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $company,
+            'data' => $company,
         ]);
     }
 
@@ -53,7 +53,7 @@ class DeliveryCompanyController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $agents,
+            'data' => $agents,
         ]);
     }
 }

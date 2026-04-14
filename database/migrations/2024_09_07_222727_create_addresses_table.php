@@ -8,7 +8,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Crea tabla addresses con todos los campos consolidados de migraciones "add".
      */
     public function up(): void

@@ -8,36 +8,37 @@ use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
- public function index(Request $request)
+    public function index(Request $request)
     {
         $perPage = $request->input('per_page', 15);
         $role = $request->input('role');
         $status = $request->input('status');
-        
+
         $query = User::with('profile');
-        
+
         if ($role) {
             $query->where('role', $role);
         }
-        
+
         // Si hay filtro de status, buscar en profile
         if ($status) {
-            $query->whereHas('profile', function($q) use ($status) {
+            $query->whereHas('profile', function ($q) use ($status) {
                 $q->where('status', $status);
             });
         }
-        
+
         $users = $query->paginate($perPage);
-        
+
         return response()->json($users);
     }
 
     public function show($id)
     {
         $user = User::with(['profile', 'orders', 'commerce', 'deliveryAgent'])->findOrFail($id);
+
         return response()->json($user);
     }
-    
+
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
@@ -45,30 +46,30 @@ class UserController extends Controller
         ]);
 
         $user = User::findOrFail($id);
-        
+
         // Actualizar status en profile si existe
         if ($user->profile) {
             $user->profile->status = $request->status;
             $user->profile->save();
         }
-        
+
         return response()->json([
             'message' => 'Estado del usuario actualizado',
-            'user' => $user->load('profile')
+            'user' => $user->load('profile'),
         ]);
     }
-    
+
     public function getUserActivity($id)
     {
         $user = User::findOrFail($id);
-        
+
         // Obtener actividad del usuario (órdenes, logins, etc.)
         $activity = [
             'orders' => $user->orders()->orderBy('created_at', 'desc')->limit(10)->get(),
             'recent_logins' => $user->tokens()->orderBy('last_used_at', 'desc')->limit(5)->get(['id', 'name', 'last_used_at', 'created_at']),
             'profile_updates' => $user->profile ? [$user->profile->only(['updated_at'])] : [],
         ];
-        
+
         return response()->json($activity);
     }
 
@@ -88,6 +89,7 @@ class UserController extends Controller
     public function destroy($id)
     {
         User::findOrFail($id)->delete();
+
         return response()->json(['message' => 'Usuario eliminado']);
     }
 }

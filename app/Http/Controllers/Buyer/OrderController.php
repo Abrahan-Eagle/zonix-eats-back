@@ -2,19 +2,19 @@
 
 namespace App\Http\Controllers\Buyer;
 
+use App\Events\OrderCreated;
+use App\Events\OrderStatusChanged;
 use App\Http\Controllers\Controller;
-use App\Services\DeliveryFeeService;
-use App\Services\OrderService;
 use App\Models\Coupon;
+use App\Models\Order;
+use App\Services\DeliveryFeeService;
+use App\Services\NotificationService;
+use App\Services\OrderService;
+use App\Services\OrderStateMachineService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Events\OrderCreated;
-use App\Events\OrderStatusChanged;
-use App\Models\Order;
-use App\Services\NotificationService;
-use App\Services\OrderStateMachineService;
 
 /**
  * Controlador para gestionar las órdenes del comprador.
@@ -27,6 +27,7 @@ class OrderController extends Controller
 {
     /**
      * Servicio de órdenes.
+     *
      * @var OrderService
      */
     protected $orderService;
@@ -36,8 +37,6 @@ class OrderController extends Controller
 
     /**
      * Inyecta el servicio de órdenes y notificaciones.
-     * @param OrderService $orderService
-     * @param NotificationService $notificationService
      */
     public function __construct(OrderService $orderService, NotificationService $notificationService)
     {
@@ -57,7 +56,7 @@ class OrderController extends Controller
 
         if ($request->filled('commerce_id')) {
             $commerce = \App\Models\Commerce::with('addresses')->find($request->commerce_id);
-            if (!$commerce) {
+            if (! $commerce) {
                 return response()->json(['success' => false, 'message' => 'Comercio no encontrado'], 404);
             }
             $addr = $commerce->addresses()->whereNotNull('latitude')->whereNotNull('longitude')->first();
@@ -87,18 +86,18 @@ class OrderController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'delivery_fee'          => $result['fee'],
-                'distance_km'           => $result['distance_km'],
+                'delivery_fee' => $result['fee'],
+                'distance_km' => $result['distance_km'],
                 'delivery_time_minutes' => $result['delivery_time_minutes'],
-                'zone_id'               => $result['zone_id'],
-                'zone_name'             => $result['zone_name'],
+                'zone_id' => $result['zone_id'],
+                'zone_name' => $result['zone_name'],
             ],
         ]);
     }
 
     /**
      * Listar las órdenes del comprador autenticado.
-     * @param Request $request
+     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function index(Request $request)
@@ -106,7 +105,7 @@ class OrderController extends Controller
         $perPage = min(max((int) $request->input('per_page', 15), 1), 100);
         $orders = $this->orderService->getUserOrders($perPage);
 
-        if (!method_exists($orders, 'items')) {
+        if (! method_exists($orders, 'items')) {
             return response()->json([
                 'success' => true,
                 'message' => 'Órdenes obtenidas exitosamente',
@@ -141,7 +140,7 @@ class OrderController extends Controller
 
     /**
      * Almacena una nueva orden en el sistema.
-     * @param Request $request
+     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function store(Request $request)
@@ -165,18 +164,18 @@ class OrderController extends Controller
             $validated['delivery_fee'] = (float) ($validated['delivery_fee'] ?? 0);
 
             $user = Auth::user();
-            
+
             // Validar role
             if ($user->role !== 'users') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Solo usuarios con rol de comprador pueden crear órdenes'
+                    'message' => 'Solo usuarios con rol de comprador pueden crear órdenes',
                 ], 403);
             }
 
             // Obtener profile
             $profile = $user->profile;
-            if (!$profile) {
+            if (! $profile) {
                 return $this->errorResponse(
                     'Debes completar tu perfil antes de crear una orden',
                     'ORDER_PROFILE_REQUIRED',
@@ -200,7 +199,7 @@ class OrderController extends Controller
                 }
             }
 
-            if (!$profile->phones()->where('status', true)->exists()) {
+            if (! $profile->phones()->where('status', true)->exists()) {
                 return $this->errorResponse(
                     'Se requiere al menos un teléfono para crear una orden. Por favor, agrega un teléfono en tu perfil.',
                     'ORDER_PHONE_REQUIRED',
@@ -267,7 +266,7 @@ class OrderController extends Controller
                         );
                     }
 
-                    if (!empty($idempotencyRecord->response_payload)) {
+                    if (! empty($idempotencyRecord->response_payload)) {
                         $payload = json_decode($idempotencyRecord->response_payload, true);
                         if (is_array($payload)) {
                             return response()->json($payload, (int) $idempotencyRecord->status_code);
@@ -286,17 +285,17 @@ class OrderController extends Controller
 
             // Validar commerce existe y está activo
             $commerce = \App\Models\Commerce::find($validated['commerce_id']);
-            if (!$commerce) {
+            if (! $commerce) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Comercio no encontrado'
+                    'message' => 'Comercio no encontrado',
                 ], 404);
             }
 
-            if (!$commerce->open) {
+            if (! $commerce->open) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'El comercio no está disponible en este momento'
+                    'message' => 'El comercio no está disponible en este momento',
                 ], 400);
             }
 
@@ -335,26 +334,26 @@ class OrderController extends Controller
 
             foreach ($validated['products'] as $product) {
                 $productModel = \App\Models\Product::find($product['id']);
-                
-                if (!$productModel) {
+
+                if (! $productModel) {
                     return response()->json([
                         'success' => false,
-                        'message' => "Producto {$product['id']} no encontrado"
+                        'message' => "Producto {$product['id']} no encontrado",
                     ], 404);
                 }
 
                 // Validar que producto está disponible
-                if (!$productModel->available) {
+                if (! $productModel->available) {
                     return response()->json([
                         'success' => false,
-                        'message' => "El producto '{$productModel->name}' no está disponible"
+                        'message' => "El producto '{$productModel->name}' no está disponible",
                     ], 400);
                 }
 
                 if ($productModel->stock_quantity !== null && $product['quantity'] > $productModel->stock_quantity) {
                     return response()->json([
                         'success' => false,
-                        'message' => "Stock insuficiente para '{$productModel->name}'. Solo hay {$productModel->stock_quantity} unidades disponibles"
+                        'message' => "Stock insuficiente para '{$productModel->name}'. Solo hay {$productModel->stock_quantity} unidades disponibles",
                     ], 400);
                 }
 
@@ -362,7 +361,7 @@ class OrderController extends Controller
                 if ($productModel->commerce_id !== $validated['commerce_id']) {
                     return response()->json([
                         'success' => false,
-                        'message' => "El producto '{$productModel->name}' no pertenece a este comercio"
+                        'message' => "El producto '{$productModel->name}' no pertenece a este comercio",
                     ], 400);
                 }
 
@@ -371,7 +370,7 @@ class OrderController extends Controller
                 $calculatedTotal += $subtotal;
                 $productModels[] = [
                     'model' => $productModel,
-                    'data' => $product
+                    'data' => $product,
                 ];
             }
 
@@ -386,7 +385,7 @@ class OrderController extends Controller
             } else {
                 $totalOk = abs($expectedTotal - $sentTotal) <= $tolerance;
             }
-            if (!$totalOk) {
+            if (! $totalOk) {
                 Log::warning('checkout_total_mismatch', [
                     'profile_id' => $profile->id,
                     'commerce_id' => $validated['commerce_id'],
@@ -420,7 +419,7 @@ class OrderController extends Controller
                     })
                     ->first();
 
-                if (!$coupon) {
+                if (! $coupon) {
                     return $this->errorResponse(
                         'Cupón no válido o expirado.',
                         'ORDER_COUPON_INVALID',
@@ -488,7 +487,7 @@ class OrderController extends Controller
                         ->lockForUpdate()
                         ->first();
 
-                    if (!$lockedProduct || !$lockedProduct->available || $lockedProduct->commerce_id !== (int) $validated['commerce_id']) {
+                    if (! $lockedProduct || ! $lockedProduct->available || $lockedProduct->commerce_id !== (int) $validated['commerce_id']) {
                         throw \Illuminate\Validation\ValidationException::withMessages([
                             'products' => ["El producto {$item['id']} ya no está disponible para esta orden."],
                         ]);
@@ -504,7 +503,7 @@ class OrderController extends Controller
                         'order_id' => $order->id,
                         'product_id' => $lockedProduct->id,
                         'quantity' => (int) $item['quantity'],
-                        'unit_price' => $lockedProduct->price
+                        'unit_price' => $lockedProduct->price,
                     ]);
 
                     if ($lockedProduct->stock_quantity !== null) {
@@ -596,7 +595,7 @@ class OrderController extends Controller
             } catch (\Exception $e) {
                 Log::warning('No se pudo limpiar el carrito después de crear orden', [
                     'order_id' => $order->id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
 
@@ -633,6 +632,7 @@ class OrderController extends Controller
             return response()->json($responsePayload, 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::debug('Validación al crear orden (datos inválidos)', ['errors' => $e->errors()]);
+
             return $this->errorResponse(
                 'Datos inválidos',
                 'ORDER_VALIDATION_ERROR',
@@ -642,8 +642,9 @@ class OrderController extends Controller
         } catch (\Exception $e) {
             Log::error('Error al crear orden', [
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return $this->errorResponse(
                 'Error interno al crear orden',
                 'ORDER_CREATE_ERROR',
@@ -657,6 +658,7 @@ class OrderController extends Controller
         if ($coupon->discount_type === 'percentage') {
             $discount = ($amount * (float) $coupon->discount_value) / 100;
             $cap = $coupon->maximum_discount !== null ? (float) $coupon->maximum_discount : $discount;
+
             return min($discount, $cap);
         }
 
@@ -675,35 +677,38 @@ class OrderController extends Controller
 
     /**
      * Muestra los detalles de una orden específica.
-     * @param $id
+     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function show($id)
     {
         $order = $this->orderService->getOrderDetails($id, Auth::id());
-        if (!$order) {
+        if (! $order) {
             return response()->json(['success' => false, 'message' => 'Orden no encontrada'], 404);
         }
+
         return response()->json(['success' => true, 'data' => $order]);
     }
 
     /**
      * Métodos de pago disponibles del comercio de esta orden (para que el comprador elija al subir comprobante).
-     * @param int $id Order ID
+     *
+     * @param  int  $id  Order ID
      * @return \Illuminate\Http\JsonResponse
      */
     public function getAvailablePaymentMethodsForOrder($id)
     {
         $order = $this->orderService->getOrderDetails($id, Auth::id());
-        if (!$order) {
+        if (! $order) {
             return response()->json(['success' => false, 'message' => 'Orden no encontrada'], 404);
         }
         $commerce = $order->commerce;
-        if (!$commerce) {
+        if (! $commerce) {
             return response()->json(['success' => true, 'data' => []]);
         }
         $methods = $commerce->paymentMethods()->with('bank')->active()->get();
         $data = $this->formatPaymentMethods($methods);
+
         return response()->json(['success' => true, 'data' => $data]);
     }
 
@@ -714,7 +719,7 @@ class OrderController extends Controller
     public function getPaymentInfo($id)
     {
         $order = $this->orderService->getOrderDetails($id, Auth::id());
-        if (!$order) {
+        if (! $order) {
             return response()->json(['success' => false, 'message' => 'Orden no encontrada'], 404);
         }
 
@@ -758,6 +763,7 @@ class OrderController extends Controller
             $ref = is_array($m->reference_info) ? $m->reference_info : [];
             $alias = $ref['alias'] ?? null;
             $label = $alias ?: ucfirst(str_replace('_', ' ', $m->type));
+
             return [
                 'id' => $m->id,
                 'type' => $m->type,
@@ -775,7 +781,7 @@ class OrderController extends Controller
 
     /**
      * Cancela una orden pendiente.
-     * @param $id
+     *
      * @return \Illuminate\Http\JsonResponse
      */
     public function cancel($id)
@@ -784,13 +790,14 @@ class OrderController extends Controller
         if ($result === true) {
             return response()->json(['success' => true, 'message' => 'Orden cancelada']);
         }
+
         return response()->json(['success' => false, 'message' => $result], 400);
     }
 
     /**
      * Subir comprobante de pago para una orden.
-     * @param Request $request
-     * @param int $id
+     *
+     * @param  int  $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function uploadPaymentProof(Request $request, $id)
@@ -805,20 +812,20 @@ class OrderController extends Controller
 
             /** @var \App\Models\User|null $user */
             $user = Auth::user();
-            if (!$user) {
+            if (! $user) {
                 return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
             }
             $user->load('profile');
             $profile = $user->profile;
 
             $order = \App\Models\Order::where('profile_id', $profile->id)->where('id', $id)->first();
-            if (!$order) {
+            if (! $order) {
                 $order = \App\Models\Order::find($id);
-                if (!($order && app()->environment('testing'))) {
+                if (! ($order && app()->environment('testing'))) {
                     return response()->json(['success' => false, 'message' => 'Orden no encontrada'], 404);
                 }
             }
-            if (!$order) {
+            if (! $order) {
                 return response()->json(['success' => false, 'message' => 'Orden no encontrada o no pertenece al usuario'], 404);
             }
             if ($order->status !== 'pending_payment') {
@@ -827,7 +834,7 @@ class OrderController extends Controller
 
             $paymentType = $request->input('type', 'food');
             $orderPayment = \App\Models\OrderPayment::where('order_id', $order->id)->where('type', $paymentType)->first();
-            if (!$orderPayment) {
+            if (! $orderPayment) {
                 // Retrocompatibilidad: crear registro si no existe (órdenes legacy sin order_payments)
                 $amount = $paymentType === 'delivery' ? ($order->delivery_fee ?? 0) : ($order->total - ($order->delivery_fee ?? 0));
                 $orderPayment = \App\Models\OrderPayment::create([
@@ -848,7 +855,7 @@ class OrderController extends Controller
 
             $file = $request->file('payment_proof');
             $file->store('payment_proofs', 'public');
-            $proofPath = 'payment_proofs/' . $file->hashName();
+            $proofPath = 'payment_proofs/'.$file->hashName();
 
             $orderPayment->update([
                 'payment_proof' => $proofPath,
@@ -912,7 +919,8 @@ class OrderController extends Controller
                 'data' => ['type' => $paymentType],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error al subir comprobante de pago: ' . $e->getMessage());
+            Log::error('Error al subir comprobante de pago: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Error interno al subir comprobante'], 500);
         }
     }
@@ -925,8 +933,8 @@ class OrderController extends Controller
 
     /**
      * Cancelar una orden.
-     * @param Request $request
-     * @param int $id
+     *
+     * @param  int  $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function cancelOrder(Request $request, $id)
@@ -938,19 +946,19 @@ class OrderController extends Controller
 
             /** @var \App\Models\User|null $user */
             $user = Auth::user();
-            if (!$user) {
+            if (! $user) {
                 return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
             }
             $user->load('profile');
             $profile = $user->profile;
 
             $order = \App\Models\Order::where('profile_id', $profile->id)->findOrFail($id);
-            
+
             // Validar que puede cancelar (solo en pending_payment y dentro del tiempo límite)
             if ($order->status !== 'pending_payment') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Solo puedes cancelar órdenes pendientes de pago'
+                    'message' => 'Solo puedes cancelar órdenes pendientes de pago',
                 ], 400);
             }
 
@@ -960,7 +968,7 @@ class OrderController extends Controller
             if (now()->greaterThan($timeLimit)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'El tiempo límite para cancelar esta orden ha expirado (5 minutos)'
+                    'message' => 'El tiempo límite para cancelar esta orden ha expirado (5 minutos)',
                 ], 400);
             }
 
@@ -971,7 +979,7 @@ class OrderController extends Controller
                     if ($product && $product->stock_quantity !== null) {
                         $product->increment('stock_quantity', $item->quantity);
                         // Si había stock 0 y se restauró, marcar como disponible nuevamente
-                        if ($product->stock_quantity > 0 && !$product->available) {
+                        if ($product->stock_quantity > 0 && ! $product->available) {
                             $product->update(['available' => true]);
                         }
                     }
@@ -986,7 +994,7 @@ class OrderController extends Controller
                     (string) $request->reason
                 );
 
-                if (!($decision['allowed'] ?? false)) {
+                if (! ($decision['allowed'] ?? false)) {
                     throw new \RuntimeException($decision['reason'] ?? 'Transición inválida para cancelar');
                 }
 
@@ -999,7 +1007,8 @@ class OrderController extends Controller
 
             return response()->json(['success' => true, 'message' => 'Orden cancelada exitosamente']);
         } catch (\Exception $e) {
-            Log::error('Error al cancelar orden: ' . $e->getMessage());
+            Log::error('Error al cancelar orden: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Error interno al cancelar orden'], 500);
         }
     }
@@ -1018,8 +1027,8 @@ class OrderController extends Controller
                 return response()->json(['success' => false, 'message' => 'QR disponible cuando el pedido está en camino'], 400);
             }
 
-            if (!$order->delivery_token) {
-                $token = substr(hash_hmac('sha256', "order:{$order->id}:delivery:" . now()->timestamp, config('app.key')), 0, 16);
+            if (! $order->delivery_token) {
+                $token = substr(hash_hmac('sha256', "order:{$order->id}:delivery:".now()->timestamp, config('app.key')), 0, 16);
                 $order->update(['delivery_token' => $token]);
             }
 
@@ -1032,7 +1041,8 @@ class OrderController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error generando QR de entrega: ' . $e->getMessage());
+            Log::error('Error generando QR de entrega: '.$e->getMessage());
+
             return response()->json(['success' => false, 'message' => 'Error interno'], 500);
         }
     }

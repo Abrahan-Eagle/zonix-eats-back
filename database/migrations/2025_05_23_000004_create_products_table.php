@@ -8,7 +8,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Crea tabla products con todos los campos consolidados de migraciones "add".
      */
     public function up(): void
@@ -24,7 +24,7 @@ return new class extends Migration
             $table->boolean('available')->default(true);
             $table->integer('stock_quantity')->nullable()->comment('Cantidad en stock. Si es null, solo se usa available');
             $table->timestamps();
-            
+
             // Foreign key para category_id
             $table->foreign('category_id')->references('id')->on('categories')->onDelete('set null');
             $table->index('available', 'products_available_index');

@@ -2,18 +2,17 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\Order;
 use App\Models\Commerce;
-use App\Models\Product;
-use App\Models\Review;
-use App\Models\Profile;
 use App\Models\DeliveryAgent;
+use App\Models\Order;
 use App\Models\OrderDelivery;
+use App\Models\Profile;
+use App\Models\Review;
+use App\Models\User;
 use App\Services\ReviewService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 class ReviewServiceTest extends TestCase
 {
@@ -24,7 +23,7 @@ class ReviewServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->reviewService = new ReviewService();
+        $this->reviewService = new ReviewService;
     }
 
     public function test_can_user_review_with_delivered_order()
@@ -32,7 +31,7 @@ class ReviewServiceTest extends TestCase
         $user = User::factory()->create();
         $profile = Profile::factory()->create(['user_id' => $user->id]);
         $commerce = Commerce::factory()->create();
-        
+
         // Crear un pedido entregado
         $order = Order::create([
             'profile_id' => $profile->id,
@@ -40,7 +39,7 @@ class ReviewServiceTest extends TestCase
             'delivery_type' => 'pickup',
             'status' => 'delivered',
             'total' => 50.00,
-            'notes' => 'Test order'
+            'notes' => 'Test order',
         ]);
 
         $canReview = $this->reviewService->canUserReview($order->id, $user->id);
@@ -53,7 +52,7 @@ class ReviewServiceTest extends TestCase
         $user = User::factory()->create();
         $profile = Profile::factory()->create(['user_id' => $user->id]);
         $commerce = Commerce::factory()->create();
-        
+
         // Crear un pedido que no está entregado
         $order = Order::create([
             'profile_id' => $profile->id,
@@ -61,7 +60,7 @@ class ReviewServiceTest extends TestCase
             'delivery_type' => 'pickup',
             'status' => 'pending_payment',
             'total' => 50.00,
-            'notes' => 'Test order'
+            'notes' => 'Test order',
         ]);
 
         $canReview = $this->reviewService->canUserReview($order->id, $user->id);
@@ -80,14 +79,14 @@ class ReviewServiceTest extends TestCase
             'delivery_type' => 'pickup',
             'status' => 'delivered',
             'total' => 50.00,
-            'notes' => 'Test order'
+            'notes' => 'Test order',
         ]);
         $this->actingAs($user);
         $data = [
             'order_id' => $order->id,
             'type' => 'restaurant',
             'rating' => 5,
-            'comment' => 'Excelente servicio'
+            'comment' => 'Excelente servicio',
         ];
 
         $result = $this->reviewService->createReview($data + ['user_id' => $user->id]);
@@ -111,14 +110,14 @@ class ReviewServiceTest extends TestCase
             'delivery_type' => 'pickup',
             'status' => 'delivered',
             'total' => 50.00,
-            'notes' => 'Test order'
+            'notes' => 'Test order',
         ]);
         $this->actingAs($user);
         $data = [
             'order_id' => $order->id,
             'type' => 'restaurant',
             'rating' => 5,
-            'comment' => 'Excelente'
+            'comment' => 'Excelente',
         ];
 
         // Crear primera calificación
@@ -127,14 +126,14 @@ class ReviewServiceTest extends TestCase
         // Intentar crear segunda calificación - debería fallar
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Ya has calificado este elemento');
-        
+
         $this->reviewService->createReview($data + ['user_id' => $user->id]);
     }
 
     public function test_get_average_rating()
     {
         $commerce = Commerce::factory()->create();
-        
+
         // Crear 3 usuarios diferentes para evitar conflictos de reviews duplicados
         for ($i = 0; $i < 3; $i++) {
             $user = User::factory()->create();
@@ -145,7 +144,7 @@ class ReviewServiceTest extends TestCase
                 'delivery_type' => 'pickup',
                 'status' => 'delivered',
                 'total' => 50.00,
-                'notes' => 'Test order'
+                'notes' => 'Test order',
             ]);
             $this->actingAs($user);
             $data = [
@@ -153,11 +152,11 @@ class ReviewServiceTest extends TestCase
                 'type' => 'restaurant',
                 'rating' => $i === 0 ? 5 : ($i === 1 ? 3 : 4),
                 'comment' => "Review {$i}",
-                'user_id' => $user->id
+                'user_id' => $user->id,
             ];
             $this->reviewService->createReview($data);
         }
-        
+
         $averageRating = $this->reviewService->getRestaurantAverageRating($commerce->id);
         $this->assertEquals(4.0, $averageRating); // (5 + 3 + 4) / 3 = 4
     }
@@ -165,7 +164,7 @@ class ReviewServiceTest extends TestCase
     public function test_get_reviews()
     {
         $commerce = Commerce::factory()->create();
-        
+
         // Crear 3 usuarios diferentes para evitar conflictos de reviews duplicados
         for ($i = 0; $i < 3; $i++) {
             $user = User::factory()->create();
@@ -176,7 +175,7 @@ class ReviewServiceTest extends TestCase
                 'delivery_type' => 'pickup',
                 'status' => 'delivered',
                 'total' => 50.00,
-                'notes' => 'Test order'
+                'notes' => 'Test order',
             ]);
             $this->actingAs($user);
             $data = [
@@ -184,11 +183,11 @@ class ReviewServiceTest extends TestCase
                 'type' => 'restaurant',
                 'rating' => 4,
                 'comment' => "Review {$i}",
-                'user_id' => $user->id
+                'user_id' => $user->id,
             ];
             $this->reviewService->createReview($data);
         }
-        
+
         $reviews = $this->reviewService->getRestaurantReviews($commerce->id);
         $this->assertCount(3, $reviews);
         $this->assertInstanceOf(\Illuminate\Database\Eloquent\Collection::class, $reviews);
@@ -205,7 +204,7 @@ class ReviewServiceTest extends TestCase
             'delivery_type' => 'pickup',
             'status' => 'delivered',
             'total' => 50.00,
-            'notes' => 'Test order'
+            'notes' => 'Test order',
         ]);
 
         Sanctum::actingAs($user);
@@ -239,7 +238,7 @@ class ReviewServiceTest extends TestCase
             'delivery_type' => 'pickup',
             'status' => 'processing',
             'total' => 50.00,
-            'notes' => 'Test order'
+            'notes' => 'Test order',
         ]);
 
         Sanctum::actingAs($user);
@@ -265,7 +264,7 @@ class ReviewServiceTest extends TestCase
             'delivery_type' => 'pickup',
             'status' => 'delivered',
             'total' => 50.00,
-            'notes' => 'Test order'
+            'notes' => 'Test order',
         ]);
 
         Sanctum::actingAs($user);
@@ -290,7 +289,7 @@ class ReviewServiceTest extends TestCase
             'delivery_type' => 'delivery',
             'status' => 'delivered',
             'total' => 50.00,
-            'notes' => 'Test order'
+            'notes' => 'Test order',
         ]);
 
         $agentUser = User::factory()->create(['role' => 'delivery_agent']);
@@ -333,7 +332,7 @@ class ReviewServiceTest extends TestCase
             'delivery_type' => 'pickup',
             'status' => 'delivered',
             'total' => 50.00,
-            'notes' => 'Test order'
+            'notes' => 'Test order',
         ]);
 
         Sanctum::actingAs($user);
@@ -368,7 +367,7 @@ class ReviewServiceTest extends TestCase
             'delivery_type' => 'pickup',
             'status' => 'delivered',
             'total' => 40.00,
-            'notes' => 'Order for report'
+            'notes' => 'Order for report',
         ]);
 
         $review = Review::create([
@@ -410,7 +409,7 @@ class ReviewServiceTest extends TestCase
             'delivery_type' => 'pickup',
             'status' => 'delivered',
             'total' => 30.00,
-            'notes' => 'Order for moderation listing'
+            'notes' => 'Order for moderation listing',
         ]);
 
         $review = Review::create([
@@ -443,7 +442,7 @@ class ReviewServiceTest extends TestCase
             'delivery_type' => 'pickup',
             'status' => 'delivered',
             'total' => 35.00,
-            'notes' => 'Order for moderation action'
+            'notes' => 'Order for moderation action',
         ]);
 
         $review = Review::create([
@@ -471,4 +470,4 @@ class ReviewServiceTest extends TestCase
             'moderation_status' => 'rejected',
         ]);
     }
-} 
+}

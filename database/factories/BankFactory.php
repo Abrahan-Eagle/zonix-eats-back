@@ -20,7 +20,7 @@ class BankFactory extends Factory
             ['name' => 'Banco Bicentenario', 'code' => '0175', 'type' => 'público'],
         ];
         static $usedCodes = [];
-        $available = array_filter($banks, fn($b) => !in_array($b['code'], $usedCodes));
+        $available = array_filter($banks, fn ($b) => ! in_array($b['code'], $usedCodes));
         if (empty($available)) {
             $bank = $this->faker->randomElement($banks);
             $code = $this->faker->unique()->numerify('01##');
@@ -29,6 +29,7 @@ class BankFactory extends Factory
             $code = $bank['code'];
             $usedCodes[] = $code;
         }
+
         return [
             'name' => $bank['name'],
             'code' => $code,
@@ -37,4 +38,4 @@ class BankFactory extends Factory
             'is_active' => true,
         ];
     }
-} 
+}

@@ -109,6 +109,7 @@ class PaymentMethod extends Model
         if ($this->exp_month && $this->exp_year) {
             return sprintf('%02d/%d', $this->exp_month, $this->exp_year);
         }
+
         return null;
     }
 
@@ -117,14 +118,14 @@ class PaymentMethod extends Model
      */
     public function isExpired()
     {
-        if (!$this->exp_month || !$this->exp_year) {
+        if (! $this->exp_month || ! $this->exp_year) {
             return false;
         }
-        
+
         $currentYear = (int) date('Y');
         $currentMonth = (int) date('n');
-        
-        return $this->exp_year < $currentYear || 
+
+        return $this->exp_year < $currentYear ||
                ($this->exp_year == $currentYear && $this->exp_month < $currentMonth);
     }
-} 
+}

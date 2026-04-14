@@ -11,7 +11,7 @@ return new class extends Migration
         // Eliminar las tablas antiguas después de migrar los datos
         Schema::dropIfExists('user_payment_methods');
         Schema::dropIfExists('delivery_payment_methods');
-        
+
         // La tabla payment_methods original ya fue reemplazada por la nueva
         // No necesitamos eliminarla porque ya se recreó en la migración anterior
     }
@@ -24,7 +24,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('bank_id')->nullable()->constrained('banks')->onDelete('set null');
             $table->enum('type', [
-                'card', 'mobile_payment', 'cash', 'paypal', 'digital_wallet', 'bank_transfer', 'other'
+                'card', 'mobile_payment', 'cash', 'paypal', 'digital_wallet', 'bank_transfer', 'other',
             ]);
             $table->string('brand')->nullable();
             $table->string('account_number')->nullable();
@@ -41,7 +41,7 @@ return new class extends Migration
             $table->foreignId('delivery_agent_id')->constrained()->onDelete('cascade');
             $table->foreignId('bank_id')->nullable()->constrained('banks')->onDelete('set null');
             $table->enum('type', [
-                'card', 'mobile_payment', 'cash', 'paypal', 'digital_wallet', 'bank_transfer', 'other'
+                'card', 'mobile_payment', 'cash', 'paypal', 'digital_wallet', 'bank_transfer', 'other',
             ]);
             $table->string('brand')->nullable();
             $table->string('account_number')->nullable();
@@ -53,4 +53,4 @@ return new class extends Migration
             $table->timestamps();
         });
     }
-}; 
+};

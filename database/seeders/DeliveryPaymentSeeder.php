@@ -2,11 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\DeliveryPayment;
-use App\Models\Order;
 use App\Models\OrderDelivery;
+use Illuminate\Database\Seeder;
 
 class DeliveryPaymentSeeder extends Seeder
 {
@@ -15,15 +13,16 @@ class DeliveryPaymentSeeder extends Seeder
      */
     public function run(): void
     {
-        $orderDeliveries = OrderDelivery::whereHas('order', function($query) {
+        $orderDeliveries = OrderDelivery::whereHas('order', function ($query) {
             $query->whereIn('status', ['shipped', 'delivered']);
         })->get();
-        
+
         if ($orderDeliveries->isEmpty()) {
             $this->command->warn('No hay entregas completadas para crear pagos.');
+
             return;
         }
-        
+
         foreach ($orderDeliveries as $orderDelivery) {
             // El delivery recibe 100% del delivery_fee
             DeliveryPayment::factory()->create([
@@ -33,7 +32,7 @@ class DeliveryPaymentSeeder extends Seeder
                 'status' => collect(['pending_payment_to_delivery', 'paid_to_delivery'])->random(),
             ]);
         }
-        
+
         $this->command->info('DeliveryPaymentSeeder ejecutado exitosamente.');
     }
 }

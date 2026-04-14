@@ -2,11 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\Profile;
 use App\Models\DeliveryAgent;
 use App\Models\Order;
-use App\Models\OrderDelivery;
+use App\Models\Profile;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -40,7 +39,7 @@ class DeliveryOrderTest extends TestCase
         $this->assertCount(1, $response->json('data'));
 
         // Aceptar orden
-        $response = $this->postJson('/api/delivery/orders/' . $order->id . '/accept');
+        $response = $this->postJson('/api/delivery/orders/'.$order->id.'/accept');
         $response->assertStatus(200)->assertJson(['success' => true, 'message' => 'Orden aceptada exitosamente']);
 
         // Listar órdenes asignadas (ahora tiene 1)
@@ -49,11 +48,11 @@ class DeliveryOrderTest extends TestCase
         $this->assertCount(1, $response->json('data'));
 
         // Marcar como entregada
-        $response = $this->patchJson('/api/delivery/orders/' . $order->id . '/status', [
-            'status' => 'delivered'
+        $response = $this->patchJson('/api/delivery/orders/'.$order->id.'/status', [
+            'status' => 'delivered',
         ]);
         $response->assertStatus(200)->assertJson(['success' => true]);
         $order->refresh();
         $this->assertEquals('delivered', $order->status);
     }
-} 
+}

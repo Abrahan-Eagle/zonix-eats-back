@@ -9,8 +9,8 @@ use App\Models\Profile;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class ExportController extends Controller
@@ -53,7 +53,7 @@ class ExportController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al exportar los datos personales',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -77,14 +77,16 @@ class ExportController extends Controller
         }
         $p['maritalStatus'] = $profile ? $profile->maritalStatus : null;
         $p['sex'] = $profile ? $profile->sex : null;
+
         return $p;
     }
 
     private function getOrdersDataForExport($user)
     {
-        if (!$user->profile) {
+        if (! $user->profile) {
             return [];
         }
+
         return Order::where('profile_id', $user->profile->id)
             ->orderBy('created_at', 'desc')
             ->limit(100)
@@ -100,9 +102,10 @@ class ExportController extends Controller
 
     private function getAddressesDataForExport($user)
     {
-        if (!$user->profile) {
+        if (! $user->profile) {
             return [];
         }
+
         return Address::where('profile_id', $user->profile->id)
             ->get()
             ->map(fn ($a) => [
@@ -131,7 +134,7 @@ class ExportController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Datos de entrada inválidos',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
@@ -148,7 +151,7 @@ class ExportController extends Controller
             // Guardar archivo temporalmente
             $filename = "export_{$user->id}_{$exportId}.{$format}";
             $filePath = "exports/{$filename}";
-            
+
             Storage::put($filePath, $exportData);
 
             // En producción, esto se guardaría en la base de datos
@@ -167,14 +170,14 @@ class ExportController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Exportación solicitada correctamente',
-                'data' => $exportRecord
+                'data' => $exportRecord,
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al solicitar exportación',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -190,23 +193,23 @@ class ExportController extends Controller
             // En producción, esto se consultaría de la base de datos
             $exportRecord = $this->getMockExportRecord($exportId, $user->id);
 
-            if (!$exportRecord) {
+            if (! $exportRecord) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Exportación no encontrada'
+                    'message' => 'Exportación no encontrada',
                 ], 404);
             }
 
             return response()->json([
                 'success' => true,
-                'data' => $exportRecord
+                'data' => $exportRecord,
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al verificar estado',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -222,17 +225,17 @@ class ExportController extends Controller
             // En producción, esto se consultaría de la base de datos
             $exportRecord = $this->getMockExportRecord($exportId, $user->id);
 
-            if (!$exportRecord) {
+            if (! $exportRecord) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Exportación no encontrada'
+                    'message' => 'Exportación no encontrada',
                 ], 404);
             }
 
             if ($exportRecord['status'] !== 'completed') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'La exportación aún no está lista'
+                    'message' => 'La exportación aún no está lista',
                 ], 400);
             }
 
@@ -247,7 +250,7 @@ class ExportController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al descargar archivo',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -265,14 +268,14 @@ class ExportController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $exportHistory
+                'data' => $exportHistory,
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener historial',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -434,30 +437,32 @@ class ExportController extends Controller
         foreach ($data as $section => $items) {
             $csv .= "# {$section}\n";
             if (is_array($items)) {
-                if (!empty($items) && isset($items[0]) && is_array($items[0])) {
+                if (! empty($items) && isset($items[0]) && is_array($items[0])) {
                     // Array de arrays (como orders, activity, etc.)
                     $headers = array_keys($items[0]);
-                    $csv .= implode(',', $headers) . "\n";
+                    $csv .= implode(',', $headers)."\n";
                     foreach ($items as $item) {
-                        $values = array_map(function($value) {
+                        $values = array_map(function ($value) {
                             if (is_array($value) || is_object($value)) {
                                 return json_encode($value);
                             }
+
                             return str_replace(',', ';', (string) $value);
                         }, array_values($item));
-                        $csv .= implode(',', $values) . "\n";
+                        $csv .= implode(',', $values)."\n";
                     }
                 } else {
                     // Array simple (como profile)
                     $csv .= "key,value\n";
                     foreach ($items as $key => $value) {
                         $value = is_array($value) || is_object($value) ? json_encode($value) : (string) $value;
-                        $csv .= "{$key}," . str_replace(',', ';', $value) . "\n";
+                        $csv .= "{$key},".str_replace(',', ';', $value)."\n";
                     }
                 }
             }
             $csv .= "\n";
         }
+
         return $csv;
     }
 
@@ -467,7 +472,7 @@ class ExportController extends Controller
     private function convertToPdf($data)
     {
         // En producción, usar una librería como DomPDF
-        return "PDF content for export: " . json_encode($data);
+        return 'PDF content for export: '.json_encode($data);
     }
 
     /**

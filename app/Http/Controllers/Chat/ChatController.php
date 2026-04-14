@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Chat;
 
 use App\Events\NewMessage;
 use App\Http\Controllers\Controller;
+use App\Models\BlockedUser;
 use App\Models\ChatMessage;
 use App\Models\Order;
 use App\Models\Profile;
 use App\Services\FirebaseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\BlockedUser;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
@@ -26,36 +26,36 @@ class ChatController extends Controller
             $user = Auth::user();
             $profileId = optional($user->profile)->id;
 
-            if (!$profileId) {
+            if (! $profileId) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No tienes un perfil asociado'
+                    'message' => 'No tienes un perfil asociado',
                 ], 403);
             }
 
             // Obtener órdenes que tienen mensajes de chat o que pertenecen al usuario
-            $orders = Order::where(function($query) use ($profileId) {
-                    $query->where('profile_id', $profileId)
-                          ->orWhereHas('chatMessages', function($q) use ($profileId) {
-                              $q->where('sender_id', $profileId);
-                          })
-                          ->orWhereHas('commerce', function($q) use ($profileId) {
-                              $q->whereHas('profile', function($q2) use ($profileId) {
-                                  $q2->where('id', $profileId);
-                              });
-                          })
-                          ->orWhereHas('orderDelivery', function($q) use ($profileId) {
-                              $q->whereHas('agent', function($q2) use ($profileId) {
-                                  $q2->where('profile_id', $profileId);
-                              });
-                          });
-                })
-                ->with(['commerce', 'profile', 'orderDelivery.agent.profile', 'chatMessages' => function($query) {
+            $orders = Order::where(function ($query) use ($profileId) {
+                $query->where('profile_id', $profileId)
+                    ->orWhereHas('chatMessages', function ($q) use ($profileId) {
+                        $q->where('sender_id', $profileId);
+                    })
+                    ->orWhereHas('commerce', function ($q) use ($profileId) {
+                        $q->whereHas('profile', function ($q2) use ($profileId) {
+                            $q2->where('id', $profileId);
+                        });
+                    })
+                    ->orWhereHas('orderDelivery', function ($q) use ($profileId) {
+                        $q->whereHas('agent', function ($q2) use ($profileId) {
+                            $q2->where('profile_id', $profileId);
+                        });
+                    });
+            })
+                ->with(['commerce', 'profile', 'orderDelivery.agent.profile', 'chatMessages' => function ($query) {
                     $query->orderBy('created_at', 'desc')->limit(1);
                 }])
                 ->orderByDesc('updated_at')
                 ->get()
-                ->map(function($order) use ($profileId) {
+                ->map(function ($order) use ($profileId) {
                     $lastMessage = $order->chatMessages->first();
                     $unreadCount = ChatMessage::where('order_id', $order->id)
                         ->where('sender_id', '!=', $profileId)
@@ -85,10 +85,11 @@ class ChatController extends Controller
 
             return response()->json($orders);
         } catch (\Exception $e) {
-            Log::error('Error getting conversations: ' . $e->getMessage());
+            Log::error('Error getting conversations: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener conversaciones'
+                'message' => 'Error al obtener conversaciones',
             ], 500);
         }
     }
@@ -102,20 +103,20 @@ class ChatController extends Controller
             $user = Auth::user();
             $profileId = optional($user->profile)->id;
 
-            if (!$profileId) {
+            if (! $profileId) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No tienes un perfil asociado'
+                    'message' => 'No tienes un perfil asociado',
                 ], 403);
             }
 
             $order = Order::findOrFail($conversationId);
 
             // Verificar acceso: usuario debe ser cliente, comercio o delivery de la orden
-            if (!$this->hasAccessToOrder($order, $profileId)) {
+            if (! $this->hasAccessToOrder($order, $profileId)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No tienes acceso a esta conversación'
+                    'message' => 'No tienes acceso a esta conversación',
                 ], 403);
             }
 
@@ -123,14 +124,14 @@ class ChatController extends Controller
                 ->with('sender')
                 ->orderBy('created_at', 'asc')
                 ->get()
-                ->map(function($message) use ($profileId) {
+                ->map(function ($message) use ($profileId) {
                     return [
                         'id' => $message->id,
                         'sender_id' => $message->sender_id,
                         'content' => $message->content,
                         'type' => $message->type,
                         'sender_type' => $message->sender_type,
-                        'sender_name' => trim(($message->sender->firstName ?? '') . ' ' . ($message->sender->lastName ?? '')) ?: 'Usuario',
+                        'sender_name' => trim(($message->sender->firstName ?? '').' '.($message->sender->lastName ?? '')) ?: 'Usuario',
                         'sender_avatar' => $message->sender->photo_users ?? null,
                         'is_own_message' => $message->sender_id == $profileId,
                         'read' => $message->read_at !== null,
@@ -141,10 +142,11 @@ class ChatController extends Controller
 
             return response()->json($messages);
         } catch (\Exception $e) {
-            Log::error('Error getting messages: ' . $e->getMessage());
+            Log::error('Error getting messages: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener mensajes'
+                'message' => 'Error al obtener mensajes',
             ], 500);
         }
     }
@@ -163,20 +165,20 @@ class ChatController extends Controller
             $user = Auth::user();
             $profileId = optional($user->profile)->id;
 
-            if (!$profileId) {
+            if (! $profileId) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No tienes un perfil asociado'
+                    'message' => 'No tienes un perfil asociado',
                 ], 403);
             }
 
             $order = Order::findOrFail($conversationId);
 
             // Verificar acceso
-            if (!$this->hasAccessToOrder($order, $profileId)) {
+            if (! $this->hasAccessToOrder($order, $profileId)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No tienes acceso a esta conversación'
+                    'message' => 'No tienes acceso a esta conversación',
                 ], 403);
             }
 
@@ -228,13 +230,14 @@ class ChatController extends Controller
             ]);
             throw $e;
         } catch (\Exception $e) {
-            Log::error('Error sending message: ' . $e->getMessage(), [
+            Log::error('Error sending message: '.$e->getMessage(), [
                 'conversation_id' => $conversationId,
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al enviar mensaje'
+                'message' => 'Error al enviar mensaje',
             ], 500);
         }
     }
@@ -248,20 +251,20 @@ class ChatController extends Controller
             $user = Auth::user();
             $profileId = optional($user->profile)->id;
 
-            if (!$profileId) {
+            if (! $profileId) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No tienes un perfil asociado'
+                    'message' => 'No tienes un perfil asociado',
                 ], 403);
             }
 
             $order = Order::findOrFail($conversationId);
 
             // Verificar acceso
-            if (!$this->hasAccessToOrder($order, $profileId)) {
+            if (! $this->hasAccessToOrder($order, $profileId)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No tienes acceso a esta conversación'
+                    'message' => 'No tienes acceso a esta conversación',
                 ], 403);
             }
 
@@ -273,10 +276,11 @@ class ChatController extends Controller
 
             return response()->json(['marked' => true]);
         } catch (\Exception $e) {
-            Log::error('Error marking messages as read: ' . $e->getMessage());
+            Log::error('Error marking messages as read: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al marcar mensajes como leídos'
+                'message' => 'Error al marcar mensajes como leídos',
             ], 500);
         }
     }
@@ -294,20 +298,20 @@ class ChatController extends Controller
             $user = Auth::user();
             $profileId = optional($user->profile)->id;
 
-            if (!$profileId) {
+            if (! $profileId) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No tienes un perfil asociado'
+                    'message' => 'No tienes un perfil asociado',
                 ], 403);
             }
 
             $order = Order::findOrFail($request->order_id);
 
             // Verificar acceso
-            if (!$this->hasAccessToOrder($order, $profileId)) {
+            if (! $this->hasAccessToOrder($order, $profileId)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No tienes acceso a esta orden'
+                    'message' => 'No tienes acceso a esta orden',
                 ], 403);
             }
 
@@ -324,10 +328,11 @@ class ChatController extends Controller
                 'updated_at' => $order->updated_at->toIso8601String(),
             ], 201);
         } catch (\Exception $e) {
-            Log::error('Error creating conversation: ' . $e->getMessage());
+            Log::error('Error creating conversation: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al crear conversación'
+                'message' => 'Error al crear conversación',
             ], 500);
         }
     }
@@ -341,10 +346,10 @@ class ChatController extends Controller
             $user = Auth::user();
             $profileId = optional($user->profile)->id;
 
-            if (!$profileId) {
+            if (! $profileId) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No tienes un perfil asociado'
+                    'message' => 'No tienes un perfil asociado',
                 ], 403);
             }
 
@@ -354,7 +359,7 @@ class ChatController extends Controller
             if ($order->profile_id != $profileId) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Solo puedes eliminar mensajes de tus propias órdenes'
+                    'message' => 'Solo puedes eliminar mensajes de tus propias órdenes',
                 ], 403);
             }
 
@@ -365,10 +370,11 @@ class ChatController extends Controller
 
             return response()->json(['deleted' => true]);
         } catch (\Exception $e) {
-            Log::error('Error deleting conversation: ' . $e->getMessage());
+            Log::error('Error deleting conversation: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al eliminar conversación'
+                'message' => 'Error al eliminar conversación',
             ], 500);
         }
     }
@@ -386,10 +392,10 @@ class ChatController extends Controller
             $user = Auth::user();
             $profileId = optional($user->profile)->id;
 
-            if (!$profileId) {
+            if (! $profileId) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No tienes un perfil asociado'
+                    'message' => 'No tienes un perfil asociado',
                 ], 403);
             }
 
@@ -397,30 +403,30 @@ class ChatController extends Controller
 
             // Buscar mensajes en órdenes a las que el usuario tiene acceso
             $messages = ChatMessage::where('content', 'like', "%{$query}%")
-                ->whereHas('order', function($q) use ($profileId) {
-                    $q->where(function($query) use ($profileId) {
+                ->whereHas('order', function ($q) use ($profileId) {
+                    $q->where(function ($query) use ($profileId) {
                         $query->where('profile_id', $profileId)
-                              ->orWhereHas('commerce', function($q) use ($profileId) {
-                                  $q->whereHas('profile', function($q2) use ($profileId) {
-                                      $q2->where('user_id', Auth::id());
-                                  });
-                              })
-                              ->orWhereHas('orderDelivery', function($q) use ($profileId) {
-                                  $q->whereHas('agent', function($q2) use ($profileId) {
-                                      $q2->where('profile_id', $profileId);
-                                  });
-                              });
+                            ->orWhereHas('commerce', function ($q) {
+                                $q->whereHas('profile', function ($q2) {
+                                    $q2->where('user_id', Auth::id());
+                                });
+                            })
+                            ->orWhereHas('orderDelivery', function ($q) use ($profileId) {
+                                $q->whereHas('agent', function ($q2) use ($profileId) {
+                                    $q2->where('profile_id', $profileId);
+                                });
+                            });
                     });
                 })
                 ->with(['order', 'sender'])
                 ->limit(50)
                 ->get()
-                ->map(function($message) {
+                ->map(function ($message) {
                     return [
                         'id' => $message->id,
                         'content' => $message->content,
                         'type' => $message->type,
-                        'sender_name' => trim(($message->sender->firstName ?? '') . ' ' . ($message->sender->lastName ?? '')) ?: 'Usuario',
+                        'sender_name' => trim(($message->sender->firstName ?? '').' '.($message->sender->lastName ?? '')) ?: 'Usuario',
                         'order_id' => $message->order_id,
                         'order_number' => $message->order->order_number ?? "ORD-{$message->order_id}",
                         'timestamp' => $message->created_at->toIso8601String(),
@@ -429,10 +435,11 @@ class ChatController extends Controller
 
             return response()->json($messages);
         } catch (\Exception $e) {
-            Log::error('Error searching messages: ' . $e->getMessage());
+            Log::error('Error searching messages: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al buscar mensajes'
+                'message' => 'Error al buscar mensajes',
             ], 500);
         }
     }
@@ -454,10 +461,11 @@ class ChatController extends Controller
 
             return response()->json(['success' => true, 'blocked' => true]);
         } catch (\Exception $e) {
-            Log::error('Error blocking user: ' . $e->getMessage());
+            Log::error('Error blocking user: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al bloquear usuario'
+                'message' => 'Error al bloquear usuario',
             ], 500);
         }
     }
@@ -474,10 +482,11 @@ class ChatController extends Controller
 
             return response()->json(['success' => true, 'unblocked' => true]);
         } catch (\Exception $e) {
-            Log::error('Error unblocking user: ' . $e->getMessage());
+            Log::error('Error unblocking user: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al desbloquear usuario'
+                'message' => 'Error al desbloquear usuario',
             ], 500);
         }
     }
@@ -494,10 +503,11 @@ class ChatController extends Controller
 
             return response()->json(['success' => true, 'data' => $blocked]);
         } catch (\Exception $e) {
-            Log::error('Error getting blocked users: ' . $e->getMessage());
+            Log::error('Error getting blocked users: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener usuarios bloqueados'
+                'message' => 'Error al obtener usuarios bloqueados',
             ], 500);
         }
     }
@@ -556,7 +566,7 @@ class ChatController extends Controller
         if ($order->profile) {
             $participants[] = [
                 'id' => $order->profile->id,
-                'name' => trim(($order->profile->firstName ?? '') . ' ' . ($order->profile->lastName ?? '')) ?: 'Cliente',
+                'name' => trim(($order->profile->firstName ?? '').' '.($order->profile->lastName ?? '')) ?: 'Cliente',
                 'role' => 'customer',
                 'avatar' => $order->profile->photo_users ?? null,
             ];
@@ -576,7 +586,7 @@ class ChatController extends Controller
         if ($order->orderDelivery && $order->orderDelivery->agent && $order->orderDelivery->agent->profile) {
             $participants[] = [
                 'id' => $order->orderDelivery->agent->profile->id,
-                'name' => trim(($order->orderDelivery->agent->profile->firstName ?? '') . ' ' . ($order->orderDelivery->agent->profile->lastName ?? '')) ?: 'Repartidor',
+                'name' => trim(($order->orderDelivery->agent->profile->firstName ?? '').' '.($order->orderDelivery->agent->profile->lastName ?? '')) ?: 'Repartidor',
                 'role' => 'delivery_agent',
                 'avatar' => $order->orderDelivery->agent->profile->photo_users ?? null,
             ];
@@ -607,7 +617,7 @@ class ChatController extends Controller
         $profile = $user->profile;
 
         // Manejar caso donde el usuario aún no tiene perfil creado (normal antes de onboarding)
-        if (!$profile) {
+        if (! $profile) {
             Log::debug('FCM register omitido: usuario sin perfil aún', [
                 'user_id' => $user?->id,
             ]);
@@ -625,7 +635,7 @@ class ChatController extends Controller
 
         Log::info('✅ FCM token registrado', [
             'profile_id' => $profile->id,
-            'token' => substr($deviceToken, 0, 20) . '...'
+            'token' => substr($deviceToken, 0, 20).'...',
         ]);
 
         return response()->json(['status' => 'token_registered']);
@@ -638,7 +648,7 @@ class ChatController extends Controller
     {
         $profile = Auth::user()->profile;
 
-        if (!$profile) {
+        if (! $profile) {
             Log::debug('FCM unregister: sin perfil (sin token que borrar)', [
                 'user_id' => Auth::id(),
             ]);
@@ -647,7 +657,7 @@ class ChatController extends Controller
         }
 
         $profile->update([
-            'fcm_device_token' => null
+            'fcm_device_token' => null,
         ]);
 
         Log::info('✅ FCM token eliminado', ['profile_id' => $profile->id]);
@@ -663,75 +673,76 @@ class ChatController extends Controller
         Log::debug('sendPushNotification inicio', [
             'order_id' => $order->id,
             'message_id' => $message->id,
-            'sender_id' => $senderId
+            'sender_id' => $senderId,
         ]);
-        
+
         try {
             // Obtener el receptor (el otro participante)
             $receiver = $this->getReceiverForOrder($order, $senderId);
-            
+
             Log::debug('sendPushNotification debug', [
                 'sender_id' => $senderId,
                 'receiver' => $receiver ? $receiver->id : 'null',
                 'has_fcm_token' => $receiver && $receiver->fcm_device_token ? 'YES' : 'NO',
-                'token_preview' => $receiver && $receiver->fcm_device_token ? substr($receiver->fcm_device_token, 0, 20) . '...' : 'null'
+                'token_preview' => $receiver && $receiver->fcm_device_token ? substr($receiver->fcm_device_token, 0, 20).'...' : 'null',
             ]);
-            
-            if (!$receiver || !$receiver->fcm_device_token) {
+
+            if (! $receiver || ! $receiver->fcm_device_token) {
                 Log::debug('Receptor sin device token, no se envía push', [
                     'receiver_id' => $receiver ? $receiver->id : 'null',
-                    'has_token' => $receiver && $receiver->fcm_device_token ? 'YES' : 'NO'
+                    'has_token' => $receiver && $receiver->fcm_device_token ? 'YES' : 'NO',
                 ]);
+
                 return;
             }
 
             // Obtener nombre del remitente (sender ya es un Profile)
             $sender = $message->sender;
-            $senderName = trim(($sender->firstName ?? '') . ' ' . ($sender->lastName ?? '')) ?: 'Usuario';
-            
+            $senderName = trim(($sender->firstName ?? '').' '.($sender->lastName ?? '')) ?: 'Usuario';
+
             // Preparar snippet del mensaje (máximo 100 caracteres para notificación)
-            $content = (string)$message->content; // Convertir a string si es Stringable
-            $snippet = strlen($content) > 100 
-                ? substr($content, 0, 97) . '...' 
+            $content = (string) $message->content; // Convertir a string si es Stringable
+            $snippet = strlen($content) > 100
+                ? substr($content, 0, 97).'...'
                 : $content;
-            
+
             // Enviar notificación con datos estilo WhatsApp
             Log::info('🔥 LLAMANDO FirebaseService->sendToDevice', [
-                'device_token' => substr($receiver->fcm_device_token, 0, 20) . '...',
+                'device_token' => substr($receiver->fcm_device_token, 0, 20).'...',
                 'title' => $senderName,
-                'body' => $snippet
+                'body' => $snippet,
             ]);
-            
-            $firebaseService = new FirebaseService();
+
+            $firebaseService = new FirebaseService;
             $result = $firebaseService->sendToDevice(
                 $receiver->fcm_device_token,
                 $senderName, // Título: nombre del remitente
                 $snippet,    // Cuerpo: snippet del mensaje
                 [
-                    'order_id' => (string)$order->id,
+                    'order_id' => (string) $order->id,
                     'type' => 'chat',
-                    'message_id' => (string)$message->id,
-                    'sender_id' => (string)$senderId,
+                    'message_id' => (string) $message->id,
+                    'sender_id' => (string) $senderId,
                     'sender_name' => $senderName,
                     'snippet' => $snippet,
-                    'full_message' => (string)$message->content,
-                    'timestamp' => (string)$message->created_at->timestamp,
+                    'full_message' => (string) $message->content,
+                    'timestamp' => (string) $message->created_at->timestamp,
                 ]
             );
-            
+
             Log::debug('FirebaseService->sendToDevice result', [
-                'result' => $result ? 'SUCCESS' : 'FAILED'
+                'result' => $result ? 'SUCCESS' : 'FAILED',
             ]);
 
             Log::debug('Notificación push enviada', [
                 'receiver_id' => $receiver->id,
                 'sender_name' => $senderName,
-                'order_id' => $order->id
+                'order_id' => $order->id,
             ]);
         } catch (\Exception $e) {
             Log::error('❌ Error enviando notificación push', [
                 'error' => $e->getMessage(),
-                'order_id' => $order->id
+                'order_id' => $order->id,
             ]);
         }
     }

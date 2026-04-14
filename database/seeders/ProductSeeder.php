@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Commerce;
 use App\Models\Product;
+use Illuminate\Database\Seeder;
 
 class ProductSeeder extends Seeder
 {
@@ -22,6 +22,6 @@ class ProductSeeder extends Seeder
             ]);
         }
 
-        $this->command->info('ProductSeeder: ' . ($commerces->count() * 10) . ' productos creados (10 por comercio).');
+        $this->command->info('ProductSeeder: '.($commerces->count() * 10).' productos creados (10 por comercio).');
     }
 }

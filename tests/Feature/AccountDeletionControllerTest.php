@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Support\Facades\Hash;
+use Tests\TestCase;
 
 class AccountDeletionControllerTest extends TestCase
 {
@@ -19,9 +19,9 @@ class AccountDeletionControllerTest extends TestCase
         parent::setUp();
         $this->user = User::factory()->create([
             'role' => 'users',
-            'password' => Hash::make('password123')
+            'password' => Hash::make('password123'),
         ]);
-        
+
         // Limpiar el estado estático del controlador
         $this->clearMockDeletionRequests();
     }
@@ -49,7 +49,7 @@ class AccountDeletionControllerTest extends TestCase
             ->postJson('/api/user/request-deletion', [
                 'reason' => 'Ya no uso la aplicación',
                 'feedback' => 'La aplicación funciona bien, pero ya no la necesito',
-                'immediate' => false
+                'immediate' => false,
             ]);
 
         $response->assertStatus(200)
@@ -60,7 +60,7 @@ class AccountDeletionControllerTest extends TestCase
                     'deletion_id',
                     'scheduled_for',
                     'immediate',
-                ]
+                ],
             ]);
     }
 
@@ -84,20 +84,20 @@ class AccountDeletionControllerTest extends TestCase
         $this->actingAs($this->user)
             ->postJson('/api/user/request-deletion', [
                 'reason' => 'Primera solicitud',
-                'immediate' => false
+                'immediate' => false,
             ]);
 
         // Segunda solicitud (debería fallar)
         $response = $this->actingAs($this->user)
             ->postJson('/api/user/request-deletion', [
                 'reason' => 'Segunda solicitud',
-                'immediate' => false
+                'immediate' => false,
             ]);
 
         $response->assertStatus(400)
             ->assertJson([
                 'success' => false,
-                'message' => 'Ya tienes una solicitud de eliminación pendiente'
+                'message' => 'Ya tienes una solicitud de eliminación pendiente',
             ]);
     }
 
@@ -107,18 +107,18 @@ class AccountDeletionControllerTest extends TestCase
         $response = $this->actingAs($this->user)
             ->postJson('/api/user/confirm-deletion', [
                 'confirmation_code' => 'ABC123',
-                'password' => 'password123'
+                'password' => 'password123',
             ]);
 
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
-                'message' => 'Cuenta eliminada correctamente'
+                'message' => 'Cuenta eliminada correctamente',
             ])
             ->assertJsonStructure([
                 'data' => [
                     'deleted_at',
-                ]
+                ],
             ]);
     }
 
@@ -128,13 +128,13 @@ class AccountDeletionControllerTest extends TestCase
         $response = $this->actingAs($this->user)
             ->postJson('/api/user/confirm-deletion', [
                 'confirmation_code' => 'INVALID',
-                'password' => 'password123'
+                'password' => 'password123',
             ]);
 
         $response->assertStatus(400)
             ->assertJson([
                 'success' => false,
-                'message' => 'Código de confirmación inválido'
+                'message' => 'Código de confirmación inválido',
             ]);
     }
 
@@ -144,13 +144,13 @@ class AccountDeletionControllerTest extends TestCase
         $response = $this->actingAs($this->user)
             ->postJson('/api/user/confirm-deletion', [
                 'confirmation_code' => 'ABC123',
-                'password' => 'wrongpassword'
+                'password' => 'wrongpassword',
             ]);
 
         $response->assertStatus(401)
             ->assertJson([
                 'success' => false,
-                'message' => 'Contraseña incorrecta'
+                'message' => 'Contraseña incorrecta',
             ]);
     }
 
@@ -161,7 +161,7 @@ class AccountDeletionControllerTest extends TestCase
         $this->actingAs($this->user)
             ->postJson('/api/user/request-deletion', [
                 'reason' => 'Solicitud para cancelar',
-                'immediate' => false
+                'immediate' => false,
             ]);
 
         // Luego cancelarla
@@ -171,7 +171,7 @@ class AccountDeletionControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
-                'message' => 'Solicitud de eliminación cancelada correctamente'
+                'message' => 'Solicitud de eliminación cancelada correctamente',
             ]);
     }
 
@@ -184,7 +184,7 @@ class AccountDeletionControllerTest extends TestCase
         $response->assertStatus(400)
             ->assertJson([
                 'success' => false,
-                'message' => 'No hay una solicitud de eliminación pendiente'
+                'message' => 'No hay una solicitud de eliminación pendiente',
             ]);
     }
 
@@ -204,7 +204,7 @@ class AccountDeletionControllerTest extends TestCase
                     'scheduled_for',
                     'reason',
                     'immediate',
-                ]
+                ],
             ]);
     }
 
@@ -222,14 +222,14 @@ class AccountDeletionControllerTest extends TestCase
         $response = $this->actingAs($this->user)
             ->postJson('/api/user/request-deletion', [
                 'reason' => 'Eliminación inmediata',
-                'immediate' => true
+                'immediate' => true,
             ]);
 
         $response->assertStatus(200)
             ->assertJson([
                 'data' => [
-                    'immediate' => true
-                ]
+                    'immediate' => true,
+                ],
             ]);
     }
 
@@ -241,12 +241,12 @@ class AccountDeletionControllerTest extends TestCase
         $response = $this->actingAs($this->user)
             ->postJson('/api/user/request-deletion', [
                 'reason' => $longReason,
-                'immediate' => false
+                'immediate' => false,
             ]);
 
         $response->assertStatus(200)
             ->assertJson([
-                'success' => true
+                'success' => true,
             ]);
     }
-} 
+}

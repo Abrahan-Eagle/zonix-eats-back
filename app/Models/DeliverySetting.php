@@ -15,11 +15,11 @@ class DeliverySetting extends Model
     ];
 
     protected $casts = [
-        'base_cost'   => 'float',
+        'base_cost' => 'float',
         'cost_per_km' => 'float',
-        'free_km'     => 'float',
-        'fee_min'     => 'float',
-        'fee_max'     => 'float',
+        'free_km' => 'float',
+        'fee_min' => 'float',
+        'fee_max' => 'float',
     ];
 
     /**
@@ -29,13 +29,13 @@ class DeliverySetting extends Model
     {
         $config = static::first();
 
-        if (!$config) {
+        if (! $config) {
             $config = static::create([
-                'base_cost'   => 1.50,
+                'base_cost' => 1.50,
                 'cost_per_km' => 0.50,
-                'free_km'     => 0.00,
-                'fee_min'     => 2.00,
-                'fee_max'     => 15.00,
+                'free_km' => 0.00,
+                'fee_min' => 2.00,
+                'fee_max' => 15.00,
             ]);
         }
 

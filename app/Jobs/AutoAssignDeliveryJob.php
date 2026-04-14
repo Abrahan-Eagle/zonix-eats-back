@@ -12,7 +12,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Cuando el comercio marca la orden como "processing", intenta auto-asignar al agente más cercano.
@@ -29,14 +28,14 @@ class AutoAssignDeliveryJob implements ShouldQueue
     public function handle(NotificationService $notificationService): void
     {
         $order = Order::with(['commerce.addresses', 'deliveryCompany'])->find($this->orderId);
-        if (!$order || !in_array($order->status, ['processing', 'shipped'])) {
+        if (! $order || ! in_array($order->status, ['processing', 'shipped'])) {
             return;
         }
         if ($order->orderDelivery) {
             return; // Ya asignada
         }
         $company = $order->deliveryCompany;
-        if (!$company) {
+        if (! $company) {
             return;
         }
 
@@ -48,6 +47,7 @@ class AutoAssignDeliveryJob implements ShouldQueue
         $agentIds = DeliveryAgent::where('company_id', $company->id)->pluck('id')->toArray();
         if (empty($agentIds)) {
             $this->notifyCompanyPending($order, $notificationService);
+
             return;
         }
 
@@ -59,27 +59,31 @@ class AutoAssignDeliveryJob implements ShouldQueue
                 $hasActive = OrderDelivery::where('agent_id', $agent->id)
                     ->whereHas('order', fn ($q) => $q->whereIn('status', ['processing', 'shipped']))
                     ->exists();
-                return !$hasActive;
+
+                return ! $hasActive;
             })
             ->map(function ($agent) use ($commerceLat, $commerceLng) {
                 $lat = $agent->current_latitude ?? $commerceLat;
                 $lng = $agent->current_longitude ?? $commerceLng;
                 $distanceKm = DeliveryFeeService::distanceKm($commerceLat, $commerceLng, (float) $lat, (float) $lng);
+
                 return ['agent' => $agent, 'distance_km' => $distanceKm];
             })
             ->sortBy('distance_km')
             ->values();
 
         $nearest = $candidates->first();
-        if (!$nearest) {
+        if (! $nearest) {
             $this->notifyCompanyPending($order, $notificationService);
+
             return;
         }
 
         $agent = $nearest['agent'];
         $profile = $agent->profile;
-        if (!$profile) {
+        if (! $profile) {
             AutoAssignTimeoutJob::dispatch($this->orderId)->delay(now()->addSeconds(60));
+
             return;
         }
 
@@ -88,7 +92,7 @@ class AutoAssignDeliveryJob implements ShouldQueue
         $notificationService->notify(
             $profile->id,
             'Nueva orden para entregar',
-            "Orden #" . ($order->order_number ?? $order->id) . " lista para recoger. Tienes 60 segundos para aceptar.",
+            'Orden #'.($order->order_number ?? $order->id).' lista para recoger. Tienes 60 segundos para aceptar.',
             'order',
             ['order_id' => $order->id, 'action' => 'accept_order']
         );
@@ -100,13 +104,13 @@ class AutoAssignDeliveryJob implements ShouldQueue
     private function notifyCompanyPending(Order $order, NotificationService $notificationService): void
     {
         $company = $order->deliveryCompany;
-        if (!$company || !$company->profile_id) {
+        if (! $company || ! $company->profile_id) {
             return;
         }
         $notificationService->notify(
             $company->profile_id,
             'Orden pendiente de asignación',
-            "Orden #" . ($order->order_number ?? $order->id) . " no tiene repartidores disponibles. Asígnala manualmente.",
+            'Orden #'.($order->order_number ?? $order->id).' no tiene repartidores disponibles. Asígnala manualmente.',
             'order',
             ['order_id' => $order->id, 'action' => 'assign_order']
         );

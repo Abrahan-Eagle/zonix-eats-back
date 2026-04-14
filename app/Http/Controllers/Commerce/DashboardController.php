@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Commerce;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Product;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -15,14 +14,14 @@ class DashboardController extends Controller
         try {
             /** @var \App\Models\User|null $user */
             $user = Auth::user();
-            if (!$user) {
+            if (! $user) {
                 return response()->json(['error' => 'No autenticado'], 401);
             }
             $user->load('profile.commerces');
             $profile = $user->profile;
             $commerce = $profile?->getPrimaryCommerce();
-            
-            if (!$profile || !$commerce) {
+
+            if (! $profile || ! $commerce) {
                 return response()->json(['error' => 'User is not associated with a commerce'], 403);
             }
             $commerceId = $commerce->id;
@@ -56,22 +55,22 @@ class DashboardController extends Controller
                     ->orderBy('created_at', 'desc')
                     ->limit(5)
                     ->get()
-                    ->map(function($order) {
+                    ->map(function ($order) {
                         try {
                             $customerName = 'Cliente';
                             if ($order->profile) {
                                 $firstName = $order->profile->firstName ?? '';
                                 $lastName = $order->profile->lastName ?? '';
-                                $customerName = trim($firstName . ' ' . $lastName) ?: 'Cliente';
+                                $customerName = trim($firstName.' '.$lastName) ?: 'Cliente';
                             }
-                            
+
                             $itemsCount = 0;
                             try {
                                 $itemsCount = $order->items ? $order->items->count() : 0;
                             } catch (\Exception $e) {
                                 $itemsCount = 0;
                             }
-                            
+
                             $deliveryType = (string) ($order->delivery_type ?? 'pickup');
 
                             return [
@@ -112,12 +111,12 @@ class DashboardController extends Controller
                     'total_products' => $totalProducts,
                     'active_products' => $activeProducts,
                     'recent_orders' => $recentOrders,
-                ]
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error obteniendo dashboard: ' . $e->getMessage()
+                'message' => 'Error obteniendo dashboard: '.$e->getMessage(),
             ], 500);
         }
     }

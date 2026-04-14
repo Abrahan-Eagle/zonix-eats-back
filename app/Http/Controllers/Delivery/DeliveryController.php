@@ -10,8 +10,8 @@ use App\Models\Dispute;
 use App\Models\Order;
 use App\Models\OrderDelivery;
 use App\Models\Review;
-use App\Services\Routing\RouteCalculationService;
 use App\Services\OrderStateMachineService;
+use App\Services\Routing\RouteCalculationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -240,7 +240,7 @@ class DeliveryController extends Controller
                 $agent->id,
                 'delivery_api'
             );
-            if (!$decision['allowed']) {
+            if (! $decision['allowed']) {
                 return response()->json([
                     'success' => false,
                     'message' => $decision['message'],
@@ -392,7 +392,7 @@ class DeliveryController extends Controller
                 return ['ok' => true];
             });
 
-            if (!$accepted['ok']) {
+            if (! $accepted['ok']) {
                 return response()->json([
                     'success' => false,
                     'message' => $accepted['message'],
@@ -502,7 +502,7 @@ class DeliveryController extends Controller
                 $agent->id,
                 'delivery_qr_pickup'
             );
-            if (!$decision['allowed']) {
+            if (! $decision['allowed']) {
                 return response()->json([
                     'success' => false,
                     'message' => $decision['message'],
@@ -604,7 +604,7 @@ class DeliveryController extends Controller
                 $agent->id,
                 'delivery_qr_dropoff'
             );
-            if (!$decision['allowed']) {
+            if (! $decision['allowed']) {
                 return response()->json([
                     'success' => false,
                     'message' => $decision['message'],

@@ -3,9 +3,7 @@
 namespace App\Events;
 
 use App\Models\Notification;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
@@ -17,7 +15,9 @@ class NotificationCreated implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $notification;
+
     private string $eventId;
+
     private string $occurredAt;
 
     /**
@@ -38,7 +38,7 @@ class NotificationCreated implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('user.' . $this->notification->profile->user_id),
+            new PrivateChannel('user.'.$this->notification->profile->user_id),
         ];
     }
 
@@ -52,8 +52,6 @@ class NotificationCreated implements ShouldBroadcast
 
     /**
      * Get the data to broadcast.
-     *
-     * @return array
      */
     public function broadcastWith(): array
     {

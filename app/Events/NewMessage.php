@@ -21,8 +21,7 @@ class NewMessage implements ShouldBroadcast
         public int $senderProfileId,
         public string $senderName,
         public string $senderRole,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<int, \Illuminate\Broadcasting\Channel>

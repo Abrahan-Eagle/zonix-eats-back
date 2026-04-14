@@ -118,7 +118,7 @@ class DocumentControllerTest extends TestCase
         ]);
         Sanctum::actingAs($user);
 
-        $response = $this->getJson('/api/documents/' . $user->id);
+        $response = $this->getJson('/api/documents/'.$user->id);
 
         $response->assertStatus(200);
         $data = $response->json();
@@ -156,16 +156,16 @@ class DocumentControllerTest extends TestCase
         ]);
         Sanctum::actingAs($user);
 
-        $show = $this->getJson('/api/documents/' . $otherUser->id);
+        $show = $this->getJson('/api/documents/'.$otherUser->id);
         $show->assertStatus(403);
 
-        $update = $this->putJson('/api/documents/' . $foreignDocument->id, [
+        $update = $this->putJson('/api/documents/'.$foreignDocument->id, [
             'number_ci' => 12312312,
         ]);
         $update->assertStatus(403)
             ->assertJson(['message' => 'No autorizado']);
 
-        $delete = $this->deleteJson('/api/documents/' . $foreignDocument->id);
+        $delete = $this->deleteJson('/api/documents/'.$foreignDocument->id);
         $delete->assertStatus(403)
             ->assertJson(['message' => 'No autorizado']);
     }

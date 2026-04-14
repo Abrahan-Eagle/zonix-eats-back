@@ -2,10 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\Notification;
-use App\Models\Profile;
+use Illuminate\Database\Seeder;
 
 class NotificationSeeder extends Seeder
 {
@@ -13,7 +11,7 @@ class NotificationSeeder extends Seeder
     {
         // Crear 30 notifications de prueba
         Notification::factory(30)->create();
-        
+
         $this->command->info('NotificationSeeder ejecutado exitosamente.');
     }
 }

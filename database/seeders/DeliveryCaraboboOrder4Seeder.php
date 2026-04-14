@@ -20,6 +20,7 @@ class DeliveryCaraboboOrder4Seeder extends Seeder
 {
     /** Coordenadas aproximadas Carabobo/Valencia (demo) */
     private const VALENCIA_LAT = 10.1620;
+
     private const VALENCIA_LNG = -68.0074;
 
     /** Radio en grados para repartir agentes (~10 km) */
@@ -33,7 +34,7 @@ class DeliveryCaraboboOrder4Seeder extends Seeder
     public function run(): void
     {
         $company = DeliveryCompany::first();
-        if (!$company) {
+        if (! $company) {
             $profileCompany = Profile::factory()->create();
             $profileCompany->user->update(['role' => 'delivery_company']);
             $company = DeliveryCompany::factory()->create(['profile_id' => $profileCompany->id]);
@@ -63,7 +64,7 @@ class DeliveryCaraboboOrder4Seeder extends Seeder
                     'working' => true,
                     'rating' => round(3.5 + (random_int(0, 15) / 10.0), 1),
                     'vehicle_type' => ['motorcycle', 'motorcycle', 'car', 'bicycle'][$i % 4],
-                    'license_number' => 'LIC-' . str_pad((string) $i, 5, '0', STR_PAD_LEFT),
+                    'license_number' => 'LIC-'.str_pad((string) $i, 5, '0', STR_PAD_LEFT),
                     'current_latitude' => $lat,
                     'current_longitude' => $lng,
                     'last_location_update' => now(),
@@ -73,8 +74,9 @@ class DeliveryCaraboboOrder4Seeder extends Seeder
 
         $demoOrderId = $this->demoOrderId();
         $order = Order::find($demoOrderId);
-        if (!$order) {
+        if (! $order) {
             $this->command->warn("Orden {$demoOrderId} no existe. Crear una orden con id {$demoOrderId} (o configurar ZONIX_SEEDER_DEMO_ORDER_ID) y volver a ejecutar este seeder.");
+
             return;
         }
 
@@ -102,6 +104,6 @@ class DeliveryCaraboboOrder4Seeder extends Seeder
             'delivery_fee' => $order->delivery_fee ?? config('zonix.seeder.default_delivery_fee', 5.00),
         ]);
 
-        $this->command->info("DeliveryCaraboboOrder4Seeder: 1 compañía, 10 agentes en Carabobo, orden {$demoOrderId} asignada al agente " . $agentForOrder4->id . '.');
+        $this->command->info("DeliveryCaraboboOrder4Seeder: 1 compañía, 10 agentes en Carabobo, orden {$demoOrderId} asignada al agente ".$agentForOrder4->id.'.');
     }
 }

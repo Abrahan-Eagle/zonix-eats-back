@@ -4,11 +4,10 @@ namespace App\Http\Controllers\Buyer;
 
 use App\Events\NewMessage;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use App\Models\Order;
 use App\Models\ChatMessage;
-use App\Models\Profile;
+use App\Models\Order;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
@@ -27,7 +26,7 @@ class ChatController extends Controller
             if ($order->profile_id !== auth()->user()->profile->id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No tienes permisos para acceder a este chat'
+                    'message' => 'No tienes permisos para acceder a este chat',
                 ], 403);
             }
 
@@ -46,7 +45,7 @@ class ChatController extends Controller
                     'sender_avatar' => $message->sender->avatar_url ?? null,
                     'is_own_message' => $message->sender_id === auth()->user()->profile->id,
                     'created_at' => $message->created_at->format('H:i'),
-                    'timestamp' => $message->created_at->toISOString()
+                    'timestamp' => $message->created_at->toISOString(),
                 ];
             });
 
@@ -57,19 +56,19 @@ class ChatController extends Controller
                 'participants' => [
                     'customer' => [
                         'name' => auth()->user()->profile->full_name ?? 'Cliente',
-                        'avatar' => auth()->user()->profile->avatar_url ?? null
+                        'avatar' => auth()->user()->profile->avatar_url ?? null,
                     ],
                     'restaurant' => [
                         'name' => $order->commerce->name ?? 'Restaurante',
-                        'avatar' => $order->commerce->logo_url ?? null
-                    ]
-                ]
+                        'avatar' => $order->commerce->logo_url ?? null,
+                    ],
+                ],
             ];
 
             if ($order->deliveryAgent) {
                 $chatInfo['participants']['delivery_agent'] = [
                     'name' => $order->deliveryAgent->name ?? 'Repartidor',
-                    'avatar' => $order->deliveryAgent->avatar_url ?? null
+                    'avatar' => $order->deliveryAgent->avatar_url ?? null,
                 ];
             }
 
@@ -77,14 +76,15 @@ class ChatController extends Controller
                 'success' => true,
                 'data' => [
                     'chat_info' => $chatInfo,
-                    'messages' => $messagesData
-                ]
+                    'messages' => $messagesData,
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting chat messages: ' . $e->getMessage());
+            Log::error('Error getting chat messages: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener los mensajes'
+                'message' => 'Error al obtener los mensajes',
             ], 500);
         }
     }
@@ -98,14 +98,14 @@ class ChatController extends Controller
             'order_id' => 'required|exists:orders,id',
             'content' => 'required|string|max:1000',
             'type' => 'required|in:text,image,location',
-            'recipient_type' => 'required|in:restaurant,delivery_agent,all'
+            'recipient_type' => 'required|in:restaurant,delivery_agent,all',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Datos inválidos',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -116,7 +116,7 @@ class ChatController extends Controller
             if ($order->profile_id !== auth()->user()->profile->id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No tienes permisos para enviar mensajes en este chat'
+                    'message' => 'No tienes permisos para enviar mensajes en este chat',
                 ], 403);
             }
 
@@ -128,7 +128,7 @@ class ChatController extends Controller
                 'recipient_type' => $request->recipient_type,
                 'content' => $request->content,
                 'type' => $request->type,
-                'created_at' => now()
+                'created_at' => now(),
             ]);
 
             // Cargar la relación del remitente
@@ -143,7 +143,7 @@ class ChatController extends Controller
                 'sender_avatar' => $message->sender->avatar_url ?? null,
                 'is_own_message' => true,
                 'created_at' => $message->created_at->format('H:i'),
-                'timestamp' => $message->created_at->toISOString()
+                'timestamp' => $message->created_at->toISOString(),
             ];
 
             $user = auth()->user();
@@ -169,13 +169,14 @@ class ChatController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Mensaje enviado exitosamente',
-                'data' => $messageData
+                'data' => $messageData,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error sending message: ' . $e->getMessage());
+            Log::error('Error sending message: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al enviar el mensaje'
+                'message' => 'Error al enviar el mensaje',
             ], 500);
         }
     }
@@ -188,14 +189,14 @@ class ChatController extends Controller
         $validator = Validator::make($request->all(), [
             'order_id' => 'required|exists:orders,id',
             'message_ids' => 'required|array',
-            'message_ids.*' => 'exists:chat_messages,id'
+            'message_ids.*' => 'exists:chat_messages,id',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Datos inválidos',
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
@@ -206,7 +207,7 @@ class ChatController extends Controller
             if ($order->profile_id !== auth()->user()->profile->id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No tienes permisos para acceder a este chat'
+                    'message' => 'No tienes permisos para acceder a este chat',
                 ], 403);
             }
 
@@ -214,18 +215,19 @@ class ChatController extends Controller
             ChatMessage::whereIn('id', $request->message_ids)
                 ->where('sender_id', '!=', auth()->user()->profile->id)
                 ->update([
-                    'read_at' => now()
+                    'read_at' => now(),
                 ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Mensajes marcados como leídos'
+                'message' => 'Mensajes marcados como leídos',
             ]);
         } catch (\Exception $e) {
-            Log::error('Error marking messages as read: ' . $e->getMessage());
+            Log::error('Error marking messages as read: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al marcar los mensajes como leídos'
+                'message' => 'Error al marcar los mensajes como leídos',
             ], 500);
         }
     }
@@ -242,7 +244,7 @@ class ChatController extends Controller
             if ($order->profile_id !== auth()->user()->profile->id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No tienes permisos para acceder a este chat'
+                    'message' => 'No tienes permisos para acceder a este chat',
                 ], 403);
             }
 
@@ -254,14 +256,15 @@ class ChatController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'unread_count' => $unreadMessages
-                ]
+                    'unread_count' => $unreadMessages,
+                ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Error getting unread messages: ' . $e->getMessage());
+            Log::error('Error getting unread messages: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Error al obtener los mensajes no leídos'
+                'message' => 'Error al obtener los mensajes no leídos',
             ], 500);
         }
     }
@@ -276,7 +279,7 @@ class ChatController extends Controller
         Log::debug('Push notification sent', [
             'order_id' => $order->id,
             'message_id' => $message->id,
-            'recipient_type' => $message->recipient_type
+            'recipient_type' => $message->recipient_type,
         ]);
     }
-} 
+}

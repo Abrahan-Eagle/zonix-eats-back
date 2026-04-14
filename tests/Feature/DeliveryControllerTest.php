@@ -2,35 +2,37 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\Profile;
+use App\Models\Commerce;
 use App\Models\DeliveryAgent;
 use App\Models\Order;
 use App\Models\OrderDelivery;
-use App\Models\Commerce;
+use App\Models\Profile;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 class DeliveryControllerTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $deliveryUser;
+
     protected $deliveryAgent;
+
     protected $profile;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->deliveryUser = User::factory()->create(['role' => 'delivery']);
         $this->profile = Profile::factory()->create(['user_id' => $this->deliveryUser->id]);
         $this->deliveryAgent = DeliveryAgent::factory()->create([
             'profile_id' => $this->profile->id,
             'company_id' => null,
         ]);
-        
+
         Sanctum::actingAs($this->deliveryUser);
     }
 
@@ -44,8 +46,8 @@ class DeliveryControllerTest extends TestCase
         $response = $this->getJson('/api/delivery/available-orders');
 
         $response->assertStatus(200)
-                 ->assertJson(['success' => true])
-                 ->assertJsonStructure(['success', 'data']);
+            ->assertJson(['success' => true])
+            ->assertJsonStructure(['success', 'data']);
 
         $data = $response->json('data');
         $this->assertCount(2, $data);
@@ -56,23 +58,23 @@ class DeliveryControllerTest extends TestCase
         $commerce = Commerce::factory()->create(['open' => true]);
         $order1 = Order::factory()->create(['status' => 'shipped', 'commerce_id' => $commerce->id]);
         $order2 = Order::factory()->create(['status' => 'delivered', 'commerce_id' => $commerce->id]);
-        
+
         OrderDelivery::factory()->create([
             'order_id' => $order1->id,
             'agent_id' => $this->deliveryAgent->id,
-            'status' => 'assigned'
+            'status' => 'assigned',
         ]);
         OrderDelivery::factory()->create([
             'order_id' => $order2->id,
             'agent_id' => $this->deliveryAgent->id,
-            'status' => 'delivered'
+            'status' => 'delivered',
         ]);
 
         $response = $this->getJson("/api/delivery/assigned-orders/{$this->deliveryAgent->id}");
 
         $response->assertStatus(200)
-                 ->assertJson(['success' => true])
-                 ->assertJsonStructure(['success', 'data']);
+            ->assertJson(['success' => true])
+            ->assertJsonStructure(['success', 'data']);
 
         $data = $response->json('data');
         $this->assertCount(2, $data);
@@ -84,16 +86,16 @@ class DeliveryControllerTest extends TestCase
         $order = Order::factory()->create(['status' => 'shipped', 'commerce_id' => $commerce->id]);
 
         $response = $this->postJson("/api/delivery/orders/{$order->id}/accept", [
-            'notes' => 'Test notes'
+            'notes' => 'Test notes',
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson(['success' => true, 'message' => 'Orden aceptada exitosamente']);
+            ->assertJson(['success' => true, 'message' => 'Orden aceptada exitosamente']);
 
         $this->assertDatabaseHas('order_delivery', [
             'order_id' => $order->id,
             'agent_id' => $this->deliveryAgent->id,
-            'status' => 'assigned'
+            'status' => 'assigned',
         ]);
 
         $order->refresh();
@@ -104,11 +106,11 @@ class DeliveryControllerTest extends TestCase
     {
         $response = $this->postJson('/api/delivery/location/update', [
             'latitude' => -12.0464,
-            'longitude' => -77.0428
+            'longitude' => -77.0428,
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson(['success' => true]);
+            ->assertJson(['success' => true]);
 
         $this->deliveryAgent->refresh();
         $this->assertEquals(-12.0464, $this->deliveryAgent->current_latitude);
@@ -165,30 +167,30 @@ class DeliveryControllerTest extends TestCase
         $commerce = Commerce::factory()->create(['open' => true]);
         $order1 = Order::factory()->create(['status' => 'delivered', 'commerce_id' => $commerce->id]);
         $order2 = Order::factory()->create(['status' => 'delivered', 'commerce_id' => $commerce->id]);
-        
+
         OrderDelivery::factory()->create([
             'order_id' => $order1->id,
             'agent_id' => $this->deliveryAgent->id,
             'status' => 'delivered',
-            'delivery_fee' => 10.50
+            'delivery_fee' => 10.50,
         ]);
         OrderDelivery::factory()->create([
             'order_id' => $order2->id,
             'agent_id' => $this->deliveryAgent->id,
             'status' => 'delivered',
-            'delivery_fee' => 15.00
+            'delivery_fee' => 15.00,
         ]);
 
         $response = $this->getJson("/api/delivery/statistics/{$this->deliveryAgent->id}");
 
         $response->assertStatus(200)
-                 ->assertJson(['success' => true])
-                 ->assertJsonStructure(['success', 'data' => [
-                     'total_deliveries',
-                     'completed_deliveries',
-                     'cancelled_deliveries',
-                     'total_earnings'
-                 ]]);
+            ->assertJson(['success' => true])
+            ->assertJsonStructure(['success', 'data' => [
+                'total_deliveries',
+                'completed_deliveries',
+                'cancelled_deliveries',
+                'total_earnings',
+            ]]);
 
         $data = $response->json('data');
         $this->assertEquals(2, $data['total_deliveries']);
@@ -201,28 +203,28 @@ class DeliveryControllerTest extends TestCase
         $commerce = Commerce::factory()->create(['open' => true]);
         $order1 = Order::factory()->create(['status' => 'delivered', 'commerce_id' => $commerce->id]);
         $order2 = Order::factory()->create(['status' => 'cancelled', 'commerce_id' => $commerce->id]);
-        
+
         OrderDelivery::factory()->create([
             'order_id' => $order1->id,
             'agent_id' => $this->deliveryAgent->id,
-            'status' => 'delivered'
+            'status' => 'delivered',
         ]);
         OrderDelivery::factory()->create([
             'order_id' => $order2->id,
             'agent_id' => $this->deliveryAgent->id,
-            'status' => 'cancelled'
+            'status' => 'cancelled',
         ]);
 
         $response = $this->getJson("/api/delivery/history/{$this->deliveryAgent->id}");
 
         $response->assertStatus(200)
-                 ->assertJson(['success' => true])
-                 ->assertJsonStructure([
-                     'success',
-                     'message',
-                     'error_code',
-                     'data' => ['items', 'data', 'pagination'],
-                 ]);
+            ->assertJson(['success' => true])
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'error_code',
+                'data' => ['items', 'data', 'pagination'],
+            ]);
 
         $data = $response->json('data.items');
         $this->assertCount(2, $data);
@@ -234,31 +236,31 @@ class DeliveryControllerTest extends TestCase
         $order1 = Order::factory()->create([
             'status' => 'delivered',
             'commerce_id' => $commerce->id,
-            'created_at' => now()->subDays(5)
+            'created_at' => now()->subDays(5),
         ]);
         $order2 = Order::factory()->create([
             'status' => 'delivered',
             'commerce_id' => $commerce->id,
-            'created_at' => now()->subDays(10)
+            'created_at' => now()->subDays(10),
         ]);
-        
+
         OrderDelivery::factory()->create([
             'order_id' => $order1->id,
             'agent_id' => $this->deliveryAgent->id,
-            'status' => 'delivered'
+            'status' => 'delivered',
         ]);
         OrderDelivery::factory()->create([
             'order_id' => $order2->id,
             'agent_id' => $this->deliveryAgent->id,
-            'status' => 'delivered'
+            'status' => 'delivered',
         ]);
 
         $startDate = now()->subDays(7)->toIso8601String();
         $endDate = now()->toIso8601String();
 
-        $response = $this->getJson("/api/delivery/history/{$this->deliveryAgent->id}?" . http_build_query([
+        $response = $this->getJson("/api/delivery/history/{$this->deliveryAgent->id}?".http_build_query([
             'start_date' => $startDate,
-            'end_date' => $endDate
+            'end_date' => $endDate,
         ]));
 
         $response->assertStatus(200);
@@ -271,34 +273,34 @@ class DeliveryControllerTest extends TestCase
         $commerce = Commerce::factory()->create(['open' => true]);
         $order1 = Order::factory()->create(['status' => 'delivered', 'commerce_id' => $commerce->id]);
         $order2 = Order::factory()->create(['status' => 'delivered', 'commerce_id' => $commerce->id]);
-        
+
         OrderDelivery::factory()->create([
             'order_id' => $order1->id,
             'agent_id' => $this->deliveryAgent->id,
             'status' => 'delivered',
             'delivery_fee' => 10.00,
-            'updated_at' => now()
+            'updated_at' => now(),
         ]);
         OrderDelivery::factory()->create([
             'order_id' => $order2->id,
             'agent_id' => $this->deliveryAgent->id,
             'status' => 'delivered',
             'delivery_fee' => 15.00,
-            'updated_at' => now()
+            'updated_at' => now(),
         ]);
 
         $response = $this->getJson("/api/delivery/earnings/{$this->deliveryAgent->id}");
 
         $response->assertStatus(200)
-                 ->assertJson(['success' => true])
-                 ->assertJsonStructure(['success', 'data' => [
-                     'total_earnings',
-                     'total_deliveries',
-                     'average_delivery_time',
-                     'today_earnings',
-                     'weekly_earnings',
-                     'monthly_earnings'
-                 ]]);
+            ->assertJson(['success' => true])
+            ->assertJsonStructure(['success', 'data' => [
+                'total_earnings',
+                'total_deliveries',
+                'average_delivery_time',
+                'today_earnings',
+                'weekly_earnings',
+                'monthly_earnings',
+            ]]);
 
         $data = $response->json('data');
         $this->assertEquals(25.00, $data['total_earnings']);
@@ -310,23 +312,23 @@ class DeliveryControllerTest extends TestCase
         $commerce = Commerce::factory()->create(['open' => true]);
         $order1 = Order::factory()->create(['status' => 'shipped', 'commerce_id' => $commerce->id]);
         $order2 = Order::factory()->create(['status' => 'shipped', 'commerce_id' => $commerce->id]);
-        
+
         OrderDelivery::factory()->create([
             'order_id' => $order1->id,
             'agent_id' => $this->deliveryAgent->id,
-            'status' => 'shipped'
+            'status' => 'shipped',
         ]);
         OrderDelivery::factory()->create([
             'order_id' => $order2->id,
             'agent_id' => $this->deliveryAgent->id,
-            'status' => 'assigned'
+            'status' => 'assigned',
         ]);
 
         $response = $this->getJson("/api/delivery/routes/{$this->deliveryAgent->id}");
 
         $response->assertStatus(200)
-                 ->assertJson(['success' => true])
-                 ->assertJsonStructure(['success', 'data']);
+            ->assertJson(['success' => true])
+            ->assertJsonStructure(['success', 'data']);
 
         $data = $response->json('data');
         $this->assertIsArray($data);
@@ -337,20 +339,20 @@ class DeliveryControllerTest extends TestCase
     {
         $commerce = Commerce::factory()->create(['open' => true]);
         $order = Order::factory()->create(['status' => 'shipped', 'commerce_id' => $commerce->id]);
-        
+
         OrderDelivery::factory()->create([
             'order_id' => $order->id,
             'agent_id' => $this->deliveryAgent->id,
-            'status' => 'shipped'
+            'status' => 'shipped',
         ]);
 
         $response = $this->postJson("/api/delivery/orders/{$order->id}/report-issue", [
             'issue' => 'Customer not available',
-            'description' => 'Customer did not answer the door'
+            'description' => 'Customer did not answer the door',
         ]);
 
         $response->assertStatus(200)
-                 ->assertJson(['success' => true, 'message' => 'Issue reported successfully']);
+            ->assertJson(['success' => true, 'message' => 'Issue reported successfully']);
     }
 
     public function test_report_issue_requires_order_assigned_to_authenticated_agent()
@@ -383,14 +385,14 @@ class DeliveryControllerTest extends TestCase
         OrderDelivery::factory()->create([
             'order_id' => $order->id,
             'agent_id' => $otherAgent->id,
-            'status' => 'assigned'
+            'status' => 'assigned',
         ]);
 
         $response = $this->postJson("/api/delivery/orders/{$order->id}/accept", [
-            'notes' => 'Test'
+            'notes' => 'Test',
         ]);
 
         $response->assertStatus(409)
-                 ->assertJsonPath('error_code', 'ORDER_ALREADY_ASSIGNED');
+            ->assertJsonPath('error_code', 'ORDER_ALREADY_ASSIGNED');
     }
 }

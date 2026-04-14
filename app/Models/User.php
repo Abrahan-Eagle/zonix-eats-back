@@ -2,12 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Commerce;
-use App\Models\DeliveryAgent;
-use App\Models\DeliveryCompany;
-use App\Models\Order;
-use App\Models\PostLike;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -76,6 +70,7 @@ class User extends Authenticatable
         if (is_string($role)) {
             return $this->role === $role || $this->roles->contains('name', $role);
         }
+
         return $this->roles->contains($role);
     }
 
@@ -87,12 +82,13 @@ class User extends Authenticatable
         if (is_string($roles)) {
             return $this->hasRole($roles);
         }
-        
+
         foreach ($roles as $role) {
             if ($this->hasRole($role)) {
                 return true;
             }
         }
+
         return false;
     }
 
@@ -105,6 +101,7 @@ class User extends Authenticatable
         if ($this->roles->isNotEmpty()) {
             $roles = $roles->merge($this->roles->pluck('name'));
         }
+
         return $roles->unique()->values();
     }
 
@@ -163,7 +160,7 @@ class User extends Authenticatable
             'id', // Clave foránea en orders
             'id', // Clave local en users
             'id' // Clave local en delivery_agents
-        )->whereHas('orderDelivery', function($query) {
+        )->whereHas('orderDelivery', function ($query) {
             $query->where('agent_id', $this->profile->deliveryAgent->id ?? 0);
         });
     }

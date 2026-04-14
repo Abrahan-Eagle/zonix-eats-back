@@ -201,7 +201,7 @@ class TrackingController extends Controller
         }
 
         $currentStatus = (string) $order->status;
-        if (!isset($seen[$currentStatus])) {
+        if (! isset($seen[$currentStatus])) {
             $info = $this->getStatusInfo($currentStatus);
             $timeline[] = [
                 'status' => $currentStatus,

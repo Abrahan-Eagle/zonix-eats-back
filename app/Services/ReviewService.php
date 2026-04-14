@@ -2,58 +2,58 @@
 
 namespace App\Services;
 
-use App\Models\Review;
 use App\Models\Order;
 use App\Models\Profile;
+use App\Models\Review;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use App\Models\User;
 
 class ReviewService
 {
     /**
      * Crear una nueva calificación.
      *
-     * @param array $data
+     * @param  array  $data
      * @return array
      */
     public function createReview($data)
     {
         // Obtener el usuario
         $user = isset($data['user_id']) ? User::find($data['user_id']) : Auth::user();
-        if (!$user) {
+        if (! $user) {
             Log::error('ReviewService::createReview - Usuario no encontrado');
             throw new \Exception('Usuario no encontrado');
         }
-        
+
         // Obtener el perfil del usuario
         $profile = Profile::where('user_id', $user->id)->first();
-        if (!$profile) {
+        if (! $profile) {
             Log::error('ReviewService::createReview - Perfil no encontrado para usuario', ['user_id' => $user->id]);
             throw new \Exception('Perfil no encontrado');
         }
-        
+
         // Verificar si el usuario puede hacer review
-        if (!$this->canUserReview($data['order_id'], $user->id)) {
+        if (! $this->canUserReview($data['order_id'], $user->id)) {
             Log::error('ReviewService::createReview - Usuario no puede hacer review', ['user_id' => $user->id, 'order_id' => $data['order_id']]);
             throw new \Exception('No puedes hacer review de esta orden');
         }
-        
+
         // Obtener la orden una sola vez
         $order = Order::find($data['order_id']);
-        if (!$order) {
+        if (! $order) {
             Log::error('ReviewService::createReview - Orden no encontrada', ['order_id' => $data['order_id']]);
             throw new \Exception('Orden no encontrada');
         }
-        
+
         // Preparar datos base del review
         $reviewData = [
             'profile_id' => $profile->id,
             'order_id' => $order->id,
             'rating' => $data['rating'],
-            'comment' => $data['comment'] ?? null
+            'comment' => $data['comment'] ?? null,
         ];
-        
+
         // Asignar campos reviewable según el tipo
         if ($data['type'] === 'restaurant' && $order->commerce_id) {
             $reviewData['reviewable_type'] = 'App\\Models\\Commerce';
@@ -66,57 +66,59 @@ class ReviewService
             Log::error('ReviewService::createReview - Tipo de review no válido o datos faltantes', [
                 'type' => $data['type'],
                 'commerce_id' => $order->commerce_id,
-                'delivery_agent_id' => $order->orderDelivery?->agent_id ?? $order->deliveryAgent?->id
+                'delivery_agent_id' => $order->orderDelivery?->agent_id ?? $order->deliveryAgent?->id,
             ]);
             throw new \Exception('Tipo de review no válido o datos faltantes');
         }
-        
+
         // Verificar que los campos reviewable estén definidos
-        if (!isset($reviewData['reviewable_type']) || !isset($reviewData['reviewable_id'])) {
+        if (! isset($reviewData['reviewable_type']) || ! isset($reviewData['reviewable_id'])) {
             Log::error('ReviewService::createReview - Campos reviewable no definidos', ['reviewData' => $reviewData]);
             throw new \Exception('Campos reviewable no definidos');
         }
-        
+
         // Verificar si ya existe un review del mismo usuario para el mismo elemento
         $existingReview = Review::where('profile_id', $profile->id)
-                               ->where('order_id', $order->id)
-                               ->where('reviewable_type', $reviewData['reviewable_type'])
-                               ->where('reviewable_id', $reviewData['reviewable_id'])
-                               ->first();
-        
+            ->where('order_id', $order->id)
+            ->where('reviewable_type', $reviewData['reviewable_type'])
+            ->where('reviewable_id', $reviewData['reviewable_id'])
+            ->first();
+
         if ($existingReview) {
             Log::debug('ReviewService::createReview - Review duplicado (esperado)', [
                 'profile_id' => $profile->id,
                 'reviewable_type' => $reviewData['reviewable_type'],
-                'reviewable_id' => $reviewData['reviewable_id']
+                'reviewable_id' => $reviewData['reviewable_id'],
             ]);
             throw new \Exception('Ya has calificado este elemento');
         }
-        
+
         // Crear el review
         $review = Review::create($reviewData);
-        
+
         return $review;
     }
 
     /**
      * Verificar si un usuario puede calificar.
      *
-     * @param int $orderId
-     * @param int $userId
+     * @param  int  $orderId
+     * @param  int  $userId
      * @return bool
      */
     public function canUserReview($orderId, $userId)
     {
         $profile = Profile::where('user_id', $userId)->first();
-        
-        if (!$profile) return false;
+
+        if (! $profile) {
+            return false;
+        }
 
         // Verificar que el pedido existe, pertenece al usuario y está entregado
         $order = Order::where('id', $orderId)
-                     ->where('profile_id', $profile->id)
-                     ->where('status', 'delivered')
-                     ->first();
+            ->where('profile_id', $profile->id)
+            ->where('status', 'delivered')
+            ->first();
 
         return $order !== null;
     }
@@ -124,44 +126,44 @@ class ReviewService
     /**
      * Obtener calificaciones de un restaurante.
      *
-     * @param int $commerceId
+     * @param  int  $commerceId
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public function getRestaurantReviews($commerceId)
     {
         return Review::where('reviewable_type', 'App\\Models\\Commerce')
-                    ->where('reviewable_id', $commerceId)
-                    ->with('profile.user')
-                    ->orderBy('created_at', 'desc')
-                    ->get();
+            ->where('reviewable_id', $commerceId)
+            ->with('profile.user')
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**
      * Obtener calificaciones de un repartidor.
      *
-     * @param int $deliveryAgentId
+     * @param  int  $deliveryAgentId
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public function getDeliveryAgentReviews($deliveryAgentId)
     {
         return Review::where('reviewable_type', 'App\\Models\\DeliveryAgent')
-                    ->where('reviewable_id', $deliveryAgentId)
-                    ->with('profile.user')
-                    ->orderBy('created_at', 'desc')
-                    ->get();
+            ->where('reviewable_id', $deliveryAgentId)
+            ->with('profile.user')
+            ->orderBy('created_at', 'desc')
+            ->get();
     }
 
     /**
      * Calcular rating promedio de un restaurante.
      *
-     * @param int $commerceId
+     * @param  int  $commerceId
      * @return float
      */
     public function getRestaurantAverageRating($commerceId)
     {
         $reviews = Review::where('reviewable_type', 'App\\Models\\Commerce')
-                        ->where('reviewable_id', $commerceId)
-                        ->get();
+            ->where('reviewable_id', $commerceId)
+            ->get();
 
         if ($reviews->isEmpty()) {
             return 0;
@@ -173,14 +175,14 @@ class ReviewService
     /**
      * Calcular rating promedio de un repartidor.
      *
-     * @param int $deliveryAgentId
+     * @param  int  $deliveryAgentId
      * @return float
      */
     public function getDeliveryAgentAverageRating($deliveryAgentId)
     {
         $reviews = Review::where('reviewable_type', 'App\\Models\\DeliveryAgent')
-                        ->where('reviewable_id', $deliveryAgentId)
-                        ->get();
+            ->where('reviewable_id', $deliveryAgentId)
+            ->get();
 
         if ($reviews->isEmpty()) {
             return 0;
@@ -192,8 +194,8 @@ class ReviewService
     /**
      * Actualizar una calificación existente.
      *
-     * @param int $reviewId
-     * @param array $data
+     * @param  int  $reviewId
+     * @param  array  $data
      * @return array
      */
     public function updateReview($reviewId, $data)
@@ -202,10 +204,10 @@ class ReviewService
         $profile = Profile::where('user_id', $user->id)->first();
 
         $review = Review::where('id', $reviewId)
-                       ->where('profile_id', $profile->id)
-                       ->first();
+            ->where('profile_id', $profile->id)
+            ->first();
 
-        if (!$review) {
+        if (! $review) {
             return ['success' => false, 'message' => 'Calificación no encontrada'];
         }
 
@@ -217,14 +219,14 @@ class ReviewService
         return [
             'success' => true,
             'message' => 'Calificación actualizada',
-            'review' => $review
+            'review' => $review,
         ];
     }
 
     /**
      * Eliminar una calificación.
      *
-     * @param int $reviewId
+     * @param  int  $reviewId
      * @return array
      */
     public function deleteReview($reviewId)
@@ -233,10 +235,10 @@ class ReviewService
         $profile = Profile::where('user_id', $user->id)->first();
 
         $review = Review::where('id', $reviewId)
-                       ->where('profile_id', $profile->id)
-                       ->first();
+            ->where('profile_id', $profile->id)
+            ->first();
 
-        if (!$review) {
+        if (! $review) {
             return ['success' => false, 'message' => 'Calificación no encontrada'];
         }
 
@@ -244,7 +246,7 @@ class ReviewService
 
         return [
             'success' => true,
-            'message' => 'Calificación eliminada'
+            'message' => 'Calificación eliminada',
         ];
     }
-} 
+}

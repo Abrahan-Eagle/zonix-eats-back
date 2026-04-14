@@ -8,7 +8,7 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * 
+     *
      * Crea tabla delivery_payments para trackear pagos a delivery según modelo de negocio.
      * El delivery recibe 100% del delivery_fee que pagó el cliente.
      */
@@ -23,7 +23,7 @@ return new class extends Migration
             $table->timestamp('paid_at')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
-            
+
             // Índices
             $table->index('order_id');
             $table->index('delivery_agent_id');

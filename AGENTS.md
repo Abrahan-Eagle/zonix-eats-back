@@ -22,12 +22,15 @@
 | **Controladores**        | 83                                                 |
 | **Modelos**              | 41                                                 |
 | **Migraciones**          | 55                                                 |
-| **Tests**                | 369 pasaron ✅, 0 fallaron                         |
+| **Tests**                | 377 pasaron ✅, 0 fallaron                         |
 | **Seguridad**            | Sanctum + RBAC + Rate Limiting + Upload validation |
-| **Última actualización** | 12 Abr 2026                                        |
+| **Última actualización** | 14 Abr 2026                                        |
 
 ### Cambios recientes (documentar aquí los avances)
 
+- **14 Abr 2026:** Cierre documentación **módulo Chat (API)** — en `README.md` (tabla Chat + párrafo de superficies), `AGENTS.md` sección **Módulo Chat (API)** y `@deprecated` en `App\Http\Controllers\ChatController` (sin rutas; usar `Chat\ChatController` y `Buyer\ChatController`). Validación: `php artisan test` completo en verde (~377 tests).
+- **14 Abr 2026 (OrderTest):** `test_user_can_create_upload_comprobante_and_cancel_order` — producto con `stock_quantity` y `price` fijos, `delivery_fee` 0 en pickup y `total` desde `round(price*qty)` tras `refresh()` para evitar 400/422 por stock aleatorio del `ProductFactory` o desajuste monetario.
+- **14 Abr 2026 (suite):** Estabilidad **expiración `pending_payment`** — `phpunit.xml` fija `ZONIX_EXPIRE_*` / `ZONIX_PENDING_PAYMENT_*` para tests herméticos; `ExpirePendingPaymentOrdersTest::applyExpireConfig` siempre asigna las cuatro claves de `zonix.expire_pending_payment`; test TTL “tras aprobación” con `InteractsWithTime::travelTo`, `RefreshDatabase` y `travelBack`. **Causa raíz del flake:** en `OrderFactory`, `payment_proof` y campos ligados al estado usaban el `status` aleatorio de la definición, no el `status` final tras `create([...])`, de modo que una orden forzada a `pending_payment` podía seguir teniendo `payment_proof` y quedar excluida por `withoutAwaitingProofValidation`; esos campos pasan a **closures** con `$attributes['status']`. Validación: `ExpirePendingPaymentOrdersTest` repetido 60× OK; suite completa en verde.
 - **12 Abr 2026:** Cierre de sesión — certificación **`php artisan test`** completa en verde (**369** tests / ~1547 assertions). **`ExpirePendingPaymentOrdersTest::test_command_restores_stock_when_expiring`** alineado al flujo real de checkout: simulación de reserva de stock (`decrement` tras crear el ítem de orden, como en `Buyer/OrderController`) para que la restauración al expirar vuelva al stock inicial esperado (aserción **7**, no 7→10 por factories sin decremento). Documentación de contexto: **`docs/active_context.md`** actualizado (entrada vigente + histórico compacto).
 - **11 Abr 2026:** Cierre módulo **expiración automática `pending_payment`** — comando `zonix:expire-pending-payment-orders` (TTL desde `created_at` y/o desde `approved_for_payment_at` tras “aprobar para pagar”), configuración en `config/zonix.php` y variables `ZONIX_EXPIRE_PENDING_PAYMENT_*`, `ZONIX_PENDING_PAYMENT_MAX_AGE_MINUTES`, `ZONIX_PENDING_PAYMENT_AFTER_APPROVAL_MINUTES`, `ZONIX_EXPIRE_SKIP_IF_PROOF_PENDING` (por defecto no cancela por TTL si ya hay comprobante subido pendiente de validación del comercio; coherente con `order_payments` y campos legacy en `orders`). Lógica de filtro en scopes `Order::withoutAwaitingProofValidation`, `Order::wherePendingPaymentTtlExceeded`, `OrderPayment::awaitingCommerceValidation`. Agendado en `app/Console/Kernel.php` (cada minuto en `local`, cada 5 min en el resto; en prod hace falta cron `schedule:run`). **DX / IDE:** generados `_ide_helper.php` y `.phpstorm.meta.php` (`php artisan ide-helper:*`), script Composer `composer ide-helper`, `.vscode/settings.json` con rutas Intelephense. Tests: `tests/Feature/ExpirePendingPaymentOrdersTest.php`. Validación: `php artisan test` completo en verde (~364 tests).
 - **7 Abr 2026:** Cierre módulo **enlace web tienda (storefront)** — ruta web pública `GET /r/{commerce}` (`Web\Front\StorefrontLinkController`), vista `resources/views/front/storefront/commerce_link.blade.php` con intent de apertura `zonix://restaurant/{id}` y fallback; feature tests `tests/Feature/StorefrontLinkTest.php`. Complementa la app (QR / compartir enlace HTTP clicable en apps externas). Validación: `php artisan test --filter=StorefrontLinkTest` + suite completa en entorno local.
@@ -59,6 +62,20 @@
 - **Áreas tocadas:** `OrderStatusChanged.php`, `pusher_service.dart`, `UserProvider.dart`, y 9 pantallas de órdenes/comercio.
 - **Próximos pasos sugeridos:** Monitorear estabilidad de Pusher en redes inestables (edge cases). Verificar si Review/Dispute events necesitan migrar al mismo patrón de Streams.
 - **11 Feb 2026:** Validación de cupón: API espera `code` y `order_amount`; respuestas de error con `message`/`errors`. Seeders: orden "en entrega" con repartidor asignado; `OrderDeliverySeeder` evita duplicar asignaciones. Broadcasting: auth devuelve `shared_secret` para canales privados Pusher.
+
+---
+
+## Módulo Chat (API)
+
+| Superficie | Controlador | Uso |
+| ---------- | ----------- | --- |
+| `GET/POST/DELETE … /api/chat/*` | `App\Http\Controllers\Chat\ChatController` | Conversaciones por orden (buyer/commerce/delivery según acceso), mensajes, lectura, bloqueo, búsqueda, FCM. **Ruta preferida** para la app móvil vía `ChatService` (Flutter). |
+| `/api/buyer/chat/*` | `App\Http\Controllers\Buyer\ChatController` | Flujo **comprador**: mensajes por pedido, envío, no leídos, marcar leído (contratos orientados a buyer). |
+| `GET/POST /api/buyer/orders/{orderId}/messages` | `Chat\ChatController` | Alias REST del buyer sobre el mismo caso de uso que `/api/chat/conversations/{id}/messages`. |
+
+**Tiempo real:** evento `NewMessage` (`ShouldBroadcast`), canal privado `orders.{orderId}`, nombre de evento `NewMessage`. Presencia: `presence-chat.{orderId}` en `routes/channels.php`.
+
+**Legacy:** `App\Http\Controllers\ChatController` (namespace raíz) **no está registrado en rutas** — deprecado; no añadir rutas nuevas ahí.
 
 ---
 

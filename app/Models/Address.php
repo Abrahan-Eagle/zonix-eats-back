@@ -33,7 +33,6 @@ class Address extends Model
         return $this->belongsTo(Profile::class);
     }
 
-
     // Definir la relación con el modelo City
     public function city()
     {

@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Commerce;
-use App\Models\PaymentMethod;
 use App\Models\DeliveryAgent;
+use App\Models\PaymentMethod;
+use Illuminate\Database\Seeder;
 
 class PaymentMethodSeeder extends Seeder
 {
@@ -19,7 +19,7 @@ class PaymentMethodSeeder extends Seeder
                 'payable_id' => $commerce->id,
             ]);
         }
-        
+
         // Métodos de pago para usuarios
         $users = \App\Models\User::where('role', 'users')->take(10)->get();
         foreach ($users as $user) {
@@ -28,7 +28,7 @@ class PaymentMethodSeeder extends Seeder
                 'payable_id' => $user->id,
             ]);
         }
-        
+
         // Métodos de pago para delivery agents
         $deliveryAgents = DeliveryAgent::all();
         foreach ($deliveryAgents->take(5) as $agent) {
@@ -38,4 +38,4 @@ class PaymentMethodSeeder extends Seeder
             ]);
         }
     }
-} 
+}

@@ -2,11 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\DeliveryAgent;
 use App\Models\DeliveryCompany;
 use App\Models\Profile;
+use Illuminate\Database\Seeder;
 
 class DeliveryAgentSeeder extends Seeder
 {
@@ -16,7 +15,7 @@ class DeliveryAgentSeeder extends Seeder
     public function run(): void
     {
         $companies = DeliveryCompany::all();
-        
+
         // Crear agentes para empresas (rol delivery_agent)
         foreach ($companies as $company) {
             for ($i = 0; $i < 3; $i++) {
@@ -29,7 +28,7 @@ class DeliveryAgentSeeder extends Seeder
                 ]);
             }
         }
-        
+
         // Crear algunos agentes independientes (rol delivery - sin compañía)
         for ($i = 0; $i < 5; $i++) {
             $profile = Profile::factory()->create();
@@ -40,7 +39,7 @@ class DeliveryAgentSeeder extends Seeder
                 'profile_id' => $profile->id,
             ]);
         }
-        
+
         $this->command->info('DeliveryAgentSeeder ejecutado exitosamente.');
     }
 }

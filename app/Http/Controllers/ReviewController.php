@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Services\ReviewService;
-use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\Request;
 
 class ReviewController extends Controller
 {
@@ -18,7 +18,6 @@ class ReviewController extends Controller
     /**
      * Crear una nueva calificación.
      *
-     * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function store(Request $request)
@@ -44,6 +43,7 @@ class ReviewController extends Controller
             ], 201);
         } catch (QueryException $e) {
             $isDuplicated = ($e->getCode() ?? '') === '23000';
+
             return response()->json([
                 'success' => false,
                 'data' => null,
@@ -52,6 +52,7 @@ class ReviewController extends Controller
             ], $isDuplicated ? 409 : 400);
         } catch (\Exception $e) {
             $isDuplicated = str_contains(strtolower($e->getMessage()), 'ya has calificado');
+
             return response()->json([
                 'success' => false,
                 'data' => null,
@@ -64,8 +65,8 @@ class ReviewController extends Controller
     /**
      * Obtener calificaciones de un elemento.
      *
-     * @param int $reviewableId
-     * @param string $reviewableType
+     * @param  int  $reviewableId
+     * @param  string  $reviewableType
      * @return \Illuminate\Http\JsonResponse
      */
     public function index($reviewableId, $reviewableType)
@@ -99,8 +100,7 @@ class ReviewController extends Controller
     /**
      * Actualizar una calificación.
      *
-     * @param Request $request
-     * @param int $reviewId
+     * @param  int  $reviewId
      * @return \Illuminate\Http\JsonResponse
      */
     public function update(Request $request, $reviewId)
@@ -118,7 +118,7 @@ class ReviewController extends Controller
     /**
      * Eliminar una calificación.
      *
-     * @param int $reviewId
+     * @param  int  $reviewId
      * @return \Illuminate\Http\JsonResponse
      */
     public function destroy($reviewId)
@@ -131,8 +131,8 @@ class ReviewController extends Controller
     /**
      * Verificar si un usuario puede calificar.
      *
-     * @param int $reviewableId
-     * @param string $reviewableType
+     * @param  int  $reviewableId
+     * @param  string  $reviewableType
      * @return \Illuminate\Http\JsonResponse
      */
     public function canReview($reviewableId, $reviewableType)
@@ -147,4 +147,4 @@ class ReviewController extends Controller
             'message' => 'Elegibilidad obtenida exitosamente',
         ]);
     }
-} 
+}

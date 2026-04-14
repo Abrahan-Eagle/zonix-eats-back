@@ -20,10 +20,10 @@ class CreateCitiesTable extends Migration
             $table->string('name')->nullable();
 
             $table->unsignedBigInteger('state_id')->nullable();
-            
+
             $table->timestamps();
 
-            //RELACIONES
+            // RELACIONES
             $table->foreign('state_id')->references('id')->on('states')->onDelete('cascade')->onUpdate('cascade');
 
         });

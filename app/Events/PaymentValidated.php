@@ -3,9 +3,7 @@
 namespace App\Events;
 
 use App\Models\Order;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
@@ -17,9 +15,13 @@ class PaymentValidated implements ShouldBroadcast
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $order;
+
     public $isValidated;
+
     public $validatedBy;
+
     private string $eventId;
+
     private string $occurredAt;
 
     /**
@@ -45,12 +47,12 @@ class PaymentValidated implements ShouldBroadcast
         $userId = $this->order->profile?->user_id;
 
         $channels = [
-            new PrivateChannel('orders.' . $this->order->id),
-            new PrivateChannel('commerce.' . $this->order->commerce_id),
+            new PrivateChannel('orders.'.$this->order->id),
+            new PrivateChannel('commerce.'.$this->order->commerce_id),
         ];
 
         if ($userId) {
-            $channels[] = new PrivateChannel('user.' . $userId);
+            $channels[] = new PrivateChannel('user.'.$userId);
         }
 
         return [
@@ -60,8 +62,6 @@ class PaymentValidated implements ShouldBroadcast
 
     /**
      * Get the data to broadcast.
-     *
-     * @return array
      */
     public function broadcastWith(): array
     {
@@ -70,7 +70,7 @@ class PaymentValidated implements ShouldBroadcast
             'schema_version' => 'v1',
             'occurred_at' => $this->occurredAt,
             'order_id' => $this->order->id,
-            'order_number' => $this->order->orderNumber ?? 'ORD-' . $this->order->id,
+            'order_number' => $this->order->orderNumber ?? 'ORD-'.$this->order->id,
             'is_validated' => $this->isValidated,
             'validated_by' => $this->validatedBy,
             'status' => $this->order->status,
@@ -86,4 +86,4 @@ class PaymentValidated implements ShouldBroadcast
     {
         return 'PaymentValidated';
     }
-} 
+}

@@ -19,7 +19,7 @@ class CommercePostController extends Controller
     public function index(): JsonResponse
     {
         $profile = Auth::user()->profile;
-        if (!$profile) {
+        if (! $profile) {
             return response()->json([
                 'success' => false,
                 'message' => 'Perfil no encontrado',

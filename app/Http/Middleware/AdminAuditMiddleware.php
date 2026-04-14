@@ -53,12 +53,14 @@ class AdminAuditMiddleware
     private function resolveAction(Request $request): string
     {
         $path = str_replace('/', '.', $request->path());
+
         return strtolower($request->method()).'.'.$path;
     }
 
     private function resolveEntityType(string $path): ?string
     {
         $segments = explode('/', $path);
+
         return $segments[2] ?? null;
     }
 
@@ -80,7 +82,7 @@ class AdminAuditMiddleware
         }
 
         self::$hasAuditTable = Schema::hasTable('admin_audit_logs');
+
         return self::$hasAuditTable;
     }
 }
-

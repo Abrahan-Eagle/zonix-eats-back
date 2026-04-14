@@ -16,7 +16,7 @@ class OrderController extends Controller
     {
         $user = Auth::user();
         $profile = $user->profile;
-        if (!$profile) {
+        if (! $profile) {
             return null;
         }
         if ($profile->deliveryAgent) {
@@ -28,6 +28,7 @@ class OrderController extends Controller
                 return DeliveryAgent::where('company_id', $company->id)->first();
             }
         }
+
         return null;
     }
 
@@ -35,7 +36,7 @@ class OrderController extends Controller
     {
         $user = Auth::user();
         $profile = $user->profile;
-        if (!$profile) {
+        if (! $profile) {
             return [];
         }
         if ($user->role === 'delivery_company') {
@@ -43,9 +44,11 @@ class OrderController extends Controller
             if ($company) {
                 return DeliveryAgent::where('company_id', $company->id)->pluck('id')->toArray();
             }
+
             return [];
         }
         $agent = $profile->deliveryAgent;
+
         return $agent ? [$agent->id] : [];
     }
 
@@ -98,10 +101,11 @@ class OrderController extends Controller
                 'data' => $orders,
             ]);
         } catch (\Exception $e) {
-            Log::error('[DeliveryAPI] OrderController@index excepción: ' . $e->getMessage(), [
+            Log::error('[DeliveryAPI] OrderController@index excepción: '.$e->getMessage(), [
                 'auth_user_id' => Auth::id(),
                 'role' => Auth::user()?->role,
             ]);
+
             return response()->json(['success' => false, 'message' => 'Error interno al listar órdenes'], 500);
         }
     }
@@ -127,7 +131,7 @@ class OrderController extends Controller
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Orden no encontrada'], 404);
         } catch (\Exception $e) {
-            Log::error('[DeliveryAPI] OrderController@show excepción: ' . $e->getMessage(), [
+            Log::error('[DeliveryAPI] OrderController@show excepción: '.$e->getMessage(), [
                 'order_id' => $id,
                 'auth_user_id' => Auth::id(),
             ]);
@@ -140,7 +144,7 @@ class OrderController extends Controller
     {
         try {
             $agent = $this->getDeliveryAgent();
-            if (!$agent) {
+            if (! $agent) {
                 return response()->json(['success' => false, 'message' => 'User is not a delivery agent'], 422);
             }
 
@@ -175,7 +179,8 @@ class OrderController extends Controller
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Orden no encontrada'], 404);
         } catch (\Exception $e) {
-            Log::error('[DeliveryAPI] OrderController@acceptOrder excepción: ' . $e->getMessage(), ['auth_user_id' => Auth::id()]);
+            Log::error('[DeliveryAPI] OrderController@acceptOrder excepción: '.$e->getMessage(), ['auth_user_id' => Auth::id()]);
+
             return response()->json(['success' => false, 'message' => 'Error interno al aceptar orden'], 500);
         }
     }
@@ -212,7 +217,8 @@ class OrderController extends Controller
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json(['success' => false, 'message' => 'Orden no encontrada o no asignada a ti'], 404);
         } catch (\Exception $e) {
-            Log::error('[DeliveryAPI] OrderController@updateStatus excepción: ' . $e->getMessage(), ['auth_user_id' => Auth::id()]);
+            Log::error('[DeliveryAPI] OrderController@updateStatus excepción: '.$e->getMessage(), ['auth_user_id' => Auth::id()]);
+
             return response()->json(['success' => false, 'message' => 'Error interno al actualizar estado'], 500);
         }
     }

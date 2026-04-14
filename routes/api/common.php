@@ -1,14 +1,14 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Authenticator\AuthController;
-use App\Http\Controllers\Profiles\ProfileController;
-use App\Http\Controllers\Profiles\DocumentController;
-use App\Http\Controllers\Profiles\AddressController;
-use App\Http\Controllers\Payment\PaymentController;
-use App\Http\Controllers\Notification\NotificationController;
-use App\Http\Controllers\Location\LocationController;
 use App\Http\Controllers\Chat\ChatController;
+use App\Http\Controllers\Location\LocationController;
+use App\Http\Controllers\Notification\NotificationController;
+use App\Http\Controllers\Payment\PaymentController;
+use App\Http\Controllers\Profiles\AddressController;
+use App\Http\Controllers\Profiles\DocumentController;
+use App\Http\Controllers\Profiles\ProfileController;
+use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -115,10 +115,12 @@ if (app()->environment(['local', 'testing'])) {
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/test/products', function () {
             $products = \App\Models\Product::where('available', true)->get();
+
             return response()->json($products);
         });
         Route::get('/test/auth', function () {
             $user = \Illuminate\Support\Facades\Auth::user();
+
             return response()->json([
                 'authenticated' => true,
                 'user_id' => $user->id,

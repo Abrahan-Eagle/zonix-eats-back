@@ -11,8 +11,11 @@ class Phone extends Model
 
     /** Contextos de uso del teléfono (módulo único por rol/entidad). */
     public const CONTEXT_PERSONAL = 'personal';
+
     public const CONTEXT_COMMERCE = 'commerce';
+
     public const CONTEXT_DELIVERY_COMPANY = 'delivery_company';
+
     public const CONTEXT_ADMIN = 'admin';
 
     /**
@@ -60,11 +63,9 @@ class Phone extends Model
     public function getFullNumberAttribute(): string
     {
         $code = $this->operatorCode?->code ?? '';
-        return $code . $this->number;
+
+        return $code.$this->number;
     }
-
-
-
 
     /**
      * Scope para obtener solo teléfonos principales.

@@ -18,7 +18,7 @@ class CheckCommerceOpen
     {
         $commerce = Commerce::find($request->commerce_id);
 
-        if (!$commerce->abierto) {
+        if (! $commerce->abierto) {
             return response()->json(['error' => 'El comercio no está abierto'], 403);
         }
 

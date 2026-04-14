@@ -2,29 +2,28 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Services\CartService;
-use App\Models\User;
-use App\Models\Profile;
-use App\Models\Product;
 use App\Models\Commerce;
-use App\Models\Cart;
-use App\Models\CartItem;
+use App\Models\Product;
+use App\Models\Profile;
+use App\Models\User;
+use App\Services\CartService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
 
 class CartServiceTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $cartService;
+
     protected $user;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->cartService = new CartService();
-        
+        $this->cartService = new CartService;
+
         // Crear usuario autenticado con perfil (carrito asociado a profile)
         $this->user = User::factory()->create(['role' => 'users']);
         Profile::factory()->create(['user_id' => $this->user->id]);

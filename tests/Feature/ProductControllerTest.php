@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Product;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
-use App\Models\Product;
 
 class ProductControllerTest extends TestCase
 {
@@ -14,6 +14,7 @@ class ProductControllerTest extends TestCase
     {
         $user = \App\Models\User::factory()->create(['role' => 'users']);
         \Laravel\Sanctum\Sanctum::actingAs($user);
+
         return $user;
     }
 
@@ -30,7 +31,7 @@ class ProductControllerTest extends TestCase
         ]);
         $response = $this->getJson("/api/buyer/products/{$product->id}");
         $response->assertStatus(200)
-                 ->assertJsonFragment(['id' => $product->id]);
+            ->assertJsonFragment(['id' => $product->id]);
     }
 
     public function test_show_product_not_found()

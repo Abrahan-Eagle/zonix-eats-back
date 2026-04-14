@@ -1,16 +1,14 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Artisan;
-
-// Frontend Controllers
-use App\Http\Controllers\Web\Front\IndexController;
-
-// Dashboard Controllers
 use App\Http\Controllers\Web\Dashboard\HomeController;
-use App\Http\Controllers\Web\UserController;
+use App\Http\Controllers\Web\Front\IndexController;
 use App\Http\Controllers\Web\RolePermission\RoleController;
+// Frontend Controllers
+use App\Http\Controllers\Web\UserController;
+// Dashboard Controllers
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,18 +27,18 @@ Auth::routes();
 // Ruta dinámica para robots.txt
 Route::get('/robots.txt', function () {
     $isTestEnvironment = str_contains(request()->getHost(), 'test.zonixeats.com');
-    
+
     if ($isTestEnvironment) {
         return response("User-agent: *\nDisallow: /", 200)
             ->header('Content-Type', 'text/plain');
     }
-    
+
     $file = public_path('robots.txt');
     if (file_exists($file)) {
         return response(file_get_contents($file), 200)
             ->header('Content-Type', 'text/plain');
     }
-    
+
     return response("User-agent: *\nAllow: /", 200)
         ->header('Content-Type', 'text/plain');
 })->name('robots.txt');
@@ -48,22 +46,23 @@ Route::get('/robots.txt', function () {
 // Ruta para assetlinks.json (Android App Links)
 Route::get('/.well-known/assetlinks.json', function () {
     $file = public_path('.well-known/assetlinks.json');
-    
-    if (!file_exists($file)) {
+
+    if (! file_exists($file)) {
         return response('File not found', 404);
     }
-    
+
     return response(file_get_contents($file), 200)
         ->header('Content-Type', 'application/json');
 })->name('assetlinks');
 
 // Ruta para limpiar caché (solo desarrollo)
-Route::get('/clear', function() {
+Route::get('/clear', function () {
     Artisan::call('cache:clear');
     Artisan::call('route:clear');
     Artisan::call('config:clear');
     Artisan::call('view:clear');
-    return "Cache is cleared";
+
+    return 'Cache is cleared';
 })->name('clear.cache');
 
 // ============================================
@@ -90,7 +89,7 @@ Route::get('/seguridad', [\App\Http\Controllers\Web\Front\LegalController::class
 // ============================================
 
 Route::middleware('auth')->group(function () {
-    
+
     // Dashboard principal
     Route::get('/home', [HomeController::class, 'index'])->name('home');
     Route::get('/dashboard', [HomeController::class, 'index'])->name('dashboard');

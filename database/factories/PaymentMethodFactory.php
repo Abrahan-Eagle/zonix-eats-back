@@ -2,9 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\PaymentMethod;
-use App\Models\Commerce;
 use App\Models\Bank;
+use App\Models\PaymentMethod;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class PaymentMethodFactory extends Factory
@@ -36,7 +35,7 @@ class PaymentMethodFactory extends Factory
             $data = array_merge($data, [
                 'phone' => $this->faker->numerify('04#########'),
                 'reference_info' => [
-                    'alias' => 'Pago móvil ' . $this->faker->firstName,
+                    'alias' => 'Pago móvil '.$this->faker->firstName,
                     'cedula' => $this->faker->numerify('########'),
                     'reference_number' => $this->faker->numerify('##########'),
                 ],
@@ -52,6 +51,7 @@ class PaymentMethodFactory extends Factory
         }
         $data['owner_name'] = $this->faker->name;
         $data['owner_id'] = $this->faker->numerify('########');
+
         return $data;
     }
-} 
+}

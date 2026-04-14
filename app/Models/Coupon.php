@@ -23,7 +23,7 @@ class Coupon extends Model
         'terms_conditions',
         'is_public',
         'assigned_to_profile_id',
-        'is_active'
+        'is_active',
     ];
 
     protected $casts = [
@@ -33,7 +33,7 @@ class Coupon extends Model
         'start_date' => 'datetime',
         'end_date' => 'datetime',
         'is_public' => 'boolean',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
     ];
 
     public function assignedToProfile()
@@ -45,4 +45,4 @@ class Coupon extends Model
     {
         return $this->hasMany(CouponUsage::class);
     }
-} 
+}

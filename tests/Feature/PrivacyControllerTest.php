@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Tests\TestCase;
 
 class PrivacyControllerTest extends TestCase
 {
@@ -39,7 +39,7 @@ class PrivacyControllerTest extends TestCase
                     'data_analytics',
                     'created_at',
                     'updated_at',
-                ]
+                ],
             ]);
     }
 
@@ -62,7 +62,7 @@ class PrivacyControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
-                'message' => 'Configuración actualizada correctamente'
+                'message' => 'Configuración actualizada correctamente',
             ])
             ->assertJsonStructure([
                 'data' => [
@@ -74,7 +74,7 @@ class PrivacyControllerTest extends TestCase
                     'push_notifications',
                     'location_sharing',
                     'data_analytics',
-                ]
+                ],
             ]);
 
         // Verificar que los valores se actualizaron correctamente
@@ -110,7 +110,7 @@ class PrivacyControllerTest extends TestCase
                     'version',
                     'last_updated',
                     'content',
-                ]
+                ],
             ]);
     }
 
@@ -127,7 +127,7 @@ class PrivacyControllerTest extends TestCase
                     'version',
                     'last_updated',
                     'content',
-                ]
+                ],
             ]);
     }
 
@@ -152,7 +152,7 @@ class PrivacyControllerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson([
-                'success' => true
+                'success' => true,
             ]);
     }
 
@@ -162,13 +162,13 @@ class PrivacyControllerTest extends TestCase
         // Primero obtener la configuración actual
         $currentResponse = $this->actingAs($this->user)
             ->getJson('/api/user/privacy-settings');
-        
+
         $currentSettings = $currentResponse->json('data');
 
         // Actualizar solo una configuración
         $updateResponse = $this->actingAs($this->user)
             ->putJson('/api/user/privacy-settings', [
-                'profile_visibility' => !$currentSettings['profile_visibility']
+                'profile_visibility' => ! $currentSettings['profile_visibility'],
             ]);
 
         $updateResponse->assertStatus(200);
@@ -176,11 +176,11 @@ class PrivacyControllerTest extends TestCase
         $updatedSettings = $updateResponse->json('data');
 
         // Verificar que solo cambió la configuración especificada
-        $this->assertEquals(!$currentSettings['profile_visibility'], $updatedSettings['profile_visibility']);
-        
+        $this->assertEquals(! $currentSettings['profile_visibility'], $updatedSettings['profile_visibility']);
+
         // Verificar que las otras configuraciones se mantuvieron igual
         foreach ($currentSettings as $key => $value) {
-            if (!in_array($key, ['profile_visibility', 'updated_at', 'created_at'])) {
+            if (! in_array($key, ['profile_visibility', 'updated_at', 'created_at'])) {
                 $this->assertEquals($value, $updatedSettings[$key]);
             }
         }

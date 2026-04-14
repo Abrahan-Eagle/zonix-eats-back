@@ -14,16 +14,16 @@ class CreateStatesTable extends Migration
     public function up()
     {
         Schema::create('states', function (Blueprint $table) {
-            
+
             $table->bigIncrements('id');
 
             $table->string('name')->nullable();
 
             $table->unsignedBigInteger('countries_id')->nullable();
-        
+
             $table->timestamps();
-        
-            //RELACIONES
+
+            // RELACIONES
             $table->foreign('countries_id')->references('id')->on('countries')->onDelete('cascade')->onUpdate('cascade');
         });
     }

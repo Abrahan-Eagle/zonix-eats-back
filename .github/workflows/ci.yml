@@ -1,0 +1,66 @@
+# Integración continua: estilo (Pint) y tests (PHPUnit + ParaTest en paralelo).
+# No despliega; el deploy sigue en main.yml.
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - dev
+  pull_request:
+    branches:
+      - main
+      - develop
+      - dev
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pint:
+    name: Laravel Pint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, xml, ctype, json, pdo_sqlite, bcmath
+          coverage: none
+          tools: composer
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Run Pint (style check)
+        run: ./vendor/bin/pint --test
+
+  tests:
+    name: PHPUnit (parallel)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, xml, ctype, json, pdo_sqlite, bcmath
+          coverage: none
+          tools: composer
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Prepare Laravel environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate --force
+
+      - name: Run tests (parallel)
+        run: php artisan test --parallel

@@ -1,7 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Delivery\DeliveryController;
+use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth:sanctum', 'role:delivery_agent,delivery'])->prefix('delivery')->group(function () {
     Route::get('/orders', [DeliveryController::class, 'index']);

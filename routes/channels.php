@@ -1,9 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Broadcast;
 use App\Models\Order;
 use App\Models\User;
-use App\Models\Commerce;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Log;
 
 /*
@@ -25,10 +24,12 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 // Canal para órdenes específicas
 Broadcast::channel('orders.{orderId}', function ($user, $orderId) {
     $order = Order::find($orderId);
-    if (!$order) return false;
-    
+    if (! $order) {
+        return false;
+    }
+
     // Usuario puede escuchar si es el comprador (profile_id), comercio o repartidor
-    return $order->profile_id === $user->profile?->id || 
+    return $order->profile_id === $user->profile?->id ||
            $order->commerce_id === $user->profile?->commerce?->id ||
            $order->orderDelivery?->agent_id === $user->profile?->deliveryAgent?->id;
 });
@@ -40,8 +41,11 @@ Broadcast::channel('commerce.{commerceId}', function ($user, $commerceId) {
 
 // Canal para empresa de delivery (notificaciones de órdenes pendientes de asignación)
 Broadcast::channel('company.{companyId}', function ($user, $companyId) {
-    if ($user->role !== 'delivery_company') return false;
+    if ($user->role !== 'delivery_company') {
+        return false;
+    }
     $company = \App\Models\DeliveryCompany::where('profile_id', $user->profile?->id)->first();
+
     return $company && (int) $company->id === (int) $companyId;
 });
 
@@ -52,8 +56,10 @@ Broadcast::channel('delivery.{deliveryAgentId}', function ($user, $deliveryAgent
     }
     if ($user->role === 'delivery_company') {
         $company = \App\Models\DeliveryCompany::where('profile_id', $user->profile?->id)->first();
+
         return $company && \App\Models\DeliveryAgent::where('company_id', $company->id)->where('id', (int) $deliveryAgentId)->exists();
     }
+
     return false;
 });
 
@@ -62,6 +68,7 @@ Broadcast::channel('user.{userId}', function ($user, $userId) {
     if (config('app.debug')) {
         Log::debug('Broadcasting: Authorizing user channel', ['auth_user_id' => $user->id, 'requested_user_id' => $userId]);
     }
+
     return (int) $user->id === (int) $userId;
 });
 
@@ -73,13 +80,15 @@ Broadcast::channel('orders', function ($user) {
 // Canal de presencia para chat de órdenes
 Broadcast::channel('presence-chat.{orderId}', function ($user, $orderId) {
     $order = Order::find($orderId);
-    if (!$order) return false;
-    
+    if (! $order) {
+        return false;
+    }
+
     // Verificar que el usuario tiene acceso a esta orden
-    $hasAccess = $order->profile_id === $user->profile?->id || 
+    $hasAccess = $order->profile_id === $user->profile?->id ||
                  $order->commerce_id === $user->profile?->commerce?->id ||
                  $order->orderDelivery?->agent_id === $user->profile?->deliveryAgent?->id;
-    
+
     if ($hasAccess) {
         return [
             'id' => $user->id,
@@ -87,6 +96,6 @@ Broadcast::channel('presence-chat.{orderId}', function ($user, $orderId) {
             'role' => $user->role,
         ];
     }
-    
+
     return false;
 });

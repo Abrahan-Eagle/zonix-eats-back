@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Authenticator\AuthController;
 use App\Http\Controllers\BroadcastingController;
+use Illuminate\Support\Facades\Route;
 
 Route::post('/broadcasting/auth', [BroadcastingController::class, 'authenticate'])->middleware('auth:sanctum');
 

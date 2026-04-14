@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\Commerce;
 use App\Models\Category;
+use App\Models\Commerce;
 use App\Models\Product;
 use App\Models\Profile;
 use App\Models\User;
@@ -96,7 +96,7 @@ class SearchControllerTest extends TestCase
             'available' => true,
         ]);
 
-        $response = $this->getJson('/api/buyer/search/products?commerce_id=' . $commerce->id);
+        $response = $this->getJson('/api/buyer/search/products?commerce_id='.$commerce->id);
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
@@ -132,7 +132,7 @@ class SearchControllerTest extends TestCase
             'image' => 'https://cdn.example.com/producto.jpg',
         ]);
 
-        $response = $this->getJson('/api/buyer/search/products?commerce_id=' . $commerce->id);
+        $response = $this->getJson('/api/buyer/search/products?commerce_id='.$commerce->id);
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
@@ -182,7 +182,7 @@ class SearchControllerTest extends TestCase
             'available' => true,
         ]);
 
-        $response = $this->getJson('/api/buyer/products?category_id=' . $categoryA->id);
+        $response = $this->getJson('/api/buyer/products?category_id='.$categoryA->id);
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
@@ -241,11 +241,10 @@ class SearchControllerTest extends TestCase
             'available' => false,
         ]);
 
-        $response = $this->getJson('/api/buyer/search/products?commerce_id=' . $commerce->id);
+        $response = $this->getJson('/api/buyer/search/products?commerce_id='.$commerce->id);
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
             ->assertJsonCount(1, 'data.products');
     }
 }
-

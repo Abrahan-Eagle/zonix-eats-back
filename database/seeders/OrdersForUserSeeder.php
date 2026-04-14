@@ -3,13 +3,12 @@
 namespace Database\Seeders;
 
 use App\Models\Commerce;
+use App\Models\DeliveryAgent;
 use App\Models\Order;
 use App\Models\OrderDelivery;
 use App\Models\OrderItem;
 use App\Models\Product;
-use App\Models\Profile;
 use App\Models\User;
-use App\Models\DeliveryAgent;
 use Illuminate\Database\Seeder;
 
 /**
@@ -37,28 +36,32 @@ class OrdersForUserSeeder extends Seeder
         $user = User::where('id', $this->targetUserId)->where('role', 'users')->first()
             ?? User::where('role', 'users')->first();
 
-        if (!$user) {
+        if (! $user) {
             $this->command->warn('No hay ningún usuario con role "users". Crea uno antes de ejecutar este seeder.');
+
             return;
         }
 
         $profile = $user->profile;
-        if (!$profile) {
+        if (! $profile) {
             $this->command->warn("El usuario {$user->id} no tiene perfil. Completa el perfil antes.");
+
             return;
         }
 
         $commerce = Commerce::where('open', true)->has('products')->first()
             ?? Commerce::first();
 
-        if (!$commerce) {
+        if (! $commerce) {
             $this->command->warn('No hay comercios. Ejecuta CommerceSeeder y ProductSeeder primero.');
+
             return;
         }
 
         $products = Product::where('commerce_id', $commerce->id)->where('available', true)->get();
         if ($products->isEmpty()) {
             $this->command->warn("El comercio {$commerce->id} no tiene productos disponibles. Crea productos primero.");
+
             return;
         }
 
@@ -100,7 +103,7 @@ class OrdersForUserSeeder extends Seeder
     }
 
     /**
-     * @param bool|null $forceDelivery True = delivery_type delivery, false = pickup, null = aleatorio
+     * @param  bool|null  $forceDelivery  True = delivery_type delivery, false = pickup, null = aleatorio
      * @return Order|null La orden creada (para la primera del loop cuando count=1)
      */
     private function createOrder(int $profileId, int $commerceId, $products, string $status, int $count = 1, ?\DateTimeInterface $createdAt = null, ?bool $forceDelivery = null): ?Order
@@ -127,7 +130,7 @@ class OrdersForUserSeeder extends Seeder
                 'cancelled_by' => $status === 'cancelled' ? 'user_id' : null,
                 'estimated_delivery_time' => $deliveryType === 'delivery' ? rand(15, 45) : null,
                 'payment_method' => $status !== 'pending_payment' ? 'cash' : null,
-                'reference_number' => $status !== 'pending_payment' ? 'REF' . rand(10000, 99999) : null,
+                'reference_number' => $status !== 'pending_payment' ? 'REF'.rand(10000, 99999) : null,
                 'payment_validated_at' => in_array($status, ['paid', 'processing', 'shipped', 'delivered']) ? $createdAt : null,
                 'delivery_address' => $deliveryType === 'delivery' ? 'Casa, El Socorro, Valencia' : null,
                 'delivery_latitude' => $deliveryLat,
@@ -155,6 +158,7 @@ class OrdersForUserSeeder extends Seeder
 
             $order->update(['total' => round($subtotal + $deliveryFee, 2)]);
         }
+
         return $created;
     }
 }

@@ -26,7 +26,7 @@ return new class extends Migration
             $table->rememberToken();
             $table->string('light')->default('1')->nullable();
             $table->timestamps();
-            
+
             // Índices de performance (consolidados desde add_performance_indexes)
             $table->index('created_at', 'users_created_at_index');
         });
