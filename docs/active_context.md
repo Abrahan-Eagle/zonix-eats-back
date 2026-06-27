@@ -1,73 +1,71 @@
-# Contexto activo de sesión — Zonix Eats Backend
+# Contexto activo — Zonix Glasses Backend
 
-> **Uso:** La IA debe leer este archivo al iniciar o retomar trabajo en el proyecto para recuperar el estado reciente sin depender de que el usuario lo pida.
-> La skill **context-updater** indica cómo actualizar este archivo al cerrar una sesión relevante.
+> Leer al iniciar. Actualizar al cerrar sesiones relevantes.
+
+## Estado actual (2026-06-27)
+
+### Fase del proyecto
+
+- **Diseño de negocio** — modelo multi-fabricante documentado; **código congelado** hasta HITL founder + seguridad 001.
+- **No programar** nuevas migraciones/API/front hasta cerrar pendientes §11 + gate HITL + [AUDIT_RIESGOS_SEGURIDAD.md](AUDIT_RIESGOS_SEGURIDAD.md).
+
+### Pivot producto
+
+- **Negocio:** óptica online B2B2C — orquestador de cadena óptica multi-proveedor (N fabricantes, N couriers).
+- **Pedidos:** `lens_only` | `frame_only` | `lens_and_frame` — montura sola **sin fórmula**; `frame_only` **mixto** (stock top + contra pedido — §12).
+- **Cadena:** montura (Fab A) → lab lentes (Fab B) → producto terminado → envío final.
+- **No es:** smart glasses / BLE / OTA.
+
+### Decisiones founder (documentadas)
+
+- Validación fórmula **3 capas (a+b+c)** — solo si hay lentes.
+- §6 portabilidad: paciente bajo aliado; al cesar aliado → **pasa a Zonix** (no cascade delete).
+- §8–§11 composición, cadena, couriers — §11 logística **pendiente firma**.
+- §12 `frame_only` mixto · §13 cambiaria Bs/Binance/USDT · §14 proteger aliado + mayorista futuro.
+- Canon: [DECISIONES_FOUNDER.md](MODELO_NEGOCIO/DECISIONES_FOUNDER.md), [CADENA_SUMINISTRO.md](MODELO_NEGOCIO/CADENA_SUMINISTRO.md).
+
+### Feature 001 — Prescription Intake ⏸ congelado
+
+- **Experimental pre-pivot** — no es gate HITL.
+- Código diverge del modelo ampliado; spec con banner de congelamiento.
+- Tests: **~46 suite total / 6 prescripción** — no re-ejecutar como gate hasta realineación.
+- Seguridad: [AUDIT_RIESGOS_SEGURIDAD.md](AUDIT_RIESGOS_SEGURIDAD.md) — **bloqueante** pre-descongelar.
+
+### Verificación docs multi-proveedor
+
+- Informe: [VERIFICACION_MODELO_MULTI_PROVEEDOR.md](VERIFICACION_MODELO_MULTI_PROVEEDOR.md) — **PASS documental parcial**, bloqueado §11.
+- **Auditoría forense v2:** [AUDIT_FORENSE_2026-06-27.md](AUDIT_FORENSE_2026-06-27.md) — 9 CRITICAL doc corregidos; P1 negocio (FX, canal aliado, unit economics, 6A-stock/MTO).
+- Mejoras negocio: [MEJORAS_MODELO_NEGOCIO.md](MEJORAS_MODELO_NEGOCIO.md).
+- Checklist founder §11: [CHECKLIST_FOUNDER_S11.md](MODELO_NEGOCIO/CHECKLIST_FOUNDER_S11.md) — **pendiente firma**.
+- Realineación código (solo tras HITL): [REALIGNMENT_POST_HITL.md](../specs/001-prescription-intake/REALIGNMENT_POST_HITL.md).
+
+### Docs negocio ampliados (forense v2)
+
+- [POLITICA_CANAL_ALIADO.md](MODELO_NEGOCIO/POLITICA_CANAL_ALIADO.md) · [UNIT_ECONOMICS.md](MODELO_NEGOCIO/UNIT_ECONOMICS.md)
+- [POLITICA_COMERCIAL.md](MODELO_NEGOCIO/POLITICA_COMERCIAL.md) — Pagos VE + FX §13 · disputas stock
+- [FLUJOS_OPERATIVOS.md](MODELO_NEGOCIO/FLUJOS_OPERATIVOS.md) — ramas 6A-stock / 6A-MTO
+
+### HITL
+
+- Docs negocio multi-proveedor + corrección forense — ver [HITL_APROBACION_DOCS.md](HITL_APROBACION_DOCS.md).
+- Pendiente founder: §11 logística, marca visual, legal VE, revisión seguridad 001.
+
+### JARVIS
+
+- Manifest + sync scripts activos.
+- Skills fulfillment/api-patterns alineados a multi-fab (sin China legacy).
+
+### Git / infra
+
+- Remote git aún `zonix-eats-back` — ver [CLONE_CHECKLIST.md](CLONE_CHECKLIST.md).
+
+## Próximos pasos
+
+1. Founder completa [CHECKLIST_FOUNDER_S11.md](MODELO_NEGOCIO/CHECKLIST_FOUNDER_S11.md) y marca HITL
+2. Revisar [AUDIT_RIESGOS_SEGURIDAD.md](AUDIT_RIESGOS_SEGURIDAD.md) antes de descongelar 001
+3. OK explícito → ejecutar [REALIGNMENT_POST_HITL.md](../specs/001-prescription-intake/REALIGNMENT_POST_HITL.md)
+4. Front fase 1.1 tras backend alineado
 
 ---
 
-## Última actualización de contexto
-
-- **Fecha:** 12 Abril 2026
-- **Resumen:** Cierre de sesión — suite **`php artisan test`** en verde (369 tests). Ajuste en **`ExpirePendingPaymentOrdersTest::test_command_restores_stock_when_expiring`**: se simula la reserva de stock como en checkout (`decrement` tras crear el `OrderItem`; las factories no lo hacen solas) y la aserción final pasa a **7** tras expirar/cancelar, alineada al flujo real (sin falso 7→10). Flujo `OrderTest` (crear orden, comprobante, cancelar) verificado OK en entorno de desarrollo.
-- **Áreas tocadas:** `tests/Feature/ExpirePendingPaymentOrdersTest.php`
-- **Próximos pasos sugeridos:** Commit/push cuando apruebes; opcional: párrafo en **AGENTS.md** «Cambios recientes» si documentás el cierre en el mismo commit.
-
-### Histórico (sesiones anteriores)
-
-- **11 Abril 2026:** Módulo **expiración `pending_payment`**: `zonix:expire-pending-payment-orders`, TTL creación / `approved_for_payment_at`, `ZONIX_EXPIRE_SKIP_IF_PROOF_PENDING`, scopes `Order` / `OrderPayment`, `Kernel`, helpers IDE (`_ide_helper.php`, `.phpstorm.meta.php`, `composer ide-helper`). Archivos: comando, `config/zonix.php`, `.env.example`, tests `ExpirePendingPaymentOrdersTest`, etc.
-- **7 Abril 2026:** **Storefront** `GET /r/{commerce}`, `StorefrontLinkController`, Blade + `StorefrontLinkTest`; frontend: QR comercio, `APP_LINK_BASE_*`.
-- **2 Abril 2026:** Factories/seeders disputas demo (`ZonixDemoSeeder`, `DisputeFactory`), `AGENTS.md`.
-
----
-
-## Línea base reciente (no es backlog)
-
-- Flujo post-pago con `all_payments_validated`, auto-asignación en `processing`, timeout ~60s, fallback empresa, QR pickup/delivery, chat de llegada, calificaciones con `order_id` y manejo independiente de errores.
-
----
-
-## Backlog candidato (no implementado)
-
-Inventario para decidir qué implementar después. **No** implica compromiso hasta aprobación explícita del líder del proyecto.
-
-### Negocio / producto
-
-| Área | Idea | Notas |
-|------|------|--------|
-| Tiempo | ETA de entrega / preparación | Mejora percepción y soporte al cliente. |
-| Operación | Cancelaciones automáticas o reglas más claras | Alinear con políticas ya documentadas (ej. ventanas de comprobante). |
-| Incentivos | Modelo claro para delivery company / agentes | Comisiones, prioridad, penalizaciones. |
-| Cobertura | Zonas / módulo tarifa delivery | Base: `docs/PLAN_MODULO_TARIFA_DELIVERY.md`. |
-| Monetización | Membresía fija (suscripcion a Commerce y Delivery Company, sin comision %) | Revisar `docs/logica-pagos-por-rol.md`. Modelo confirmado: solo membresia. |
-| **Pagos VE** | **Zelle, Binance Pay, C2P, multi-moneda, limpieza enum** | **Plan completo en `docs/PLAN_METODOS_PAGO_VENEZUELA.md`. Incluye regulación Sudeban, fases, costos.** |
-| Admin | Panel operativo (zonas, disputas, métricas) | Si el MVP lo requiere. |
-| Propinas | Permitir o no | Decisión de negocio (MVP suele excluirlas). |
-
-### Técnico / mantenibilidad
-
-| Área | Idea | Archivos / notas |
-|------|------|------------------|
-| Rutas | Partir `routes/api.php` en archivos por dominio | Reduce carga cognitiva. |
-| Entrada app | Reducir peso de `lib/main.dart` | Extraer providers / rutas. |
-| Datos demo | Acotar `ZonixDemoSeeder` o documentar grafo | Valorar tamaño. |
-| Tests | Ampliar cobertura en flujos críticos nuevos | Feature tests backend + tests servicios Flutter donde aplique. |
-| Errores | Manejo centralizado en app | Mejora UX ante fallos de red. |
-
----
-
-## Prioridad sugerida (siguiente iteración, no comprometida)
-
-Sugerencia para la **próxima** ronda de trabajo (elegir 1–2 y planificar):
-
-1. **Producto:** ETA visible (preparación / entrega aproximada) — API mínima + UI buyer/commerce si aplica.
-2. **Técnico:** Refactor incremental de `routes/api.php` agrupando por dominio (manteniendo `php artisan test` verde).
-
-Alternativa de negocio acotada: arrancar **módulo tarifa de delivery** según `docs/PLAN_MODULO_TARIFA_DELIVERY.md` si la prioridad es cobertura/zonas antes que ETA.
-
----
-
-## Notas
-
-- No borres este archivo; si no hay nada que resumir, deja las secciones con "—".
-- Mantén una sola entrada "Última actualización" y reemplázala cada vez (no acumules infinitas entradas).
-- Incluye solo lo que ayude a la siguiente sesión: decisiones de diseño, archivos clave modificados, tareas a medio hacer, bloqueos conocidos.
+**Última actualización:** 2026-06-27 (cierre forense v2 — docs only)
