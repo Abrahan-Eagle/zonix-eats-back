@@ -24,7 +24,9 @@ La IA debe considerar estos tres como parte del estado actual del proyecto al in
 - Para que Cursor, Angravity y Copilot vean lo mismo:
   - Abrir el **mismo directorio del repo** en cada herramienta (recomendado).
   - Si usás varias carpetas (ej. back y front por separado), cada una tiene su propio `AGENTS.md` y `docs/active_context.md`; el script `scripts/sync-context-for-ia.sh` puede servir para refrescar fechas o comprobar que los archivos existan.
-- Skills: están en `.agents/skills/`. Cursor las referencia desde AGENTS.md. Para Angravity/Copilot, si soportan un directorio de skills, apuntarlo a `.agents/skills/` para evitar desfases.
+- **Skills globales JARVIS:** instaladas en `~/.cursor/skills/` vía `jarvis-skills-library/scripts/install.sh`. Cursor las auto-descubre; **no copiar** al repo del producto.
+- **Skills de dominio:** `.agents/skills/zonix-glasses-*/`. Cursor las referencia desde `AGENTS.md`.
+- Para Angravity/Copilot: globales desde IDE; dominio desde `.agents/skills/`.
 
 ## Actualización del contexto
 
