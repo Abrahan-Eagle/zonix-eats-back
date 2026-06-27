@@ -12,59 +12,36 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     /**
-     * Modelo User: representa a los usuarios de la app (clientes, comercios, repartidores, admin).
-     * Incluye relaciones con comercios, órdenes, likes, etc.
+     * Modelo User: representa a los usuarios de la app (miembros, admin).
      */
 
-    /**
-     * Los atributos que se pueden asignar masivamente.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
-        'google_id',        // ID único proporcionado por Google
-        'given_name',       // Nombre de pila
-        'family_name',      // Apellido
-        'profile_pic',      // URL de la imagen de perfil de Google
-        'role',  // Rol del usuario (admin, cliente, etc.
+        'google_id',
+        'given_name',
+        'family_name',
+        'profile_pic',
+        'role',
         'completed_onboarding',
-        'light', // Tema: '1' Claro, '0' Oscuro
+        'light',
     ];
 
-    /**
-     * Atributos que deberían ocultarse para arrays.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Los atributos que deberían ser tratados como fechas.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
 
-    /**
-     * Relación para obtener los roles del usuario.
-     * Si quieres manejar varios roles por usuario, puedes usar una tabla pivot.
-     */
     public function roles()
     {
         return $this->belongsToMany(Role::class, 'user_roles');
     }
 
-    /**
-     * Verificar si el usuario tiene un rol específico
-     */
     public function hasRole($role)
     {
         if (is_string($role)) {
@@ -74,9 +51,6 @@ class User extends Authenticatable
         return $this->roles->contains($role);
     }
 
-    /**
-     * Verificar si el usuario tiene cualquiera de los roles especificados
-     */
     public function hasAnyRole($roles)
     {
         if (is_string($roles)) {
@@ -92,9 +66,6 @@ class User extends Authenticatable
         return false;
     }
 
-    /**
-     * Obtener todos los roles asociados al usuario
-     */
     public function getAllRoles()
     {
         $roles = collect([$this->role]);
@@ -105,64 +76,9 @@ class User extends Authenticatable
         return $roles->unique()->values();
     }
 
-    /**
-     * Perfil del usuario (relación 1:1). La tabla profiles es la extensión de users:
-     * un user tiene un perfil que representa a la persona (phones, documents, addresses
-     * están ligados al profile_id, no a user_id).
-     */
     public function profile()
     {
         return $this->hasOne(Profile::class);
-    }
-
-    public function commerce()
-    {
-        return $this->hasOneThrough(Commerce::class, Profile::class, 'user_id', 'profile_id');
-    }
-
-    public function deliveryCompany()
-    {
-        return $this->hasOneThrough(DeliveryCompany::class, Profile::class, 'user_id', 'profile_id');
-    }
-
-    public function deliveryAgent()
-    {
-        return $this->hasOneThrough(DeliveryAgent::class, Profile::class, 'user_id', 'profile_id');
-    }
-
-    public function orders()
-    {
-        return $this->hasManyThrough(Order::class, Profile::class, 'user_id', 'profile_id');
-    }
-
-    public function postLikes()
-    {
-        return $this->hasManyThrough(\App\Models\PostLike::class, \App\Models\Profile::class, 'user_id', 'profile_id');
-    }
-
-    /**
-     * Relación con órdenes como comprador
-     */
-    public function buyerOrders()
-    {
-        return $this->hasManyThrough(Order::class, \App\Models\Profile::class, 'user_id', 'profile_id');
-    }
-
-    /**
-     * Relación con órdenes como repartidor
-     */
-    public function deliveryOrders()
-    {
-        return $this->hasManyThrough(
-            Order::class,
-            DeliveryAgent::class,
-            'profile_id', // Clave foránea en delivery_agents
-            'id', // Clave foránea en orders
-            'id', // Clave local en users
-            'id' // Clave local en delivery_agents
-        )->whereHas('orderDelivery', function ($query) {
-            $query->where('agent_id', $this->profile->deliveryAgent->id ?? 0);
-        });
     }
 
     public function paymentMethods()
@@ -170,11 +86,13 @@ class User extends Authenticatable
         return $this->morphMany(PaymentMethod::class, 'payable');
     }
 
-    /**
-     * Relación con el carrito del usuario (vía perfil: solo profile y user_roles en users).
-     */
-    public function cart()
+    public function opticalPartners()
     {
-        return $this->hasOneThrough(Cart::class, Profile::class, 'user_id', 'profile_id');
+        return $this->belongsToMany(OpticalPartner::class, 'optical_partner_users');
+    }
+
+    public function primaryOpticalPartner(): ?OpticalPartner
+    {
+        return $this->opticalPartners()->first();
     }
 }

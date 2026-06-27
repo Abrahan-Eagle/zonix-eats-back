@@ -5,7 +5,7 @@ namespace App\Http\Traits;
 use Illuminate\Http\JsonResponse;
 
 /**
- * Respuestas JSON canónicas Zonix: success, message, data (y opcional error_code / errors).
+ * Respuestas JSON canónicas: success, message, data (y opcional error_code / errors).
  */
 trait ApiResponse
 {

@@ -13,10 +13,9 @@ class IndexController extends Controller
      */
     public function index()
     {
-        \App\Helpers\SeoHelper::setTitle('Tu comida favorita en minutos');
+        \App\Helpers\SeoHelper::setTitle('Plataforma reutilizable');
         \App\Helpers\SeoHelper::setDescription(
-            'Pide comida a domicilio de tus restaurantes favoritos en Caracas, Maracaibo, Valencia y más. '.
-            'Los mejores precios y delivery rápido con Zonix EATS.'
+            'Boilerplate Laravel + Flutter con autenticación, perfiles, notificaciones y panel admin.'
         );
 
         $schema = [

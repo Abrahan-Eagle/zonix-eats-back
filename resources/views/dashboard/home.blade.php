@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @auth
-@section('title','Dashboard - Zonix Eats')
+@section('title','Dashboard - Zonix Glasses')
 
 @section('content')
 <main class="c-main">
@@ -10,7 +10,7 @@
                 <!-- Header -->
                 <div class="mb-4">
                     <h1 class="h3 mb-0">Dashboard</h1>
-                    <p class="text-muted">Resumen general de Zonix Eats</p>
+                    <p class="text-muted">Resumen general de Zonix Glasses</p>
                 </div>
 
                 <!-- Estadísticas principales -->

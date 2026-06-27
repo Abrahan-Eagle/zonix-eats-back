@@ -7,8 +7,6 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 
-// use App\Models\Order;
-
 class HomeController extends Controller
 {
     /**
@@ -21,7 +19,6 @@ class HomeController extends Controller
         $stats = [
             'users' => User::count(),
             'roles' => Role::count(),
-            // 'orders' => Order::count(), // Descomentar cuando el modelo Order esté migrado y listo
         ];
 
         // Usuarios recientes (últimos 5)

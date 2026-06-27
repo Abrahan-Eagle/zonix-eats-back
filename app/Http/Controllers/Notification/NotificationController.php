@@ -248,11 +248,8 @@ class NotificationController extends Controller
                 'push_notifications' => true,
                 'email_notifications' => true,
                 'sms_notifications' => false,
-                'order_notifications' => true,
-                'commission_notifications' => true,
                 'maintenance_notifications' => true,
                 'system_notifications' => true,
-                'chat_notifications' => true,
                 'quiet_hours' => [
                     'enabled' => false,
                     'start' => '22:00',
@@ -300,11 +297,8 @@ class NotificationController extends Controller
                 'push_notifications' => 'nullable|boolean',
                 'email_notifications' => 'nullable|boolean',
                 'sms_notifications' => 'nullable|boolean',
-                'order_notifications' => 'nullable|boolean',
-                'commission_notifications' => 'nullable|boolean',
                 'maintenance_notifications' => 'nullable|boolean',
                 'system_notifications' => 'nullable|boolean',
-                'chat_notifications' => 'nullable|boolean',
                 'quiet_hours' => 'nullable|array',
                 'quiet_hours.enabled' => 'nullable|boolean',
                 'quiet_hours.start' => 'nullable|string|regex:/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/',
@@ -336,5 +330,51 @@ class NotificationController extends Controller
                 'message' => 'Error al actualizar configuración: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Registrar token FCM del dispositivo en el perfil del usuario autenticado.
+     */
+    public function registerFcmToken(Request $request)
+    {
+        $authUser = Auth::user();
+        if (! $authUser) {
+            return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+        }
+
+        $data = $request->validate([
+            'device_token' => 'required|string',
+        ]);
+
+        $authUser->load('profile');
+        $profile = $authUser->profile;
+        if (! $profile) {
+            return response()->json(['success' => false, 'message' => 'Perfil no encontrado'], 404);
+        }
+
+        $profile->fcm_device_token = $data['device_token'];
+        $profile->save();
+
+        return response()->json(['success' => true, 'message' => 'Token FCM registrado']);
+    }
+
+    /**
+     * Eliminar token FCM del perfil (logout / desactivar push en dispositivo).
+     */
+    public function unregisterFcmToken()
+    {
+        $authUser = Auth::user();
+        if (! $authUser) {
+            return response()->json(['success' => false, 'message' => 'No autenticado'], 401);
+        }
+
+        $authUser->load('profile');
+        $profile = $authUser->profile;
+        if ($profile) {
+            $profile->fcm_device_token = null;
+            $profile->save();
+        }
+
+        return response()->json(['success' => true, 'message' => 'Token FCM eliminado']);
     }
 }

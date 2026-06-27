@@ -20,8 +20,8 @@
         <use xlink:href="{{asset('icons/sprites/free.svg#cil-menu')}}"></use>
       </svg>
     </button><a class="c-header-brand d-lg-none" href="{{ url('/') }}" class="text-decoration-none">
-      {{-- <img src="{{ asset('assets/front/images/LOGO_CORRAL.png') }}" alt="Zonix Eats Logo" style="max-height: 20px; width: auto;"> --}}
-      <span style="color: #ff3d40; font-weight: bold; font-size: 20px;">ZONIX EATS</span>
+      {{-- Logo placeholder --}}
+      <span style="color: #ff3d40; font-weight: bold; font-size: 20px;">Zonix Glasses</span>
     </a>
     <button class="c-header-toggler c-class-toggler mfs-3 d-md-down-none" type="button" data-target="#sidebar"
       data-class="c-sidebar-lg-show" responsive="true">

@@ -1,4 +1,4 @@
-name: Deploy to Production (Zonix-EatsX)
+name: Deploy to Production (Zonix Glasses Backend)
 on:
   push:
     branches:
@@ -40,8 +40,12 @@ jobs:
           echo "${{ secrets.ENV_CONTENT }}" > .env
           # Asegurar que APP_DEBUG sea false en producción
           sed -i 's/APP_DEBUG=.*/APP_DEBUG=false/' .env
-          # Cambiar APP_URL a eats.aiblockweb.com
-          sed -i 's|APP_URL=.*|APP_URL=https://eats.aiblockweb.com|' .env
+          # Sustituir APP_URL por el dominio de producción (secret o placeholder)
+          if [ -n "${{ secrets.APP_URL }}" ]; then
+            sed -i "s|APP_URL=.*|APP_URL=${{ secrets.APP_URL }}|" .env
+          else
+            sed -i 's|APP_URL=.*|APP_URL=https://api.zonix-glasses.example.com|' .env
+          fi
           cat .env # Para depurar y verificar el contenido del .env
 
       # Paso 6: Instalar dependencias PHP (incluyendo dev para seeders)
@@ -97,8 +101,7 @@ jobs:
           echo "Creating storage link..."
           php artisan storage:link || echo "Storage link already exists or not needed"
 
-      # Paso 13: Verificar el despliegue (PRODUCCIÓN)
+      # Paso 13: Verificar el despliegue (opcional — configurar APP_URL en secrets)
       - name: Verify deployment (Production)
         run: |
-          echo "Verifying deployment to eats.aiblockweb.com..."
-          curl -f https://eats.aiblockweb.com/api/env-test || echo "API endpoint not accessible"
+          echo "Deployment complete. Configure health checks against your production APP_URL."

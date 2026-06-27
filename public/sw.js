@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zonix-eats-v1.0.0';
+const CACHE_NAME = 'zonix-glasses-v1.0.0';
 const urlsToCache = [
   '/',
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
@@ -8,7 +8,7 @@ const urlsToCache = [
   '/assets/img/hero/desktop-pizza.jpg'
 ];
 
-// Instalación del Service Worker
+// Instalaci?n del Service Worker
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -19,7 +19,7 @@ self.addEventListener('install', event => {
   );
 });
 
-// Activación del Service Worker
+// Activaci?n del Service Worker
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -45,9 +45,9 @@ self.addEventListener('fetch', event => {
           return response;
         }
         
-        // Si no está en cache, hacer la petición a la red
+        // Si no est? en cache, hacer la petici?n a la red
         return fetch(event.request).then(response => {
-          // Verificar que la respuesta sea válida
+          // Verificar que la respuesta sea v?lida
           if (!response || response.status !== 200 || response.type !== 'basic') {
             return response;
           }
@@ -64,7 +64,7 @@ self.addEventListener('fetch', event => {
         });
       })
       .catch(() => {
-        // Fallback para páginas offline
+        // Fallback para p?ginas offline
         if (event.request.mode === 'navigate') {
           return caches.match('/');
         }
@@ -79,7 +79,7 @@ self.addEventListener('message', event => {
   }
 });
 
-// Sincronización en background
+// Sincronizaci?n en background
 self.addEventListener('sync', event => {
   if (event.tag === 'background-sync') {
     event.waitUntil(doBackgroundSync());
@@ -87,14 +87,14 @@ self.addEventListener('sync', event => {
 });
 
 function doBackgroundSync() {
-  // Aquí puedes implementar sincronización de datos
-  console.log('Sincronización en background ejecutada');
+  // Aqu? puedes implementar sincronizaci?n de datos
+  console.log('Sincronizaci?n en background ejecutada');
 }
 
 // Push notifications
 self.addEventListener('push', event => {
   const options = {
-    body: event.data ? event.data.text() : '¡Nueva notificación de Zonix Eats!',
+    body: event.data ? event.data.text() : 'Nueva notificaci?n de Zonix Glasses',
     icon: '/assets/img/logo.png',
     badge: '/assets/img/logo.png',
     vibrate: [100, 50, 100],
@@ -105,7 +105,7 @@ self.addEventListener('push', event => {
     actions: [
       {
         action: 'explore',
-        title: 'Ver más',
+        title: 'Ver m?s',
         icon: '/assets/img/logo.png'
       },
       {
@@ -117,7 +117,7 @@ self.addEventListener('push', event => {
   };
   
   event.waitUntil(
-    self.registration.showNotification('Zonix Eats', options)
+    self.registration.showNotification('Zonix Glasses', options)
   );
 });
 

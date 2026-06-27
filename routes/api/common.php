@@ -1,20 +1,15 @@
 <?php
 
 use App\Http\Controllers\Authenticator\AuthController;
-use App\Http\Controllers\Chat\ChatController;
-use App\Http\Controllers\Location\LocationController;
 use App\Http\Controllers\Notification\NotificationController;
-use App\Http\Controllers\Payment\PaymentController;
 use App\Http\Controllers\Profiles\AddressController;
 use App\Http\Controllers\Profiles\DocumentController;
+use App\Http\Controllers\Profiles\PhoneController;
 use App\Http\Controllers\Profiles\ProfileController;
+use App\Http\Controllers\UserAccountController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {
-
-    // Legacy compat: /api/orders (sin prefijo buyer) — usada por tests y versiones anteriores
-    Route::get('/orders', [\App\Http\Controllers\Buyer\OrderController::class, 'index']);
-    Route::post('/orders', [\App\Http\Controllers\Buyer\OrderController::class, 'store'])->middleware('throttle:create');
 
     Route::prefix('onboarding')->group(function () {
         Route::put('/{id}', [AuthController::class, 'update']);
@@ -22,18 +17,28 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/profile', [ProfileController::class, 'showCurrent']);
     Route::put('/profile', [ProfileController::class, 'updateCurrent']);
-    Route::get('/profile/export', [\App\Http\Controllers\Buyer\ExportController::class, 'export']);
+    Route::get('/profile/export', [UserAccountController::class, 'export']);
+
+    Route::prefix('user')->group(function () {
+        Route::get('/privacy-settings', [UserAccountController::class, 'getPrivacySettings']);
+        Route::put('/privacy-settings', [UserAccountController::class, 'updatePrivacySettings']);
+        Route::delete('/account', [UserAccountController::class, 'deleteAccount']);
+    });
 
     Route::prefix('profiles')->group(function () {
         Route::get('/', [ProfileController::class, 'index']);
         Route::post('/', [ProfileController::class, 'store']);
-        Route::post('/delivery-agent', [ProfileController::class, 'createDeliveryAgent']);
-        Route::post('/commerce', [ProfileController::class, 'createCommerce']);
-        Route::post('/add-commerce', [ProfileController::class, 'addCommerceToProfile']);
-        Route::post('/delivery-company', [ProfileController::class, 'createDeliveryCompany']);
         Route::get('/{id}', [ProfileController::class, 'show']);
         Route::post('/{id}', [ProfileController::class, 'update']);
         Route::delete('/{id}', [ProfileController::class, 'destroy']);
+    });
+
+    Route::prefix('phones')->group(function () {
+        Route::get('/', [PhoneController::class, 'index']);
+        Route::post('/', [PhoneController::class, 'store']);
+        Route::get('/{id}', [PhoneController::class, 'show']);
+        Route::put('/{id}', [PhoneController::class, 'update']);
+        Route::delete('/{id}', [PhoneController::class, 'destroy']);
     });
 
     Route::prefix('documents')->group(function () {
@@ -65,15 +70,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/{id}/default', [\App\Http\Controllers\PaymentMethodController::class, 'setDefault']);
     });
 
-    Route::prefix('payments')->group(function () {
-        Route::get('/methods', [PaymentController::class, 'getPaymentMethods']);
-        Route::post('/methods', [PaymentController::class, 'addPaymentMethod']);
-        Route::post('/process', [PaymentController::class, 'processPayment']);
-        Route::get('/history', [PaymentController::class, 'getTransactionHistory']);
-        Route::post('/{transactionId}/refund', [PaymentController::class, 'refundPayment']);
-        Route::get('/statistics', [PaymentController::class, 'getPaymentStatistics']);
-    });
-
     Route::prefix('notifications')->group(function () {
         Route::get('/', [NotificationController::class, 'getNotifications']);
         Route::get('/stats', [NotificationController::class, 'getStats']);
@@ -84,40 +80,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/push', [NotificationController::class, 'sendPushNotification']);
         Route::get('/settings', [NotificationController::class, 'getNotificationSettings']);
         Route::put('/settings', [NotificationController::class, 'updateNotificationSettings']);
-    });
-
-    Route::prefix('location')->group(function () {
-        Route::post('/update', [LocationController::class, 'updateLocation']);
-        Route::get('/nearby-places', [LocationController::class, 'getNearbyPlaces']);
-        Route::get('/delivery-routes', [LocationController::class, 'getDeliveryRoutes']);
-        Route::post('/calculate-route', [LocationController::class, 'calculateRoute']);
-        Route::post('/geocode', [LocationController::class, 'getCoordinatesFromAddress']);
-        Route::get('/delivery-zones', [LocationController::class, 'getDeliveryZones']);
-    });
-
-    Route::prefix('chat')->group(function () {
-        Route::get('/conversations', [ChatController::class, 'getConversations']);
-        Route::get('/conversations/{conversationId}/messages', [ChatController::class, 'getMessages']);
-        Route::post('/conversations/{conversationId}/messages', [ChatController::class, 'sendMessage']);
-        Route::post('/conversations/{conversationId}/read', [ChatController::class, 'markMessagesAsRead']);
-        Route::post('/conversations', [ChatController::class, 'createConversation']);
-        Route::delete('/conversations/{conversationId}', [ChatController::class, 'deleteConversation']);
-        Route::get('/search', [ChatController::class, 'searchMessages']);
-        Route::post('/block', [ChatController::class, 'blockUser']);
-        Route::delete('/block/{userId}', [ChatController::class, 'unblockUser']);
-        Route::get('/blocked-users', [ChatController::class, 'getBlockedUsers']);
-        Route::post('/fcm/register', [ChatController::class, 'registerFcmToken']);
-        Route::post('/fcm/unregister', [ChatController::class, 'unregisterFcmToken']);
+        Route::post('/fcm/register', [NotificationController::class, 'registerFcmToken']);
+        Route::post('/fcm/unregister', [NotificationController::class, 'unregisterFcmToken']);
     });
 });
 
 if (app()->environment(['local', 'testing'])) {
     Route::middleware('auth:sanctum')->group(function () {
-        Route::get('/test/products', function () {
-            $products = \App\Models\Product::where('available', true)->get();
-
-            return response()->json($products);
-        });
         Route::get('/test/auth', function () {
             $user = \Illuminate\Support\Facades\Auth::user();
 

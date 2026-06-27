@@ -12,7 +12,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(
+            \App\Contracts\PrescriptionOcrServiceInterface::class,
+            \App\Services\Optical\PrescriptionOcrStubService::class
+        );
     }
 
     /**

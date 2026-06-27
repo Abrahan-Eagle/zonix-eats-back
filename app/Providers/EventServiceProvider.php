@@ -25,9 +25,7 @@ class EventServiceProvider extends ServiceProvider
      *
      * @var array
      */
-    protected $subscribe = [
-        \App\Listeners\OrderNotificationSubscriber::class,
-    ];
+    protected $subscribe = [];
 
     /**
      * Register any events for your application.

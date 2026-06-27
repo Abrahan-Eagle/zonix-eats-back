@@ -1,37 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
-        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
-  
-  <!-- Página Principal -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://zonixeats.com/</loc>
-    <lastmod>2026-02-19</lastmod>
+    <loc>https://example.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
-  
-  <!-- Páginas legales -->
   <url>
-    <loc>https://zonixeats.com/politica-privacidad</loc>
-    <lastmod>2026-02-19</lastmod>
+    <loc>https://example.com/politica-privacidad</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
-  
   <url>
-    <loc>https://zonixeats.com/terminos-condiciones</loc>
-    <lastmod>2026-02-19</lastmod>
+    <loc>https://example.com/terminos-condiciones</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
-  
   <url>
-    <loc>https://zonixeats.com/eliminar-cuenta</loc>
-    <lastmod>2026-02-19</lastmod>
+    <loc>https://example.com/eliminar-cuenta</loc>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
-  
 </urlset>

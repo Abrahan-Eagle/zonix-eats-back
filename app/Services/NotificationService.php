@@ -102,9 +102,8 @@ class NotificationService
             return false;
         }
 
-        // Check specific type switch (e.g., order_notifications). commerce_order usa la misma preferencia que order.
-        $preferenceType = ($type === 'commerce_order') ? 'order' : $type;
-        $typeKey = $preferenceType.'_notifications';
+        // Preferencia por tipo: {type}_notifications (ej. system_notifications)
+        $typeKey = $type.'_notifications';
         if (isset($preferences[$typeKey]) && ! $preferences[$typeKey]) {
             Log::info("Push notifications for type '{$type}' disabled for profile {$profile->id}");
             Cache::increment('metrics:realtime:fcm_skipped_preferences_total');

@@ -10,52 +10,11 @@ use Illuminate\Support\Facades\Log;
 class PaymentMethodController extends Controller
 {
     /**
-     * Determinar la entidad dueña de los métodos de pago según el rol actual.
-     * - users             → User (comprador)
-     * - commerce         → Commerce (vendedor)
-     * - delivery_agent   → DeliveryAgent (repartidor)
-     * - delivery         → DeliveryAgent (repartidor autónomo)
-     * - delivery_company → DeliveryCompany (empresa de repartidores)
-     * - otros            → User por defecto
+     * Entidad dueña de métodos de pago (morph a User autenticado).
      */
     protected function getPayableOwner()
     {
-        $user = Auth::user();
-        if (! $user) {
-            return $user;
-        }
-
-        try {
-            $role = $user->role ?? null;
-            $profile = $user->profile ?? null;
-
-            if ($role === 'commerce' && $profile) {
-                $commerceId = request()->query('commerce_id') ?? request()->header('X-Commerce-Id') ?? request()->input('commerce_id');
-                if ($commerceId) {
-                    $commerce = $profile->commerces()->find($commerceId);
-                    if ($commerce) {
-                        return $commerce;
-                    }
-                }
-
-                return $profile->getPrimaryCommerce();
-            }
-
-            // Motorizados (delivery_agent o delivery autónomo): métodos de pago del repartidor
-            if (in_array($role, ['delivery', 'delivery_agent'], true) && $profile && $profile->deliveryAgent) {
-                return $profile->deliveryAgent;
-            }
-
-            // Empresa de delivery: métodos de pago de la empresa
-            if ($role === 'delivery_company' && $profile && $profile->deliveryCompany) {
-                return $profile->deliveryCompany;
-            }
-        } catch (\Throwable $e) {
-            Log::warning('Error determinando payable owner para métodos de pago: '.$e->getMessage());
-        }
-
-        // Fallback: usuario autenticado (rol users/admin)
-        return $user;
+        return Auth::user();
     }
 
     /**
@@ -94,7 +53,7 @@ class PaymentMethodController extends Controller
             if (! $owner || ! method_exists($owner, 'paymentMethods')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'No se pudo determinar el propietario de los métodos de pago (perfil o comercio).',
+                    'message' => 'No se pudo determinar el propietario de los métodos de pago.',
                 ], 422);
             }
 
@@ -271,7 +230,7 @@ class PaymentMethodController extends Controller
                 [
                     'type' => 'cash',
                     'name' => 'Efectivo',
-                    'description' => 'Pago al momento de la entrega',
+                    'description' => 'Pago en efectivo',
                     'icon' => 'money',
                     'enabled' => true,
                 ],

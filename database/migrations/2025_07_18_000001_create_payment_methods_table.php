@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('payment_methods', function (Blueprint $table) {
             $table->id();
-            // Relación polimórfica - puede pertenecer a User, Commerce, o DeliveryAgent
+            // Relación polimórfica (morph a User)
             $table->morphs('payable');
             // Tipo de método de pago
             // card: Tarjeta de crédito/débito (Visa, Mastercard, Amex, etc.)

@@ -16,7 +16,10 @@ public_html/storage
 public_html/hot
 
 # storage/*.key
-# storage/app/firebase*.json
+# Firebase credentials (never commit)
+storage/app/firebase*.json
+storage/app/*firebase*.json
+storage/app/*adminsdk*.json
 # .env
 Homestead.yaml
 Homestead.json
@@ -30,6 +33,6 @@ Homestead.json
 .phpactor.json
 auth.json
 
-# Otro proyecto / utilidades locales (no Zonix Eats)
+# Otro proyecto / utilidades locales (no otro producto)
 venv_scraper/
 pendrive_badblocks_result.txt

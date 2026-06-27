@@ -12,7 +12,7 @@ class RoleMiddleware
     /**
      * Maneja una solicitud entrante.
      *
-     * @param  string  $role  Uno o más roles separados por coma (ej: delivery,delivery_agent,delivery_company)
+     * @param  string  $role  Uno o más roles separados por coma (ej: admin,user)
      * @return mixed
      */
     /**

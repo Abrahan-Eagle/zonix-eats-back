@@ -20,21 +20,14 @@ return new class extends Migration
         Schema::create('phones', function (Blueprint $table) {
             $table->id();
             $table->foreignId('profile_id')->constrained('profiles')->onDelete('cascade');
-            // Contexto de uso y entidades asociadas (consolidados aquí, no en migraciones "add_*")
             $table->string('context', 32)->default('personal');
-            $table->unsignedBigInteger('commerce_id')->nullable();
-            $table->unsignedBigInteger('delivery_company_id')->nullable();
-
             $table->foreignId('operator_code_id')->constrained('operator_codes')->onDelete('cascade');
             $table->string('number', 7);
             $table->boolean('is_primary')->default(false);
             $table->boolean('status')->default(true);
             $table->timestamps();
 
-            // Índices para filtrar por contexto y entidad
             $table->index(['profile_id', 'context']);
-            $table->index('commerce_id');
-            $table->index('delivery_company_id');
         });
     }
 

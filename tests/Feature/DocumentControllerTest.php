@@ -15,7 +15,7 @@ class DocumentControllerTest extends TestCase
 
     public function test_index_returns_200_and_list_for_authenticated_user(): void
     {
-        $user = User::factory()->create(['role' => 'users']);
+        $user = User::factory()->create(['role' => 'user']);
         $profile = Profile::factory()->create(['user_id' => $user->id]);
         Document::create([
             'profile_id' => $profile->id,
@@ -42,7 +42,7 @@ class DocumentControllerTest extends TestCase
 
     public function test_store_creates_ci_document(): void
     {
-        $user = User::factory()->create(['role' => 'users']);
+        $user = User::factory()->create(['role' => 'user']);
         $profile = Profile::factory()->create(['user_id' => $user->id]);
         Sanctum::actingAs($user);
 
@@ -66,7 +66,7 @@ class DocumentControllerTest extends TestCase
 
     public function test_store_rejects_invalid_type(): void
     {
-        $user = User::factory()->create(['role' => 'users']);
+        $user = User::factory()->create(['role' => 'user']);
         Profile::factory()->create(['user_id' => $user->id]);
         Sanctum::actingAs($user);
 
@@ -82,7 +82,7 @@ class DocumentControllerTest extends TestCase
 
     public function test_store_rejects_duplicate_type_per_profile(): void
     {
-        $user = User::factory()->create(['role' => 'users']);
+        $user = User::factory()->create(['role' => 'user']);
         $profile = Profile::factory()->create(['user_id' => $user->id]);
         Document::create([
             'profile_id' => $profile->id,
@@ -107,7 +107,7 @@ class DocumentControllerTest extends TestCase
 
     public function test_show_returns_documents_for_user(): void
     {
-        $user = User::factory()->create(['role' => 'users']);
+        $user = User::factory()->create(['role' => 'user']);
         $profile = Profile::factory()->create(['user_id' => $user->id]);
         Document::create([
             'profile_id' => $profile->id,
@@ -127,8 +127,8 @@ class DocumentControllerTest extends TestCase
 
     public function test_store_returns_403_for_foreign_profile(): void
     {
-        $user = User::factory()->create(['role' => 'users']);
-        $otherUser = User::factory()->create(['role' => 'users']);
+        $user = User::factory()->create(['role' => 'user']);
+        $otherUser = User::factory()->create(['role' => 'user']);
         $otherProfile = Profile::factory()->create(['user_id' => $otherUser->id]);
         Sanctum::actingAs($user);
 
@@ -144,8 +144,8 @@ class DocumentControllerTest extends TestCase
 
     public function test_show_update_and_destroy_require_document_ownership(): void
     {
-        $user = User::factory()->create(['role' => 'users']);
-        $otherUser = User::factory()->create(['role' => 'users']);
+        $user = User::factory()->create(['role' => 'user']);
+        $otherUser = User::factory()->create(['role' => 'user']);
         $otherProfile = Profile::factory()->create(['user_id' => $otherUser->id]);
         $foreignDocument = Document::create([
             'profile_id' => $otherProfile->id,

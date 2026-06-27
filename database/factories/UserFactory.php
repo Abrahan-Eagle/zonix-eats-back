@@ -14,84 +14,37 @@ class UserFactory extends Factory
 {
     protected $model = User::class;
 
-    /**
-     * The current password being used by the factory.
-     */
     protected static ?string $password;
 
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
-        $testing = app()->environment('testing');
-
         return [
             'name' => $this->faker->name(),
             'email' => $this->faker->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => Hash::make('password'),
-            // En testing: sin google_id por defecto (evita colisiones raras en tests que asumen email/password).
-            'google_id' => $testing ? null : ($this->faker->boolean(70) ? Str::uuid() : null),
+            'google_id' => null,
             'given_name' => $this->faker->firstName(),
             'family_name' => $this->faker->lastName(),
             'profile_pic' => $this->faker->imageUrl(),
-            'role' => $testing ? 'users' : $this->faker->randomElement(['admin', 'users', 'commerce', 'delivery_company', 'delivery_agent', 'delivery']),
-            'completed_onboarding' => $testing ? true : $this->faker->boolean(80),
+            'role' => 'user',
+            'completed_onboarding' => true,
             'remember_token' => Str::random(10),
         ];
     }
 
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
-    // public function configure()
-    // {
-
-    // }
-
-    // Estados para diferentes roles
     public function admin(): Factory
     {
-        return $this->state([
-            'role' => 'admin',
-        ]);
+        return $this->state(['role' => 'admin']);
     }
 
-    public function buyer()
+    public function opticalPartner(): Factory
     {
-        return $this->state([
-            'role' => 'users',
-        ]);
+        return $this->state(['role' => 'optical_partner']);
     }
 
-    public function commerce(): Factory
+    public function user(): Factory
     {
-        return $this->state([
-            'role' => 'commerce',
-        ]);
-    }
-
-    public function deliveryCompany(): Factory
-    {
-        return $this->state([
-            'role' => 'delivery_company',
-        ]);
-    }
-
-    public function deliveryAgent(): Factory
-    {
-        return $this->state([
-            'role' => 'delivery_agent',
-        ]);
-    }
-
-    public function delivery(): Factory
-    {
-        return $this->state([
-            'role' => 'delivery',
-        ]);
+        return $this->state(['role' => 'user']);
     }
 }

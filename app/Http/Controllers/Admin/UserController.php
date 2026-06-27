@@ -34,7 +34,7 @@ class UserController extends Controller
 
     public function show($id)
     {
-        $user = User::with(['profile', 'orders', 'commerce', 'deliveryAgent'])->findOrFail($id);
+        $user = User::with('profile')->findOrFail($id);
 
         return response()->json($user);
     }
@@ -63,9 +63,7 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
 
-        // Obtener actividad del usuario (órdenes, logins, etc.)
         $activity = [
-            'orders' => $user->orders()->orderBy('created_at', 'desc')->limit(10)->get(),
             'recent_logins' => $user->tokens()->orderBy('last_used_at', 'desc')->limit(5)->get(['id', 'name', 'last_used_at', 'created_at']),
             'profile_updates' => $user->profile ? [$user->profile->only(['updated_at'])] : [],
         ];
@@ -76,7 +74,7 @@ class UserController extends Controller
     public function updateRole(Request $request, $id)
     {
         $request->validate([
-            'role' => 'required|string|in:users,commerce,delivery_company,delivery_agent,delivery,admin',
+            'role' => 'required|string|in:admin,user',
         ]);
 
         $user = User::findOrFail($id);

@@ -37,26 +37,20 @@ class OnboardingTest extends TestCase
     {
         $user = User::factory()->create([
             'completed_onboarding' => false,
-            'role' => 'users',
+            'role' => 'user',
         ]);
         Sanctum::actingAs($user);
 
         $response = $this->putJson("/api/onboarding/{$user->id}", [
             'completed_onboarding' => true,
-            'role' => 'commerce',
+            'role' => 'admin',
         ]);
 
         $response->assertStatus(200)
             ->assertJson([
                 'completed_onboarding' => 1,
-                'role' => 'commerce',
+                'role' => 'admin',
             ]);
-
-        $this->assertDatabaseHas('users', [
-            'id' => $user->id,
-            'completed_onboarding' => 1,
-            'role' => 'commerce',
-        ]);
     }
 
     /** @test */

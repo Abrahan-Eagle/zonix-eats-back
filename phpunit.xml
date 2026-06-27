@@ -19,8 +19,8 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
-        <!-- Evita HTTP real a Pusher en la suite (órdenes/eventos → 500/timeout con credenciales dummy).
-             PusherConfigTest y WebSocketTest (auth) fijan credenciales/driver solo donde hace falta. -->
+        <!-- Evita HTTP real a Pusher en la suite (timeout con credenciales dummy).
+             PusherConfigTest fija credenciales/driver solo donde hace falta. -->
         <env name="BROADCAST_DRIVER" value="null"/>
         <!-- Valores para asserts de config/env en PusherConfigTest (no activan broadcast con driver null) -->
         <env name="PUSHER_APP_ID" value="test-app-id"/>
@@ -39,10 +39,5 @@
         <env name="TELESCOPE_ENABLED" value="false"/>
         <!-- Solo escribir error+ en log durante tests; evita ruido de INFO/DEBUG -->
         <env name="LOG_LEVEL" value="error"/>
-        <!-- Caducidad pending_payment: explícito para que la suite no dependa del .env del desarrollador -->
-        <env name="ZONIX_EXPIRE_PENDING_PAYMENT_ENABLED" value="true"/>
-        <env name="ZONIX_PENDING_PAYMENT_MAX_AGE_MINUTES" value="1440"/>
-        <env name="ZONIX_PENDING_PAYMENT_AFTER_APPROVAL_MINUTES" value="60"/>
-        <env name="ZONIX_EXPIRE_SKIP_IF_PROOF_PENDING" value="true"/>
     </php>
 </phpunit>

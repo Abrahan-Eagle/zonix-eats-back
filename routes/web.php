@@ -26,13 +26,6 @@ Auth::routes();
 
 // Ruta dinámica para robots.txt
 Route::get('/robots.txt', function () {
-    $isTestEnvironment = str_contains(request()->getHost(), 'test.zonixeats.com');
-
-    if ($isTestEnvironment) {
-        return response("User-agent: *\nDisallow: /", 200)
-            ->header('Content-Type', 'text/plain');
-    }
-
     $file = public_path('robots.txt');
     if (file_exists($file)) {
         return response(file_get_contents($file), 200)
@@ -70,11 +63,6 @@ Route::get('/clear', function () {
 // ============================================
 
 Route::get('/', [IndexController::class, 'index'])->name('front.home');
-
-// Enlace compartido desde la app móvil (QR / WhatsApp): http(s)://…/r/{commerceId}
-Route::get('/r/{commerce}', [\App\Http\Controllers\Web\Front\StorefrontLinkController::class, 'show'])
-    ->whereNumber('commerce')
-    ->name('front.storefront.commerce');
 
 Route::get('/sitemap.xml', [\App\Http\Controllers\Web\Front\SitemapController::class, 'index'])->name('sitemap');
 

@@ -1,16 +1,16 @@
 {
-  "name": "Zonix Eats - Delivery de Comida",
-  "short_name": "Zonix Eats",
-  "description": "Zonix Eats es tu plataforma de delivery favorita en Venezuela. Pide comida de los mejores restaurantes, desde hamburguesas y pizza hasta sushi y postres. Entregas rápidas y seguras.",
+  "name": "Zonix Glasses",
+  "short_name": "Zonix Glasses",
+  "description": "Boilerplate Laravel + Flutter: autenticación, perfiles, notificaciones y administración.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#ff3d40",
+  "theme_color": "#0d6efd",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "es",
-  "categories": ["food", "delivery", "shopping", "lifestyle"],
-  "keywords": ["delivery", "comida", "venezuela", "hamburguesas", "pizza", "sushi", "restaurantes", "domicilio", "zonix eats", "zonix"],
+  "categories": ["productivity", "utilities"],
+  "keywords": ["zonix-glasses", "laravel", "flutter", "api", "auth"],
   "icons": [
     {
       "src": "/assets/img/logo.png",
@@ -25,19 +25,11 @@
       "purpose": "any maskable"
     }
   ],
-  "screenshots": [
-    {
-      "src": "/assets/img/hero/desktop-pizza.jpg",
-      "sizes": "1280x720",
-      "type": "image/jpeg",
-      "form_factor": "wide"
-    }
-  ],
   "shortcuts": [
     {
-      "name": "Pedir Comida",
-      "short_name": "Pedir",
-      "description": "Explora restaurantes y pide ahora",
+      "name": "Inicio",
+      "short_name": "Inicio",
+      "description": "Ir a la página principal",
       "url": "/",
       "icons": [
         {
@@ -47,14 +39,6 @@
       ]
     }
   ],
-  "related_applications": [
-    {
-      "platform": "webapp",
-      "url": "https://zonixeats.com"
-    }
-  ],
-  "prefer_related_applications": false,
-  "edge_side_panel": {
-    "preferred_width": 400
-  }
+  "related_applications": [],
+  "prefer_related_applications": false
 }
