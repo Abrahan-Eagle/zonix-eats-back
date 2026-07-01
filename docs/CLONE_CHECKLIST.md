@@ -10,7 +10,7 @@
 - [ ] BD `zonix_glasses` creada
 - [ ] `cp .env.example .env` + `php artisan key:generate`
 - [ ] `php artisan migrate --seed`
-- [ ] Usuarios seed: `admin@zonix-glasses.local` / `user@zonix-glasses.local`
+- [ ] Usuarios seed: `admin@zonix-glasses.local` / `user@zonix-glasses.local` — password local: `password` (solo dev)
 
 ## Credenciales (rotar en producción)
 
@@ -25,3 +25,7 @@
 php artisan test
 curl -H "Authorization: Bearer TOKEN" http://localhost:8000/api/auth/user
 ```
+
+### Identidad producto (anti-Eats / anti-smart-glasses)
+
+Comandos en [FORENSIC_VERIFICATION.md](FORENSIC_VERIFICATION.md) — ejecutar tras clonar o antes de release.

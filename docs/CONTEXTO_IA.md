@@ -10,6 +10,23 @@ Este doc explica cómo tener **siempre** el mismo contexto en las herramientas d
 
 La IA debe considerar estos tres como parte del estado actual del proyecto al iniciar o retomar.
 
+**Fase actual (Jun 2026):** modelo de negocio **v3.1** documentado y coherente doc-vs-doc; **no programar** nuevas features hasta HITL legal/marca + [AUDIT_RIESGOS_SEGURIDAD.md](AUDIT_RIESGOS_SEGURIDAD.md). Detalle operativo: [active_context.md](active_context.md).
+
+## Mapa `docs/` (fuente única por tema)
+
+| Tema | Canon | Gates / memoria | Satélites |
+|------|-------|-----------------|-----------|
+| Decisiones founder | [MODELO_NEGOCIO/DECISIONES_FOUNDER.md](MODELO_NEGOCIO/DECISIONES_FOUNDER.md) | [CHECKLIST_FOUNDER_S11.md](MODELO_NEGOCIO/CHECKLIST_FOUNDER_S11.md) | — |
+| Pagos / checkout / multa | [POLITICA_COMERCIAL.md](MODELO_NEGOCIO/POLITICA_COMERCIAL.md) | [HITL_APROBACION_DOCS.md](HITL_APROBACION_DOCS.md) | [FLUJOS_OPERATIVOS.md](MODELO_NEGOCIO/FLUJOS_OPERATIVOS.md) |
+| Canal aliado | [POLITICA_CANAL_ALIADO.md](MODELO_NEGOCIO/POLITICA_CANAL_ALIADO.md) | HITL | [UNIT_ECONOMICS.md](MODELO_NEGOCIO/UNIT_ECONOMICS.md) |
+| Entidades / agregados | [DOMINIO_DATOS.md](DOMINIO_DATOS.md) | — | — |
+| Logística §11 | DECISIONES §11 | CHECKLIST §11 | [CADENA_SUMINISTRO.md](MODELO_NEGOCIO/CADENA_SUMINISTRO.md) |
+| Visión producto | [PRODUCT_VISION.md](PRODUCT_VISION.md) | — | [LEAN_CANVAS.md](MODELO_NEGOCIO/LEAN_CANVAS.md) |
+| Verificación doc | [VERIFICACION_MODELO_MULTI_PROVEEDOR.md](VERIFICACION_MODELO_MULTI_PROVEEDOR.md) | HITL | [AUDIT_FORENSE_2026-06-27.md](AUDIT_FORENSE_2026-06-27.md) |
+| Ideas / backlog | [MEJORAS_MODELO_NEGOCIO.md](MEJORAS_MODELO_NEGOCIO.md) | — | — |
+| Marca / privacidad | [BRAND_ZONIX_GLASSES.md](BRAND_ZONIX_GLASSES.md) · [PRIVACIDAD_OPTICA.md](PRIVACIDAD_OPTICA.md) | HITL (abierto) | — |
+| Scaffold / clone | [SCAFFOLD_INVENTORY.md](SCAFFOLD_INVENTORY.md) · [CLONE_CHECKLIST.md](CLONE_CHECKLIST.md) | — | [ENV_VARIABLES.md](ENV_VARIABLES.md) |
+
 ## Dónde lee cada herramienta
 
 | Herramienta   | Dónde suele leer contexto                          |

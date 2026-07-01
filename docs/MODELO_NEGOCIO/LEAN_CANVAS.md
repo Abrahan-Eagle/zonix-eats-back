@@ -17,11 +17,11 @@
 
 ## 3. Propuesta de valor única
 
-Óptica online **contra pedido** + IA (fórmula + try-on) + **orquestación multi-fabricante y multi-courier** (~SLA 30 días `[PENDIENTE §11]`).
+Óptica online **contra pedido** + IA (fórmula + try-on) + **orquestación multi-fabricante y multi-courier** (~SLA 30 días desde inicio fab lentes en montura — [CHECKLIST_FOUNDER_S11.md](CHECKLIST_FOUNDER_S11.md) §11).
 
 ## 4. Solución
 
-App Flutter + API Laravel: multi-tenant, fórmulas (si lentes), catálogo flexible (solo montura / solo lentes / paquete), pago VE, orquestación SupplierOrders y tramos.
+App Flutter + API Laravel: multi-tenant, fórmulas (si lentes), catálogo MVP (`frame_only` / `lens_and_frame`; `lens_only` post-MVP), pago VE, orquestación SupplierOrders y tramos.
 
 ## 5. Canales
 
@@ -31,16 +31,16 @@ App Flutter + API Laravel: multi-tenant, fórmulas (si lentes), catálogo flexib
 
 ## 6. Fuentes de ingreso
 
-- Margen sobre lente, montura y paquete (Zonix directo).
-- Comisión % vía óptica aliada `[PENDIENTE founder %]` (seed demo 10% ≠ decisión).
+- Margen sobre lente, montura y paquete (Zonix directo — checkout desglose v3.1).
+- **Mayorista B2B2C:** precio mayor por SKU a óptica aliada (100% prepago antes de fabricar) — **no comisión %** (descartada v3 — [DECISIONES_FOUNDER.md](DECISIONES_FOUNDER.md) §4).
 - Posible suscripción panel aliado `[PENDIENTE founder]`.
-- Futuro B2B mayorista a ópticas — [POLITICA_CANAL_ALIADO.md](POLITICA_CANAL_ALIADO.md) · §14 [DECISIONES_FOUNDER.md](DECISIONES_FOUNDER.md).
+- Detalle canal: [POLITICA_CANAL_ALIADO.md](POLITICA_CANAL_ALIADO.md) · §14 [DECISIONES_FOUNDER.md](DECISIONES_FOUNDER.md).
 
 ## 7. Estructura de costos
 
 - COGS fabricantes (N): lentes, monturas, ensamblaje.
 - **Stock monturas top** (`frame_only` mixto — §12): capital de trabajo VE.
-- **Flete inter-fabricante** (montura→lab) + **multi-courier**.
+- **Flete inter-fabricante** (montura→lab; **paga fab montura**, incluido en costo mayor — [DECISIONES_FOUNDER.md](DECISIONES_FOUNDER.md) §11 #1) + **multi-courier**.
 - IA (OCR, try-on).
 - Ops Zonix (validación, orquestación tramos, aduanas).
 - Infra (hosting, Firebase, Pusher).
@@ -55,7 +55,7 @@ App Flutter + API Laravel: multi-tenant, fórmulas (si lentes), catálogo flexib
 
 ## 9. Ventaja injusta
 
-- Red curada de fabricantes + reglas de compatibilidad montura/lab.
+- Red curada de fabricantes + **compatibilidad operativa** montura/lab en cross-fab (**sin homologación de catálogo** — [DECISIONES_FOUNDER.md](DECISIONES_FOUNDER.md) §11 #4).
 - Pipeline IA fórmula + try-on integrado al pedido.
 - Orquestación visible (tracking por tramo) vs importación opaca.
 - Red de ópticas aliadas locales.
@@ -72,4 +72,4 @@ App Flutter + API Laravel: multi-tenant, fórmulas (si lentes), catálogo flexib
 
 - [DECISIONES_FOUNDER.md](DECISIONES_FOUNDER.md) · [AUDIT_FORENSE_2026-06-27.md](../AUDIT_FORENSE_2026-06-27.md)
 
-**Última actualización:** 2026-06-27
+**Última actualización:** 2026-06-27 (alineado v3.1)

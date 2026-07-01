@@ -1,144 +1,158 @@
 # Flujos operativos — Zonix Glasses
 
-## Flujo 0 — Tipo de pedido (ramificación)
+> Modelo v3 — pagos directo 4.1/4.2; aliado 100% mayor; hub obligatorio.  
+> [DECISIONES_FOUNDER.md](DECISIONES_FOUNDER.md) · [POLITICA_COMERCIAL.md](POLITICA_COMERCIAL.md)
 
-Al iniciar compra, el paciente (o partner) elige composición:
+## Flujo 0 — Tipo de pedido (ramificación MVP)
 
-| Tipo | Fórmula | Try-on montura | Lab lentes |
-|------|---------|----------------|------------|
-| `frame_only` | No | Sí | No |
-| `lens_only` | Sí (flujo 2) | No | Sí |
-| `lens_and_frame` | Sí (flujo 2) | Sí | Sí + montura enviada al lab |
+| Tipo | MVP | Fórmula | Try-on (Flujo 4) | Lab |
+|------|-----|---------|------------------|-----|
+| `frame_only` | Sí | No | Sí — varias fotos → preview montura | No |
+| `lens_and_frame` | Sí | Sí (flujo 2) | Sí — varias fotos → preview montura | Sí + montura al lab |
+| `lens_only` | **No** | — | — | Fase 2 |
 
-Ver [CADENA_SUMINISTRO.md](CADENA_SUMINISTRO.md).
+Matriz canónica: [DECISIONES_FOUNDER.md](DECISIONES_FOUNDER.md) §8.
 
 ## Flujo 1 — Alta paciente bajo óptica
 
-1. Paciente se registra (Google/email) o lo registra la óptica aliada.
-2. Sistema asigna `optical_partner_id` (QR/código aliado, link invitación o selección en onboarding).
-3. Se crea **historial clínico vacío** vinculado al paciente (`PatientProfile`).
+1. Paciente se registra o lo registra la óptica aliada (panel partner logueado).
+2. Sistema asigna `optical_partner_id` — atribución persistente al aliado.
+3. Se crea **PatientProfile** e historial clínico en tenant del aliado.
+4. En sesión aliado: captura facial + try-on IA (§17).
 
-## Flujo 2 — Captura de fórmula *(solo `lens_only` y `lens_and_frame`)*
+## Flujo 2 — Captura de fórmula *(solo `lens_and_frame` MVP)*
 
-### Entrada (3 vías)
+Entrada: receta paciente, carga profesional, IA OCR.
 
-1. **Paciente trae receta:** foto/PDF upload o lectura manual asistida.
-2. **Medición / carga profesional:** optometrista o partner ingresa esfera, cilindro, eje, adición, PD, etc.
-3. **IA OCR:** foto de fórmula en papel o PDF → borrador estructurado.
+Validación **a+b+c** — ver [DECISIONES_FOUNDER.md](DECISIONES_FOUNDER.md) §1.
 
-### Validación en 3 capas (antes de fabricar lentes)
+Estados: `draft` → `pending_review` → `approved` → `patient_confirmed` → `locked_for_order`.
 
-| Capa | Actor | Acción |
-|------|-------|--------|
-| a | Óptica aliada o profesional Zonix | Aprueba graduación → estado `approved` |
-| b | IA | Solo precarga; resultado siempre `pending_review` hasta humano |
-| c | Paciente | Confirma explícitamente → `patient_confirmed` |
+## Flujo 3 — Selección de lente *(lens_and_frame)*
 
-### Distancia pupilar (DP)
+1. Fórmula `patient_confirmed` → catálogo materiales por fabricante.
+2. Paciente elige material; precio parcial al carrito (PVP directo o contexto aliado).
 
-- Obligatoria antes de `approved` (campo `pd` y opcional `pd_near`).
-- Orden preferido: medición óptica/Zonix → paciente ingresa si conoce → IA estima (fase 2).
+## Flujo 4 — Captura facial + marketplace web + try-on (monturas)
 
-### Estados `Prescription`
+> Canon: [DECISIONES_FOUNDER.md](DECISIONES_FOUNDER.md) §17 · entidad `FaceCapture` en [DOMINIO_DATOS.md](../DOMINIO_DATOS.md).
 
-```
-draft → pending_review → approved → patient_confirmed → locked_for_order
-                              ↘ rejected / superseded
-```
+**Plataforma:** **web** (navegador) — storefront paciente y panel óptica aliada. UX PDP referencia: marketplace tipo AliExpress/Alibaba (desktop 2 columnas + scroll). **No** flujo mobile app nativo como canon de este marketplace.
 
-**Salida usable en catálogo de lentes:** mínimo `patient_confirmed`.
+**Aplica** a canal directo y aliado. **No** sustituye flujo de fórmula (Flujo 2).
 
-## Flujo 3 — Selección de lente *(lens_only / lens_and_frame)*
+1. Paciente acepta **consentimiento** uso de imagen facial (simulación visual, no diagnóstico).
+2. **Captura guiada (web):** varias **fotos reales** del rostro vía cámara web o upload (frente + ángulos; luz y rostro descubierto).
+3. Sistema persiste `FaceCapture` (`images[]`, `analysis`).
+4. IA **analiza el rostro** a partir del set completo.
+5. **PLP web — marketplace monturas:** grid de tarjetas con thumbnail `catalog_images[]` (producto solo, sin rostro).
+6. Paciente **clic en montura** → **PDP web** (detalle producto):
+   - **Columna izquierda — galería:** modo **«Ver en ti»** (try-on: su rostro + montura) **o** modo **fotos producto** (`catalog_images[]`); miniaturas para alternar.
+   - **Columna derecha — compra:** título, PVP, variantes color, plazo, **Añadir al carrito**.
+   - **Scroll inferior:** tabla specs · **diagrama medidas mm** · galería ángulos · (opcional) relacionados.
+7. Si calidad de captura insuficiente → repetir paso 2 antes de habilitar modo «Ver en ti».
+8. Paciente confirma montura → **añade al carrito** → continúa Flujo 5 (checkout web).
 
-1. Con fórmula `patient_confirmed`, catálogo devuelve **materiales compatibles** por fabricante/lab `[PENDIENTE founder: tabla pricing]`.
-2. Paciente elige material por ojo si aplica.
-3. Precio parcial se acumula en carrito.
+**`frame_only`:** tras paso 8 → checkout (sin Flujos 2–3).
 
-## Flujo 4 — Catálogo monturas + try-on IA *(frame_only / lens_and_frame)*
+**`lens_and_frame`:** tras paso 8 → Flujo 2 (fórmula a+b+c) si aún no locked → Flujo 3 (material) → Flujo 5.
 
-### Modo A — Exploración
+## Flujo 5 — Carrito y checkout (desglose dinámico v3.1)
 
-1. Paciente sube **fotos faciales** (frontal, perfil) con guía UX.
-2. Navega catálogo de monturas (precio, fabricante, talla si aplica).
-3. Al seleccionar montura → **try-on IA** superpone montura en su rostro.
+1. Paciente elige montura y/o material lente → sistema añade línea `frame` / `lens_lab` con PVP catálogo.
+2. Según `order_type` y fulfillment (stock vs MTO), calcula línea `intl_courier` si aplica.
+3. Paciente indica dirección / zona → sistema resuelve `ShippingZoneRule`:
+   - Si `free_shipping`: línea `last_mile` = 0 (promo).
+   - Si no: tarifa delivery VE / courier según tabla admin.
+4. Muestra líneas cobrables + línea informativa `iva_info` (IVA **ya incluido** en PVP — no suma al total).
+5. **Total checkout** = suma de líneas cobrables (`frame`, `lens_lab`, `intl_courier`, `last_mile`, `discount`); base para pagos 4.1/4.2; persiste `OrderLineItem[]` y agregados en `OpticalOrder` — ver fórmula en [DOMINIO_DATOS.md](../DOMINIO_DATOS.md).
+6. Paciente elige modalidad **4.1** o **4.2** (solo canal directo) y sube comprobante.
 
-### Modo B — Recomendación
+| Tipo | Líneas checkout |
+|------|-----------------|
+| `frame_only` stock VE | Montura + última milla (sin `intl_courier`) |
+| `frame_only` MTO | Montura + courier intl + última milla |
+| `lens_and_frame` | Montura + lentes/lab + courier intl + última milla |
 
-1. Tras fotos, IA sugiere monturas según forma de rostro / ancho puente `[PENDIENTE founder: reglas]`.
-2. Muestra try-on de recomendaciones ranked.
+Detalle por fulfillment: [POLITICA_COMERCIAL.md](POLITICA_COMERCIAL.md) § Checkout por order_type.
 
-**`frame_only`:** checkout posible tras elegir montura (sin flujos 2–3).
+### Pago — canal directo Zonix
 
-## Flujo 5 — Carrito y checkout
+Ver tablas **4.1 / 4.2** y FX en [POLITICA_COMERCIAL.md](POLITICA_COMERCIAL.md) § Base pagos (total checkout = base de cada tramo).
 
-Líneas según `order_type`:
+### Pago — canal aliado
 
-| Tipo | Líneas carrito |
-|------|----------------|
-| `frame_only` | Montura (+ talla) |
-| `lens_only` | Fórmula bloqueada + material lente |
-| `lens_and_frame` | Fórmula + material + montura |
+1. Flujo panel: captura facial (varias fotos) → try-on preview → carrito → fórmula (si aplica) → T&C → método de pago.
+2. Óptica paga **100% mayor** (por SKU) a Zonix + comprobante.
+3. **Ops Zonix** recibe notificación, concilia pago y **aprueba** (o cancela) antes de fab.
+4. Tras validación → `paid_full` (mayor) → disparo fab.
+5. Paciente paga a óptica según política de la óptica (fuera de Zonix).
 
-Servicios opcionales (AR, fotocromático) `[PENDIENTE founder]`.
-
-Checkout:
-
-1. Resumen total transparente (desglose por fabricante si aplica).
-2. **Prepago 100%** — pago manual VE.
-3. Orden: `pending_payment_validation` → `paid` → orquestación fulfillment (flujo 6).
+Checkout aliado = **panel partner** con paciente en contexto del aliado (no canal directo Zonix).
 
 ## Flujo 6 — Fulfillment multi-fabricante
 
-### 6A — `frame_only` (§12 mixto)
+**Precondición:** pago validado según §5.
 
-#### 6A-stock — SKU `in_stock_ve`
+### 6A — `frame_only`
 
-1. Reserva inventario local VE (pick/pack).
-2. Courier última milla → paciente u óptica aliada.
-3. Sin `SupplierOrder` a fabricante salvo reposición backorder.
+#### 6A-stock — `in_stock_ve`
 
-#### 6A-MTO — SKU `made_to_order`
+1. Reserva inventario hub VE.
+2. `ShipmentLeg` `last_mile_ve` (hub → destino; `supplier_order_id` null).
+3. Delivery VE → paciente u óptica.
 
-1. Zonix genera `SupplierOrder` al **fabricante de montura**.
-2. Fabricante despacha con **courier** directo a destino.
-3. Tracking por tramo hasta `delivered`.
+#### 6A-MTO — `made_to_order`
 
-### 6B — `lens_only`
+1. SupplierOrder fab montura.
+2. Delivery fab / courier Zonix → **hub VE** → delivery VE → destino.
 
-1. Zonix genera `SupplierOrder` al **fabricante de lentes** (spec: fórmula `locked_for_order`, material, PD).
-2. Lab produce lentes (montura del cliente existente fuera de alcance MVP `[PENDIENTE]`).
-3. Courier lab → destino final.
+### 6B — `lens_and_frame` multi-fab (confirmado v3)
 
-### 6C — `lens_and_frame` (fabricantes distintos — confirmado founder)
+1. SupplierOrder montura → **delivery fab** → fab lentes (convenio Zonix).
+2. `awaiting_frame_at_lab` → `in_lens_production` (**inicio SLA ~30 días**).
+3. Producto terminado → delivery fab → **courier internacional Zonix**.
+4. Courier → **hub VE** → `ready_for_pickup` (si 4.2 pendiente 70%) o delivery VE.
+5. Paciente paga 70% si aplica → entrega.
 
-1. **SupplierOrder montura** → fabricante de montura envía montura al **fabricante de lentes** (courier tramo 1).
-2. Estado orden: `awaiting_frame_at_lab` hasta recepción en lab.
-3. **SupplierOrder lentes** → lab fabrica y monta lentes en esa montura → `in_lens_production`.
-4. Lab despacha **producto terminado** con courier tramo 2+ → VE / última milla → paciente u óptica.
+### 6C — `lens_and_frame` mismo fabricante
 
-### 6D — `lens_and_frame` (mismo fabricante)
+1. Un SupplierOrder; delivery fab → courier Zonix → hub → destino.
 
-1. Un solo `SupplierOrder` con spec completa; sin tramo inter-fabricante.
+Pago a fabricantes: tras validación pago Zonix (100% directo, 30% directo 4.2, o 100% mayor aliado).
 
-Pago a fabricantes: tras `paid` del paciente; posible pago escalonado por tramo `[PENDIENTE founder]`.
+## Flujo 7 — Retención hub (4.2 directo)
 
-## Flujo 7 — Recompra
+1. Llegada hub → avisos pago 70%.
+2. **30 días** sin pago → stock físico.
+3. Reclamo tardío: paga **70% del total** + **multa**, donde multa = `total × hub_late_pickup_fee_percent` (default 10%, config admin) — [POLITICA_COMERCIAL.md](POLITICA_COMERCIAL.md).
 
-1. Paciente accede a fórmulas previas (solo pedidos con lentes).
-2. "Reordenar" prellena material/montura; nueva confirmación si fórmula > N meses `[PENDIENTE founder]`.
+## Flujo 8 — Recompra
 
-## Estados orden (canónico — ver [DOMINIO_DATOS.md](../DOMINIO_DATOS.md))
+Paciente reutiliza fórmulas previas; **reconfirmación obligatoria** si antigüedad **> 12 meses** desde última confirmación (`patient_confirmed` / `locked_for_order`). Ver [DECISIONES_FOUNDER.md](DECISIONES_FOUNDER.md) §16.
+
+## Estados orden (canónico)
 
 ```
-draft_cart → pending_payment_validation → paid
-  → awaiting_frame_shipment (lens_and_frame, multi-fab)
+draft_cart
+  → pending_payment_validation
+  → deposit_validated          (4.2 — 30% OK)
+  → paid_full                  (4.1 o 4.2 saldo o aliado 100% mayor)
+  → awaiting_frame_shipment
   → awaiting_frame_at_lab
-  → in_lens_production
-  → shipped → in_customs → out_for_delivery → delivered
-  ↘ cancelled / disputed
+  → in_lens_production         ← inicio SLA
+  → shipped
+  → in_customs
+  → at_hub
+  → ready_for_pickup           (4.2 — saldo pendiente)
+  → out_for_delivery
+  → delivered
+  ↘ cancelled / disputed / forfeited_deposit
 ```
 
-## Diagrama (lens_and_frame, multi-fabricante)
+Ver [DOMINIO_DATOS.md](../DOMINIO_DATOS.md).
+
+## Diagrama (lens_and_frame, multi-fab, v3)
 
 ```mermaid
 sequenceDiagram
@@ -146,26 +160,20 @@ sequenceDiagram
   participant Z as ZonixOps
   participant FM as FabMontura
   participant FL as FabLentes
-  participant C1 as Courier1
-  participant C2 as Courier2
+  participant DF as DeliveryFab
+  participant CZ as CourierZonix
+  participant H as HubVE
 
-  P->>Z: Checkout paid
+  P->>Z: Pago validado
   Z->>FM: SupplierOrder montura
-  FM->>C1: Envio montura
-  C1->>FL: Entrega en lab
+  FM->>DF: Montura a lab
+  DF->>FL: Entrega convenio Zonix
   FL->>FL: Lentes en montura
-  FL->>C2: Producto terminado
-  C2->>P: Entrega final
+  FL->>DF: A courier Zonix
+  DF->>CZ: Handoff
+  CZ->>H: Hub Venezuela
+  H->>P: Entrega tras saldo 70pct si 4.2
 ```
-
-## Pendientes founder
-
-Ver [DECISIONES_FOUNDER.md](DECISIONES_FOUNDER.md) §11 (flete inter-fab, courier, SLA, catálogo cross-fab).
-
-- Regulación emisión fórmula en VE.
-- Tabla precios materiales vs dioptrías.
-- INCOTERM y aduanas por tramo.
-- % comisión aliado definitivo.
 
 ## Referencias
 
@@ -173,4 +181,4 @@ Ver [DECISIONES_FOUNDER.md](DECISIONES_FOUNDER.md) §11 (flete inter-fab, courie
 - [POLITICA_COMERCIAL.md](POLITICA_COMERCIAL.md)
 - [CADENA_SUMINISTRO.md](CADENA_SUMINISTRO.md)
 
-**Última actualización:** 2026-06-27
+**Última actualización:** 2026-06-27 (§17 UX web PDP — ref. AliExpress/Alibaba)

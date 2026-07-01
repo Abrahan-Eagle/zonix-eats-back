@@ -25,15 +25,13 @@ Verificación: `bash $JARVIS_SKILLS_LIBRARY/scripts/check-project-bootstrap.sh -
 
 ## Spec Kit (híbrido)
 
-1. Docs negocio en `docs/` (completar antes de implement).
-2. Hub: `.specify/` + `specs/001-*` cuando founder apruebe docs.
-3. **Implement** solo con OK explícito.
+1. Docs negocio en `docs/` — **v3.1 cerrado doc-vs-doc** (Jun 2026); pendiente HITL legal/marca/seguridad antes de implement.
+2. Hub: `.specify/` + `specs/001-*` — código **congelado** hasta post-HITL.
+3. **Implement** solo con OK explícito founder (tras legal + AUDIT_RIESGOS).
 
 ## Orden lectura IA
 
-1. `.cursorrules` → `AGENTS.md` → `docs/active_context.md`
-2. `docs/PRODUCT_VISION.md` → `docs/MODELO_NEGOCIO/`
-3. Skills dominio `zonix-glasses-*`
+Ver mapa completo en [CONTEXTO_IA.md](CONTEXTO_IA.md). Resumen: `.cursorrules` → `AGENTS.md` → `active_context.md` → canon `MODELO_NEGOCIO/` → skills `zonix-glasses-*`.
 
 ## Git remoto
 

@@ -7,6 +7,7 @@
 
 ## Cambios recientes
 
+- **2026-06-27:** Modelo negocio **v3.1** — checkout dinámico, pagos 4.1/4.2, mayorista aliado, §11 cerrado; **forense doc-vs-doc PASS**; **código 001 congelado** hasta HITL legal/marca + `AUDIT_RIESGOS_SEGURIDAD.md`.
 - **2026-06-26:** Pivot óptica B2B2C — docs canon (`PRODUCT_VISION`, `MODELO_NEGOCIO/`, `BRAND`, `PRIVACIDAD`, `DOMINIO_DATOS`); JARVIS Paso C (manifest + sync); skills dominio v1.0; Spec Kit `001-prescription-intake`; rebrand Scaffold → Zonix Glasses.
 - **2026-06-18:** Bootstrap inicial; skills globales por referencia.
 
@@ -20,7 +21,7 @@
 | **Framework** | Laravel 10.x / PHP 8.1+ |
 | **Base de datos** | MySQL |
 | **Frontend hermano** | `../zonix-glasses-front/` (Flutter, paquete `zonix_glasses`) |
-| **Estado** | Bootstrap inicial — listo para desarrollo |
+| **Estado** | Diseño negocio v3.1 — **doc-vs-doc PASS**; código 001 **congelado** hasta HITL legal/marca + seguridad |
 | **Agentes IA** | Cursor + skills globales JARVIS |
 
 ---

@@ -13,11 +13,13 @@
 | Negocio | 10 agujeros lógicos | POLITICA FX, canal aliado, unit economics, flujos 6A |
 | Ideas nuevas | 14 propuestas | Volcadas en `MEJORAS_MODELO_NEGOCIO.md` |
 
-**Estado post-v2:** coherencia doc-vs-doc mejorada; **§11 logística sigue abierto** (founder); **código 001 sigue congelado** hasta HITL + `AUDIT_RIESGOS_SEGURIDAD.md`.
+**Estado post-v2:** coherencia doc-vs-doc mejorada en ronda v2; **§11 cerrado** y **checkout v3.1** en rondas posteriores (§5–§7); **código 001 sigue congelado** hasta HITL legal/marca + `AUDIT_RIESGOS_SEGURIDAD.md`.
+
+> **§1–§4 = histórico pre-v3.1** (hallazgos ya corregidos). Estado actual: §5–§7.
 
 ---
 
-## 1. Incoherencias (validadas)
+## 1. Incoherencias (validadas) — histórico v2
 
 ### CRITICAL (corregidas v2)
 
@@ -70,9 +72,9 @@
 
 1. 6A vs stock VE — checkout único, fulfillment dual
 2. Prepago Bs + pago fab USD — spread FX sin regla
-3. Comisión % vs mayorista futuro
+3. ~~Comisión % vs mayorista futuro~~ — **Resuelto v3:** mayor por SKU; comisión % descartada
 4. Proteger aliado vs reasignación §6 a Zonix
-5. SLA ~30 días sin ancla (`[PENDIENTE §11]`)
+5. ~~SLA ~30 días sin ancla~~ — **Resuelto §11 cerrado:** `sla_started_at` inicio fab lentes en montura
 6. Cross-fab sin homologación pre-checkout
 7. AOV/margen único mezcla `order_type`
 8. Capa (a) sin credencial profesional
@@ -104,7 +106,7 @@
 | 10 | Escrow por hito logístico | Alto |
 | 11 | Seguro por ShipmentLeg | Medio |
 | 12 | Spread FX + congelación checkout | Bajo |
-| 13 | Cuotas / anticipo 50% VE | Medio–alto |
+| 13 | **Cuotas / anticipo 50% VE** | Medio–alto | **Descartada post-v3** — vigente 30/70 (4.2) |
 | 14 | Trazabilidad importación lote | Medio |
 
 Detalle en [`MEJORAS_MODELO_NEGOCIO.md`](MEJORAS_MODELO_NEGOCIO.md) § Ideas v2 forense.
@@ -120,8 +122,68 @@ Comandos en [`FORENSIC_VERIFICATION.md`](FORENSIC_VERIFICATION.md):
 | Anti-Eats (rg producto) | OK salvo doc auditoría + excepción `linux/CMakeLists.txt` documentada |
 | Anti-China/smart-glasses (skills dominio) | OK — coincidencias solo en comentarios **DEPRECATED** explícitos |
 | CRITICAL doc-vs-doc (9) | Corregidos en ronda v2 |
-| §11 logística | **Sigue abierto** — gate founder |
+| §11 logística | **Cerrado founder 2026-06-27** — ver CHECKLIST §11 |
 | Código 001 | **Congelado** — 7 críticos AUDIT pendientes implementación |
+
+---
+
+## 5. Ronda forense v3.1 — doc-vs-doc (2026-06-27)
+
+> **Metodología:** `parallel-judge-ops` + `docs-alignment-ops` — remediación docs satélite vs canon v3.1.
+
+| # | Hallazgo | Resolución |
+|---|----------|------------|
+| C1 | Capa (a) «profesional Zonix» vs online sin optometrista | `DECISIONES_FOUNDER.md` §1 tabla + §2 DP acotado |
+| C2 | §7 «frame_only con fórmula» vs §8 | §7 corregido *(histórico v2)* |
+| C3 | `PRODUCT_VISION` lens_only MVP, §11 pendiente, fab sin login | Refresh v3.1 |
+| C4 | `LEAN_CANVAS` comisión % | Mayorista B2B2C; comisión % descartada |
+| C5 | `VERIFICACION` bloqueada por §11 | PASS v3.1; §11 cerrado |
+| M1 | «PVP Zonix» vs total checkout | Unificado en POLITICA + DECISIONES §3.2 |
+| M2 | Skills partners/fulfillment legacy | `PartnerWholesalePrice`; SLA `sla_started_at` |
+| M3 | Agregados order vs OrderLineItem | Nota cache en `DOMINIO_DATOS.md` |
+| M4 | Informe v2 «§11 abierto» | Esta sección + estado actualizado abajo |
+
+**Estado post-v3.1:** coherencia **doc-vs-doc PASS** en cluster negocio v3.1; pendientes **legal/marca/seguridad 001** (no incoherencia documental). Código 001 sigue congelado.
+
+---
+
+## 6. Repaso subagentes — precisión checkout y gates (2026-06-27)
+
+> **Metodología:** 3 subagentes `explore` (pagos/checkout, MVP/logística, satélites/HITL/skills).
+
+| # | Hallazgo | Resolución |
+|---|----------|------------|
+| R1 | Multa L112 «70% + multa = percent» ambiguo | `POLITICA_COMERCIAL.md` — 70% del total + multa aparte |
+| R2 | Fórmula `subtotal`/`shipping_amount`/`total`/`iva_info` | Tabla canónica en `DOMINIO_DATOS.md` |
+| R3 | FLUJOS «subtotal = total» vs agregados | «Total checkout» + puntero DOMINIO |
+| R4 | REALIGNMENT gate §11 obsoleto | Gate = legal/marca + AUDIT + OK founder |
+| R5 | AGENTS, CONTEXTO_IA, JARVIS integration desfasados | Fase v3.1 PASS; código congelado |
+| R6 | spec 001 banner ambiguo | Negocio v3.1 cerrado; bloquea legal/seguridad |
+| R7 | LEAN compatibilidad vs homologación | Aclarado cross-fab sin homologación catálogo |
+| R8 | DOMINIO cese aliado incompleto | Pedidos en curso culminan antes de reasignación |
+| R9 | CADENA `frame_only` omitía hub | Hub VE en matriz |
+| R10 | Partner remoto capa (a) | Fila en `ROLES_Y_ACTORES.md` |
+| R11–R12 | Skills prescriptions + ui-patterns | Capa (a) bifurcada; checkout v3.1 en UI skill |
+
+**Estado post-repaso:** **PASS completo** doc-vs-doc en los 6 ejes checkout + satélites indexados. Próximo gate humano: HITL legal/marca + `AUDIT_RIESGOS_SEGURIDAD.md`.
+
+---
+
+## 7. Auditoría integral `docs/` — dedupe e incoherencias (2026-06-27)
+
+> **Metodología:** 4 subagentes `explore` (MODELO_NEGOCIO, dominio/producto, gates/memoria, legal/scaffold) + orquestador dedupe.
+
+| # | Tipo | Fix aplicado |
+|---|------|--------------|
+| I1 | contradiction | `frame_only` stock VE: 0 SupplierOrder en `DOMINIO_DATOS`; checkout FLUJOS stock vs MTO |
+| I2 | contradiction | CHECKLIST capa (a) vs DP presencial §2 — filas separadas |
+| I3 | stale | ROLES fabricante `[propuesto]` → MVP confirmado §9 |
+| I4 | duplicate | Tablas §11 / tres capas / order_type / 4.1-4.2 / cese aliado → punteros a DECISIONES/POLITICA |
+| I5 | duplicate | `active_context`, MEJORAS, HITL pendientes — SSOT HITL + mapa `CONTEXTO_IA` |
+| I6 | navigation | BRAND banner NO CANON; ENV PlatformConfig; SCAFFOLD documents riesgo; CLONE forensic rg |
+| I7 | stale | AUDIT §1–§4 marcado histórico v2 |
+
+**Veredicto:** **PASS v3.1** mantenido; duplicación reducida a patrón canon + enlace. Sin regresión R1–R12.
 
 ---
 
@@ -132,4 +194,4 @@ Comandos en [`FORENSIC_VERIFICATION.md`](FORENSIC_VERIFICATION.md):
 - [HITL_APROBACION_DOCS.md](HITL_APROBACION_DOCS.md)
 - [VERIFICACION_MODELO_MULTI_PROVEEDOR.md](VERIFICACION_MODELO_MULTI_PROVEEDOR.md)
 
-**Última actualización:** 2026-06-27
+**Última actualización:** 2026-06-27 (auditoría integral docs/ §7)

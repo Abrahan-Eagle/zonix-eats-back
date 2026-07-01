@@ -1,6 +1,6 @@
 # Feature 001 — Prescription Intake
 
-> **⏸ CONGELADO (Jun 2026)** — No implementar más hasta cierre del modelo de negocio ampliado (multi-fabricante, `order_type`, couriers) y gate HITL founder.  
+> **⏸ CONGELADO (Jun 2026)** — Modelo de negocio **v3.1 documentado** (doc-vs-doc PASS). No implementar más hasta HITL **legal/marca + [AUDIT_RIESGOS_SEGURIDAD.md](../../docs/AUDIT_RIESGOS_SEGURIDAD.md)** + OK explícito founder.  
 > **Alcance fórmula:** solo pedidos con lentes (`lens_only`, `lens_and_frame`); **`frame_only` no requiere Prescription**.  
 > Código backend existente requiere **realineación post-HITL** — ver [REALIGNMENT_POST_HITL.md](REALIGNMENT_POST_HITL.md), `docs/HITL_APROBACION_DOCS.md` y `docs/active_context.md`.
 

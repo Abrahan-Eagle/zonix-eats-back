@@ -7,7 +7,7 @@
 | Área | **Hoy (001 congelado / diseño)** | **Target post-HITL** |
 |------|----------------------------------|----------------------|
 | Fórmulas | API tenant + policies en spec; storage clínico pendiente | Disco privado + vigencia receta — [REALIGNMENT_POST_HITL.md](../specs/001-prescription-intake/REALIGNMENT_POST_HITL.md) |
-| Try-on facial | No implementado en front | Borrado raw post sesión salvo consentimiento |
+| Try-on facial | No implementado en front | **Varias fotos reales** → análisis rostro → preview montura; borrado raw post sesión salvo consentimiento — §17 [DECISIONES_FOUNDER.md](MODELO_NEGOCIO/DECISIONES_FOUNDER.md) |
 | Export / delete | Scaffold Eats heredado | Extender a `PatientProfile` + `Prescription` |
 | Compartir con fabricante | Solo spec técnica de graduación (sin PII innecesaria) | Por `SupplierOrder`; país del fab según contrato — no asumir región |
 
@@ -16,13 +16,13 @@
 | Dato | Clasificación | Retención propuesta |
 |------|---------------|---------------------|
 | Fórmula óptica (dioptrías, PD) | Salud / sensible | Historial mientras cuenta activa + [PENDIENTE] plazo legal |
-| Fotos faciales (try-on) | Biometría / imagen | Solo procesamiento; borrar raw post try-on salvo consentimiento explícito |
+| Fotos faciales (try-on) | Biometría / imagen | **Set de varias fotos reales** por sesión; procesamiento para superponer monturas; borrar raw post try-on salvo consentimiento explícito |
 | Documentos PDF fórmula | Salud | Disco privado; acceso auth + policy tenant |
 | Pedidos y pagos | PII comercial | Según política retención fiscal VE |
 
 ## Principios técnicos (implementación futura)
 
-1. **Minimización:** no pedir fotos hasta flujo try-on.
+1. **Minimización:** no pedir fotos hasta flujo try-on; cuando se pide, **varias tomas guiadas** (no una sola).
 2. **Aislamiento tenant:** partner A no ve pacientes de partner B.
 3. **Storage privado:** blobs en disco `local`/S3 privado; URLs vía endpoint autenticado.
 4. **OCR IA:** opt-in; log sin contenido clínico en texto plano.
@@ -30,7 +30,7 @@
 
 ## Consentimientos UX (copy borrador)
 
-- Uso de imagen facial para simulación visual (no diagnóstico).
+- Uso de **varias fotos reales** del rostro para simulación visual de monturas (no diagnóstico ni medicion clinica).
 - Almacenamiento de fórmula para historial y producción.
 - Compartir spec técnica de graduación con **fabricante de lentes** contratado para el pedido (sin PII innecesaria; país/región según `Supplier` — `[PENDIENTE abogado]` cláusulas transferencia).
 

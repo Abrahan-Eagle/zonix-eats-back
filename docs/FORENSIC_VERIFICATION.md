@@ -26,7 +26,9 @@ Debe devolver **cero** salvo comentarios de deprecación explícitos. Canon fulf
 | Archivo | Hallazgo | Acción |
 |---------|----------|--------|
 | `app/Helpers/SeoHelper.php` | Metadatos "Smart glasses companion" | Corregir al descongelar scaffold web; documentado en [AUDIT_FORENSE_2026-06-27.md](AUDIT_FORENSE_2026-06-27.md) |
-| `zonix-glasses-front/linux/CMakeLists.txt` | `APPLICATION_ID "com.zonix.eats"` (scaffold Linux) | Corregir a `com.zonix.glasses` al retomar build desktop; fuera alcance docs-only v2 |
+| `zonix-glasses-front/linux/CMakeLists.txt` | `APPLICATION_ID "com.zonix.eats"` (scaffold Linux) | Corregir a `com.zonix.glasses` al retomar build desktop |
+
+> Estado docs negocio: **PASS v3.1** (2026-06-27). Excepciones = **código**, no incoherencia documental.
 
 Identificadores canónicos actuales:
 

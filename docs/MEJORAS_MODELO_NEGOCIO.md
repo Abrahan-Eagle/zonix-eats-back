@@ -1,6 +1,7 @@
 # Mejoras de modelo de negocio — Zonix Glasses
 
-> Ideas y agujeros detectados en auditoría forense (Jun 2026). **Solo documentación** — no implica implementación inmediata.
+> Ideas y agujeros detectados en auditoría forense (Jun 2026). **Solo documentación** — no implica implementación inmediata.  
+> **Canon cerrado v3.1:** no repetir aquí — ver [DECISIONES_FOUNDER.md](MODELO_NEGOCIO/DECISIONES_FOUNDER.md) §15 y [POLITICA_COMERCIAL.md](MODELO_NEGOCIO/POLITICA_COMERCIAL.md).
 
 ## Tres agujeros antes de programar (prioridad founder)
 
@@ -12,17 +13,17 @@
 
 ## Ideas v2 forense (Jun 2026 — prioridad founder)
 
-> Síntesis [AUDIT_FORENSE_2026-06-27.md](AUDIT_FORENSE_2026-06-27.md) eje 4. **Solo documentación.**
+> Detalle ampliado en [AUDIT_FORENSE_2026-06-27.md](AUDIT_FORENSE_2026-06-27.md) §4. **Solo delta producto** — no duplicar tabla del informe.
 
 | # | Idea | Valor | Esfuerzo | KPI sugerido |
 |---|------|-------|----------|--------------|
 | 1 | **Home Try-On físico** (Warby Parker) | Reduce riesgo estético `frame_only` | Alto | Tasa devolución post-entrega ↓ |
 | 2 | **Comparador materiales lente** interactivo | Transparencia → conversión | Medio | CTR checkout con lentes ↑ |
-| 3 | **Frame Passport** — `lens_only` con montura propia | LTV recompra frecuente | Medio | % recompras `lens_only` / cliente |
+| 3 | **Frame Passport** — `lens_only` con montura propia *(fase 2 / post-MVP)* | LTV recompra frecuente | Medio | % recompras `lens_only` / cliente |
 | 4 | **Bundle accesorios** (clip solar, estuche) | Upsell margen | Bajo–medio | AOV accesorios / pedido |
 | 5 | **Suscripción Lens Care** | LTV + alertas vigencia receta | Medio | Churn suscripción · días a recompra |
 | 12 | **Spread FX + congelación tasa checkout** | Cierra agujero §13 | Bajo | Disputas por tipo de cambio ↓ |
-| 13 | **Financiamiento cuotas / anticipo 50% VE** | Conversión alto ticket | Medio–alto | Conversión checkout >$X |
+| 13 | **Anticipo 30% + saldo hub (4.2)** | Conversión alto ticket — **documentado v3** | Medio | Conversión checkout >$X · tasa forfeiture 30d |
 | 14 | **Trazabilidad importación por lote óptico** | Compliance VE | Medio | Tiempo aduana por lote |
 
 **Backlog estratégico (P2):** co-brand storefront aliado (§14), scorecard fabricante + routing, escrow por hito logístico, seguro transporte/aduana por `ShipmentLeg`, red aliados solo medición PD, referidos QR, B2B2E corporativo, lentes de contacto, pediatría, WhatsApp transaccional.
@@ -54,20 +55,12 @@ Dashboard admin: skill **`zonix-glasses-analytics`** — **no existe aún**; usa
 
 ## Pendientes legales / fiscales / sanitarios VE
 
-Marcar siempre `[abogado/contador VE]` — no inventar norma:
-
-| Tema | Nota |
-|------|------|
-| Importador de registro | Multi-fab internacional → aduanas |
-| Registro sanitario de lentes | Clasificación dispositivo médico / material óptico |
-| IVA / IGTF / factura SENIAT | Emisión al paciente y comisión aliado |
-| Vigencia legal de receta | Plazo máximo uso fórmula para fabricar |
-| Ejercicio de optometría | Quién puede emitir/validar graduación en canal digital |
+Ver checklist consolidada [HITL_APROBACION_DOCS.md](HITL_APROBACION_DOCS.md) § ítems abiertos. Marcar siempre `[abogado/contador VE]` — no inventar norma.
 
 ## Relación con otros documentos
 
 - Informe forense v2: [AUDIT_FORENSE_2026-06-27.md](AUDIT_FORENSE_2026-06-27.md)
-- Decisiones founder §12–§14: [DECISIONES_FOUNDER.md](MODELO_NEGOCIO/DECISIONES_FOUNDER.md)
+- Decisiones founder §12–§15: [DECISIONES_FOUNDER.md](MODELO_NEGOCIO/DECISIONES_FOUNDER.md)
 - Seguridad pre-descongelar: [AUDIT_RIESGOS_SEGURIDAD.md](AUDIT_RIESGOS_SEGURIDAD.md)
 - Checklist logística: [CHECKLIST_FOUNDER_S11.md](MODELO_NEGOCIO/CHECKLIST_FOUNDER_S11.md)
 - Unit economics plantilla: [UNIT_ECONOMICS.md](MODELO_NEGOCIO/UNIT_ECONOMICS.md)

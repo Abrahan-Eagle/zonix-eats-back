@@ -1,83 +1,80 @@
 # Cadena de suministro — Zonix Glasses
 
-> Orquestación multi-fabricante y multi-courier. Canon operativo para ops y diseño de producto.  
-> Decisiones founder: [DECISIONES_FOUNDER.md](DECISIONES_FOUNDER.md) §8–§11.
+> Orquestación multi-fabricante: **delivery fabricante** (China) + **courier Zonix** (internacional) + **delivery VE** (última milla).  
+> Decisiones founder v3: [DECISIONES_FOUNDER.md](DECISIONES_FOUNDER.md) §9–§11.
 
 ## Principio rector
 
-Zonix no fabrica: **coordina** fabricantes (lentes, monturas, o ambos) y **couriers** por tramo. Cuando la montura y los lentes vienen de fabricantes distintos, la **montura viaja al lab de lentes** para ensamblaje antes del envío final.
+Zonix **coordina** fabricantes con **login MVP** y couriers/deliveries registrados. **No fabrica.**
+
+**Regla inter-fábrica:** tramos entre fábricas solo si ambos tienen **convenio Zonix Glasses**.
+
+## Delivery vs courier vs delivery VE
+
+| Actor | Contrata | Paga | Tramo |
+|-------|----------|------|-------|
+| **Delivery fabricante** | Fabricante | Fabricante | China: fab montura → fab lentes; fab → punto entrega courier Zonix |
+| **Courier internacional** | **Zonix** | Zonix | Avión/barco → **hub Venezuela** (dirección fijada en sistema) |
+| **Delivery VE** | Zonix (propio o tercero) | Según política envío | Hub → óptica aliada o domicilio paciente (MRW, Domesa, flota Zonix, etc.) |
+
+Cada tramo = `ShipmentLeg` + carrier registrado (`DeliveryProvider` o `Courier` según tipo).
 
 ## Matriz: composición × escenario fabricante
 
-|  | Un solo fabricante (lentes + monturas) | Fabricante montura + fabricante lentes | Solo un tipo en pedido |
-|--|----------------------------------------|----------------------------------------|-------------------------|
-| **`frame_only`** | 1 orden montura → courier → cliente | N/A (solo montura) | Montura → cliente — ver [FLUJOS_OPERATIVOS.md](FLUJOS_OPERATIVOS.md) **6A-stock** / **6A-MTO** (§12) |
-| **`lens_only`** | 1 orden lab → lentes → cliente | 1 orden lab → lentes → cliente | Lab → cliente |
-| **`lens_and_frame`** | 1 orden integrada → cliente | **Montura → lab** → lentes montados → cliente | Ver fila correspondiente |
+|  | Un solo fabricante | Fab montura + fab lentes | Solo un tipo |
+|--|-------------------|--------------------------|--------------|
+| **`frame_only`** | 1 orden → delivery/courier → **hub VE** → destino | N/A | Stock VE (pick/pack hub) o MTO vía hub — [FLUJOS_OPERATIVOS.md](FLUJOS_OPERATIVOS.md) 6A |
+| **`lens_and_frame`** | 1 orden integrada → hub → destino | **Montura → lab** (delivery fab) → producto → courier Zonix → hub | Ver fila |
+| **`lens_only`** | — | — | **No MVP** |
 
-## Tramos logísticos (courier por tramo)
+## Flujo detallado: montura → lab → hub (confirmado v3)
 
-```mermaid
-flowchart TB
-  subgraph frameOnly [frame_only]
-    FM1[FabricanteMontura] -->|courier_A| Dest1[Paciente u Optica]
-  end
-  subgraph lensOnly [lens_only]
-    FL1[FabricanteLentes] -->|courier_B| Dest2[Paciente u Optica]
-  end
-  subgraph bothMulti [lens_and_frame multi-fab]
-    FM2[FabricanteMontura] -->|courier_1| FL2[FabricanteLentes]
-    FL2 -->|courier_2| Hub[Hub VE opcional]
-    Hub -->|courier_3| Dest3[Paciente u Optica]
-    FL2 -->|courier_2 directo| Dest3
-  end
-```
+**Ejemplo costos referencia:** montura ~1 USD (fab 1) + lab ~5 USD montaje (fab 2).
 
-Cada tramo = un `ShipmentLeg` + un `Courier` (pueden repetirse carriers o ser distintos).
+1. Zonix valida pago según canal (§3 [DECISIONES_FOUNDER.md](DECISIONES_FOUNDER.md)).
+2. **SupplierOrder** fab montura → delivery fab envía montura a fab lentes (**solo si convenio Zonix**).
+3. Fab lentes confirma recepción → `awaiting_frame_at_lab` → `in_lens_production`.
+4. Fab lentes monta producto terminado → delivery fab entrega al **courier internacional Zonix** (dirección sistema).
+5. Courier Zonix → **hub VE** (consolidación obligatoria).
+6. Delivery VE → óptica aliada o domicilio paciente.
 
-## Flujo detallado: montura → lab (confirmado founder)
+**Fabricante integrado (lentes + montura):** pasos 2–4 colapsan en un fab; delivery fab → courier Zonix.
 
-1. Paciente paga pedido `lens_and_frame` con montura SKU de **Fab A** y lentes de **Fab B**.
-2. Zonix emite **SupplierOrder** a Fab A: despachar montura a dirección del lab Fab B.
-3. Courier tramo 1: tracking independiente (montura en tránsito).
-4. Fab B confirma recepción → orden pasa a `awaiting_frame_at_lab` → `in_lens_production`.
-5. Fab B produce lentes, monta en la montura recibida, despacha producto terminado.
-6. Courier tramo 2 (+ aduana VE si aplica): tracking hasta entrega.
+**Cross-fab:** **sin homologación de catálogo** — lab fabrica lente con forma de montura recibida.
 
-**Responsable del producto terminado:** fabricante de lentes (Fab B).
+## SLA ~30 días
+
+Cuenta desde **inicio fabricación de lentes / montaje en montura** — no desde pago ni desde llegada de montura al lab.
 
 ## Checklist operativo (excepciones)
 
 | Situación | Acción ops Zonix |
 |-----------|------------------|
-| Montura no llega al lab en X días | Escalar Fab A; pausar SLA; notificar paciente |
-| Montura dañada en tramo 1 | Reclamo a courier/Fab A; reenvío montura |
-| Lab rechaza montura (incompatible) | Validación catálogo pre-checkout; disputa `[PENDIENTE política]` |
-| Solo montura — sin lab | Envío directo Fab montura o **stock VE** → destino (sin fórmula) |
-| Pedido solo lentes | Sin tramo inter-fabricante |
+| Montura no llega al lab en X días | Escalar fab montura; pausar SLA; notificar paciente |
+| Montura dañada tramo delivery fab | Reclamo delivery/fab montura; reenvío |
+| Lab rechaza montura | Escalar ops; disputa según [POLITICA_COMERCIAL.md](POLITICA_COMERCIAL.md) |
+| Retraso courier internacional | Comunicación proactiva; SLA pausado si causa externa `[PENDIENTE]` |
+| Hub retención 70% no pagado | Ver retención 30 días — [POLITICA_COMERCIAL.md](POLITICA_COMERCIAL.md) |
 
-## Inventario monturas (`frame_only` — §12 founder)
+## Inventario monturas (`frame_only` — §12)
 
 | Modo | Fulfillment |
 |------|-------------|
-| **Stock VE** (top sellers) | Pick/pack local → courier última milla |
-| **Contra pedido** | SupplierOrder al fabricante → courier directo |
+| **Stock VE** | Pick/pack hub → delivery VE |
+| **MTO** | SupplierOrder fab → courier Zonix → hub → delivery VE |
 
-Capital de trabajo en stock top SKUs: ver [LEAN_CANVAS.md](LEAN_CANVAS.md) §7.
+Mismo precio mayor aliado en ambos modos.
 
-## Pendientes founder (§11)
+## §11 — cerrado founder v3
 
-1. **Flete montura→lab:** ¿incluido en PVP, paga Zonix, o Fab montura?
-2. **Courier:** ¿Zonix unifica contrato o cada fab usa el suyo?
-3. **SLA ~30 días `[PENDIENTE §11]`:** ¿desde `paid` o desde montura recibida en lab?
-4. **Catálogo:** reglas cuando SKU montura (Fab A) se combina con lab (Fab B) no homologado.
-5. **Hub VE:** ¿consolidación obligatoria o envío directo lab→paciente?
+> Tabla canónica: [DECISIONES_FOUNDER.md](DECISIONES_FOUNDER.md) §11. Operaciones: matriz excepciones arriba + hub obligatorio.
 
 ## Referencias
 
-- [FLUJOS_OPERATIVOS.md](FLUJOS_OPERATIVOS.md) — flujos 5–6 (6A-stock / 6A-MTO)
-- [DOMINIO_DATOS.md](../DOMINIO_DATOS.md) — entidades logísticas; flags `Frame.in_stock_ve`
-- [POLITICA_COMERCIAL.md](POLITICA_COMERCIAL.md) — disputas multi-tramo, stock VE, Pagos VE + FX §13
-- [POLITICA_CANAL_ALIADO.md](POLITICA_CANAL_ALIADO.md) — §14 canal B2B2C / mayorista
-- [UNIT_ECONOMICS.md](UNIT_ECONOMICS.md) — plantilla margen por `order_type`
-- [AUDIT_FORENSE_2026-06-27.md](../AUDIT_FORENSE_2026-06-27.md) — §11 pendiente founder
+- [FLUJOS_OPERATIVOS.md](FLUJOS_OPERATIVOS.md)
+- [DOMINIO_DATOS.md](../DOMINIO_DATOS.md)
+- [POLITICA_COMERCIAL.md](POLITICA_COMERCIAL.md)
+- [POLITICA_CANAL_ALIADO.md](POLITICA_CANAL_ALIADO.md)
+- [UNIT_ECONOMICS.md](UNIT_ECONOMICS.md)
+
+**Última actualización:** 2026-06-27 (v3 founder)

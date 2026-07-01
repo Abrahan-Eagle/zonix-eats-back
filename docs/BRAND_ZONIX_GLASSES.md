@@ -1,11 +1,14 @@
 # BRAND — Zonix Glasses
 
-> Identidad visual óptica tech (ecosistema Zonix). Tokens Flutter: `lib/features/utils/app_colors.dart` (front).
+> **CANON founder** — aprobado 2026-06-27 ([DECISIONES_FOUNDER.md](MODELO_NEGOCIO/DECISIONES_FOUNDER.md) §16 · [HITL_APROBACION_DOCS.md](HITL_APROBACION_DOCS.md)). Flutter aún no alineado (ver § implementación).
+
+> Identidad visual óptica tech (ecosistema Zonix). Tokens objetivo Flutter: `lib/features/utils/app_colors.dart` (front) — **pendiente migración**.
 
 ## Naming
 
 - **Producto:** Zonix Glasses
 - **Vertical:** Óptica online B2B2C (lentes a medida)
+- **Marketplace monturas:** **web** (navegador) — PDP estilo e-commerce; try-on en galería. Flutter/app móvil no es canal canon de este flujo.
 - **No usar:** “smart glasses”, wearable HUD, copy Eats/Pharma
 
 ## Paleta (propuesta MVP)
@@ -38,7 +41,8 @@ Modo oscuro: navy más profundo `#0B1220`, surface `#1E293B`.
 |----|-------|
 | Mostrar precio desglosado (lente + montura) | Ocultar recargos al checkout |
 | Badge “Requiere fórmula válida” | Vender lentes graduados sin fórmula confirmada |
-| Try-on como ayuda visual | Prometer ajuste clínico exacto solo con IA |
+| Marketplace: fotos producto + detalle con try-on en tu rostro | Solo filtro IA sin fotos reales de montura |
+| Try-on como ayuda visual (varias fotos → preview en detalle) | Prometer ajuste clínico exacto solo con IA |
 | Marca Zonix coherente con ecosistema | Mezclar assets Zonix Pharma/Eats |
 
 ## Iconografía

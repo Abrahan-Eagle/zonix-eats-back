@@ -1,6 +1,7 @@
 # Realineación post-HITL — Feature 001 + dominio multi-proveedor
 
-> **No ejecutar código** hasta founder cierre [CHECKLIST_FOUNDER_S11.md](../../docs/MODELO_NEGOCIO/CHECKLIST_FOUNDER_S11.md) y marque HITL.  
+> **No ejecutar código** hasta cierre HITL **legal/marca + seguridad 001** + OK explícito founder.  
+> **§11 logística:** cerrado founder 2026-06-27 — [CHECKLIST_FOUNDER_S11.md](../../docs/MODELO_NEGOCIO/CHECKLIST_FOUNDER_S11.md).  
 > Este documento define **qué cambiar** en backend/spec 001 para alinear con [DOMINIO_DATOS.md](../../docs/DOMINIO_DATOS.md).
 
 ## Objetivo

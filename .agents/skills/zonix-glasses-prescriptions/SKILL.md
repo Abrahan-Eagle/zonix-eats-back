@@ -23,7 +23,9 @@ allowed-tools: [Read, Edit, Write, Glob, Grep, Bash]
 
 1. Partner o paciente sube documento o ingresa campos manualmente.
 2. OCR (opt-in config) produce borrador `pending_review`.
-3. Profesional (capa a) aprueba → `approved` (requiere `pd`).
+3. **Capa (a)** — aprobación clínica antes de `approved`:
+   - **Presencial (óptica aliada / sede):** optometrista u oftalmólogo habilitado.
+   - **Online (Zonix directo o partner remoto):** revisión ops/partner sobre OCR+manual — **sin optometrista Zonix**; `[PENDIENTE legal VE]`.
 4. Paciente (capa c) confirma → `patient_confirmed`.
 5. Checkout futuro → `locked_for_order` (post OpticalOrder).
 6. Historial append-only (`superseded` al reemplazar).

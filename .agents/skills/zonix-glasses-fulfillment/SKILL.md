@@ -54,8 +54,8 @@ Ver enum completo en [DOMINIO_DATOS.md](../../../docs/DOMINIO_DATOS.md).
 
 ## SLA
 
-Meta entrega ~30 días — **origen del reloj `[PENDIENTE §11]`** (desde `paid` vs montura en lab). Monitorear por fabricante/courier en admin.
+Meta entrega ~30 días — **origen del reloj:** `sla_started_at` = inicio fabricación lentes en montura (`in_lens_production` / equivalente) — [CHECKLIST_FOUNDER_S11.md](../../../docs/MODELO_NEGOCIO/CHECKLIST_FOUNDER_S11.md) §11. Monitorear por fabricante/courier en admin.
 
 ## Logística
 
-INCOTERM, aduanas y quién contrata cada courier: `[PENDIENTE §11]` — ver [CHECKLIST_FOUNDER_S11.md](../../../docs/MODELO_NEGOCIO/CHECKLIST_FOUNDER_S11.md).
+INCOTERM, aduanas y quién contrata cada courier: ver [CADENA_SUMINISTRO.md](../../../docs/MODELO_NEGOCIO/CADENA_SUMINISTRO.md) y [CHECKLIST_FOUNDER_S11.md](../../../docs/MODELO_NEGOCIO/CHECKLIST_FOUNDER_S11.md) §11 (cerrado founder 2026-06-27).
