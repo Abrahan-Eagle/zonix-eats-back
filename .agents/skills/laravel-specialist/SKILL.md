@@ -10,7 +10,12 @@ metadata:
   role: specialist
   scope: implementation
   output-format: code
-  related-skills: fullstack-guardian, test-master, devops-engineer, security-reviewer
+  related-skills:
+    - security
+    - test-driven-development
+    - mysql-best-practices
+    - api-design-principles
+    - systematic-debugging
 ---
 
 # Laravel Specialist
