@@ -1,6 +1,8 @@
 ---
 name: security
 description: OWASP security patterns, secrets management, security testing
+license: UNLICENSED
+
 ---
 
 # Security Skill

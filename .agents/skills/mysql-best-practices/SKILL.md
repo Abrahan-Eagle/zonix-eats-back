@@ -1,6 +1,8 @@
 ---
 name: mysql-best-practices
 description: MySQL development best practices for schema design, query optimization, and database administration
+license: UNLICENSED
+
 ---
 
 # MySQL Best Practices
