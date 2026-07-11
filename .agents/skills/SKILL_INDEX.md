@@ -17,7 +17,7 @@
 | `cognitive-doc-design-ops` | local | passthrough | Redactar o mejorar README, RFC, onboarding o guía; Escribir descripción de PR o notas para review… |
 | `comment-writer-ops` | local | passthrough | Redactar comentario de PR o issue; Escribir feedback de code review para humano… |
 | `context-packs-ops` | local | passthrough | Modo research; Modo produce… |
-| `context-updater` | local | passthrough | — |
+| `context-updater` | local | passthrough | Cerrar sesión |
 | `deep-interview-ops` | local | overlay | Requisitos ambiguos |
 | `docs-alignment-ops` | local | passthrough | Actualizar docs tras cambio de código; Verificar que docs igualan comportamiento actual… |
 | `doubt-driven-development` | local | passthrough | doubt-driven revisión adversarial; Alta stakes verificar antes de commit… |
@@ -49,7 +49,7 @@
 | `skill-creator` | local | passthrough | — |
 | `software-architecture` | local | passthrough | — |
 | `sql-optimization-patterns` | local | passthrough | — |
-| `strategic-compact-ops` | local | passthrough | Compactar contexto; Sesión larga sugerir compactación |
+| `strategic-compact-ops` | local | passthrough | Compactar contexto; Sesión larga sugerir compactación… |
 | `stripe-integration` | local | local-only | — |
 | `structured-commits-ops` | local | overlay | Crear commit |
 | `systematic-debugging` | local | passthrough | Encontrar bug o test fallido |
@@ -59,7 +59,7 @@
 | `verification-before-completion` | local | passthrough | Terminar módulo; Crear commit |
 | `webapp-testing` | local | passthrough | — |
 | `work-unit-commits-ops` | local | passthrough | Dividir implementación en commits reviewables; Preparar commits antes de abrir PR… |
-| `writing-plans` | local | passthrough | Planificar desarrollo |
+| `writing-plans` | local | passthrough | Planificar desarrollo; Iniciar módulo |
 | `zonix-glasses-api-patterns` | local | local-only | Nuevo endpoint Zonix Glasses; Contrato API óptica |
 | `zonix-glasses-fulfillment` | local | local-only | — |
 | `zonix-glasses-partners` | local | local-only | — |

@@ -185,6 +185,7 @@ Dominio exclusivo (no en manifest): `zonix-glasses-*`.
 | Auditoría módulo | `fan-out-synthesize-ops` |
 | Buscar contexto previo mem_search mem_context | `engram-memory-protocol` |
 | Cambio API CLI setup que afecta documentación | `docs-alignment-ops` |
+| Cerrar sesión | `context-updater` |
 | Cierre sesión con mem_session_summary | `engram-memory-protocol` |
 | Clasificar PRs merge request-changes close | `backlog-triage-ops` |
 | Code review | `code-review-playbook` |
@@ -194,6 +195,7 @@ Dominio exclusivo (no en manifest): `zonix-glasses-*`.
 | Comando git destructivo | `git-guardrails-ops` |
 | Compactar contexto | `strategic-compact-ops` |
 | Compactar o traspasar sesion | `handoff` |
+| Compactar o traspasar sesion | `strategic-compact-ops` |
 | Condiciones de terminación bucle autónomo | `human-in-the-loop-ops` |
 | Configurar NotebookLM MCP en Cursor | `notebooklm-router` |
 | Configurar engram en Cursor | `engram-router` |
@@ -203,6 +205,7 @@ Dominio exclusivo (no en manifest): `zonix-glasses-*`.
 | Crear commit | `git-commit` |
 | Crear commit | `structured-commits-ops` |
 | Crear commit | `verification-before-completion` |
+| Crear commit | `work-unit-commits-ops` |
 | Crear o preparar pull request | `branch-pr-ops` |
 | Cualquier tarea no trivial | `fan-out-synthesize-ops` |
 | Cualquier tarea no trivial | `jarvis-experts` |
@@ -232,6 +235,7 @@ Dominio exclusivo (no en manifest): `zonix-glasses-*`.
 | Iniciar módulo | `brainstorming-ops` |
 | Iniciar módulo | `jarvis-core` |
 | Iniciar módulo | `task-pipeline-ops` |
+| Iniciar módulo | `writing-plans` |
 | Iniciar sesión | `session-startup-ops` |
 | Investigar bug | `fan-out-synthesize-ops` |
 | Iterar hasta lograr un objetivo medible | `agent-loop-engineering` |
